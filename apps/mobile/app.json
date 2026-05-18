@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "MODUS",
+    "slug": "modus-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"]
+  }
+}

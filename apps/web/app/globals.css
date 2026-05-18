@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* react-grid-layout */
+@import 'react-grid-layout/css/styles.css';
+
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a0f;
+  color: #e8e8f0;
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e1e2e;
+  border-radius: 3px;
+}
+
+/* react-grid-layout overrides */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(124, 58, 237, 0.15) !important;
+  border-radius: 16px;
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-right-color: rgba(124, 58, 237, 0.6);
+  border-bottom-color: rgba(124, 58, 237, 0.6);
+  width: 7px;
+  height: 7px;
+}
+
+/* Marketing hero orbs */
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: orb-drift 12s ease-in-out infinite;
+  pointer-events: none;
+}
+.hero-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%);
+  animation-delay: 0s;
+  animation-duration: 14s;
+}
+.hero-orb-2 {
+  width: 500px;
+  height: 500px;
+  top: 10%;
+  right: -80px;
+  background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%);
+  animation-delay: -4s;
+  animation-duration: 18s;
+}
+.hero-orb-3 {
+  width: 400px;
+  height: 400px;
+  bottom: 0;
+  left: 30%;
+  background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+  animation-delay: -8s;
+  animation-duration: 16s;
+}
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 30px) scale(0.96); }
+}
