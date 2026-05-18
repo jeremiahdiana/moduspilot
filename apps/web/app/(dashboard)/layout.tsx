@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span>◆</span> Upgrade Plan
               </Link>
               <Link
-                href="/"
+                href="/how-it-works"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors border-t border-border"
               >
