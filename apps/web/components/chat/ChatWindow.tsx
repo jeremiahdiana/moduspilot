@@ -45,6 +45,8 @@ export default function ChatWindow({
     return unsub;
   }, []);
 
+  const [chatError, setChatError] = useState<string | null>(null);
+
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
     api: '/api/chat',
     initialMessages,
@@ -54,6 +56,16 @@ export default function ChatWindow({
       personalContext: personalContext ?? '',
       responseStyle: responseStyle ?? 'normal',
       customStyle: customStyle ?? '',
+    },
+    onError: (err) => {
+      const msg = err?.message ?? '';
+      if (msg.includes('Rate limit') || msg.includes('TPD') || msg.includes('tokens per day')) {
+        setChatError('Daily message limit reached. Try again in a few hours.');
+      } else if (msg.includes('rate limit') || msg.includes('429')) {
+        setChatError('Too many messages right now. Wait a minute and try again.');
+      } else {
+        setChatError('Something went wrong. Please try again.');
+      }
     },
   });
 
@@ -144,6 +156,13 @@ export default function ChatWindow({
         )}
         <div ref={bottomRef} />
       </div>
+
+      {chatError && (
+        <div className="mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
+          <p className="text-sm text-red-400">{chatError}</p>
+          <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300 text-xs shrink-0">✕</button>
+        </div>
+      )}
 
       {isAtLimit ? (
         <div className="px-8 py-4 border-t border-border text-center">
