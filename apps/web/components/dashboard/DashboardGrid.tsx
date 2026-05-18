@@ -9,6 +9,8 @@ import HabitTracker from './HabitTracker';
 import TaskList from './TaskList';
 import StreakWidget from './StreakWidget';
 
+const CORE_TYPES: DashboardWidget['type'][] = ['goals', 'habits', 'tasks', 'streak'];
+
 const CATALOG: { type: DashboardWidget['type']; title: string; available: boolean; icon: string }[] = [
   { type: 'goals',      title: 'Goals',      available: true,  icon: '◈' },
   { type: 'habits',     title: 'Habits',     available: true,  icon: '◉' },
@@ -158,13 +160,15 @@ export default function DashboardGrid() {
                 </button>
                 {openMenu === widget.id && (
                   <div className="absolute right-0 top-7 z-50 bg-panel border border-border rounded-xl overflow-hidden shadow-lg w-36">
-                    <button
-                      onMouseDown={e => e.stopPropagation()}
-                      onClick={e => { e.stopPropagation(); startRename(widget); }}
-                      className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-bg transition-colors text-left"
-                    >
-                      <span className="text-xs">✎</span> Rename
-                    </button>
+                    {!CORE_TYPES.includes(widget.type) && (
+                      <button
+                        onMouseDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); startRename(widget); }}
+                        className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-bg transition-colors text-left"
+                      >
+                        <span className="text-xs">✎</span> Rename
+                      </button>
+                    )}
                     <button
                       onMouseDown={e => e.stopPropagation()}
                       onClick={e => { e.stopPropagation(); removeWidget(widget.id); setOpenMenu(null); }}

@@ -34,6 +34,8 @@ export function useDashboard(uid: string | null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setWidgets([]);
+    setLoading(true);
     if (!uid) { setLoading(false); return; }
     getDoc(doc(db, 'users', uid)).then(snap => {
       const saved = snap.data()?.dashboardWidgets as DashboardWidget[] | undefined;
