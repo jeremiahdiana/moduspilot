@@ -4,11 +4,11 @@ import { useState } from 'react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 
 const STYLES: Array<{ key: UserSettings['responseStyle']; label: string; desc: string }> = [
-  { key: 'normal', label: 'Normal', desc: 'Balanced, conversational responses.' },
-  { key: 'concise', label: 'Concise', desc: 'Short and direct. No fluff.' },
-  { key: 'formal', label: 'Formal', desc: 'Professional tone with structured output.' },
-  { key: 'learning', label: 'Learning', desc: 'Explains concepts step by step.' },
-  { key: 'explanatory', label: 'Explanatory', desc: 'Detailed with context and reasoning.' },
+  { key: 'normal', label: 'Direct', desc: 'Straight to the answer. No softening or filler.' },
+  { key: 'concise', label: 'Concise', desc: '1–3 sentences max. Zero elaboration.' },
+  { key: 'formal', label: 'Strategic', desc: 'Big-picture framing. Executive-level analysis.' },
+  { key: 'learning', label: 'Coach', desc: 'Challenges assumptions. Holds you accountable.' },
+  { key: 'explanatory', label: 'Supportive', desc: 'Warm and encouraging, never sycophantic.' },
   { key: 'custom', label: 'Custom', desc: 'Define your own style below.' },
 ];
 

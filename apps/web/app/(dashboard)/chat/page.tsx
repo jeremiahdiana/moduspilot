@@ -22,7 +22,7 @@ export default function ChatPage() {
   const isGuest = !uid;
 
   const { conversations, loading, createConversation, saveMessages, deleteConversation, restoreConversation } = useConversations(uid);
-  const { settings } = useUserSettings(user);
+  const { settings, loading: settingsLoading } = useUserSettings(user);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -228,7 +228,7 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden">
-          {loading && !isGuest ? (
+          {(loading || settingsLoading) && !isGuest ? (
             <div className="flex items-center justify-center h-full">
               <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>

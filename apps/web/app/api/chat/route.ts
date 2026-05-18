@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     if (uid && queryText && process.env.PINECONE_API_KEY) {
       try {
         const matches = await queryMemory(uid, queryText, 6);
-        const relevant = matches.filter(m => (m.score ?? 0) > 0.40);
+        const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
         if (relevant.length > 0) {
           memoryContext = '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +
             relevant.map(m => `- ${String(m.metadata?.text ?? '')}`).join('\n');
