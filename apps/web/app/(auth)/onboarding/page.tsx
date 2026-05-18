@@ -18,8 +18,8 @@ const slide = {
   initial:  { opacity: 0, x: 40 },
   animate:  { opacity: 1, x: 0 },
   exit:     { opacity: 0, x: -40 },
-  transition: { duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] },
-};
+  transition: { duration: 0.28 },
+} as const;
 
 const fadeUp = {
   initial:  { opacity: 0, y: 20 },
@@ -525,7 +525,7 @@ export default function OnboardingPage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.28 }}
             className="space-y-6"
           >
             <div>
