@@ -5,6 +5,7 @@ import ChatWindow from '@/components/chat/ChatWindow';
 import ConversationList from '@/components/chat/ConversationList';
 import { useConversations } from '@/hooks/useConversations';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import PaywallModal from '@/components/chat/PaywallModal';
 import { doc, getDoc, updateDoc, setDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -21,6 +22,7 @@ export default function ChatPage() {
   const isGuest = !uid;
 
   const { conversations, loading, createConversation, saveMessages, deleteConversation, restoreConversation } = useConversations(uid);
+  const { settings } = useUserSettings(user);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -240,6 +242,9 @@ export default function ChatPage() {
             isGuest={isGuest}
             isAtLimit={isAtLimit}
             onShowPaywall={() => setShowPaywall(true)}
+            personalContext={settings.personalContext}
+            responseStyle={settings.responseStyle}
+            customStyle={settings.customStyle}
           />
           )}
         </div>

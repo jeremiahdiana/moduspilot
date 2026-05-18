@@ -15,6 +15,9 @@ interface Props {
   isGuest?: boolean;
   isAtLimit?: boolean;
   onShowPaywall?: () => void;
+  personalContext?: string;
+  responseStyle?: string;
+  customStyle?: string;
 }
 
 export default function ChatWindow({
@@ -25,6 +28,9 @@ export default function ChatWindow({
   isGuest,
   isAtLimit,
   onShowPaywall,
+  personalContext,
+  responseStyle,
+  customStyle,
 }: Props) {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -44,6 +50,11 @@ export default function ChatWindow({
     initialMessages,
     id: conversationId ?? 'guest',
     headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    body: {
+      personalContext: personalContext ?? '',
+      responseStyle: responseStyle ?? 'normal',
+      customStyle: customStyle ?? '',
+    },
   });
 
   const bottomRef = useRef<HTMLDivElement>(null);

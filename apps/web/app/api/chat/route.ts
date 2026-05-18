@@ -7,6 +7,7 @@ import { queryMemory, upsertMemory } from '@/lib/pinecone';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
+  concise:     'RESPONSE STYLE: Ultra-short responses only. One to three sentences max. No explanations unless explicitly asked.',
   formal:      'RESPONSE STYLE: Adopt a strategic advisor tone. Big-picture thinking, sharp analysis, executive-level framing.',
   learning:    'RESPONSE STYLE: Act as a sharp coach. Push the user, hold them accountable, challenge assumptions. Don\'t let them off the hook.',
   explanatory: 'RESPONSE STYLE: Be warm and encouraging but stay honest. Supportive, not sycophantic.',
@@ -32,19 +33,23 @@ export async function POST(req: Request) {
       }
     }
 
-    const body = await req.json() as { messages: CoreMessage[] };
+    const body = await req.json() as { messages: CoreMessage[]; personalContext?: string; responseStyle?: string; customStyle?: string };
 
-    // Load user settings from Firestore
-    let personalContext = '';
-    let responseStyle = '';
-    if (uid) {
+    // Use client-sent settings (most reliable — client already has them loaded)
+    // Fall back to Firestore admin fetch only if not provided
+    let personalContext = body.personalContext ?? '';
+    let responseStyle = body.responseStyle ?? '';
+    let customStyle = body.customStyle ?? '';
+
+    if (uid && (!personalContext && !responseStyle)) {
       try {
         const userDoc = await adminDb.collection('users').doc(uid).get();
         const settings = userDoc.data()?.settings ?? {};
         personalContext = settings.personalContext ?? '';
         responseStyle = settings.responseStyle ?? '';
+        customStyle = settings.customStyle ?? '';
       } catch (e) {
-        console.error('[chat] failed to load user settings:', e);
+        console.error('[chat] failed to load user settings from admin:', e);
       }
     }
 
@@ -57,7 +62,7 @@ export async function POST(req: Request) {
     if (uid && queryText && process.env.PINECONE_API_KEY) {
       try {
         const matches = await queryMemory(uid, queryText, 6);
-        const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
+        const relevant = matches.filter(m => (m.score ?? 0) > 0.40);
         if (relevant.length > 0) {
           memoryContext = '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +
             relevant.map(m => `- ${String(m.metadata?.text ?? '')}`).join('\n');
@@ -76,9 +81,13 @@ export async function POST(req: Request) {
     const userContextBlock = personalContext
       ? `\n\nUSER CONTEXT (always keep this in mind):\n${personalContext}`
       : '';
-    const styleBlock = responseStyle && STYLE_INSTRUCTIONS[responseStyle]
-      ? `\n\n${STYLE_INSTRUCTIONS[responseStyle]}`
-      : '';
+
+    let styleBlock = '';
+    if (responseStyle === 'custom' && customStyle) {
+      styleBlock = `\n\nRESPONSE STYLE: ${customStyle}`;
+    } else if (responseStyle && STYLE_INSTRUCTIONS[responseStyle]) {
+      styleBlock = `\n\n${STYLE_INSTRUCTIONS[responseStyle]}`;
+    }
 
     const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + memoryContext;
 
