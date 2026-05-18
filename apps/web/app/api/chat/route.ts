@@ -2,8 +2,15 @@ import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { CoreMessage } from 'ai';
 import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
-import { adminAuth } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { queryMemory, upsertMemory } from '@/lib/pinecone';
+
+const STYLE_INSTRUCTIONS: Record<string, string> = {
+  normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
+  formal:      'RESPONSE STYLE: Adopt a strategic advisor tone. Big-picture thinking, sharp analysis, executive-level framing.',
+  learning:    'RESPONSE STYLE: Act as a sharp coach. Push the user, hold them accountable, challenge assumptions. Don\'t let them off the hook.',
+  explanatory: 'RESPONSE STYLE: Be warm and encouraging but stay honest. Supportive, not sycophantic.',
+};
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +33,20 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json() as { messages: CoreMessage[] };
+
+    // Load user settings from Firestore
+    let personalContext = '';
+    let responseStyle = '';
+    if (uid) {
+      try {
+        const userDoc = await adminDb.collection('users').doc(uid).get();
+        const settings = userDoc.data()?.settings ?? {};
+        personalContext = settings.personalContext ?? '';
+        responseStyle = settings.responseStyle ?? '';
+      } catch (e) {
+        console.error('[chat] failed to load user settings:', e);
+      }
+    }
 
     // Find last user message for memory retrieval
     const lastUserMsg = [...body.messages].reverse().find(m => m.role === 'user');
@@ -51,9 +72,19 @@ export async function POST(req: Request) {
       apiKey: key,
     });
 
+    // Build system prompt with user context always included
+    const userContextBlock = personalContext
+      ? `\n\nUSER CONTEXT (always keep this in mind):\n${personalContext}`
+      : '';
+    const styleBlock = responseStyle && STYLE_INSTRUCTIONS[responseStyle]
+      ? `\n\n${STYLE_INSTRUCTIONS[responseStyle]}`
+      : '';
+
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + memoryContext;
+
     const result = streamText({
       model: groq('llama-3.3-70b-versatile'),
-      system: MODUS_SYSTEM_PROMPT + memoryContext,
+      system: fullSystemPrompt,
       messages: body.messages,
       maxTokens: 2048,
       onFinish: async ({ text }) => {
