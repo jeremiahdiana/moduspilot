@@ -12,7 +12,7 @@ import { db } from '@/lib/firebase';
 import type { Message } from 'ai';
 
 const FREE_DAILY_LIMIT = 20;
-const TRIAL_DAYS = 30;
+const TRIAL_DAYS = 4;
 
 type Plan = 'free' | 'modus' | 'pilot';
 
