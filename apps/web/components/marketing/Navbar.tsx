@@ -25,15 +25,9 @@ export default function Navbar() {
         <span className="text-xl font-black tracking-widest text-brand">MODUS</span>
 
         <div className="hidden md:flex items-center gap-8">
-          {['Features', 'How It Works', 'Pricing'].map((label, i) => (
-            <a
-              key={label}
-              href={`#${label.toLowerCase().replace(' ', '-')}`}
-              className="text-sm text-muted hover:text-text transition-colors"
-            >
-              {label}
-            </a>
-          ))}
+          <a href="#features" className="text-sm text-muted hover:text-text transition-colors">Features</a>
+          <a href="/how-it-works" className="text-sm text-muted hover:text-text transition-colors">How It Works</a>
+          <a href="#pricing" className="text-sm text-muted hover:text-text transition-colors">Pricing</a>
         </div>
 
         <div className="flex items-center gap-3">
