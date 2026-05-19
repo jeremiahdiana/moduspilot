@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 
 interface Props {
   /** Always show solid background — use on inner pages (how-it-works, pricing) */
@@ -60,6 +61,7 @@ export default function Navbar({ solid = false }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
+          <AnimatedThemeToggler />
           <Link href="/login" className="text-sm text-muted hover:text-text transition-colors">
             Sign In
           </Link>
