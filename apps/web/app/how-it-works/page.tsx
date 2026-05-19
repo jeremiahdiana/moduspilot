@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Navbar from '@/components/marketing/Navbar';
 
 // ── animation helpers ───────────────────────────────────────────────────────
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -287,19 +288,9 @@ export default function HowItWorksPage() {
   const [activeTab, setActiveTab] = useState('morning');
 
   return (
-    <div className="bg-[#0a0a14] text-white min-h-screen">
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-white/10 max-w-5xl mx-auto">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center">
-            <span className="text-white text-sm font-black">M</span>
-          </div>
-          <span className="text-sm font-bold text-white">MODUS</span>
-        </Link>
-        <Link href="/login" className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-xl transition-colors">
-          Get started →
-        </Link>
-      </nav>
+    <div className="bg-bg text-text min-h-screen">
+      <Navbar solid />
+      <div className="pt-16">
 
       {/* Section 1 — Hero */}
       <Section>
@@ -516,6 +507,7 @@ export default function HowItWorksPage() {
           <p className="text-xs text-gray-500">4 days free. No credit card needed.</p>
         </motion.div>
       </Section>
+      </div>
     </div>
   );
 }

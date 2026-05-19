@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Navbar from '@/components/marketing/Navbar';
 
 const PLANS = [
   {
@@ -141,23 +142,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function PricingPage() {
   return (
-    <main className="bg-[#0a0a14] text-white min-h-screen overflow-x-hidden">
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a14]/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-xl font-black tracking-widest text-[#7c3aed]">MODUS</Link>
-          <div className="flex items-center gap-4">
-            <Link href="/how-it-works" className="text-sm text-white/50 hover:text-white transition-colors hidden md:block">How It Works</Link>
-            <Link href="/login" className="text-sm text-white/50 hover:text-white transition-colors">Sign In</Link>
-            <Link
-              href="/login"
-              className="px-4 py-2 bg-[#7c3aed] text-white text-sm font-semibold rounded-lg hover:bg-[#6d28d9] transition-colors"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <main className="bg-bg text-text min-h-screen overflow-x-hidden">
+      <Navbar solid />
 
       <div className="pt-32 pb-24 px-6">
         <div className="max-w-6xl mx-auto">
