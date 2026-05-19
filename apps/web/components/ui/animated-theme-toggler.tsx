@@ -74,6 +74,7 @@ export function AnimatedThemeToggler({
   const toggle = () => {
     const dark = document.documentElement.classList.toggle("dark");
     setIsDark(dark);
+    localStorage.setItem("modus-theme", dark ? "dark" : "light");
     if (sound) tick(lastSnd);
   };
 

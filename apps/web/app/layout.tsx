@@ -13,6 +13,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        {/* Inject theme before first paint to avoid flash. Defaults to dark. */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            var t = localStorage.getItem('modus-theme');
+            if (t === 'light') return;
+            document.documentElement.classList.add('dark');
+          })();
+        ` }} />
+      </head>
       <body>
         <QueryProvider>
           {children}

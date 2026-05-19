@@ -156,10 +156,10 @@ export default function PricingPage() {
             className="text-center mb-8"
           >
             <p className="text-xs font-bold tracking-widest text-[#7c3aed] uppercase mb-4">Pricing</p>
-            <h1 className="text-5xl md:text-6xl font-black text-white mb-5 leading-none">
+            <h1 className="text-5xl md:text-6xl font-black text-text mb-5 leading-none">
               Your Modus.<br />Your Plan.
             </h1>
-            <p className="text-white/50 text-lg max-w-xl mx-auto leading-relaxed">
+            <p className="text-muted text-lg max-w-xl mx-auto leading-relaxed">
               Start free. Scale when it earns its keep.
             </p>
           </motion.div>
@@ -171,8 +171,8 @@ export default function PricingPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="max-w-3xl mx-auto mb-20"
           >
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-8">
-              <p className="text-xs font-bold tracking-widest text-white/30 uppercase mb-6">Why these numbers</p>
+            <div className="bg-panel border border-border rounded-2xl p-8">
+              <p className="text-xs font-bold tracking-widest text-muted uppercase mb-6">Why these numbers</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {COMPARISONS.map(c => (
                   <div
@@ -180,20 +180,20 @@ export default function PricingPage() {
                     className={`rounded-xl p-5 ${
                       c.highlight
                         ? 'bg-[#7c3aed]/20 border border-[#7c3aed]/40'
-                        : 'bg-white/[0.03] border border-white/5'
+                        : 'bg-bg border border-border'
                     }`}
                   >
-                    <p className={`text-2xl font-black mb-1 ${c.highlight ? 'text-[#7c3aed]' : 'text-white/60'}`}>
+                    <p className={`text-2xl font-black mb-1 ${c.highlight ? 'text-brand' : 'text-muted'}`}>
                       {c.price}
                     </p>
-                    <p className={`text-sm font-semibold mb-1 ${c.highlight ? 'text-white' : 'text-white/50'}`}>
+                    <p className={`text-sm font-semibold mb-1 ${c.highlight ? 'text-text' : 'text-muted'}`}>
                       {c.tool}
                     </p>
-                    <p className={`text-xs ${c.highlight ? 'text-white/70' : 'text-white/30'}`}>{c.what}</p>
+                    <p className={`text-xs ${c.highlight ? 'text-text/70' : 'text-muted'}`}>{c.what}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-sm text-white/40 mt-6 leading-relaxed">
+              <p className="text-sm text-muted mt-6 leading-relaxed">
                 Superhuman charges $30/mo for email alone. A part-time assistant runs $1,500+/mo.
                 MODUS at $24 replaces an entire cognitive workflow category — goals, tasks, habits, triage, memory, and execution in one place.
                 PILOT at $59 is priced against human executive assistance.
@@ -212,34 +212,34 @@ export default function PricingPage() {
                 className={`relative rounded-2xl flex flex-col border ${
                   plan.popular
                     ? 'bg-[#7c3aed]/10 border-[#7c3aed]/50 shadow-[0_0_60px_rgba(124,58,237,0.15)]'
-                    : 'bg-white/[0.03] border-white/10'
+                    : 'bg-panel border-border'
                 }`}
               >
                 {plan.popular && (
                   <>
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#7c3aed] to-transparent" />
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent" />
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                      <span className="bg-[#7c3aed] text-white text-[11px] font-bold px-3 py-1 rounded-full">Most Popular</span>
+                      <span className="bg-brand text-white text-[11px] font-bold px-3 py-1 rounded-full">Most Popular</span>
                     </div>
                   </>
                 )}
 
-                <div className="p-8 border-b border-white/5">
-                  <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-3">{plan.tier}</p>
-                  <p className="text-4xl font-black text-white mb-1">
-                    {plan.price}<span className="text-base font-normal text-white/40">{plan.period}</span>
+                <div className="p-8 border-b border-border">
+                  <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">{plan.tier}</p>
+                  <p className="text-4xl font-black text-text mb-1">
+                    {plan.price}<span className="text-base font-normal text-muted">{plan.period}</span>
                   </p>
-                  <p className="text-sm text-white/40 mt-2 leading-relaxed">{plan.sub}</p>
+                  <p className="text-sm text-muted mt-2 leading-relaxed">{plan.sub}</p>
                 </div>
 
                 <div className="p-8 flex-1">
                   <ul className="space-y-3">
                     {plan.features.map(f => (
                       <li key={f.label} className="flex items-start gap-2.5 text-sm">
-                        <span className={`mt-0.5 shrink-0 font-bold ${f.included ? 'text-[#7c3aed]' : 'text-white/20'}`}>
+                        <span className={`mt-0.5 shrink-0 font-bold ${f.included ? 'text-brand' : 'text-muted/40'}`}>
                           {f.included ? '◆' : '✕'}
                         </span>
-                        <span className={f.included ? 'text-white/70' : 'text-white/25 line-through'}>
+                        <span className={f.included ? 'text-text/80' : 'text-muted/40 line-through'}>
                           {f.label}
                         </span>
                       </li>
@@ -253,7 +253,7 @@ export default function PricingPage() {
                     className={`block w-full py-3.5 rounded-xl text-sm font-bold text-center transition-all ${
                       plan.popular
                         ? 'bg-[#7c3aed] text-white hover:bg-[#6d28d9] hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]'
-                        : 'border border-white/10 text-white/50 hover:text-white hover:border-[#7c3aed]/40'
+                        : 'border border-border text-muted hover:text-text hover:border-brand/40'
                     }`}
                   >
                     {plan.cta}
@@ -268,7 +268,7 @@ export default function PricingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-center text-sm text-white/30 mb-24"
+            className="text-center text-sm text-muted mb-24"
           >
             Annual billing available — 2 months free on MODUS and PILOT.
           </motion.p>
@@ -282,8 +282,8 @@ export default function PricingPage() {
             className="mb-24"
           >
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-black text-white mb-3">What you actually get</h2>
-              <p className="text-white/40 text-base">Not features. A different way of operating.</p>
+              <h2 className="text-3xl md:text-4xl font-black text-text mb-3">What you actually get</h2>
+              <p className="text-muted text-base">Not features. A different way of operating.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {[
@@ -320,11 +320,11 @@ export default function PricingPage() {
               ].map(item => (
                 <div
                   key={item.title}
-                  className="bg-white/[0.03] border border-white/5 rounded-xl p-6 hover:border-[#7c3aed]/30 transition-colors"
+                  className="bg-panel border border-border rounded-xl p-6 hover:border-brand/30 transition-colors"
                 >
                   <div className="text-2xl text-[#7c3aed] mb-3">{item.icon}</div>
-                  <p className="text-sm font-semibold text-white mb-2">{item.title}</p>
-                  <p className="text-sm text-white/40 leading-relaxed">{item.body}</p>
+                  <p className="text-sm font-semibold text-text mb-2">{item.title}</p>
+                  <p className="text-sm text-muted leading-relaxed">{item.body}</p>
                 </div>
               ))}
             </div>
@@ -338,7 +338,7 @@ export default function PricingPage() {
             transition={{ duration: 0.6 }}
             className="max-w-2xl mx-auto mb-24"
           >
-            <h2 className="text-3xl font-black text-white mb-10 text-center">Questions</h2>
+            <h2 className="text-3xl font-black text-text mb-10 text-center">Questions</h2>
             <div>
               {FAQS.map(f => (
                 <FAQItem key={f.q} q={f.q} a={f.a} />
@@ -354,8 +354,8 @@ export default function PricingPage() {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">Ready to run differently?</h2>
-            <p className="text-white/40 text-lg mb-8 max-w-md mx-auto">
+            <h2 className="text-4xl md:text-5xl font-black text-text mb-4">Ready to run differently?</h2>
+            <p className="text-muted text-lg mb-8 max-w-md mx-auto">
               Start free. No credit card. Cancel anytime. Your first 30 days are fully unlocked.
             </p>
             <Link
@@ -364,7 +364,7 @@ export default function PricingPage() {
             >
               Make Your Modus — It&apos;s Free
             </Link>
-            <p className="text-white/20 text-xs mt-4">30-day full trial · No credit card required</p>
+            <p className="text-muted text-xs mt-4">30-day full trial · No credit card required</p>
           </motion.div>
 
         </div>

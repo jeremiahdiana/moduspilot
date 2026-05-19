@@ -9,13 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: '#0a0a0f',
-        panel: '#111118',
-        border: '#1e1e2e',
+        bg: 'rgb(var(--color-bg) / <alpha-value>)',
+        panel: 'rgb(var(--color-panel) / <alpha-value>)',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
         brand: '#7C3AED',
         'brand-light': '#a78bfa',
-        text: '#e8e8f0',
-        muted: '#6b6b80',
+        text: 'rgb(var(--color-text) / <alpha-value>)',
+        muted: 'rgb(var(--color-muted) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],

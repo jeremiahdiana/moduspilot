@@ -5,8 +5,22 @@
 /* react-grid-layout */
 @import 'react-grid-layout/css/styles.css';
 
+/* Light mode (default — dark class added by JS if preference is dark) */
 :root {
   --font-inter: 'Inter', system-ui, sans-serif;
+  --color-bg: 247 247 251;
+  --color-panel: 255 255 255;
+  --color-border: 226 226 236;
+  --color-text: 13 13 20;
+  --color-muted: 107 107 128;
+}
+
+.dark {
+  --color-bg: 10 10 15;
+  --color-panel: 17 17 24;
+  --color-border: 30 30 46;
+  --color-text: 232 232 240;
+  --color-muted: 107 107 128;
 }
 
 * {
@@ -14,8 +28,8 @@
 }
 
 body {
-  background: #0a0a0f;
-  color: #e8e8f0;
+  background: rgb(var(--color-bg));
+  color: rgb(var(--color-text));
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
 }
@@ -27,7 +41,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e1e2e;
+  background: rgb(var(--color-border));
   border-radius: 3px;
 }
 

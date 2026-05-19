@@ -296,14 +296,14 @@ export default function HowItWorksPage() {
       <Section>
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Eyebrow text="How it works" />
-          <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-6">
+          <h1 className="text-4xl md:text-5xl font-black text-text leading-tight mb-6">
             An AI that runs your day.<br />Not one you have to run.
           </h1>
           <div className="max-w-2xl space-y-4">
-            <p className="text-gray-400 text-lg leading-relaxed">
+            <p className="text-muted text-lg leading-relaxed">
               ChatGPT and Claude are tools. Powerful ones — but tools. You go to them, ask a question, get an answer, and then you go do the work yourself. MODUS is built on a different premise: your AI should be the one taking action, not just giving advice.
             </p>
-            <p className="text-gray-400 text-lg leading-relaxed">
+            <p className="text-muted text-lg leading-relaxed">
               MODUS is your executive assistant. It manages your schedule, sends your emails, sets your reminders, texts you when something needs your attention, and surfaces decisions for your approval — all from a single conversation.
             </p>
           </div>
@@ -316,8 +316,8 @@ export default function HowItWorksPage() {
       {/* Section 2 — 4 steps */}
       <Section>
         <Eyebrow text="The flow" />
-        <h2 className="text-3xl font-black text-white mb-3">One message. Everything handled.</h2>
-        <p className="text-gray-400 mb-12 max-w-xl">You don't navigate menus or open different apps. You tell MODUS what you need and it moves.</p>
+        <h2 className="text-3xl font-black text-text mb-3">One message. Everything handled.</h2>
+        <p className="text-muted mb-12 max-w-xl">You don't navigate menus or open different apps. You tell MODUS what you need and it moves.</p>
         <div className="grid md:grid-cols-2 gap-6">
           {[
             { n: '01', title: 'You connect your life', desc: 'Calendar, email, health data, apps — MODUS reads across all of it. The more context it has, the less you have to explain.' },
@@ -331,11 +331,11 @@ export default function HowItWorksPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4 }}
-              className="bg-white/[0.03] border border-white/10 rounded-2xl p-6"
+              className="bg-panel border border-border rounded-2xl p-6"
             >
               <p className="text-4xl font-black text-purple-500/30 mb-3">{step.n}</p>
-              <h3 className="text-base font-bold text-white mb-2">{step.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+              <h3 className="text-base font-bold text-text mb-2">{step.title}</h3>
+              <p className="text-sm text-muted leading-relaxed">{step.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -347,8 +347,8 @@ export default function HowItWorksPage() {
       {/* Section 3 — Animated scenarios */}
       <Section>
         <Eyebrow text="One message. Everything handled." />
-        <h2 className="text-3xl font-black text-white mb-2">See it in action.</h2>
-        <p className="text-gray-400 mb-10">Real scenarios. One conversation each.</p>
+        <h2 className="text-3xl font-black text-text mb-2">See it in action.</h2>
+        <p className="text-muted mb-10">Real scenarios. One conversation each.</p>
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
@@ -396,13 +396,13 @@ export default function HowItWorksPage() {
       {/* Section 4 — Differentiation table */}
       <Section>
         <Eyebrow text="The difference" />
-        <h2 className="text-3xl font-black text-white mb-10">Other AI answers. MODUS acts.</h2>
+        <h2 className="text-3xl font-black text-text mb-10">Other AI answers. MODUS acts.</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-3 pr-6 text-gray-500 font-medium w-1/4" />
-                <th className="text-left py-3 px-4 text-gray-400 font-semibold">ChatGPT / Claude</th>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 pr-6 text-muted font-medium w-1/4" />
+                <th className="text-left py-3 px-4 text-muted font-semibold">ChatGPT / Claude</th>
                 <th className="text-left py-3 px-4 text-purple-300 font-semibold bg-purple-500/10 rounded-t-xl">MODUS</th>
               </tr>
             </thead>
@@ -436,9 +436,9 @@ export default function HowItWorksPage() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08 }}
                 >
-                  <td className="py-4 pr-6 text-gray-400 font-medium align-top">{row.dim}</td>
-                  <td className="py-4 px-4 text-gray-500 align-top leading-relaxed">{row.them}</td>
-                  <td className="py-4 px-4 text-white align-top leading-relaxed bg-purple-500/10">{row.us}</td>
+                  <td className="py-4 pr-6 text-muted font-medium align-top">{row.dim}</td>
+                  <td className="py-4 px-4 text-muted align-top leading-relaxed">{row.them}</td>
+                  <td className="py-4 px-4 text-text align-top leading-relaxed bg-purple-500/10">{row.us}</td>
                 </motion.tr>
               ))}
             </tbody>
@@ -452,8 +452,8 @@ export default function HowItWorksPage() {
       {/* Section 5 — Integrations */}
       <Section>
         <Eyebrow text="Integrations" />
-        <h2 className="text-3xl font-black text-white mb-2">Connected to your whole life.</h2>
-        <p className="text-gray-400 mb-10">MODUS doesn't live in one app. It lives across all of them.</p>
+        <h2 className="text-3xl font-black text-text mb-2">Connected to your whole life.</h2>
+        <p className="text-muted mb-10">MODUS doesn't live in one app. It lives across all of them.</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
             { icon: '✉', name: 'Email', desc: 'Draft, send, follow up' },
@@ -469,11 +469,11 @@ export default function HowItWorksPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.07 }}
-              className="bg-white/[0.03] border border-white/10 rounded-2xl p-5"
+              className="bg-panel border border-border rounded-2xl p-5"
             >
               <span className="text-2xl mb-3 block">{item.icon}</span>
-              <p className="text-sm font-semibold text-white">{item.name}</p>
-              <p className="text-xs text-gray-400 mt-1">{item.desc}</p>
+              <p className="text-sm font-semibold text-text">{item.name}</p>
+              <p className="text-xs text-muted mt-1">{item.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -492,10 +492,10 @@ export default function HowItWorksPage() {
           className="max-w-2xl mx-auto space-y-6"
         >
           <Eyebrow text="The bigger idea" />
-          <h2 className="text-3xl md:text-4xl font-black text-white">
+          <h2 className="text-3xl md:text-4xl font-black text-text">
             You're the executive.<br />MODUS handles the rest.
           </h2>
-          <p className="text-gray-400 text-lg leading-relaxed">
+          <p className="text-muted text-lg leading-relaxed">
             The goal isn't to make you better at using software. It's to get you out of the software entirely. Tell MODUS what matters. It figures out how to make it happen — and brings you in only when a human decision is needed.
           </p>
           <Link
@@ -504,7 +504,7 @@ export default function HowItWorksPage() {
           >
             Start your free trial →
           </Link>
-          <p className="text-xs text-gray-500">4 days free. No credit card needed.</p>
+          <p className="text-xs text-muted">4 days free. No credit card needed.</p>
         </motion.div>
       </Section>
       </div>
