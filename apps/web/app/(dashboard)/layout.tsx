@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRef, useState, useEffect } from 'react';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: '⊞' },
@@ -59,6 +60,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* User menu */}
         <div className="mt-auto pt-4 border-t border-border" ref={menuRef}>
+          <div className="px-2 pb-2 flex justify-end">
+            <AnimatedThemeToggler sound={false} />
+          </div>
           {/* Dropup */}
           {open && user && (
             <div className="mb-2 bg-panel border border-border rounded-xl overflow-hidden shadow-lg">
