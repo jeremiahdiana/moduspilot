@@ -12,14 +12,14 @@ import FinalCTA from '@/components/marketing/FinalCTA';
 import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
-  title: 'MODUS Pilot — Your AI Chief of Staff',
+  title: 'Modus — Your AI Chief of Staff',
   description:
-    'MODUS runs in the background of your life — monitoring, deciding, and surfacing what matters. Monitor. Decide. Approve. Execute.',
+    'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
   openGraph: {
-    title: 'MODUS Pilot — Your AI Chief of Staff',
-    description: 'An AI personal operating system. Not a chatbot. An OS for your life.',
+    title: 'Modus — Your AI Chief of Staff',
+    description: 'The AI that runs your week. Modus monitors what matters, surfaces what\'s urgent, and acts on your behalf — with your approval.',
     url: 'https://moduspilot.com',
-    siteName: 'MODUS Pilot',
+    siteName: 'Modus',
   },
 };
 

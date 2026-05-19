@@ -3,7 +3,10 @@ export default function Footer() {
     <footer className="border-t border-border px-6 py-10">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-          <span className="text-xl font-black tracking-widest text-brand">MODUS</span>
+          <span className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black tracking-widest text-brand">Modus</span>
+            <span className="text-xs font-medium text-muted tracking-widest">pilot</span>
+          </span>
           <div className="flex items-center gap-8">
             {[
               { label: 'Features', href: '#features' },
@@ -19,7 +22,7 @@ export default function Footer() {
           <span className="text-sm text-muted">moduspilot.com</span>
         </div>
         <div className="border-t border-border/50 pt-6 text-center">
-          <p className="text-xs text-muted/60">© 2026 MODUS Pilot · moduspilot.com</p>
+          <p className="text-xs text-muted/60">© 2026 Modus · moduspilot.com</p>
         </div>
       </div>
     </footer>

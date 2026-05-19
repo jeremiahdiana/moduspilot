@@ -38,8 +38,9 @@ export default function Navbar({ solid = false }: Props) {
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="text-xl font-black tracking-widest text-brand">
-          MODUS
+        <Link href="/" className="flex items-baseline gap-1.5">
+          <span className="text-xl font-black tracking-widest text-brand">Modus</span>
+          <span className="text-xs font-medium text-muted tracking-widest">pilot</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

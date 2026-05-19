@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/components/providers/AuthProvider';
+import { AuthProvider, useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRef, useState, useEffect } from 'react';
@@ -15,7 +15,7 @@ const navItems = [
   { href: '/tasks', label: 'Tasks', icon: '☑' },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
@@ -35,8 +35,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
       <aside className="w-56 shrink-0 border-r border-border flex flex-col py-6 px-4">
-        <div className="mb-8 px-2">
-          <span className="text-xl font-black tracking-widest text-brand">MODUS</span>
+        <div className="mb-8 px-2 flex items-baseline gap-1.5">
+          <span className="text-xl font-black tracking-widest text-brand">Modus</span>
+          <span className="text-xs font-medium text-muted tracking-widest">pilot</span>
         </div>
 
         <nav className="flex flex-col gap-1 flex-1">
@@ -128,5 +129,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </main>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </AuthProvider>
   );
 }
