@@ -227,8 +227,8 @@ export default function GoalDetailPage() {
     if (!chatsLoaded || seededRef.current || !goal) return;
     seededRef.current = true;
     const main = allChats.find(c => c.id === `goal-${id}`);
-    const msgs = main?.messages.length ? main.messages
-      : [{ id: `goal-checkin-${id}`, role: 'assistant', content: checkinMessage(goal) }];
+    const msgs: Message[] = main?.messages.length ? main.messages
+      : [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }];
     setMessages(msgs);
     savedLengthRef.current = msgs.length;
   // eslint-disable-next-line react-hooks/exhaustive-deps
