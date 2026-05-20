@@ -119,6 +119,13 @@ export async function POST(req: Request) {
       await match.ref.update({ status: 'deleted', deletedAt: FieldValue.serverTimestamp() });
       return Response.json({ id: match.id });
     }
+    case 'delete_goal_chat': {
+      const conversationId = payload.conversationId as string | undefined;
+      if (!conversationId) return Response.json({ error: 'conversationId required' }, { status: 400 });
+      if (conversationId.startsWith('goal-')) return Response.json({ error: 'Cannot delete main chat' }, { status: 400 });
+      await userRef.collection('conversations').doc(conversationId).update({ deleted: true, deletedAt: FieldValue.serverTimestamp() });
+      return Response.json({ id: conversationId });
+    }
     case 'create_goal_chat': {
       const goalId = payload.goalId as string | undefined;
       if (!goalId) return Response.json({ error: 'goalId required' }, { status: 400 });

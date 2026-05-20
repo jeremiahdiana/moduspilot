@@ -217,7 +217,7 @@ export default function GoalDetailPage() {
       responseStyle: settings.responseStyle ?? 'normal',
       customStyle: settings.customStyle ?? '',
       goalContext: goal
-        ? { id: goal.id, title: goal.title, description: goal.description, progress: goal.progress, timeframe: goal.timeframe }
+        ? { id: goal.id, title: goal.title, description: goal.description, progress: goal.progress, timeframe: goal.timeframe, activeChatId }
         : undefined,
     },
   });
@@ -270,6 +270,23 @@ export default function GoalDetailPage() {
         : [];
     setMessages(msgs);
     savedLengthRef.current = msgs.length;
+  }
+
+  // Delete an extra chat (soft delete)
+  async function deleteChat(chatId: string) {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.uid, 'conversations', chatId), { deleted: true });
+    if (activeChatId === chatId) {
+      const main = allChats.find(c => c.id === mainChatId);
+      if (main) {
+        switchChat(main);
+      } else {
+        setActiveChatId(mainChatId);
+        const checkin: Message[] = goal ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }] : [];
+        setMessages(checkin);
+        savedLengthRef.current = 0;
+      }
+    }
   }
 
   // Start a new blank chat (user types first)
@@ -467,13 +484,23 @@ export default function GoalDetailPage() {
             </button>
 
             {extraChats.map(c => (
-              <button key={c.id} onClick={() => switchChat(c)}
-                title={c.title}
-                className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors max-w-[140px] truncate ${
-                  activeChatId === c.id ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
-                }`}>
-                {c.title.length > 25 ? c.title.slice(0, 22) + '…' : c.title}
-              </button>
+              <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
+                activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
+              }`}>
+                <button onClick={() => switchChat(c)} title={c.title}
+                  className={`text-xs pl-3 pr-1.5 py-1 max-w-[120px] truncate ${
+                    activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
+                  }`}>
+                  {c.title.length > 20 ? c.title.slice(0, 17) + '…' : c.title}
+                </button>
+                <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
+                  title="Delete chat"
+                  className={`pr-2.5 py-1 text-sm leading-none transition-colors ${
+                    activeChatId === c.id ? 'text-white/60 hover:text-white' : 'text-muted/50 hover:text-muted'
+                  }`}>
+                  ×
+                </button>
+              </div>
             ))}
 
             <button onClick={startNewChat}
