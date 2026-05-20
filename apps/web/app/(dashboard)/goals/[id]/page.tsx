@@ -9,7 +9,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
 
-type Timeframe = 'short' | 'mid' | 'long';
+type Timeframe = 'short' | 'long';
 
 interface Goal {
   id: string;
@@ -29,13 +29,11 @@ interface LinkedTask {
 
 const TIMEFRAME_LABELS: Record<Timeframe, string> = {
   short: 'Short term',
-  mid:   'Mid term',
   long:  'Long term',
 };
 
 const TIMEFRAME_COLORS: Record<Timeframe, string> = {
   short: 'bg-blue-500/10 text-blue-500',
-  mid:   'bg-amber-500/10 text-amber-500',
   long:  'bg-brand/10 text-brand',
 };
 

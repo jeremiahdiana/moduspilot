@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
 
-type Timeframe = 'short' | 'mid' | 'long';
+type Timeframe = 'short' | 'long';
 
 interface Goal {
   id: string;
@@ -18,13 +18,11 @@ interface Goal {
 
 const TIMEFRAME_BADGE: Record<Timeframe, string> = {
   short: 'bg-blue-500/10 text-blue-500',
-  mid:   'bg-amber-500/10 text-amber-500',
   long:  'bg-brand/10 text-brand',
 };
 
 const TIMEFRAME_LABEL: Record<Timeframe, string> = {
   short: 'Short',
-  mid:   'Mid',
   long:  'Long',
 };
 
