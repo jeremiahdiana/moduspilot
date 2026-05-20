@@ -18,6 +18,8 @@ interface Props {
   personalContext?: string;
   responseStyle?: string;
   customStyle?: string;
+  briefingHour?: number;
+  briefingTimezone?: string;
 }
 
 export default function ChatWindow({
@@ -31,6 +33,8 @@ export default function ChatWindow({
   personalContext,
   responseStyle,
   customStyle,
+  briefingHour,
+  briefingTimezone,
 }: Props) {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -56,6 +60,8 @@ export default function ChatWindow({
       personalContext: personalContext ?? '',
       responseStyle: responseStyle ?? 'normal',
       customStyle: customStyle ?? '',
+      briefingHour: briefingHour ?? 7,
+      briefingTimezone: briefingTimezone ?? 'UTC',
     },
     onError: (err) => {
       const msg = err?.message ?? '';

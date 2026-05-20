@@ -33,13 +33,20 @@ export async function POST(req: Request) {
       }
     }
 
-    const body = await req.json() as { messages: CoreMessage[]; personalContext?: string; responseStyle?: string; customStyle?: string };
+    const body = await req.json() as {
+      messages: CoreMessage[];
+      personalContext?: string;
+      responseStyle?: string;
+      customStyle?: string;
+      briefingHour?: number;
+      briefingTimezone?: string;
+    };
 
-    // Use client-sent settings (most reliable — client already has them loaded)
-    // Fall back to Firestore admin fetch only if not provided
     let personalContext = body.personalContext ?? '';
     let responseStyle = body.responseStyle ?? '';
     let customStyle = body.customStyle ?? '';
+    let briefingHour = body.briefingHour ?? 7;
+    let briefingTimezone = body.briefingTimezone ?? 'UTC';
 
     if (uid && (!personalContext && !responseStyle)) {
       try {
@@ -48,6 +55,8 @@ export async function POST(req: Request) {
         personalContext = settings.personalContext ?? '';
         responseStyle = settings.responseStyle ?? '';
         customStyle = settings.customStyle ?? '';
+        briefingHour = settings.briefingHour ?? 7;
+        briefingTimezone = settings.briefingTimezone ?? 'UTC';
       } catch (e) {
         console.error('[chat] failed to load user settings from admin:', e);
       }
@@ -89,7 +98,23 @@ export async function POST(req: Request) {
       styleBlock = `\n\n${STYLE_INSTRUCTIONS[responseStyle]}`;
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + memoryContext;
+    // Format briefing time in user's local timezone for display
+    let briefingTimeDisplay = '7:00 AM UTC';
+    try {
+      const d = new Date();
+      d.setUTCHours(briefingHour, 0, 0, 0);
+      briefingTimeDisplay = d.toLocaleTimeString('en-US', {
+        timeZone: briefingTimezone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZoneName: 'short',
+      });
+    } catch { /* use default */ }
+
+    const settingsBlock = `\n\nUSER SETTINGS:\n- Daily briefing: ${briefingTimeDisplay} (change via Settings → General or ask me to update it)`;
+
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext;
 
     const result = streamText({
       model: groq('llama-3.3-70b-versatile'),
