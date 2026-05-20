@@ -520,7 +520,7 @@ function GoalMenu({
   return (
     <div
       className="relative shrink-0"
-      ref={menuOpen === g.id ? menuRef : undefined}
+      ref={menuOpen === g.id ? menuRef as React.RefObject<HTMLDivElement> : undefined}
       onClick={e => e.stopPropagation()}
     >
       <button
