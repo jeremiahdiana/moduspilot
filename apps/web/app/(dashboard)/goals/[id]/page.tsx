@@ -40,7 +40,7 @@ const CHAT_CHIPS = [
   'Reflect on this goal',
 ];
 
-function getSuggestions(title: string): string[] {
+function getSuggestions(title: string) {
   return [
     `Break "${title}" into 90-day milestones`,
     `What are the biggest obstacles to "${title}"?`,
@@ -63,7 +63,6 @@ function checkinMessage(goal: Goal): string {
 function GCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <div className={`bg-panel border border-border rounded-xl px-5 py-4 ${className}`}>{children}</div>;
 }
-
 function SectionLabel({ icon, color, text, right }: { icon: React.ReactNode; color: string; text: string; right?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-3">
@@ -75,7 +74,6 @@ function SectionLabel({ icon, color, text, right }: { icon: React.ReactNode; col
     </div>
   );
 }
-
 const IconTarget = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
@@ -92,8 +90,6 @@ const IconSparkle = () => (
   </svg>
 );
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-
 export default function GoalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -108,15 +104,20 @@ export default function GoalDetailPage() {
   const [savingProgress, setSavingProgress] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
 
-  // Multi-chat
+  // Multi-chat state
   const [allChats, setAllChats] = useState<GoalChat[]>([]);
   const [chatsLoaded, setChatsLoaded] = useState(false);
+  // activeChatId is tracked via ref (sync) + state (for UI re-render)
   const activeChatIdRef = useRef(`goal-${id}`);
   const [activeChatId, _setActiveChatId] = useState(`goal-${id}`);
-  function setActiveChatId(newId: string) { activeChatIdRef.current = newId; _setActiveChatId(newId); }
+  const setActiveChatId = (newId: string) => { activeChatIdRef.current = newId; _setActiveChatId(newId); };
+
+  // Pending message to send after messages reset (avoids setTimeout race)
+  const pendingMsgRef = useRef<string | null>(null);
 
   const savedLengthRef = useRef(0);
   const prevLoadingRef = useRef(false);
+  const seededRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auth token
@@ -133,15 +134,8 @@ export default function GoalDetailPage() {
     const unsub = onSnapshot(doc(db, 'users', user.uid, 'goals', id), snap => {
       if (!snap.exists()) { router.replace('/goals'); return; }
       const d = snap.data();
-      setGoal({
-        id: snap.id,
-        title: d.title ?? 'Untitled',
-        description: d.description,
-        progress: d.progress ?? 0,
-        status: d.status ?? 'active',
-        dueDate: d.dueDate,
-        timeframe: d.timeframe,
-      });
+      setGoal({ id: snap.id, title: d.title ?? 'Untitled', description: d.description,
+        progress: d.progress ?? 0, status: d.status ?? 'active', dueDate: d.dueDate, timeframe: d.timeframe });
       setDraftProgress(d.progress ?? 0);
       setLoading(false);
     }, () => setLoading(false));
@@ -165,51 +159,46 @@ export default function GoalDetailPage() {
   // Load all chats for this goal
   useEffect(() => {
     if (!user || !id) return;
-    const q = query(
-      collection(db, 'users', user.uid, 'conversations'),
-      where('goalId', '==', id),
+    const unsub = onSnapshot(
+      query(collection(db, 'users', user.uid, 'conversations'), where('goalId', '==', id)),
+      snap => {
+        const chats: GoalChat[] = snap.docs
+          .filter(d => !d.data().deleted)
+          .map(d => ({
+            id: d.id,
+            title: d.data().title ?? 'Chat',
+            messages: (d.data().messages as Message[]) ?? [],
+            createdAt: d.data().createdAt?.toDate() ?? new Date(),
+          }))
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        setAllChats(chats);
+        setChatsLoaded(true);
+      },
+      () => setChatsLoaded(true),
     );
-    const unsub = onSnapshot(q, snap => {
-      const chats: GoalChat[] = snap.docs
-        .filter(d => !d.data().deleted)
-        .map(d => ({
-          id: d.id,
-          title: d.data().title ?? 'Chat',
-          messages: (d.data().messages as Message[]) ?? [],
-          createdAt: d.data().createdAt?.toDate() ?? new Date(),
-        }))
-        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-      setAllChats(chats);
-      setChatsLoaded(true);
-    }, () => setChatsLoaded(true));
     return unsub;
   }, [user, id]);
 
-  const saveConversation = useCallback(async (msgs: Message[], chatId?: string) => {
+  // Save to the currently active chat doc
+  const saveConversation = useCallback(async (msgs: Message[]) => {
     if (!user || !id) return;
-    const targetId = chatId ?? activeChatIdRef.current;
-    const isMain = targetId === `goal-${id}`;
-    await setDoc(doc(db, 'users', user.uid, 'conversations', targetId), {
+    const chatId = activeChatIdRef.current;
+    const isMain = chatId === `goal-${id}`;
+    await setDoc(doc(db, 'users', user.uid, 'conversations', chatId), {
       goalId: id,
-      title: isMain ? `Goal: ${goal?.title ?? 'Untitled'}` : undefined,
+      ...(isMain ? { title: `Goal: ${goal?.title ?? 'Untitled'}` } : {}),
       messages: msgs,
       updatedAt: new Date(),
       deleted: false,
     }, { merge: true });
   }, [user, id, goal]);
 
-  // Seed initial messages once chats load
-  const initialMessages: Message[] = (() => {
-    const main = allChats.find(c => c.id === `goal-${id}`);
-    if (main && main.messages.length > 0) return main.messages;
-    if (goal) return [{ id: `goal-checkin-${id}`, role: 'assistant', content: checkinMessage(goal) }];
-    return [];
-  })();
-
+  // useChat — id is FIXED to goal-${id} so the hook is always stable.
+  // We swap messages manually via setMessages when switching chats.
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
     api: '/api/chat',
     initialMessages: [],
-    id: activeChatId,
+    id: `goal-${id}`,
     headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     body: {
       personalContext: settings.personalContext ?? '',
@@ -221,20 +210,30 @@ export default function GoalDetailPage() {
     },
   });
 
-  // Seed messages once chats have loaded
-  const seededRef = useRef(false);
+  // Seed main chat messages once Firestore loads
   useEffect(() => {
     if (!chatsLoaded || seededRef.current || !goal) return;
     seededRef.current = true;
     const main = allChats.find(c => c.id === `goal-${id}`);
-    const msgs: Message[] = main?.messages.length ? main.messages
+    const msgs: Message[] = main?.messages.length
+      ? main.messages
       : [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }];
     setMessages(msgs);
     savedLengthRef.current = msgs.length;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatsLoaded, goal]);
 
-  // Auto-save after AI responds
+  // Fire pending message AFTER messages state has reset to []
+  // (avoids race condition — pendingMsgRef is set, then messages clears, then this fires)
+  useEffect(() => {
+    if (!pendingMsgRef.current || isLoading) return;
+    const msg = pendingMsgRef.current;
+    pendingMsgRef.current = null;
+    append({ role: 'user', content: msg });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  // Auto-save after AI finishes responding
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
     prevLoadingRef.current = isLoading;
@@ -244,52 +243,46 @@ export default function GoalDetailPage() {
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
-  // Scroll to bottom
+  // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Switch to a different chat
+  // Switch to an existing chat
   function switchChat(chat: GoalChat) {
     setActiveChatId(chat.id);
-    setMessages(chat.messages);
-    savedLengthRef.current = chat.messages.length;
+    const msgs: Message[] = chat.messages.length
+      ? chat.messages
+      : (chat.id === `goal-${id}` && goal)
+        ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }]
+        : [];
+    setMessages(msgs);
+    savedLengthRef.current = msgs.length;
   }
 
-  // Start a new blank chat
-  async function startNewChat(title?: string) {
+  // Start a new blank chat (user types first)
+  async function startNewChat() {
     if (!user) return;
     const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
-      goalId: id,
-      title: title ?? 'New chat',
-      messages: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      deleted: false,
+      goalId: id, title: 'New chat', messages: [],
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), deleted: false,
     });
     setActiveChatId(ref.id);
     setMessages([]);
     savedLengthRef.current = 0;
   }
 
-  // Tap a suggestion chip — starts a new chat with that as the first message
+  // Tap a suggestion — creates a new chat and queues the first message
   async function tapSuggestion(text: string) {
     if (!user) return;
     const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
-      goalId: id,
-      title: text,
-      messages: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      deleted: false,
+      goalId: id, title: text, messages: [],
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), deleted: false,
     });
-    setActiveChatId(ref.id);
-    setMessages([]);
+    setActiveChatId(ref.id);      // update ref synchronously
     savedLengthRef.current = 0;
-    // slight delay so state settles, then send
-    setTimeout(() => {
-      append({ role: 'user', content: text });
-    }, 100);
+    pendingMsgRef.current = text; // queue the message
+    setMessages([]);              // reset → triggers the pendingMsg effect
   }
 
   async function saveProgress() {
@@ -325,12 +318,11 @@ export default function GoalDetailPage() {
     );
   }
 
-  const suggestions = getSuggestions(goal.title);
-  const progressDisplay = editingProgress ? draftProgress : goal.progress;
-  const activeChat = allChats.find(c => c.id === activeChatId);
   const mainChatId = `goal-${id}`;
   const isMainChat = activeChatId === mainChatId;
   const extraChats = allChats.filter(c => c.id !== mainChatId);
+  const activeChat = allChats.find(c => c.id === activeChatId);
+  const progressDisplay = editingProgress ? draftProgress : goal.progress;
 
   return (
     <div className="h-full overflow-y-auto bg-bg">
@@ -341,7 +333,7 @@ export default function GoalDetailPage() {
           ← Goals
         </button>
 
-        {/* Goal header */}
+        {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
             {goal.timeframe && (
@@ -355,7 +347,7 @@ export default function GoalDetailPage() {
           {goal.description && <p className="text-sm text-muted mt-1">{goal.description}</p>}
         </div>
 
-        {/* ── Progress ── */}
+        {/* Progress */}
         <GCard>
           <SectionLabel
             icon={<IconTarget />}
@@ -373,7 +365,6 @@ export default function GoalDetailPage() {
             <div className="h-full bg-brand rounded-full transition-all duration-300" style={{ width: `${Math.min(100, progressDisplay)}%` }} />
           </div>
           <p className="text-sm text-text font-semibold">{progressDisplay}% complete</p>
-
           {editingProgress && (
             <div className="mt-4 space-y-3">
               <input type="range" min={0} max={100} step={5} value={draftProgress}
@@ -390,7 +381,6 @@ export default function GoalDetailPage() {
               </div>
             </div>
           )}
-
           {goal.status === 'active' && goal.progress < 100 && !editingProgress && (
             <button onClick={markComplete} className="mt-3 text-xs text-muted hover:text-text transition-colors">
               Mark as complete →
@@ -398,7 +388,7 @@ export default function GoalDetailPage() {
           )}
         </GCard>
 
-        {/* ── Linked tasks ── */}
+        {/* Linked tasks */}
         {linkedTasks.length > 0 && (
           <GCard>
             <SectionLabel icon={<IconCheck />} color="text-emerald-500" text="Linked tasks" />
@@ -413,24 +403,21 @@ export default function GoalDetailPage() {
           </GCard>
         )}
 
-        {/* ── Explore this goal ── */}
+        {/* Explore */}
         <GCard>
           <SectionLabel icon={<IconSparkle />} color="text-brand" text="Explore this goal" />
           <p className="text-xs text-muted mb-3">Tap a question to open a dedicated chat thread.</p>
           <div className="flex flex-wrap gap-1.5">
-            {suggestions.map(s => (
-              <button
-                key={s}
-                onClick={() => tapSuggestion(s)}
-                className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors"
-              >
+            {getSuggestions(goal.title).map(s => (
+              <button key={s} onClick={() => tapSuggestion(s)}
+                className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors">
                 {s}
               </button>
             ))}
           </div>
         </GCard>
 
-        {/* ── Divider + chat tab bar ── */}
+        {/* Divider + chat tabs */}
         <div>
           <div className="flex items-center gap-3 mb-3">
             <div className="flex-1 h-px bg-border" />
@@ -438,14 +425,17 @@ export default function GoalDetailPage() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          {/* Chat tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
-            {/* Main tab */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             <button
               onClick={() => {
                 const main = allChats.find(c => c.id === mainChatId);
                 if (main) switchChat(main);
-                else { setActiveChatId(mainChatId); setMessages(initialMessages); savedLengthRef.current = 0; }
+                else {
+                  setActiveChatId(mainChatId);
+                  const checkin: Message[] = goal ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }] : [];
+                  setMessages(checkin);
+                  savedLengthRef.current = 0;
+                }
               }}
               className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors ${
                 isMainChat ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
@@ -454,36 +444,28 @@ export default function GoalDetailPage() {
               Main chat
             </button>
 
-            {/* Extra chat tabs */}
             {extraChats.map(c => (
-              <button
-                key={c.id}
-                onClick={() => switchChat(c)}
+              <button key={c.id} onClick={() => switchChat(c)}
+                title={c.title}
                 className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors max-w-[140px] truncate ${
                   activeChatId === c.id ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
-                }`}
-                title={c.title}
-              >
-                {c.title.replace(/^"(.*)"$/, '$1').split(' ').slice(0, 4).join(' ')}…
+                }`}>
+                {c.title.length > 25 ? c.title.slice(0, 22) + '…' : c.title}
               </button>
             ))}
 
-            {/* New chat */}
-            <button
-              onClick={() => startNewChat()}
-              className="shrink-0 text-xs px-3 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors"
-            >
+            <button onClick={startNewChat}
+              className="shrink-0 text-xs px-3 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors">
               + New
             </button>
           </div>
 
-          {/* Active chat label if not main */}
           {!isMainChat && activeChat && (
-            <p className="text-[11px] text-muted mt-2 truncate">{activeChat.title}</p>
+            <p className="text-[11px] text-muted mt-1.5 truncate">{activeChat.title}</p>
           )}
         </div>
 
-        {/* ── Chat messages ── */}
+        {/* Chat messages */}
         <div className="space-y-3">
           {messages.map((m, idx) => (
             <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -513,16 +495,15 @@ export default function GoalDetailPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* ── Closing chat bar ── */}
+        {/* Chat bar */}
         <GCard className="!p-0 overflow-hidden">
           <div className="px-5 pt-4 pb-3">
             <p className="text-xs font-semibold text-muted mb-0.5">Talk to MODUS about this goal</p>
-            <p className="text-[11px] text-muted/60">Share what&apos;s on your mind, log a win, or ask for help.</p>
+            <p className="text-[11px] text-muted/60">Share a win, log progress, or ask for help.</p>
           </div>
           <div className="px-5 pb-3 border-t border-border pt-3 flex gap-1.5 flex-wrap">
             {CHAT_CHIPS.map(chip => (
-              <button key={chip} onClick={() => { setInput(chip); }}
-                disabled={isLoading}
+              <button key={chip} onClick={() => setInput(chip)} disabled={isLoading}
                 className="text-[11px] px-3 py-1 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors disabled:opacity-40">
                 {chip}
               </button>
@@ -530,12 +511,9 @@ export default function GoalDetailPage() {
           </div>
           <div className="border-t border-border">
             <form onSubmit={handleSubmit} className="flex items-center gap-3 px-5 py-3">
-              <input
-                value={input}
-                onChange={handleInputChange}
+              <input value={input} onChange={handleInputChange}
                 placeholder={`What's happening with "${goal.title}"?`}
-                className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none"
-              />
+                className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none" />
               <button type="submit" disabled={!input.trim() || isLoading}
                 className="w-8 h-8 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
