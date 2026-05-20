@@ -59,6 +59,9 @@ export default function BriefingPage() {
         return today ?? list[0] ?? null;
       });
       setLoading(false);
+    }, () => {
+      // Missing composite index — show empty state instead of spinning forever
+      setLoading(false);
     });
     return unsub;
   }, [user]);

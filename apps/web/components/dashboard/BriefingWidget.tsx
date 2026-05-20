@@ -39,6 +39,8 @@ export default function BriefingWidget() {
         read: d.data().read ?? false,
       });
       setLoading(false);
+    }, () => {
+      setLoading(false);
     });
     return unsub;
   }, [uid]);
