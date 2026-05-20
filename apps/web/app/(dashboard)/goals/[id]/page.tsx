@@ -40,16 +40,6 @@ const CHAT_CHIPS = [
   'Reflect on this goal',
 ];
 
-function getSuggestions(title: string) {
-  return [
-    `Break "${title}" into 90-day milestones`,
-    `What are the biggest obstacles to "${title}"?`,
-    `What do I need to make "${title}" happen?`,
-    `What does success look like for "${title}"?`,
-    `What would make "${title}" 10x easier?`,
-  ];
-}
-
 function checkinMessage(goal: Goal): string {
   if (goal.progress === 0)
     return `You're at 0% on "${goal.title}". What's the first move to get this started?`;
@@ -103,6 +93,9 @@ export default function GoalDetailPage() {
   const [draftProgress, setDraftProgress] = useState(0);
   const [savingProgress, setSavingProgress] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const suggestionsFetchedRef = useRef(false);
 
   // Multi-chat state
   const [allChats, setAllChats] = useState<GoalChat[]>([]);
@@ -127,6 +120,25 @@ export default function GoalDetailPage() {
     });
     return unsub;
   }, []);
+
+  // Fetch AI-personalized suggestions once goal + auth token are ready
+  useEffect(() => {
+    if (!goal || suggestionsFetchedRef.current) return;
+    suggestionsFetchedRef.current = true;
+    setSuggestionsLoading(true);
+    fetch('/api/goals/suggestions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: JSON.stringify({ title: goal.title, description: goal.description, timeframe: goal.timeframe }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data.suggestions?.length) setSuggestions(data.suggestions); })
+      .catch(() => {})
+      .finally(() => setSuggestionsLoading(false));
+  }, [goal, authToken]);
 
   // Load goal
   useEffect(() => {
@@ -407,14 +419,24 @@ export default function GoalDetailPage() {
         <GCard>
           <SectionLabel icon={<IconSparkle />} color="text-brand" text="Explore this goal" />
           <p className="text-xs text-muted mb-3">Tap a question to open a dedicated chat thread.</p>
-          <div className="flex flex-wrap gap-1.5">
-            {getSuggestions(goal.title).map(s => (
-              <button key={s} onClick={() => tapSuggestion(s)}
-                className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors">
-                {s}
-              </button>
-            ))}
-          </div>
+          {suggestionsLoading ? (
+            <div className="flex gap-1.5 flex-wrap">
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="h-6 rounded-full bg-border animate-pulse" style={{ width: `${100 + i * 30}px` }} />
+              ))}
+            </div>
+          ) : suggestions.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.map(s => (
+                <button key={s} onClick={() => tapSuggestion(s)}
+                  className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors text-left">
+                  {s}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted/50">No suggestions available.</p>
+          )}
         </GCard>
 
         {/* Divider + chat tabs */}
