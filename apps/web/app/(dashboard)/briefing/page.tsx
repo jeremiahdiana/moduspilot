@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, Timestamp, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -25,6 +25,47 @@ function todayStart() {
 
 function formatDate(d: Date) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function EmptyBriefing() {
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+
+  async function generate() {
+    setGenerating(true);
+    setError('');
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/briefing/generate', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e) {
+      setError('Something went wrong. Try again.');
+      setGenerating(false);
+    }
+    // Firestore onSnapshot will pick up the new briefing automatically
+  }
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
+      <span className="text-4xl">◎</span>
+      <h2 className="text-lg font-semibold text-text">No briefings yet</h2>
+      <p className="text-sm text-muted max-w-xs">
+        Your first briefing will arrive at your scheduled time, or generate one now.
+      </p>
+      <button
+        onClick={generate}
+        disabled={generating}
+        className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-60 flex items-center gap-2"
+      >
+        {generating && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+        {generating ? 'Generating...' : 'Generate briefing now'}
+      </button>
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </div>
+  );
 }
 
 export default function BriefingPage() {
@@ -92,15 +133,7 @@ export default function BriefingPage() {
   }
 
   if (briefings.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
-        <span className="text-4xl">◎</span>
-        <h2 className="text-lg font-semibold text-text">No briefings yet</h2>
-        <p className="text-sm text-muted max-w-xs">
-          Your first briefing will arrive at your scheduled time. You can adjust it in Settings → General.
-        </p>
-      </div>
-    );
+    return <EmptyBriefing />;
   }
 
   return (
