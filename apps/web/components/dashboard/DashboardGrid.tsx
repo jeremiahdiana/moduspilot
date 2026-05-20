@@ -8,14 +8,16 @@ import GoalCard from './GoalCard';
 import HabitTracker from './HabitTracker';
 import TaskList from './TaskList';
 import StreakWidget from './StreakWidget';
+import BriefingWidget from './BriefingWidget';
 
-const CORE_TYPES: DashboardWidget['type'][] = ['goals', 'habits', 'tasks', 'streak'];
+const CORE_TYPES: DashboardWidget['type'][] = ['goals', 'habits', 'tasks', 'streak', 'briefing'];
 
 const CATALOG: { type: DashboardWidget['type']; title: string; available: boolean; icon: string }[] = [
   { type: 'goals',      title: 'Goals',      available: true,  icon: '◈' },
   { type: 'habits',     title: 'Habits',     available: true,  icon: '◉' },
   { type: 'tasks',      title: 'Tasks',      available: true,  icon: '☑' },
   { type: 'streak',     title: 'Streaks',    available: true,  icon: '🔥' },
+  { type: 'briefing',   title: 'Briefing',   available: true,  icon: '◎' },
   { type: 'quick_chat', title: 'Quick Chat', available: false, icon: '◎' },
   { type: 'gmail',      title: 'Gmail',      available: false, icon: '✉' },
   { type: 'calendar',   title: 'Calendar',   available: false, icon: '▦' },
@@ -25,11 +27,12 @@ const CATALOG: { type: DashboardWidget['type']; title: string; available: boolea
 
 function WidgetContent({ type }: { type: DashboardWidget['type'] }) {
   switch (type) {
-    case 'goals':   return <GoalCard />;
-    case 'habits':  return <HabitTracker />;
-    case 'tasks':   return <TaskList />;
-    case 'streak':  return <StreakWidget />;
-    default:        return null;
+    case 'goals':    return <GoalCard />;
+    case 'habits':   return <HabitTracker />;
+    case 'tasks':    return <TaskList />;
+    case 'streak':   return <StreakWidget />;
+    case 'briefing': return <BriefingWidget />;
+    default:         return null;
   }
 }
 

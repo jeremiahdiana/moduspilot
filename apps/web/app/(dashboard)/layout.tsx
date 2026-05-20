@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: '⊞' },
@@ -15,6 +16,39 @@ const navItems = [
   { href: '/habits', label: 'Habits', icon: '◉' },
   { href: '/tasks', label: 'Tasks', icon: '☑' },
 ];
+
+function BriefingNavLink({ pathname }: { pathname: string }) {
+  const { user } = useAuth();
+  const [unread, setUnread] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'users', user.uid, 'conversations'),
+      where('briefing', '==', true),
+      where('read', '==', false),
+    );
+    const unsub = onSnapshot(q, snap => setUnread(!snap.empty));
+    return unsub;
+  }, [user]);
+
+  const active = pathname === '/briefing';
+
+  return (
+    <Link
+      href="/briefing"
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+        active ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+      }`}
+    >
+      <span className="text-base">◉</span>
+      <span className="flex-1">Briefing</span>
+      {unread && !active && (
+        <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+      )}
+    </Link>
+  );
+}
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,7 +76,17 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex flex-col gap-1 flex-1">
-          {navItems.map(item => (
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              pathname === '/dashboard' ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+            }`}
+          >
+            <span className="text-base">⊞</span>
+            Dashboard
+          </Link>
+          <BriefingNavLink pathname={pathname} />
+          {navItems.slice(1).map(item => (
             <Link
               key={item.href}
               href={item.href}

@@ -13,7 +13,7 @@ export interface WidgetLayout {
 
 export interface DashboardWidget {
   id: string;
-  type: 'goals' | 'habits' | 'tasks' | 'streak' | 'quick_chat' | 'gmail' | 'calendar' | 'notes' | 'finance';
+  type: 'goals' | 'habits' | 'tasks' | 'streak' | 'briefing' | 'quick_chat' | 'gmail' | 'calendar' | 'notes' | 'finance';
   title: string;
   layout?: WidgetLayout;
 }
