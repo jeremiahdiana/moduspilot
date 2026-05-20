@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, updateDoc, Timestamp, collection, query, where, orderBy, getDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -65,8 +65,8 @@ export default function GoalDetailPage() {
   const savedLengthRef = useRef(0);
   const prevLoadingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auth token
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async u => {
       setAuthToken(u ? await u.getIdToken() : null);
@@ -74,7 +74,6 @@ export default function GoalDetailPage() {
     return unsub;
   }, []);
 
-  // Load goal
   useEffect(() => {
     if (!user || !id) return;
     const unsub = onSnapshot(doc(db, 'users', user.uid, 'goals', id), snap => {
@@ -92,11 +91,10 @@ export default function GoalDetailPage() {
       setGoal(g);
       setDraftProgress(g.progress);
       setLoading(false);
-    });
+    }, () => setLoading(false));
     return unsub;
   }, [user, id, router]);
 
-  // Load linked tasks (tasks that mention the goal title)
   useEffect(() => {
     if (!user || !goal) return;
     const q = query(
@@ -114,7 +112,6 @@ export default function GoalDetailPage() {
     return unsub;
   }, [user, goal]);
 
-  // Load existing goal conversation
   useEffect(() => {
     if (!user || !id || convLoaded.current) return;
     const convId = `goal-${id}`;
@@ -161,7 +158,6 @@ export default function GoalDetailPage() {
     },
   });
 
-  // Re-seed messages when goal/conversation loads
   useEffect(() => {
     if (!convLoaded.current) return;
     setMessages(initialMessages);
@@ -169,7 +165,6 @@ export default function GoalDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convLoaded.current]);
 
-  // Save conversation after AI responds
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
     prevLoadingRef.current = isLoading;
@@ -179,9 +174,10 @@ export default function GoalDetailPage() {
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
-  // Scroll to bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
   }, [messages]);
 
   async function saveProgress() {
@@ -217,131 +213,147 @@ export default function GoalDetailPage() {
     );
   }
 
+  const progressDisplay = editingProgress ? draftProgress : goal.progress;
+
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-5">
+    <div className="flex h-full overflow-hidden">
 
-        {/* Back */}
-        <button
-          onClick={() => router.push('/goals')}
-          className="flex items-center gap-1.5 text-xs text-muted hover:text-text transition-colors"
-        >
-          ← Goals
-        </button>
+      {/* ── Left panel: goal details ── */}
+      <div className="w-72 shrink-0 border-r border-border flex flex-col overflow-y-auto">
+        <div className="p-5 space-y-5 flex-1">
 
-        {/* Goal header */}
-        <div className="bg-panel border border-border rounded-xl p-5">
-          <div className="flex items-start justify-between gap-4 mb-1">
-            <h1 className="text-lg font-semibold text-text leading-tight">{goal.title}</h1>
-            <div className="flex items-center gap-2 shrink-0">
+          {/* Back */}
+          <button
+            onClick={() => router.push('/goals')}
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-text transition-colors"
+          >
+            ← Goals
+          </button>
+
+          {/* Title + badge */}
+          <div>
+            <div className="flex items-start gap-2 mb-1">
               {goal.timeframe && (
-                <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full ${TIMEFRAME_COLORS[goal.timeframe]}`}>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${TIMEFRAME_COLORS[goal.timeframe]}`}>
                   {TIMEFRAME_LABELS[goal.timeframe]}
                 </span>
               )}
-              {goal.dueDate && (
-                <span className="text-xs text-muted">{goal.dueDate}</span>
-              )}
             </div>
-          </div>
-          {goal.description && (
-            <p className="text-sm text-muted mt-1">{goal.description}</p>
-          )}
-        </div>
-
-        {/* Progress */}
-        <div className="bg-panel border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted">Progress</span>
-            {goal.status === 'active' && (
-              <button
-                onClick={() => setEditingProgress(e => !e)}
-                className="text-xs text-brand hover:underline"
-              >
-                {editingProgress ? 'Cancel' : 'Update'}
-              </button>
+            <h1 className="text-base font-semibold text-text leading-snug">{goal.title}</h1>
+            {goal.description && (
+              <p className="text-sm text-muted mt-1.5 leading-relaxed">{goal.description}</p>
             )}
           </div>
 
-          <div className="h-2 bg-border rounded-full overflow-hidden mb-2">
-            <div
-              className="h-full bg-brand rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, editingProgress ? draftProgress : goal.progress)}%` }}
-            />
-          </div>
-          <p className="text-sm text-text font-medium">
-            {editingProgress ? draftProgress : goal.progress}% complete
-          </p>
-
-          {editingProgress && (
-            <div className="mt-4 space-y-3">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={draftProgress}
-                onChange={e => setDraftProgress(Number(e.target.value))}
-                className="w-full accent-brand"
-              />
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={draftProgress}
-                  onChange={e => setDraftProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
-                  className="w-20 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text outline-none focus:border-brand"
-                />
-                <span className="text-sm text-muted">%</span>
+          {/* Progress */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">Progress</span>
+              {goal.status === 'active' && (
                 <button
-                  onClick={saveProgress}
-                  disabled={savingProgress}
-                  className="ml-auto bg-brand text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-60"
+                  onClick={() => setEditingProgress(e => !e)}
+                  className="text-xs text-brand hover:underline"
                 >
-                  {savingProgress ? 'Saving...' : 'Save'}
+                  {editingProgress ? 'Cancel' : 'Update'}
                 </button>
+              )}
+            </div>
+            <div className="h-1.5 bg-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-brand rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, progressDisplay)}%` }}
+              />
+            </div>
+            <p className="text-sm font-semibold text-text">{progressDisplay}%</p>
+
+            {editingProgress && (
+              <div className="space-y-2 pt-1">
+                <input
+                  type="range"
+                  min={0} max={100} step={5}
+                  value={draftProgress}
+                  onChange={e => setDraftProgress(Number(e.target.value))}
+                  className="w-full accent-brand"
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0} max={100}
+                    value={draftProgress}
+                    onChange={e => setDraftProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
+                    className="w-16 bg-bg border border-border rounded-lg px-2 py-1 text-sm text-text outline-none focus:border-brand"
+                  />
+                  <span className="text-sm text-muted">%</span>
+                  <button
+                    onClick={saveProgress}
+                    disabled={savingProgress}
+                    className="ml-auto bg-brand text-white text-xs font-semibold px-3 py-1 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-60"
+                  >
+                    {savingProgress ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Due date */}
+          {goal.dueDate && (
+            <div className="flex items-center gap-2">
+              <svg className="w-3.5 h-3.5 text-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span className="text-xs text-muted">{goal.dueDate}</span>
+            </div>
+          )}
+
+          {/* Linked tasks */}
+          {linkedTasks.length > 0 && (
+            <div>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted block mb-2">Linked tasks</span>
+              <div className="space-y-1.5">
+                {linkedTasks.map(t => (
+                  <div key={t.id} className="flex items-start gap-2">
+                    <span className="w-1 h-1 rounded-full bg-border shrink-0 mt-1.5" />
+                    <span className="text-xs text-text leading-snug">{t.title}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
+        </div>
 
-          {goal.status === 'active' && goal.progress < 100 && !editingProgress && (
+        {/* Mark complete — pinned to bottom of left panel */}
+        {goal.status === 'active' && goal.progress < 100 && !editingProgress && (
+          <div className="p-5 border-t border-border">
             <button
               onClick={markComplete}
-              className="mt-4 text-xs text-muted hover:text-text transition-colors"
+              className="w-full text-xs text-muted hover:text-text transition-colors text-left"
             >
               Mark as complete →
             </button>
-          )}
-        </div>
-
-        {/* Linked tasks */}
-        {linkedTasks.length > 0 && (
-          <div className="bg-panel border border-border rounded-xl p-5">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted block mb-3">Linked tasks</span>
-            <div className="space-y-2">
-              {linkedTasks.map(t => (
-                <div key={t.id} className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                  <span className="text-sm text-text">{t.title}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
+        {goal.status === 'completed' && (
+          <div className="p-5 border-t border-border">
+            <span className="text-xs text-brand font-medium">Completed</span>
+          </div>
+        )}
+      </div>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-[11px] text-muted uppercase tracking-widest">MODUS on this goal</span>
-          <div className="flex-1 h-px bg-border" />
+      {/* ── Right panel: MODUS chat ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Chat header */}
+        <div className="px-5 py-3 border-b border-border shrink-0 flex items-center justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">MODUS on this goal</span>
+          <span className="text-xs text-muted">{messages.length > 1 ? `${messages.length - 1} message${messages.length === 2 ? '' : 's'}` : ''}</span>
         </div>
 
-        {/* AI Chat */}
-        <div className="space-y-3">
+        {/* Messages */}
+        <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {messages.map((m, idx) => (
             <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+              <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                 m.role === 'user'
                   ? 'bg-brand text-white rounded-br-sm'
                   : 'bg-panel border border-border text-text rounded-bl-sm'
@@ -367,13 +379,13 @@ export default function GoalDetailPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Chat input */}
-        <div className="bg-panel border border-border rounded-xl overflow-hidden">
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-3">
+        {/* Chat input — pinned to bottom */}
+        <div className="border-t border-border px-5 py-4 shrink-0">
+          <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-panel border border-border rounded-xl px-4 py-3">
             <input
               value={input}
               onChange={handleInputChange}
-              placeholder={`Update on "${goal.title}"...`}
+              placeholder={`Update on "${goal.title}"…`}
               className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/50 outline-none border-none"
             />
             <button
