@@ -1,7 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { UserSettings } from '@/hooks/useUserSettings';
+
+const HOURS = Array.from({ length: 24 }, (_, i) => {
+  const label = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
+  return { value: i, label };
+});
+
+function getUTCHour(localHour: number): number {
+  const d = new Date();
+  d.setHours(localHour, 0, 0, 0);
+  return d.getUTCHours();
+}
+
+function getLocalHourFromUTC(utcHour: number, timezone: string): number {
+  const d = new Date();
+  d.setUTCHours(utcHour, 0, 0, 0);
+  return parseInt(
+    d.toLocaleTimeString('en-US', { timeZone: timezone, hour: '2-digit', hour12: false }),
+    10
+  );
+}
+
+function getTZAbbr(timezone: string): string {
+  try {
+    return new Date().toLocaleTimeString('en-US', { timeZone: timezone, timeZoneName: 'short' }).split(' ').pop() ?? timezone;
+  } catch {
+    return timezone;
+  }
+}
 
 const STYLES: Array<{ key: UserSettings['responseStyle']; label: string; desc: string }> = [
   { key: 'normal', label: 'Direct', desc: 'Straight to the answer. No softening or filler.' },
@@ -22,6 +50,15 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
   const [context, setContext] = useState(settings.personalContext);
   const [customStyle, setCustomStyle] = useState(settings.customStyle);
   const [dirty, setDirty] = useState(false);
+
+  const [userTimezone] = useState(() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
+  });
+  const [localBriefingHour, setLocalBriefingHour] = useState(() => {
+    try {
+      return getLocalHourFromUTC(settings.briefingHour ?? 7, userTimezone);
+    } catch { return 7; }
+  });
 
   const handleSave = async () => {
     await onSave({
@@ -55,6 +92,38 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
           <button
             onClick={handleSave}
             disabled={!dirty || saving}
+            className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      {/* Daily briefing time */}
+      <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-text mb-1">Daily Briefing Time</h3>
+          <p className="text-xs text-muted">MODUS will drop your morning briefing into chat at this time every day.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <select
+            value={localBriefingHour}
+            onChange={e => setLocalBriefingHour(Number(e.target.value))}
+            className="bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-brand/50 transition-colors"
+          >
+            {HOURS.map(h => (
+              <option key={h.value} value={h.value}>{h.label}</option>
+            ))}
+          </select>
+          <span className="text-sm text-muted">{getTZAbbr(userTimezone)}</span>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => onSave({
+              briefingHour: getUTCHour(localBriefingHour),
+              briefingTimezone: userTimezone,
+            })}
+            disabled={saving}
             className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
           >
             {saving ? 'Saving…' : 'Save'}

@@ -101,10 +101,16 @@ export async function GET(req: Request) {
   const results: { uid: string; status: string; error?: string }[] = [];
 
   try {
-    // Get all users with onboarding complete
-    const usersSnap = await db.collection('users').where('onboardingComplete', '==', true).get();
+    const currentUTCHour = new Date().getUTCHours();
 
-    for (const userDoc of usersSnap.docs) {
+    // Get all users with onboarding complete, filter to those whose briefing hour matches now
+    const usersSnap = await db.collection('users').where('onboardingComplete', '==', true).get();
+    const dueUsers = usersSnap.docs.filter(d => {
+      const hour = d.data()?.settings?.briefingHour ?? 7;
+      return hour === currentUTCHour;
+    });
+
+    for (const userDoc of dueUsers) {
       const uid = userDoc.id;
       try {
         // Get display name from Firebase Auth
@@ -163,7 +169,7 @@ export async function GET(req: Request) {
       }
     }
 
-    return Response.json({ sent: results.length, results });
+    return Response.json({ utcHour: currentUTCHour, due: dueUsers.length, sent: results.length, results });
   } catch (err) {
     console.error('[daily-briefing] fatal:', err);
     return Response.json({ error: String(err) }, { status: 500 });

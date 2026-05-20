@@ -12,6 +12,8 @@ export interface UserSettings {
   helpImprove: boolean;
   dataRetention: boolean;
   generateMemoryFromChat: boolean;
+  briefingHour: number;       // UTC hour (0-23) when daily briefing fires
+  briefingTimezone: string;   // IANA timezone string e.g. "America/New_York"
   capabilities: {
     dailyBriefing: boolean;
     voiceInput: boolean;
@@ -33,6 +35,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   helpImprove: false,
   dataRetention: false,
   generateMemoryFromChat: false,
+  briefingHour: 7,
+  briefingTimezone: 'UTC',
   capabilities: {
     dailyBriefing: false,
     voiceInput: false,
