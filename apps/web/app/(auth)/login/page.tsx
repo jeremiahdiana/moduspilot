@@ -1,9 +1,20 @@
 'use client';
 
 import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithRedirect } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import type { User } from 'firebase/auth';
+
+async function getDestination(user: User): Promise<string> {
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    return snap.data()?.onboardingComplete ? '/dashboard' : '/onboarding';
+  } catch {
+    return '/onboarding';
+  }
+}
 
 const googleProvider = new GoogleAuthProvider();
 const appleProvider = new OAuthProvider('apple.com');
@@ -15,8 +26,8 @@ export default function LoginPage() {
   async function signInWithGoogle() {
     setError('');
     try {
-      await signInWithPopup(auth, googleProvider);
-      router.push('/onboarding');
+      const result = await signInWithPopup(auth, googleProvider);
+      router.push(await getDestination(result.user));
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
       if (code === 'auth/popup-blocked') {
@@ -30,8 +41,8 @@ export default function LoginPage() {
   async function signInWithApple() {
     setError('');
     try {
-      await signInWithPopup(auth, appleProvider);
-      router.push('/onboarding');
+      const result = await signInWithPopup(auth, appleProvider);
+      router.push(await getDestination(result.user));
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
       if (code === 'auth/popup-blocked') {
