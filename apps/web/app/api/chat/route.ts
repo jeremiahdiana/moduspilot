@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       customStyle?: string;
       briefingHour?: number;
       briefingTimezone?: string;
+      goalContext?: { id: string; title: string; description?: string; progress: number; timeframe?: string };
     };
 
     let personalContext = body.personalContext ?? '';
@@ -114,7 +115,12 @@ export async function POST(req: Request) {
 
     const settingsBlock = `\n\nUSER SETTINGS:\n- Daily briefing: ${briefingTimeDisplay} (change via Settings → General or ask me to update it)`;
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext;
+    const gc = body.goalContext;
+    const goalContextBlock = gc
+      ? `\n\nGOAL FOCUS: This conversation is dedicated to one specific goal: "${gc.title}" (goalId: "${gc.id}"). Current progress: ${gc.progress}%. Timeframe: ${gc.timeframe ?? 'not set'}. ${gc.description ? `Description: ${gc.description}.` : ''}\n\nStay laser-focused on this goal. Ask targeted questions about blockers and wins. When the user reports meaningful progress, propose an update_goal approval card with the new progress value (0–100) and include goalId: "${gc.id}" in the payload. Push them forward.`
+      : '';
+
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock;
 
     const result = streamText({
       model: groq('llama-3.3-70b-versatile'),
