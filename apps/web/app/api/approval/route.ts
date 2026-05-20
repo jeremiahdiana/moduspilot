@@ -119,6 +119,19 @@ export async function POST(req: Request) {
       await match.ref.update({ status: 'deleted', deletedAt: FieldValue.serverTimestamp() });
       return Response.json({ id: match.id });
     }
+    case 'create_goal_chat': {
+      const goalId = payload.goalId as string | undefined;
+      if (!goalId) return Response.json({ error: 'goalId required' }, { status: 400 });
+      const ref = await userRef.collection('conversations').add({
+        goalId,
+        title: title || 'New chat',
+        messages: [],
+        deleted: false,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return Response.json({ id: ref.id });
+    }
     default:
       return Response.json({ error: 'Unknown action type' }, { status: 400 });
   }

@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc, setDoc } from 'firebase/firestore';
+import {
+  doc, onSnapshot, updateDoc, collection, query, where,
+  orderBy, addDoc, serverTimestamp, setDoc,
+} from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -10,7 +13,6 @@ import { useChat } from 'ai/react';
 import type { Message } from 'ai';
 
 type Timeframe = 'short' | 'long';
-type Momentum = 'building' | 'steady' | 'stalled' | 'starting';
 
 interface Goal {
   id: string;
@@ -20,10 +22,10 @@ interface Goal {
   status: 'active' | 'completed';
   dueDate?: string;
   timeframe?: Timeframe;
-  momentum?: Momentum;
 }
 
 interface LinkedTask { id: string; title: string }
+interface GoalChat  { id: string; title: string; messages: Message[]; createdAt: Date }
 
 const TIMEFRAME_LABELS: Record<Timeframe, string> = { short: 'Short term', long: 'Long term' };
 const TIMEFRAME_COLORS: Record<Timeframe, string> = {
@@ -31,19 +33,22 @@ const TIMEFRAME_COLORS: Record<Timeframe, string> = {
   long:  'bg-brand/10 text-brand',
 };
 
-const MOMENTUM_OPTS: { key: Momentum; emoji: string; label: string }[] = [
-  { key: 'building', emoji: '🚀', label: 'Building' },
-  { key: 'steady',   emoji: '📈', label: 'Steady'   },
-  { key: 'stalled',  emoji: '🛑', label: 'Stalled'  },
-  { key: 'starting', emoji: '🌱', label: 'Just starting' },
-];
-
 const CHAT_CHIPS = [
   'Log a progress update',
   "What's blocking me?",
   'Help me plan next steps',
   'Reflect on this goal',
 ];
+
+function getSuggestions(title: string): string[] {
+  return [
+    `Break "${title}" into 90-day milestones`,
+    `What are the biggest obstacles to "${title}"?`,
+    `What do I need to make "${title}" happen?`,
+    `What does success look like for "${title}"?`,
+    `What would make "${title}" 10x easier?`,
+  ];
+}
 
 function checkinMessage(goal: Goal): string {
   if (goal.progress === 0)
@@ -55,14 +60,8 @@ function checkinMessage(goal: Goal): string {
   return `"${goal.title}" is done. Want to capture any lessons before closing it out?`;
 }
 
-// ── Shared card ───────────────────────────────────────────────────────────────
-
 function GCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`bg-panel border border-border rounded-xl px-5 py-4 ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`bg-panel border border-border rounded-xl px-5 py-4 ${className}`}>{children}</div>;
 }
 
 function SectionLabel({ icon, color, text, right }: { icon: React.ReactNode; color: string; text: string; right?: React.ReactNode }) {
@@ -76,6 +75,22 @@ function SectionLabel({ icon, color, text, right }: { icon: React.ReactNode; col
     </div>
   );
 }
+
+const IconTarget = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  </svg>
+);
+const IconCheck = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12l4 4L20 4"/>
+  </svg>
+);
+const IconSparkle = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+  </svg>
+);
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -92,12 +107,19 @@ export default function GoalDetailPage() {
   const [draftProgress, setDraftProgress] = useState(0);
   const [savingProgress, setSavingProgress] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
-  const [convMessages, setConvMessages] = useState<Message[]>([]);
-  const [convLoaded, setConvLoaded] = useState(false);
+
+  // Multi-chat
+  const [allChats, setAllChats] = useState<GoalChat[]>([]);
+  const [chatsLoaded, setChatsLoaded] = useState(false);
+  const activeChatIdRef = useRef(`goal-${id}`);
+  const [activeChatId, _setActiveChatId] = useState(`goal-${id}`);
+  function setActiveChatId(newId: string) { activeChatIdRef.current = newId; _setActiveChatId(newId); }
+
   const savedLengthRef = useRef(0);
   const prevLoadingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Auth token
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async u => {
       setAuthToken(u ? await u.getIdToken() : null);
@@ -105,12 +127,13 @@ export default function GoalDetailPage() {
     return unsub;
   }, []);
 
+  // Load goal
   useEffect(() => {
     if (!user || !id) return;
     const unsub = onSnapshot(doc(db, 'users', user.uid, 'goals', id), snap => {
       if (!snap.exists()) { router.replace('/goals'); return; }
       const d = snap.data();
-      const g: Goal = {
+      setGoal({
         id: snap.id,
         title: d.title ?? 'Untitled',
         description: d.description,
@@ -118,15 +141,14 @@ export default function GoalDetailPage() {
         status: d.status ?? 'active',
         dueDate: d.dueDate,
         timeframe: d.timeframe,
-        momentum: d.momentum,
-      };
-      setGoal(g);
-      setDraftProgress(g.progress);
+      });
+      setDraftProgress(d.progress ?? 0);
       setLoading(false);
     }, () => setLoading(false));
     return unsub;
   }, [user, id, router]);
 
+  // Load linked tasks
   useEffect(() => {
     if (!user || !goal) return;
     const q = query(collection(db, 'users', user.uid, 'tasks'), where('done', '==', false), orderBy('createdAt', 'desc'));
@@ -140,37 +162,54 @@ export default function GoalDetailPage() {
     return unsub;
   }, [user, goal]);
 
+  // Load all chats for this goal
   useEffect(() => {
-    if (!user || !id || convLoaded) return;
-    getDoc(doc(db, 'users', user.uid, 'conversations', `goal-${id}`)).then(snap => {
-      if (snap.exists()) {
-        const msgs = snap.data().messages as Message[] ?? [];
-        setConvMessages(msgs);
-        savedLengthRef.current = msgs.length;
-      }
-      setConvLoaded(true);
-    }).catch(() => setConvLoaded(true));
-  }, [user, id, convLoaded]);
+    if (!user || !id) return;
+    const q = query(
+      collection(db, 'users', user.uid, 'conversations'),
+      where('goalId', '==', id),
+    );
+    const unsub = onSnapshot(q, snap => {
+      const chats: GoalChat[] = snap.docs
+        .filter(d => !d.data().deleted)
+        .map(d => ({
+          id: d.id,
+          title: d.data().title ?? 'Chat',
+          messages: (d.data().messages as Message[]) ?? [],
+          createdAt: d.data().createdAt?.toDate() ?? new Date(),
+        }))
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      setAllChats(chats);
+      setChatsLoaded(true);
+    }, () => setChatsLoaded(true));
+    return unsub;
+  }, [user, id]);
 
-  const saveConversation = useCallback(async (msgs: Message[]) => {
-    if (!user || !id || !goal) return;
-    await setDoc(doc(db, 'users', user.uid, 'conversations', `goal-${id}`), {
-      title: `Goal: ${goal.title}`,
+  const saveConversation = useCallback(async (msgs: Message[], chatId?: string) => {
+    if (!user || !id) return;
+    const targetId = chatId ?? activeChatIdRef.current;
+    const isMain = targetId === `goal-${id}`;
+    await setDoc(doc(db, 'users', user.uid, 'conversations', targetId), {
+      goalId: id,
+      title: isMain ? `Goal: ${goal?.title ?? 'Untitled'}` : undefined,
       messages: msgs,
       updatedAt: new Date(),
       deleted: false,
-      goalId: id,
     }, { merge: true });
   }, [user, id, goal]);
 
-  const initialMessages: Message[] = convMessages.length > 0
-    ? convMessages
-    : goal ? [{ id: `goal-checkin-${id}`, role: 'assistant', content: checkinMessage(goal) }] : [];
+  // Seed initial messages once chats load
+  const initialMessages: Message[] = (() => {
+    const main = allChats.find(c => c.id === `goal-${id}`);
+    if (main && main.messages.length > 0) return main.messages;
+    if (goal) return [{ id: `goal-checkin-${id}`, role: 'assistant', content: checkinMessage(goal) }];
+    return [];
+  })();
 
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
     api: '/api/chat',
-    initialMessages,
-    id: `goal-${id}`,
+    initialMessages: [],
+    id: activeChatId,
     headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     body: {
       personalContext: settings.personalContext ?? '',
@@ -182,13 +221,20 @@ export default function GoalDetailPage() {
     },
   });
 
+  // Seed messages once chats have loaded
+  const seededRef = useRef(false);
   useEffect(() => {
-    if (!convLoaded) return;
-    setMessages(initialMessages);
-    savedLengthRef.current = initialMessages.length;
+    if (!chatsLoaded || seededRef.current || !goal) return;
+    seededRef.current = true;
+    const main = allChats.find(c => c.id === `goal-${id}`);
+    const msgs = main?.messages.length ? main.messages
+      : [{ id: `goal-checkin-${id}`, role: 'assistant', content: checkinMessage(goal) }];
+    setMessages(msgs);
+    savedLengthRef.current = msgs.length;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [convLoaded]);
+  }, [chatsLoaded, goal]);
 
+  // Auto-save after AI responds
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
     prevLoadingRef.current = isLoading;
@@ -198,13 +244,52 @@ export default function GoalDetailPage() {
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
+  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function setMomentum(m: Momentum) {
+  // Switch to a different chat
+  function switchChat(chat: GoalChat) {
+    setActiveChatId(chat.id);
+    setMessages(chat.messages);
+    savedLengthRef.current = chat.messages.length;
+  }
+
+  // Start a new blank chat
+  async function startNewChat(title?: string) {
     if (!user) return;
-    await updateDoc(doc(db, 'users', user.uid, 'goals', id), { momentum: m });
+    const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
+      goalId: id,
+      title: title ?? 'New chat',
+      messages: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      deleted: false,
+    });
+    setActiveChatId(ref.id);
+    setMessages([]);
+    savedLengthRef.current = 0;
+  }
+
+  // Tap a suggestion chip — starts a new chat with that as the first message
+  async function tapSuggestion(text: string) {
+    if (!user) return;
+    const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
+      goalId: id,
+      title: text,
+      messages: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      deleted: false,
+    });
+    setActiveChatId(ref.id);
+    setMessages([]);
+    savedLengthRef.current = 0;
+    // slight delay so state settles, then send
+    setTimeout(() => {
+      append({ role: 'user', content: text });
+    }, 100);
   }
 
   async function saveProgress() {
@@ -232,11 +317,6 @@ export default function GoalDetailPage() {
     await append({ role: 'user', content: val });
   }
 
-  async function sendChip(text: string) {
-    if (isLoading) return;
-    await append({ role: 'user', content: text });
-  }
-
   if (loading || !goal) {
     return (
       <div className="flex-1 flex items-center justify-center h-full">
@@ -245,17 +325,19 @@ export default function GoalDetailPage() {
     );
   }
 
+  const suggestions = getSuggestions(goal.title);
   const progressDisplay = editingProgress ? draftProgress : goal.progress;
+  const activeChat = allChats.find(c => c.id === activeChatId);
+  const mainChatId = `goal-${id}`;
+  const isMainChat = activeChatId === mainChatId;
+  const extraChats = allChats.filter(c => c.id !== mainChatId);
 
   return (
     <div className="h-full overflow-y-auto bg-bg">
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-4">
 
         {/* Back */}
-        <button
-          onClick={() => router.push('/goals')}
-          className="flex items-center gap-1.5 text-xs text-muted hover:text-text transition-colors"
-        >
+        <button onClick={() => router.push('/goals')} className="flex items-center gap-1.5 text-xs text-muted hover:text-text transition-colors">
           ← Goals
         </button>
 
@@ -273,43 +355,10 @@ export default function GoalDetailPage() {
           {goal.description && <p className="text-sm text-muted mt-1">{goal.description}</p>}
         </div>
 
-        {/* ── Section 1: Momentum check ── */}
+        {/* ── Progress ── */}
         <GCard>
           <SectionLabel
-            icon={
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            }
-            color="text-amber-500"
-            text="Momentum check"
-          />
-          <p className="text-sm text-muted mb-3">Where are you at with this goal right now?</p>
-          <div className="flex gap-1.5 flex-wrap">
-            {MOMENTUM_OPTS.map(o => (
-              <button
-                key={o.key}
-                onClick={() => setMomentum(o.key)}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                  goal.momentum === o.key
-                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                    : 'bg-bg border-border text-text hover:border-amber-500/30 hover:bg-amber-500/5'
-                }`}
-              >
-                {o.emoji} {o.label}
-              </button>
-            ))}
-          </div>
-        </GCard>
-
-        {/* ── Section 2: Progress ── */}
-        <GCard>
-          <SectionLabel
-            icon={
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
-              </svg>
-            }
+            icon={<IconTarget />}
             color="text-blue-500"
             text="Progress"
             right={
@@ -320,36 +369,22 @@ export default function GoalDetailPage() {
               ) : undefined
             }
           />
-
           <div className="h-2 bg-border rounded-full overflow-hidden mb-2">
-            <div
-              className="h-full bg-brand rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, progressDisplay)}%` }}
-            />
+            <div className="h-full bg-brand rounded-full transition-all duration-300" style={{ width: `${Math.min(100, progressDisplay)}%` }} />
           </div>
           <p className="text-sm text-text font-semibold">{progressDisplay}% complete</p>
 
           {editingProgress && (
             <div className="mt-4 space-y-3">
-              <input
-                type="range" min={0} max={100} step={5}
-                value={draftProgress}
-                onChange={e => setDraftProgress(Number(e.target.value))}
-                className="w-full accent-brand"
-              />
+              <input type="range" min={0} max={100} step={5} value={draftProgress}
+                onChange={e => setDraftProgress(Number(e.target.value))} className="w-full accent-brand" />
               <div className="flex items-center gap-3">
-                <input
-                  type="number" min={0} max={100}
-                  value={draftProgress}
+                <input type="number" min={0} max={100} value={draftProgress}
                   onChange={e => setDraftProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
-                  className="w-20 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text outline-none focus:border-brand"
-                />
+                  className="w-20 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text outline-none focus:border-brand" />
                 <span className="text-sm text-muted">%</span>
-                <button
-                  onClick={saveProgress}
-                  disabled={savingProgress}
-                  className="ml-auto bg-brand text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-60"
-                >
+                <button onClick={saveProgress} disabled={savingProgress}
+                  className="ml-auto bg-brand text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-60">
                   {savingProgress ? 'Saving…' : 'Save'}
                 </button>
               </div>
@@ -363,19 +398,11 @@ export default function GoalDetailPage() {
           )}
         </GCard>
 
-        {/* ── Section 3: Linked tasks ── */}
+        {/* ── Linked tasks ── */}
         {linkedTasks.length > 0 && (
           <GCard>
-            <SectionLabel
-              icon={
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 12l4 4L20 4"/>
-                </svg>
-              }
-              color="text-emerald-500"
-              text="Linked tasks"
-            />
-            <div className="space-y-2">
+            <SectionLabel icon={<IconCheck />} color="text-emerald-500" text="Linked tasks" />
+            <div className="space-y-1.5">
               {linkedTasks.map(t => (
                 <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 bg-bg rounded-lg">
                   <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
@@ -386,11 +413,74 @@ export default function GoalDetailPage() {
           </GCard>
         )}
 
-        {/* ── Divider ── */}
-        <div className="flex items-center gap-3 py-1">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-[11px] text-muted uppercase tracking-widest">MODUS on this goal</span>
-          <div className="flex-1 h-px bg-border" />
+        {/* ── Explore this goal ── */}
+        <GCard>
+          <SectionLabel icon={<IconSparkle />} color="text-brand" text="Explore this goal" />
+          <p className="text-xs text-muted mb-3">Tap a question to open a dedicated chat thread.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {suggestions.map(s => (
+              <button
+                key={s}
+                onClick={() => tapSuggestion(s)}
+                className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </GCard>
+
+        {/* ── Divider + chat tab bar ── */}
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[11px] text-muted uppercase tracking-widest">MODUS on this goal</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* Chat tabs */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+            {/* Main tab */}
+            <button
+              onClick={() => {
+                const main = allChats.find(c => c.id === mainChatId);
+                if (main) switchChat(main);
+                else { setActiveChatId(mainChatId); setMessages(initialMessages); savedLengthRef.current = 0; }
+              }}
+              className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors ${
+                isMainChat ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
+              }`}
+            >
+              Main chat
+            </button>
+
+            {/* Extra chat tabs */}
+            {extraChats.map(c => (
+              <button
+                key={c.id}
+                onClick={() => switchChat(c)}
+                className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors max-w-[140px] truncate ${
+                  activeChatId === c.id ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
+                }`}
+                title={c.title}
+              >
+                {c.title.replace(/^"(.*)"$/, '$1').split(' ').slice(0, 4).join(' ')}…
+              </button>
+            ))}
+
+            {/* New chat */}
+            <button
+              onClick={() => startNewChat()}
+              className="shrink-0 text-xs px-3 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors"
+            >
+              + New
+            </button>
+          </div>
+
+          {/* Active chat label if not main */}
+          {!isMainChat && activeChat && (
+            <p className="text-[11px] text-muted mt-2 truncate">{activeChat.title}</p>
+          )}
         </div>
 
         {/* ── Chat messages ── */}
@@ -429,20 +519,15 @@ export default function GoalDetailPage() {
             <p className="text-xs font-semibold text-muted mb-0.5">Talk to MODUS about this goal</p>
             <p className="text-[11px] text-muted/60">Share what&apos;s on your mind, log a win, or ask for help.</p>
           </div>
-
           <div className="px-5 pb-3 border-t border-border pt-3 flex gap-1.5 flex-wrap">
             {CHAT_CHIPS.map(chip => (
-              <button
-                key={chip}
-                onClick={() => sendChip(chip)}
+              <button key={chip} onClick={() => { setInput(chip); }}
                 disabled={isLoading}
-                className="text-[11px] px-3 py-1 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors disabled:opacity-40"
-              >
+                className="text-[11px] px-3 py-1 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors disabled:opacity-40">
                 {chip}
               </button>
             ))}
           </div>
-
           <div className="border-t border-border">
             <form onSubmit={handleSubmit} className="flex items-center gap-3 px-5 py-3">
               <input
@@ -451,11 +536,8 @@ export default function GoalDetailPage() {
                 placeholder={`What's happening with "${goal.title}"?`}
                 className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none"
               />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="w-8 h-8 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity"
-              >
+              <button type="submit" disabled={!input.trim() || isLoading}
+                className="w-8 h-8 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
                 </svg>
