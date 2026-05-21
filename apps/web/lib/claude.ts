@@ -41,7 +41,9 @@ For tasks: include "dueDate" and "priority" ("high"/"medium"/"low") in payload w
 For habits: include "frequency" ("daily"/"weekly") in payload.
 For events: include "startTime", "endTime", "date" in payload.
 
-Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, delete_task, delete_habit, delete_goal
+Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, delete_task, delete_habit, delete_goal, connect_google
+
+For connect_google: use this when the user asks to connect Google, Gmail, Google Calendar, or any Google service. Title = "Connect Google", description = what it will unlock. No payload needed. This triggers the OAuth flow directly — only generate this card when the user explicitly asks to connect Google or a Google service. Do NOT generate connect cards for services that aren't Google (there is no connect_notion, connect_slack, etc. — those don't exist yet).
 
 For delete_habit: set title to the habit name and include "habitTitle" in payload. Use whatever name the user gave — matching is fuzzy.
 For delete_goal: set title to the goal name and include "goalTitle" in payload. Fuzzy matched.

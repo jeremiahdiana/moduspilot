@@ -139,6 +139,14 @@ export async function POST(req: Request) {
       });
       return Response.json({ id: ref.id });
     }
+    case 'enable_web_search': {
+      await userRef.set({ capabilities: { webSearch: true } }, { merge: true });
+      return Response.json({ ok: true });
+    }
+    case 'connect_google': {
+      // handled client-side via OAuth redirect — should never reach here
+      return Response.json({ error: 'Use OAuth flow' }, { status: 400 });
+    }
     default:
       return Response.json({ error: 'Unknown action type' }, { status: 400 });
   }

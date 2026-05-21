@@ -22,7 +22,12 @@ const TYPE_LABELS: Record<string, string> = {
   delete_goal: 'Delete Goal',
   create_goal_chat: 'New Goal Chat',
   delete_goal_chat: 'Delete Chat',
+  connect_google: 'Connect Google',
+  enable_web_search: 'Enable Web Search',
 };
+
+// Types that redirect to OAuth or a settings flow instead of POSTing to /api/approval
+const REDIRECT_TYPES = new Set(['connect_google']);
 
 export default function ApprovalCard({ raw }: { raw: string }) {
   const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>('pending');
@@ -42,6 +47,19 @@ export default function ApprovalCard({ raw }: { raw: string }) {
     setError('');
     try {
       const token = await auth.currentUser?.getIdToken();
+
+      // OAuth / redirect-based actions
+      if (REDIRECT_TYPES.has(data.type)) {
+        const res = await fetch('/api/auth/google/connect', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) { setError('Failed to start Google connection.'); return; }
+        const { url } = await res.json();
+        if (url) window.location.href = url;
+        return;
+      }
+
       const res = await fetch('/api/approval', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
