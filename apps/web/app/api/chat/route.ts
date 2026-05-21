@@ -102,12 +102,17 @@ export async function POST(req: Request) {
     const lastUserMsg = [...body.messages].reverse().find(m => m.role === 'user');
     const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
 
-    // Fetch user capabilities
+    // Fetch user capabilities (stored under settings.capabilities)
     let capabilities: Record<string, boolean> = {};
     if (uid) {
       try {
         const userDoc = await adminDb.collection('users').doc(uid).get();
-        capabilities = (userDoc.data()?.capabilities as Record<string, boolean>) ?? {};
+        const data = userDoc.data() ?? {};
+        // Check both locations: settings.capabilities (UI toggle) and top-level capabilities (legacy)
+        capabilities = {
+          ...(data.capabilities as Record<string, boolean> ?? {}),
+          ...(data.settings?.capabilities as Record<string, boolean> ?? {}),
+        };
       } catch { /* non-fatal */ }
     }
 

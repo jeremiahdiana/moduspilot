@@ -25,9 +25,14 @@ interface CapabilityRow {
 
 const CAPABILITIES: CapabilityRow[] = [
   {
+    key: 'webSearch',
+    label: 'Web Search',
+    desc: 'MODUS searches the web in real time when you ask external questions — news, prices, research, anything current.',
+  },
+  {
     key: 'dailyBriefing',
     label: 'Daily Briefing',
-    desc: 'MODUS sends you a morning brief with your top priorities, pending approvals, and a quick check-in. Powered by Inngest.',
+    desc: 'MODUS sends you a morning brief with your top priorities, pending approvals, and a quick check-in.',
     badge: 'Coming Soon',
   },
   {

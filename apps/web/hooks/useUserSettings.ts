@@ -18,6 +18,7 @@ export interface UserSettings {
     dailyBriefing: boolean;
     voiceInput: boolean;
     vectorMemory: boolean;
+    webSearch: boolean;
   };
 }
 
@@ -41,6 +42,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     dailyBriefing: false,
     voiceInput: false,
     vectorMemory: false,
+    webSearch: false,
   },
 };
 
