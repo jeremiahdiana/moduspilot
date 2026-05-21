@@ -190,6 +190,8 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
 
 // ── Section 2: Approval queue ─────────────────────────────────────────────────
 
+const BODY_PREVIEW_LEN = 400;
+
 function ApprovalQueueCard({
   threads,
   connected,
@@ -202,6 +204,7 @@ function ApprovalQueueCard({
   onDraftReply: (thread: GmailThread) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showFull, setShowFull] = useState<string | null>(null);
 
   if (!connected) {
     return (
@@ -268,9 +271,26 @@ function ApprovalQueueCard({
             {/* Expanded body */}
             {expanded === t.id && (
               <div className="px-3 pb-3 bg-bg border-t border-border">
-                <p className="text-[12px] text-text/80 leading-relaxed whitespace-pre-wrap mt-2 max-h-48 overflow-y-auto">
-                  {t.body || t.snippet || 'No content available.'}
-                </p>
+                {(() => {
+                  const full = t.body || t.snippet || '';
+                  const isLong = full.length > BODY_PREVIEW_LEN;
+                  const shown = showFull === t.id || !isLong ? full : full.slice(0, BODY_PREVIEW_LEN) + '…';
+                  return (
+                    <>
+                      <p className="text-[12px] text-text/80 leading-relaxed whitespace-pre-wrap mt-2">
+                        {shown || 'No content available.'}
+                      </p>
+                      {isLong && (
+                        <button
+                          onClick={() => setShowFull(showFull === t.id ? null : t.id)}
+                          className="mt-1 text-[11px] text-brand hover:underline cursor-pointer"
+                        >
+                          {showFull === t.id ? 'Show less' : 'Show full email'}
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 <button
                   onClick={() => onDraftReply(t)}
                   className="mt-3 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"

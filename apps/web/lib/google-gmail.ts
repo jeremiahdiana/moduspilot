@@ -20,9 +20,22 @@ function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#[0-9]+;/g, '')
     .replace(/&[a-z]+;/g, ' ')
-    // Strip zero-width and invisible Unicode chars
     .replace(/[​‌‍﻿­‎‏]/g, '')
     .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanPlainText(text: string): string {
+  return text
+    // Strip Gmail inline image placeholders like [image: Google Logo]
+    .replace(/\[image:[^\]]*\]/gi, '')
+    // Strip bare URLs (they're just noise in a reading context)
+    .replace(/https?:\/\/\S+/g, '')
+    // Strip separator lines like ----------------------------------------
+    .replace(/^[-=*]{4,}\s*$/gm, '')
+    // Collapse blank lines
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+/g, ' ')
     .trim();
 }
 
@@ -30,13 +43,13 @@ function htmlToText(html: string): string {
 function extractTextBody(payload: any): string {
   if (!payload) return '';
   if (payload.mimeType === 'text/plain' && payload.body?.data) {
-    const text = Buffer.from(payload.body.data, 'base64').toString('utf-8').trim();
-    if (text.length > 10) return text; // skip blank/dummy text/plain parts
+    const text = cleanPlainText(Buffer.from(payload.body.data, 'base64').toString('utf-8').trim());
+    if (text.length > 10) return text;
   }
   if (payload.parts) {
     for (const part of payload.parts) {
       if (part.mimeType === 'text/plain' && part.body?.data) {
-        const text = Buffer.from(part.body.data, 'base64').toString('utf-8').trim();
+        const text = cleanPlainText(Buffer.from(part.body.data, 'base64').toString('utf-8').trim());
         if (text.length > 10) return text;
       }
     }
