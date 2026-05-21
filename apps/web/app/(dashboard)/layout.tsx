@@ -9,12 +9,41 @@ import { useRef, useState, useEffect } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '⊞' },
-  { href: '/chat', label: 'Chat', icon: '◎' },
-  { href: '/goals', label: 'Goals', icon: '◈' },
-  { href: '/habits', label: 'Habits', icon: '◉' },
-  { href: '/tasks', label: 'Tasks', icon: '☑' },
+// Minimal inline SVG icons — stroke-based, 24x24 viewBox
+function Ico({ d, d2, className }: { d: string; d2?: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`w-[18px] h-[18px] shrink-0 ${className ?? ''}`}
+    >
+      <path d={d} />
+      {d2 && <path d={d2} />}
+    </svg>
+  );
+}
+
+const ICONS = {
+  dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+  briefing:  'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9',
+  briefing2: 'M13.73 21a2 2 0 01-3.46 0',
+  chat:      'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
+  goals:     'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9',
+  habits:    'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
+  tasks:     'M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11',
+  settings:  'M12 2a10 10 0 110 20A10 10 0 0112 2zm0 5v5l3 3',
+} as const;
+
+const NAV = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' as const },
+  { href: '/chat',      label: 'Chat',      icon: 'chat'      as const },
+  { href: '/goals',     label: 'Goals',     icon: 'goals'     as const },
+  { href: '/habits',    label: 'Habits',    icon: 'habits'    as const },
+  { href: '/tasks',     label: 'Tasks',     icon: 'tasks'     as const },
 ];
 
 function BriefingNavLink({ pathname }: { pathname: string }) {
@@ -37,11 +66,11 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
   return (
     <Link
       href="/briefing"
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
         active ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
       }`}
     >
-      <span className="text-base">◉</span>
+      <Ico d={ICONS.briefing} d2={ICONS.briefing2} />
       <span className="flex-1">Briefing</span>
       {unread && !active && (
         <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
@@ -52,7 +81,6 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -69,85 +97,91 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
-      <aside className="w-56 shrink-0 border-r border-border flex flex-col py-6 px-4">
-        <div className="mb-8 px-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-black tracking-widest text-brand">Modus</span>
-          <span className="text-xs font-medium text-muted tracking-widest">pilot</span>
+      <aside className="w-56 shrink-0 border-r border-border flex flex-col py-5 px-3">
+        {/* Logo */}
+        <div className="mb-7 px-3 flex items-baseline gap-1.5">
+          <span className="text-lg font-black tracking-widest text-brand">Modus</span>
+          <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
         </div>
 
-        <nav className="flex flex-col gap-1 flex-1">
-          <Link
-            href="/dashboard"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              pathname === '/dashboard' ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-            }`}
-          >
-            <span className="text-base">⊞</span>
-            Dashboard
-          </Link>
-          <BriefingNavLink pathname={pathname} />
-          {navItems.slice(1).map(item => (
+        {/* Nav */}
+        <nav className="flex flex-col gap-0.5 flex-1">
+          {NAV.slice(0, 1).map(item => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                pathname === item.href
-                  ? 'bg-brand/10 text-brand'
-                  : 'text-muted hover:text-text hover:bg-panel'
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
               }`}
             >
-              <span className="text-base">{item.icon}</span>
+              <Ico d={ICONS[item.icon]} />
               {item.label}
             </Link>
           ))}
+          <BriefingNavLink pathname={pathname} />
+          {NAV.slice(1).map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+              }`}
+            >
+              <Ico d={ICONS[item.icon]} />
+              {item.label}
+            </Link>
+          ))}
+
+          <div className="mt-2 pt-2 border-t border-border/50">
+            <Link
+              href="/settings"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === '/settings' ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+              }`}
+            >
+              <Ico d={ICONS.settings} />
+              Settings
+            </Link>
+          </div>
         </nav>
 
         {/* User menu */}
-        <div className="mt-auto pt-4 border-t border-border" ref={menuRef}>
+        <div className="mt-auto pt-3 border-t border-border" ref={menuRef}>
           <div className="px-2 pb-2 flex justify-end">
             <AnimatedThemeToggler sound={false} />
           </div>
-          {/* Dropup */}
           {open && user && (
             <div className="mb-2 bg-panel border border-border rounded-xl overflow-hidden shadow-lg">
               <Link
-                href="/settings"
+                href="/settings?tab=billing"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors"
               >
-                <span>⊙</span> Settings
-              </Link>
-              <Link
-                href="/settings?tab=billing"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors border-t border-border"
-              >
-                <span>◆</span> Upgrade Plan
+                <span className="text-xs">◆</span> Upgrade Plan
               </Link>
               <Link
                 href="/how-it-works"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors border-t border-border"
               >
-                <span>→</span> Learn More
+                <span className="text-xs">→</span> Learn More
               </Link>
               <button
                 onClick={() => { signOut(auth); setOpen(false); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors border-t border-border"
+                className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-900/10 transition-colors border-t border-border"
               >
-                <span>↩</span> Sign Out
+                <span className="text-xs">↩</span> Sign Out
               </button>
             </div>
           )}
 
-          {/* Trigger */}
           {user ? (
             <button
               onClick={() => setOpen(o => !o)}
-              className="flex items-center gap-2 w-full px-2 py-2 rounded-lg hover:bg-panel transition-colors"
+              className="flex items-center gap-2.5 w-full px-2 py-2 rounded-xl hover:bg-panel transition-colors"
             >
               {user.photoURL ? (
-                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0" />
+                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
                   <span className="text-xs text-brand font-semibold">
@@ -159,15 +193,17 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-text font-medium truncate">{user.displayName || user.email}</p>
                 <p className="text-[10px] text-muted">Account</p>
               </div>
-              <span className="text-muted text-xs">{open ? '▾' : '▴'}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-muted">
+                <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+              </svg>
             </button>
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors"
             >
-              <span className="text-base">→</span>
-              Sign in to save
+              <Ico d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+              Sign in
             </Link>
           )}
         </div>
