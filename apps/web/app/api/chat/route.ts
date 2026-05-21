@@ -78,19 +78,19 @@ export async function POST(req: Request) {
             getTodayEvents(googleToken),
           ]);
           if (threads.length > 0) {
-            gmailBlock = '\n\nREAL INBOX (unread, last 48h — these are the ONLY real emails you know about, never invent others):\n' +
+            gmailBlock = '\n\nINBOX (unread, last 48h — these are the only emails you have access to, never invent others):\n' +
               threads.map((t, i) =>
                 `${i + 1}. From: ${t.from}\n   Subject: ${t.subject}\n   Preview: ${t.snippet}`
               ).join('\n');
           } else {
-            gmailBlock = '\n\nREAL INBOX: No unread emails in the last 48 hours.';
+            gmailBlock = '\n\nINBOX: No unread emails in the last 48 hours.';
           }
           const todayEvents = events.filter(e => !e.allDay);
           if (todayEvents.length > 0) {
-            calendarBlock = "\n\nTODAY'S REAL CALENDAR:\n" +
+            calendarBlock = "\n\nTODAY'S CALENDAR:\n" +
               todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
           } else {
-            calendarBlock = "\n\nTODAY'S REAL CALENDAR: No events today.";
+            calendarBlock = "\n\nTODAY'S CALENDAR: No events today.";
           }
         }
       } catch { /* non-fatal */ }
