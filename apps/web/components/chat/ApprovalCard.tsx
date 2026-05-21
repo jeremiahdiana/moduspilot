@@ -61,6 +61,13 @@ export default function ApprovalCard({ raw }: { raw: string }) {
         return;
       }
 
+      // If MODUS puts fields at top level instead of inside payload, hoist them
+      const payload = data.payload && Object.keys(data.payload).length > 0
+        ? data.payload
+        : Object.fromEntries(
+            Object.entries(data).filter(([k]) => !['type', 'title', 'description'].includes(k))
+          );
+
       const res = await fetch('/api/approval', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -68,7 +75,7 @@ export default function ApprovalCard({ raw }: { raw: string }) {
           type: data.type,
           title,
           description: data.description,
-          payload: data.payload,
+          payload,
         }),
       });
       if (!res.ok) {

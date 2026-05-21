@@ -43,7 +43,11 @@ For events: include "startTime", "endTime", "date" in payload.
 
 IMPORTANT — email drafting and sending rules:
 - draft_email card: only for composing a brand new email to someone from scratch.
-- send_email card: use ONLY when the user says "send it", "ok send", or similar after seeing a draft reply. Payload must include: to (email address), subject, body (the draft text), threadId (from context). This actually sends via Gmail — do not use it without explicit send confirmation.
+- send_email card: use ONLY when the user says "send it", "ok send", or similar after seeing a draft reply. ALL fields must be inside "payload". Example exact format:
+\`\`\`approval
+{"type":"send_email","title":"Send reply","description":"Send this reply via Gmail.","payload":{"to":"email@example.com","subject":"Re: Subject","body":"Reply text here.","threadId":"threadidhere"}}
+\`\`\`
+Never put to/subject/body/threadId at the top level — they must be inside payload.
 - When replying to a shared email: write the draft text inline in chat first. No card until the user says to send.
 - Never fabricate reply content or pretend you know what someone said if it's not in the email body provided.
 
