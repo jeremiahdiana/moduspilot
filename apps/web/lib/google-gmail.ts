@@ -20,6 +20,8 @@ function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#[0-9]+;/g, '')
     .replace(/&[a-z]+;/g, ' ')
+    // Strip zero-width and invisible Unicode chars
+    .replace(/[​‌‍﻿­‎‏]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -28,12 +30,14 @@ function htmlToText(html: string): string {
 function extractTextBody(payload: any): string {
   if (!payload) return '';
   if (payload.mimeType === 'text/plain' && payload.body?.data) {
-    return Buffer.from(payload.body.data, 'base64').toString('utf-8').trim();
+    const text = Buffer.from(payload.body.data, 'base64').toString('utf-8').trim();
+    if (text.length > 10) return text; // skip blank/dummy text/plain parts
   }
   if (payload.parts) {
     for (const part of payload.parts) {
       if (part.mimeType === 'text/plain' && part.body?.data) {
-        return Buffer.from(part.body.data, 'base64').toString('utf-8').trim();
+        const text = Buffer.from(part.body.data, 'base64').toString('utf-8').trim();
+        if (text.length > 10) return text;
       }
     }
     for (const part of payload.parts) {
@@ -48,6 +52,11 @@ function extractTextBody(payload: any): string {
     }
   }
   return '';
+}
+
+function cleanFrom(raw: string): string {
+  // "Display Name" <email@domain.com> → Display Name
+  return raw.replace(/<[^>]*>/g, '').replace(/^["']|["']$/g, '').trim() || raw.trim();
 }
 
 export async function getActionableThreads(accessToken: string): Promise<GmailThread[]> {
@@ -90,7 +99,7 @@ export async function getActionableThreads(accessToken: string): Promise<GmailTh
 
         const subject = firstHeaders.find(h => h.name === 'Subject')?.value ?? '(no subject)';
         const fromRaw = latestHeaders.find(h => h.name === 'From')?.value ?? '';
-        const from = fromRaw.replace(/<[^>]*>/, '').trim() || fromRaw;
+        const from = cleanFrom(fromRaw);
         const date = latestHeaders.find(h => h.name === 'Date')?.value ?? '';
         const unread = (latestMsg.labelIds ?? []).includes('UNREAD');
         const body = extractTextBody(latestMsg.payload);
