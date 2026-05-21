@@ -8,27 +8,39 @@ export interface GmailThread {
   unread: boolean;
 }
 
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#[0-9]+;/g, '')
+    .replace(/&[a-z]+;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractTextBody(payload: any): string {
   if (!payload) return '';
-  // Direct text/plain body
   if (payload.mimeType === 'text/plain' && payload.body?.data) {
     return Buffer.from(payload.body.data, 'base64').toString('utf-8').trim();
   }
-  // Search parts recursively
   if (payload.parts) {
     for (const part of payload.parts) {
       if (part.mimeType === 'text/plain' && part.body?.data) {
         return Buffer.from(part.body.data, 'base64').toString('utf-8').trim();
       }
     }
-    // Fallback: try html and strip tags
     for (const part of payload.parts) {
       if (part.mimeType === 'text/html' && part.body?.data) {
         const html = Buffer.from(part.body.data, 'base64').toString('utf-8');
-        return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        return htmlToText(html);
       }
-      // Recurse into multipart
       if (part.mimeType?.startsWith('multipart/')) {
         const nested = extractTextBody(part);
         if (nested) return nested;
