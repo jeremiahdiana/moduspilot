@@ -124,7 +124,7 @@ const ENERGY_OPTS = [
   { key: 'running_low',   label: 'Running low',    emoji: '😴' },
 ];
 
-function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k: string) => void }) {
+function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k: string, label: string) => void }) {
   const [custom, setCustom] = useState('');
   return (
     <BCard>
@@ -134,7 +134,7 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
         {ENERGY_OPTS.map(o => (
           <button
             key={o.key}
-            onClick={() => onSelect(o.key)}
+            onClick={() => onSelect(o.key, `${o.emoji} ${o.label}`)}
             className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
               energy === o.key
                 ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
@@ -150,7 +150,7 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
         onChange={e => setCustom(e.target.value)}
         onKeyDown={e => {
           if (e.key === 'Enter' && custom.trim()) {
-            onSelect('custom');
+            onSelect('custom', custom.trim());
             setCustom('');
           }
         }}
@@ -342,6 +342,8 @@ export default function BriefingPage() {
   const [briefings, setBriefings] = useState<Briefing[]>([]);
   const [selected, setSelected] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const autoTriggeredRef = useRef(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -379,6 +381,22 @@ export default function BriefingPage() {
     updateDoc(doc(db, 'users', user.uid, 'conversations', selected.id), { read: true }).catch(() => {});
   }, [selected?.id, user]);
 
+  // Auto-generate today's briefing if none exists yet
+  useEffect(() => {
+    if (loading || autoTriggeredRef.current || !user) return;
+    const hasTodayBriefing = briefings.some(b => b.createdAt >= todayStart());
+    if (!hasTodayBriefing) {
+      autoTriggeredRef.current = true;
+      setAutoGenerating(true);
+      auth.currentUser?.getIdToken().then(token => {
+        fetch('/api/briefing/generate', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }).catch(() => {}).finally(() => setAutoGenerating(false));
+      });
+    }
+  }, [loading, briefings, user]);
+
   const handleEnergySelect = useCallback(async (key: string) => {
     if (!selected || !user) return;
     await updateDoc(doc(db, 'users', user.uid, 'conversations', selected.id), { energy: key });
@@ -392,7 +410,13 @@ export default function BriefingPage() {
     );
   }
 
-  if (briefings.length === 0) return <EmptyBriefing />;
+  if (briefings.length === 0 && !autoGenerating) return <EmptyBriefing />;
+  if (briefings.length === 0 && autoGenerating) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+      <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-muted">Generating your briefing...</p>
+    </div>
+  );
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -432,6 +456,7 @@ export default function BriefingPage() {
           onEnergySelect={handleEnergySelect}
           settings={settings}
           saveMessages={saveMessages}
+          autoGenerating={autoGenerating}
         />
       )}
     </div>
@@ -445,11 +470,13 @@ function BriefingContent({
   onEnergySelect,
   settings,
   saveMessages,
+  autoGenerating,
 }: {
   briefing: Briefing;
   onEnergySelect: (key: string) => void;
   settings: ReturnType<typeof useUserSettings>['settings'];
   saveMessages: (id: string, msgs: Message[], title?: string) => Promise<void>;
+  autoGenerating?: boolean;
 }) {
   const { user } = useAuth();
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -528,6 +555,14 @@ function BriefingContent({
     <div className="flex-1 overflow-y-auto bg-bg">
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-2.5">
 
+        {/* Auto-generating banner */}
+        {autoGenerating && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-brand/10 border border-brand/20 rounded-xl text-[12px] text-brand">
+            <div className="w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin shrink-0" />
+            Generating today&apos;s briefing…
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between mb-5">
           <div>
@@ -550,7 +585,13 @@ function BriefingContent({
           <>
             {/* Section 1: Energy check — hide once answered */}
             {!briefing.energy && (
-              <EnergyCard energy={briefing.energy} onSelect={onEnergySelect} />
+              <EnergyCard
+                energy={briefing.energy}
+                onSelect={(key, label) => {
+                  onEnergySelect(key);
+                  append({ role: 'user', content: `I'm feeling ${label} today.` });
+                }}
+              />
             )}
 
             {/* Section 2: Approval queue */}
