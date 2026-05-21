@@ -11,9 +11,10 @@ interface Props {
   isLoading: boolean;
   attachedImage: string | null;
   onClearImage: () => void;
+  textareaRef?: React.RefObject<HTMLTextAreaElement>;
 }
 
-export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading, attachedImage, onClearImage }: Props) {
+export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading, attachedImage, onClearImage, textareaRef }: Props) {
   const [recording, setRecording] = useState(false);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -87,6 +88,7 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
 
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={onChange}
           onKeyDown={handleKeyDown}

@@ -8,6 +8,7 @@ import { auth, db } from '@/lib/firebase';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import CommandBar from '@/components/ui/CommandBar';
 
 // Minimal inline SVG icons — stroke-based, 24x24 viewBox
 function Ico({ d, d2, className }: { d: string; d2?: string; className?: string }) {
@@ -83,6 +84,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -93,6 +95,19 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Global Cmd+K / Ctrl+K listener
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(o => !o);
+      }
+      if (e.key === 'Escape') setCmdOpen(false);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   return (
@@ -212,6 +227,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-hidden flex flex-col">
         {children}
       </main>
+
+      <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} />
     </div>
   );
 }

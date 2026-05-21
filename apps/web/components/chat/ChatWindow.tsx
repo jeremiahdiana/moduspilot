@@ -10,6 +10,7 @@ import { auth } from '@/lib/firebase';
 interface Props {
   conversationId: string | null;
   initialMessages?: Message[];
+  initialInput?: string;
   onMessagesChange?: (messages: Message[], title?: string) => void;
   onUserMessage?: () => void;
   isGuest?: boolean;
@@ -25,6 +26,7 @@ interface Props {
 export default function ChatWindow({
   conversationId,
   initialMessages = [],
+  initialInput,
   onMessagesChange,
   onUserMessage,
   isGuest,
@@ -37,6 +39,7 @@ export default function ChatWindow({
   briefingTimezone,
 }: Props) {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
+  const inputAreaRef = useRef<HTMLTextAreaElement>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const prevLoadingRef = useRef(false);
   const savedLengthRef = useRef(initialMessages.length);
@@ -76,6 +79,16 @@ export default function ChatWindow({
   });
 
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Pre-fill input if navigated here with ?q= (Cmd+K)
+  useEffect(() => {
+    if (initialInput) {
+      setInput(initialInput);
+      setTimeout(() => inputAreaRef.current?.focus(), 100);
+    }
+  // Only run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -190,6 +203,7 @@ export default function ChatWindow({
           isLoading={isLoading}
           attachedImage={attachedImage?.base64 ?? null}
           onClearImage={() => setAttachedImage(null)}
+          textareaRef={inputAreaRef}
         />
       )}
     </div>

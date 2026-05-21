@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ChatWindow from '@/components/chat/ChatWindow';
 import ConversationList from '@/components/chat/ConversationList';
 import { useConversations } from '@/hooks/useConversations';
@@ -20,6 +21,8 @@ export default function ChatPage() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const isGuest = !uid;
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? undefined;
 
   const { conversations, loading, createConversation, saveMessages, deleteConversation, restoreConversation } = useConversations(uid);
   const { settings, loading: settingsLoading } = useUserSettings(user);
@@ -237,6 +240,7 @@ export default function ChatPage() {
             key={activeId ?? 'guest'}
             conversationId={activeId}
             initialMessages={activeConversation?.messages ?? []}
+            initialInput={initialQuery}
             onMessagesChange={isGuest ? undefined : handleMessagesChange}
             onUserMessage={handleUserMessage}
             isGuest={isGuest}
