@@ -124,8 +124,37 @@ const ENERGY_OPTS = [
   { key: 'running_low',   label: 'Running low',    emoji: '😴' },
 ];
 
-function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k: string, label: string) => void }) {
+const ENERGY_CONFIRM: Record<string, string> = {
+  fully_charged: 'front-load your hardest work.',
+  okay:          'pace your day around your top 3.',
+  running_low:   'protect your focus — only essentials today.',
+};
+
+const ENERGY_CHAT: Record<string, string> = {
+  fully_charged: "Fully charged today — let's make the most of it.",
+  okay:          'Feeling okay today — help me pace this well.',
+  running_low:   'Running low on energy today — help me protect my focus.',
+};
+
+function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k: string, chatMsg: string) => void }) {
   const [custom, setCustom] = useState('');
+
+  if (energy) {
+    const opt = ENERGY_OPTS.find(o => o.key === energy);
+    const confirmTail = ENERGY_CONFIRM[energy] ?? 'keep this in mind throughout your day.';
+    return (
+      <BCard>
+        <Label icon={<IconBolt />} color="text-amber-500" text="Energy check" />
+        <p className="text-sm font-medium text-text mb-1">
+          {opt ? `${opt.emoji} ${opt.label}` : energy}
+        </p>
+        <p className="text-xs text-muted">
+          Modus will keep this in mind and {confirmTail}
+        </p>
+      </BCard>
+    );
+  }
+
   return (
     <BCard>
       <Label icon={<IconBolt />} color="text-amber-500" text="Energy check" />
@@ -134,12 +163,8 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
         {ENERGY_OPTS.map(o => (
           <button
             key={o.key}
-            onClick={() => onSelect(o.key, `${o.emoji} ${o.label}`)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-              energy === o.key
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                : 'bg-bg border-border text-text hover:border-amber-500/30 hover:bg-amber-500/5'
-            }`}
+            onClick={() => onSelect(o.key, ENERGY_CHAT[o.key])}
+            className="text-xs px-3 py-1.5 rounded-lg border border-border bg-bg text-text hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors cursor-pointer"
           >
             {o.emoji} {o.label}
           </button>
@@ -150,7 +175,7 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
         onChange={e => setCustom(e.target.value)}
         onKeyDown={e => {
           if (e.key === 'Enter' && custom.trim()) {
-            onSelect('custom', custom.trim());
+            onSelect(custom.trim(), custom.trim());
             setCustom('');
           }
         }}
@@ -268,10 +293,10 @@ function PatternCard({ text }: { text: string }) {
 // ── Section 6: Closing chat bar ───────────────────────────────────────────────
 
 const QUICK_CHIPS = [
-  { label: '+ Add a task',            fill: 'Add task: ' },
+  { label: '+ Add a task',             fill: 'Add task: ' },
   { label: '↻ Check anything I missed?', fill: 'Is there anything important I missed in my briefing?' },
-  { label: '📅 Show full schedule',   fill: 'Show me my schedule for today.' },
-  { label: "Something's on my mind",  fill: '' },
+  { label: '📅 Show full schedule',    fill: 'Show me my schedule for today.' },
+  { label: "Something's on my mind",   fill: '' },
 ];
 
 function ClosingChatBar({
@@ -300,12 +325,12 @@ function ClosingChatBar({
       </div>
 
       {/* Quick chips */}
-      <div className="px-2 py-2 flex gap-1.5 flex-wrap border-b border-border">
+      <div className="px-3 py-3 grid grid-cols-2 gap-2 border-b border-border">
         {QUICK_CHIPS.map(chip => (
           <button
             key={chip.label}
             onClick={() => onChip(chip.fill)}
-            className="text-[11px] px-3 py-1.5 rounded-full border border-border bg-bg text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors cursor-pointer"
+            className="text-[13px] font-medium px-4 py-3 rounded-xl border border-border bg-bg text-text hover:border-brand/40 hover:bg-brand/5 transition-colors cursor-pointer text-left leading-snug"
           >
             {chip.label}
           </button>
@@ -583,16 +608,14 @@ function BriefingContent({
 
         {data ? (
           <>
-            {/* Section 1: Energy check — hide once answered */}
-            {!briefing.energy && (
-              <EnergyCard
-                energy={briefing.energy}
-                onSelect={(key, label) => {
-                  onEnergySelect(key);
-                  append({ role: 'user', content: `I'm feeling ${label} today.` });
-                }}
-              />
-            )}
+            {/* Section 1: Energy check */}
+            <EnergyCard
+              energy={briefing.energy}
+              onSelect={(key, chatMsg) => {
+                onEnergySelect(key);
+                append({ role: 'user', content: chatMsg });
+              }}
+            />
 
             {/* Section 2: Approval queue */}
             <ApprovalQueueCard />
