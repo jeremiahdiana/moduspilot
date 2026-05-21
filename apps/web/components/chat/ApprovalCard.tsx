@@ -73,7 +73,8 @@ export default function ApprovalCard({ raw }: { raw: string }) {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body.error ?? 'Something went wrong. Try again.');
+        const msg = body.error ?? 'Something went wrong. Try again.';
+        setError(msg.includes('not connected') ? 'Reconnect Google in Settings → Integrations to send emails.' : msg);
         return;
       }
       setStatus('approved');
