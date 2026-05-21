@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import DashboardGrid from '@/components/dashboard/DashboardGrid';
@@ -56,15 +57,48 @@ function useStats(uid: string | null): Stats {
   return stats;
 }
 
-function StatPill({ value, label, href, color }: { value: number; label: string; href: string; color: string }) {
+function useCountUp(target: number, duration = 600): number {
+  const [display, setDisplay] = useState(0);
+  const raf = useRef<number>(0);
+  const start = useRef<number>(0);
+  const from = useRef<number>(0);
+
+  useEffect(() => {
+    from.current = display;
+    start.current = 0;
+    cancelAnimationFrame(raf.current);
+
+    const step = (ts: number) => {
+      if (!start.current) start.current = ts;
+      const progress = Math.min((ts - start.current) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from.current + (target - from.current) * eased));
+      if (progress < 1) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+
+  return display;
+}
+
+function StatPill({ value, label, href, color, delay = 0 }: { value: number; label: string; href: string; color: string; delay?: number }) {
+  const count = useCountUp(value);
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors hover:opacity-80 ${color}`}
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay }}
     >
-      <span className="font-bold text-sm">{value}</span>
-      <span>{label}</span>
-    </Link>
+      <Link
+        href={href}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors hover:opacity-80 ${color}`}
+      >
+        <span className="font-bold text-sm">{count}</span>
+        <span>{label}</span>
+      </Link>
+    </motion.div>
   );
 }
 
@@ -75,35 +109,25 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 overflow-y-auto h-full">
-      <div className="mb-7">
+      <motion.div
+        className="mb-7"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
         <h1 className="text-2xl font-bold text-text">
           {greeting()}{firstName ? `, ${firstName}` : ''}.
         </h1>
         <p className="text-muted text-sm mt-0.5">{today()}</p>
 
         <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <StatPill
-            value={stats.activeGoals}
-            label="active goals"
-            href="/goals"
-            color="border-brand/30 bg-brand/5 text-brand"
-          />
-          <StatPill
-            value={stats.tasksDueToday}
-            label="due today"
-            href="/tasks"
-            color="border-yellow-500/30 bg-yellow-500/5 text-yellow-500"
-          />
+          <StatPill value={stats.activeGoals} label="active goals" href="/goals" color="border-brand/30 bg-brand/5 text-brand" delay={0.1} />
+          <StatPill value={stats.tasksDueToday} label="due today" href="/tasks" color="border-yellow-500/30 bg-yellow-500/5 text-yellow-500" delay={0.2} />
           {stats.topStreak > 0 && (
-            <StatPill
-              value={stats.topStreak}
-              label="day streak 🔥"
-              href="/habits"
-              color="border-orange-500/30 bg-orange-500/5 text-orange-400"
-            />
+            <StatPill value={stats.topStreak} label="day streak 🔥" href="/habits" color="border-orange-500/30 bg-orange-500/5 text-orange-400" delay={0.3} />
           )}
         </div>
-      </div>
+      </motion.div>
 
       <DashboardGrid />
     </div>

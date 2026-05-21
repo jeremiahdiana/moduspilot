@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
@@ -88,9 +89,11 @@ export default function GoalCard() {
               </div>
             </div>
             <div className="h-1 bg-border rounded-full overflow-hidden">
-              <div
-                className="h-full bg-brand rounded-full transition-all"
-                style={{ width: `${Math.min(100, g.progress)}%` }}
+              <motion.div
+                className="h-full bg-brand rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, g.progress)}%` }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
               />
             </div>
             <span className="text-xs text-muted">{g.progress}%</span>

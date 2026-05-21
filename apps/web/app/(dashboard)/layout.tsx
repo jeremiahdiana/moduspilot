@@ -114,10 +114,25 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-bg">
       <aside className="w-56 shrink-0 border-r border-border flex flex-col py-5 px-3">
         {/* Logo */}
-        <div className="mb-7 px-3 flex items-baseline gap-1.5">
+        <div className="mb-5 px-3 flex items-baseline gap-1.5">
           <span className="text-lg font-black tracking-widest text-brand">Modus</span>
           <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
         </div>
+
+        {/* Ask MODUS button — teaches Cmd+K */}
+        <button
+          onClick={() => setCmdOpen(true)}
+          className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <span className="flex-1 text-xs font-medium">Ask MODUS</span>
+          <div className="flex items-center gap-0.5">
+            <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
+            <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>
+          </div>
+        </button>
 
         {/* Nav */}
         <nav className="flex flex-col gap-0.5 flex-1">

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Action {
   label: string;
@@ -123,20 +124,28 @@ export default function CommandBar({ open, onClose }: Props) {
     onClose();
   }
 
-  if (!open) return null;
-
   return (
-    <div
+    <AnimatePresence>
+      {open && (
+    <motion.div
       className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] px-4"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Modal */}
-      <div
+      <motion.div
         className="relative w-full max-w-xl bg-panel border border-border/60 rounded-2xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.96, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: -8 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* Input row */}
         <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-4 border-b border-border/40">
@@ -180,7 +189,9 @@ export default function CommandBar({ open, onClose }: Props) {
             <kbd className="text-[10px] text-muted bg-bg border border-border/50 rounded px-1.5 py-0.5 font-mono">K</kbd>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

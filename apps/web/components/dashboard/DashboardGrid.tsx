@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import GoalCard from './GoalCard';
 import HabitTracker from './HabitTracker';
 import TaskList from './TaskList';
@@ -19,7 +20,7 @@ interface WidgetProps {
 
 function Widget({ title, icon, href, action, children, className = '' }: WidgetProps) {
   return (
-    <div className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden ${className}`}>
+    <div className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden ${className}`} style={{ willChange: 'opacity, transform' }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand">
@@ -79,6 +80,20 @@ const Icons = {
   ),
 };
 
+const ease = [0.16, 1, 0.3, 1] as const;
+
+function FadeUp({ delay, children }: { delay: number; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.38, delay, ease }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export default function DashboardGrid() {
   return (
     <div className="space-y-4">
@@ -87,64 +102,47 @@ export default function DashboardGrid() {
 
         {/* Left column: Briefing + Gmail */}
         <div className="flex flex-col gap-4">
-          <Widget
-            title="Today's Briefing"
-            icon={Icons.briefing}
-            href="/briefing"
-            className="min-h-[200px]"
-          >
-            <BriefingWidget />
-          </Widget>
+          <FadeUp delay={0}>
+            <Widget title="Today's Briefing" icon={Icons.briefing} href="/briefing" className="min-h-[200px]">
+              <BriefingWidget />
+            </Widget>
+          </FadeUp>
 
-          <Widget
-            title="Inbox"
-            icon={Icons.gmail}
-            href="/briefing"
-            className="min-h-[220px]"
-          >
-            <GmailWidget />
-          </Widget>
+          <FadeUp delay={0.14}>
+            <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
+              <GmailWidget />
+            </Widget>
+          </FadeUp>
         </div>
 
         {/* Right column: Goals + Tasks + Habits */}
         <div className="flex flex-col gap-4">
-          <Widget
-            title="Goals"
-            icon={Icons.goals}
-            href="/goals"
-            className="min-h-[180px]"
-          >
-            <GoalCard />
-          </Widget>
+          <FadeUp delay={0.07}>
+            <Widget title="Goals" icon={Icons.goals} href="/goals" className="min-h-[180px]">
+              <GoalCard />
+            </Widget>
+          </FadeUp>
 
-          <Widget
-            title="Tasks"
-            icon={Icons.tasks}
-            href="/tasks"
-            className="min-h-[180px]"
-          >
-            <TaskList />
-          </Widget>
+          <FadeUp delay={0.18}>
+            <Widget title="Tasks" icon={Icons.tasks} href="/tasks" className="min-h-[180px]">
+              <TaskList />
+            </Widget>
+          </FadeUp>
 
-          <Widget
-            title="Habits"
-            icon={Icons.habits}
-            href="/habits"
-            className="min-h-[140px]"
-          >
-            <HabitTracker />
-          </Widget>
+          <FadeUp delay={0.25}>
+            <Widget title="Habits" icon={Icons.habits} href="/habits" className="min-h-[140px]">
+              <HabitTracker />
+            </Widget>
+          </FadeUp>
         </div>
       </div>
 
       {/* Full-width Calendar row */}
-      <Widget
-        title="Today's Schedule"
-        icon={Icons.calendar}
-        className="min-h-[80px]"
-      >
-        <CalendarWidget />
-      </Widget>
+      <FadeUp delay={0.3}>
+        <Widget title="Today's Schedule" icon={Icons.calendar} className="min-h-[80px]">
+          <CalendarWidget />
+        </Widget>
+      </FadeUp>
     </div>
   );
 }

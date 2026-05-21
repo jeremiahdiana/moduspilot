@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 
@@ -81,14 +82,17 @@ export default function HabitTracker() {
             const doneToday = h.completedDates.includes(today);
             return (
               <div key={h.id} className="flex items-center gap-2.5">
-                <button
+                <motion.button
                   onClick={() => toggleToday(h)}
+                  whileTap={{ scale: 0.8 }}
+                  animate={doneToday ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.25 }}
                   className={`w-4 h-4 shrink-0 rounded border transition-colors flex items-center justify-center ${
                     doneToday ? 'bg-brand border-brand' : 'border-border hover:border-brand'
                   }`}
                 >
                   {doneToday && <span className="text-white text-[8px] leading-none">✓</span>}
-                </button>
+                </motion.button>
                 <span className="flex-1 text-sm text-text truncate">{h.title}</span>
                 <span className="text-xs text-muted shrink-0">{h.streak}🔥</span>
               </div>
