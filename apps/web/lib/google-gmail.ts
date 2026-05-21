@@ -8,11 +8,12 @@ export interface GmailThread {
 
 export async function getActionableThreads(accessToken: string): Promise<GmailThread[]> {
   try {
-    const since = Math.floor((Date.now() - 48 * 60 * 60 * 1000) / 1000);
-    const query = `in:inbox is:unread after:${since}`;
+    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const dateStr = `${since.getFullYear()}/${String(since.getMonth() + 1).padStart(2, '0')}/${String(since.getDate()).padStart(2, '0')}`;
+    const query = `in:inbox is:unread after:${dateStr}`;
 
     const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(query)}&maxResults=5`,
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(query)}&maxResults=10`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
@@ -22,7 +23,7 @@ export async function getActionableThreads(accessToken: string): Promise<GmailTh
     const threads: { id: string }[] = listData.threads ?? [];
     const results: GmailThread[] = [];
 
-    for (const t of threads.slice(0, 5)) {
+    for (const t of threads.slice(0, 10)) {
       try {
         const threadRes = await fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`,
