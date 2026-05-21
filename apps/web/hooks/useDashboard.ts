@@ -38,7 +38,7 @@ export function useDashboard(uid: string | null) {
     if (!uid) { setLoading(false); return; }
     getDoc(doc(db, 'users', uid)).then(snap => {
       const saved = (snap.data()?.dashboardWidgets as DashboardWidget[] | undefined)
-        ?.filter(w => w.type !== 'streak');
+        ?.filter(w => (w.type as string) !== 'streak');
       setWidgets(saved?.length ? saved : DEFAULT_WIDGETS);
       setLoading(false);
     }).catch(() => { setWidgets(DEFAULT_WIDGETS); setLoading(false); });
