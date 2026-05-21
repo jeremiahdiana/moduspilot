@@ -194,11 +194,15 @@ function ApprovalQueueCard({
   threads,
   connected,
   onConnectGoogle,
+  onDraftReply,
 }: {
   threads: GmailThread[];
   connected: boolean;
   onConnectGoogle: () => void;
+  onDraftReply: (thread: GmailThread) => void;
 }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
   if (!connected) {
     return (
       <BCard>
@@ -246,14 +250,35 @@ function ApprovalQueueCard({
           </span>
         }
       />
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {threads.map(t => (
-          <div key={t.id} className="flex items-start gap-2.5 px-3 py-2.5 bg-bg rounded-lg">
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium text-text truncate">{t.subject}</p>
-              <p className="text-[11px] text-muted truncate">{t.from}</p>
-              <p className="text-[11px] text-muted/70 truncate mt-0.5">{t.snippet}</p>
-            </div>
+          <div key={t.id} className="rounded-lg border border-border overflow-hidden">
+            {/* Email row */}
+            <button
+              onClick={() => setExpanded(expanded === t.id ? null : t.id)}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 bg-bg hover:bg-brand/5 transition-colors text-left cursor-pointer"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-text truncate">{t.subject}</p>
+                <p className="text-[11px] text-muted truncate">{t.from}</p>
+              </div>
+              <span className="text-[10px] text-muted shrink-0 mt-0.5">{expanded === t.id ? '▲' : '▼'}</span>
+            </button>
+
+            {/* Expanded body */}
+            {expanded === t.id && (
+              <div className="px-3 pb-3 bg-bg border-t border-border">
+                <p className="text-[12px] text-text/80 leading-relaxed whitespace-pre-wrap mt-2 max-h-48 overflow-y-auto">
+                  {t.body || t.snippet || 'No content available.'}
+                </p>
+                <button
+                  onClick={() => onDraftReply(t)}
+                  className="mt-3 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"
+                >
+                  Draft reply with MODUS ↗
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -724,6 +749,12 @@ function BriefingContent({
     }
   }
 
+  function handleDraftReply(thread: GmailThread) {
+    const content = `Draft a reply to this email:\nFrom: ${thread.from}\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
+    append({ role: 'user', content });
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  }
+
   const data = briefing.briefingData;
   const energyOpt = ENERGY_OPTS.find(o => o.key === briefing.energy);
 
@@ -773,6 +804,7 @@ function BriefingContent({
               threads={gmailThreads}
               connected={gmailConnected}
               onConnectGoogle={handleConnectGoogle}
+              onDraftReply={handleDraftReply}
             />
 
             {/* Section 2b: Calendar */}
