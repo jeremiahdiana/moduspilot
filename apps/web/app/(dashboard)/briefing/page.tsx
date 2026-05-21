@@ -770,7 +770,7 @@ function BriefingContent({
   }
 
   function handleDraftReply(thread: GmailThread) {
-    const content = `Draft a reply to this email:\nFrom: ${thread.from}\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
+    const content = `Write a draft reply for this email directly in chat — no approval card, just the reply text I can copy:\n\nFrom: ${thread.from}\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
     append({ role: 'user', content });
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }
