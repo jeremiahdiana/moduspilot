@@ -13,16 +13,15 @@ export interface WidgetLayout {
 
 export interface DashboardWidget {
   id: string;
-  type: 'goals' | 'habits' | 'tasks' | 'streak' | 'briefing' | 'quick_chat' | 'gmail' | 'calendar' | 'notes' | 'finance';
+  type: 'goals' | 'habits' | 'tasks' | 'briefing' | 'quick_chat' | 'gmail' | 'calendar' | 'notes' | 'finance';
   title: string;
   layout?: WidgetLayout;
 }
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: 'goals',  type: 'goals',  title: 'Goals',   layout: { x: 0, y: 0, w: 6, h: 5 } },
-  { id: 'streak', type: 'streak', title: 'Streaks', layout: { x: 6, y: 0, w: 6, h: 5 } },
-  { id: 'habits', type: 'habits', title: 'Habits',  layout: { x: 0, y: 5, w: 6, h: 6 } },
-  { id: 'tasks',  type: 'tasks',  title: 'Tasks',   layout: { x: 6, y: 5, w: 6, h: 6 } },
+  { id: 'habits', type: 'habits', title: 'Habits',  layout: { x: 6, y: 0, w: 6, h: 5 } },
+  { id: 'tasks',  type: 'tasks',  title: 'Tasks',   layout: { x: 0, y: 5, w: 6, h: 6 } },
 ];
 
 async function persist(uid: string, widgets: DashboardWidget[]) {
