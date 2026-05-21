@@ -7,6 +7,8 @@ import { queryMemory, upsertMemory } from '@/lib/pinecone';
 import { getValidAccessToken } from '@/lib/google-oauth';
 import { getActionableThreads } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
+import { webSearch, shouldWebSearch } from '@/lib/tavily';
+import { searchDriveFiles, shouldSearchDrive, mimeLabel } from '@/lib/google-drive';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -80,8 +82,8 @@ export async function POST(req: Request) {
           if (threads.length > 0) {
             gmailBlock = '\n\nINBOX (unread, last 48h — these are the only emails you have access to, never invent others):\n' +
               threads.map((t, i) =>
-                `${i + 1}. From: ${t.from}\n   Subject: ${t.subject}\n   Preview: ${t.snippet}`
-              ).join('\n');
+                `${i + 1}. From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 500) : t.snippet}`
+              ).join('\n\n');
           } else {
             gmailBlock = '\n\nINBOX: No unread emails in the last 48 hours.';
           }
@@ -99,6 +101,44 @@ export async function POST(req: Request) {
     // Find last user message for memory retrieval
     const lastUserMsg = [...body.messages].reverse().find(m => m.role === 'user');
     const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
+
+    // Fetch user capabilities
+    let capabilities: Record<string, boolean> = {};
+    if (uid) {
+      try {
+        const userDoc = await adminDb.collection('users').doc(uid).get();
+        capabilities = (userDoc.data()?.capabilities as Record<string, boolean>) ?? {};
+      } catch { /* non-fatal */ }
+    }
+
+    // Web search (Tavily) — if capability enabled and query looks external
+    let webSearchBlock = '';
+    if (capabilities.webSearch && queryText && shouldWebSearch(queryText) && process.env.TAVILY_API_KEY) {
+      try {
+        const results = await webSearch(queryText, 5);
+        if (results.length > 0) {
+          webSearchBlock = '\n\nWEB SEARCH RESULTS (for this query — use these to answer, cite sources naturally):\n' +
+            results.map((r, i) => `${i + 1}. ${r.title}\n   Source: ${r.url}\n   ${r.content.slice(0, 350)}`).join('\n\n');
+        }
+      } catch (e) {
+        console.error('[chat] web search failed:', e);
+      }
+    }
+
+    // Google Drive — search for relevant files if query mentions docs/files
+    let driveBlock = '';
+    if (uid && queryText && shouldSearchDrive(queryText)) {
+      try {
+        const googleToken = await getValidAccessToken(uid);
+        if (googleToken) {
+          const files = await searchDriveFiles(googleToken, queryText, 5);
+          if (files.length > 0) {
+            driveBlock = '\n\nGOOGLE DRIVE FILES (matching this query):\n' +
+              files.map(f => `- ${mimeLabel(f.mimeType)}: ${f.name} — ${f.webViewLink} (modified ${f.modifiedTime.slice(0, 10)})`).join('\n');
+          }
+        }
+      } catch { /* non-fatal */ }
+    }
 
     // Query Pinecone for relevant memories
     let memoryContext = '';
@@ -158,7 +198,7 @@ export async function POST(req: Request) {
       ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it.`
       : '';
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock + googleDataBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock + googleDataBlock + webSearchBlock + driveBlock;
 
     const result = streamText({
       model: groq('llama-3.3-70b-versatile'),

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { registerPushNotifications } from '@/lib/firebase-messaging-client';
 
 interface AuthCtx {
   user: User | null;
@@ -21,6 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
+      // Register push notifications silently after login (no-op if denied)
+      if (u) registerPushNotifications(u.uid).catch(() => {});
     });
   }, []);
 

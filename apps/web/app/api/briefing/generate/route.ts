@@ -3,6 +3,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
 import { getValidAccessToken } from '@/lib/google-oauth';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
+import { sendPushToUser } from '@/lib/fcm-admin';
 
 function msgId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -79,6 +80,9 @@ export async function POST(req: Request) {
       briefingData,
       messages: [{ id: msgId(), role: 'assistant', content: contentText }],
     });
+
+    // Fire-and-forget push notification
+    sendPushToUser(uid, 'Morning Briefing ready', briefingData.openingLine ?? 'Your MODUS briefing is ready.').catch(() => {});
 
     return Response.json({ id: ref.id, briefingData });
   } catch (e) {
