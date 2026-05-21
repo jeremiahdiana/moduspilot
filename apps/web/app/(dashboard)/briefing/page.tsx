@@ -193,6 +193,26 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
 
 const BODY_PREVIEW_LEN = 400;
 
+const AVATAR_COLORS = [
+  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
+  'bg-rose-500', 'bg-cyan-500', 'bg-orange-500', 'bg-pink-500',
+];
+
+function avatarColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+function ContactAvatar({ name }: { name: string }) {
+  const initial = name.trim()[0]?.toUpperCase() ?? '?';
+  return (
+    <span className={`w-7 h-7 rounded-full ${avatarColor(name)} flex items-center justify-center text-[11px] font-bold text-white shrink-0`}>
+      {initial}
+    </span>
+  );
+}
+
 function ApprovalQueueCard({
   threads,
   connected,
@@ -260,13 +280,16 @@ function ApprovalQueueCard({
             {/* Email row */}
             <button
               onClick={() => setExpanded(expanded === t.id ? null : t.id)}
-              className="w-full flex items-start gap-2.5 px-3 py-2.5 bg-bg hover:bg-brand/5 transition-colors text-left cursor-pointer"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-bg hover:bg-brand/5 transition-colors text-left cursor-pointer"
             >
+              <ContactAvatar name={t.from || t.fromAddress} />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-text truncate">{t.subject}</p>
-                <p className="text-[11px] text-muted truncate">{t.from}</p>
+                <p className="text-[11px] text-muted truncate">
+                  {t.from}{t.fromAddress && t.fromAddress !== t.from ? ` · ${t.fromAddress}` : ''}
+                </p>
               </div>
-              <span className="text-[10px] text-muted shrink-0 mt-0.5">{expanded === t.id ? '▲' : '▼'}</span>
+              <span className="text-[10px] text-muted shrink-0">{expanded === t.id ? '▲' : '▼'}</span>
             </button>
 
             {/* Expanded body */}
