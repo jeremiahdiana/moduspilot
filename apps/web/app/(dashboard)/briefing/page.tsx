@@ -11,7 +11,9 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useConversations } from '@/hooks/useConversations';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
-import type { BriefingData } from '@/lib/briefing';
+import type { BriefingData, BriefingScheduleItem } from '@/lib/briefing';
+import type { GmailThread } from '@/lib/google-gmail';
+import type { CalendarEvent } from '@/lib/google-calendar';
 
 interface Briefing {
   id: string;
@@ -188,7 +190,50 @@ function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k:
 
 // ── Section 2: Approval queue ─────────────────────────────────────────────────
 
-function ApprovalQueueCard() {
+function ApprovalQueueCard({
+  threads,
+  connected,
+  onConnectGoogle,
+}: {
+  threads: GmailThread[];
+  connected: boolean;
+  onConnectGoogle: () => void;
+}) {
+  if (!connected) {
+    return (
+      <BCard>
+        <Label icon={<IconChecks />} color="text-emerald-500" text="Approval queue" />
+        <p className="text-xs text-muted mb-3">
+          Connect Gmail to surface emails that need your attention.
+        </p>
+        <button
+          onClick={onConnectGoogle}
+          className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"
+        >
+          Connect Google →
+        </button>
+      </BCard>
+    );
+  }
+
+  if (threads.length === 0) {
+    return (
+      <BCard>
+        <Label
+          icon={<IconChecks />}
+          color="text-emerald-500"
+          text="Approval queue"
+          right={
+            <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              All clear
+            </span>
+          }
+        />
+        <p className="text-xs text-muted">No unread emails in the last 48 hours.</p>
+      </BCard>
+    );
+  }
+
   return (
     <BCard>
       <Label
@@ -197,15 +242,89 @@ function ApprovalQueueCard() {
         text="Approval queue"
         right={
           <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            0 pending
+            {threads.length} unread
           </span>
         }
       />
-      <p className="text-xs text-muted">
-        No integrations connected.{' '}
-        <span className="text-brand cursor-pointer hover:underline">Connect Gmail or Calendar</span>
-        {' '}to surface pending actions here.
-      </p>
+      <div className="space-y-2">
+        {threads.map(t => (
+          <div key={t.id} className="flex items-start gap-2.5 px-3 py-2.5 bg-bg rounded-lg">
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium text-text truncate">{t.subject}</p>
+              <p className="text-[11px] text-muted truncate">{t.from}</p>
+              <p className="text-[11px] text-muted/70 truncate mt-0.5">{t.snippet}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </BCard>
+  );
+}
+
+// ── Section 2b: Calendar card ─────────────────────────────────────────────────
+
+const IconCalendar = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+
+function CalendarCard({
+  events,
+  schedule,
+  connected,
+  onConnectGoogle,
+}: {
+  events: CalendarEvent[];
+  schedule: BriefingScheduleItem[];
+  connected: boolean;
+  onConnectGoogle: () => void;
+}) {
+  // Merge live events with briefing schedule (prefer live if available)
+  const items = connected && events.length > 0
+    ? events.filter(e => !e.allDay).map(e => ({
+        time: e.start ? new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '',
+        title: e.title,
+      }))
+    : schedule;
+
+  if (!connected) {
+    return (
+      <BCard>
+        <Label icon={<IconCalendar />} color="text-blue-500" text="Today's schedule" />
+        <p className="text-xs text-muted mb-3">
+          Connect Google Calendar to see your meetings here.
+        </p>
+        <button
+          onClick={onConnectGoogle}
+          className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"
+        >
+          Connect Google →
+        </button>
+      </BCard>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <BCard>
+        <Label icon={<IconCalendar />} color="text-blue-500" text="Today's schedule" />
+        <p className="text-xs text-muted">No meetings today — clear runway.</p>
+      </BCard>
+    );
+  }
+
+  return (
+    <BCard>
+      <Label icon={<IconCalendar />} color="text-blue-500" text="Today's schedule" />
+      <div className="space-y-1.5">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-3 px-3 py-2 bg-bg rounded-lg">
+            <span className="text-[11px] font-medium text-muted w-16 shrink-0">{item.time}</span>
+            <span className="text-[13px] text-text flex-1 truncate">{item.title}</span>
+          </div>
+        ))}
+      </div>
     </BCard>
   );
 }
@@ -509,12 +628,44 @@ function BriefingContent({
   const prevLoadingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Live integration data
+  const [gmailThreads, setGmailThreads] = useState<GmailThread[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async u => {
       setAuthToken(u ? await u.getIdToken() : null);
     });
     return unsub;
   }, []);
+
+  // Fetch Gmail and Calendar once per briefing load
+  useEffect(() => {
+    if (!authToken) return;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    fetch(`/api/integrations/gmail`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(d => { setGmailThreads(d.threads ?? []); setGmailConnected(d.connected ?? false); })
+      .catch(() => {});
+
+    fetch(`/api/integrations/calendar?tz=${encodeURIComponent(tz)}`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(d => { setCalendarEvents(d.events ?? []); setCalendarConnected(d.connected ?? false); })
+      .catch(() => {});
+  }, [authToken]);
+
+  async function handleConnectGoogle() {
+    if (!authToken) return;
+    const res = await fetch('/api/auth/google/connect', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+  }
 
   const initialMessages: Message[] = [{
     id: `briefing-${briefing.id}`,
@@ -617,8 +768,20 @@ function BriefingContent({
               }}
             />
 
-            {/* Section 2: Approval queue */}
-            <ApprovalQueueCard />
+            {/* Section 2: Approval queue (Gmail) */}
+            <ApprovalQueueCard
+              threads={gmailThreads}
+              connected={gmailConnected}
+              onConnectGoogle={handleConnectGoogle}
+            />
+
+            {/* Section 2b: Calendar */}
+            <CalendarCard
+              events={calendarEvents}
+              schedule={data.schedule ?? []}
+              connected={calendarConnected}
+              onConnectGoogle={handleConnectGoogle}
+            />
 
             {/* Section 3: Top 3 */}
             {data.top3.length > 0 && <Top3Card items={data.top3} />}

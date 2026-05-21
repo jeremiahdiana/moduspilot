@@ -1,6 +1,8 @@
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
+import { getValidAccessToken } from '@/lib/google-oauth';
+import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 
 function msgId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -51,7 +53,19 @@ export async function POST(req: Request) {
       completedDates: d.data().completedDates ?? [],
     }));
 
-    const briefingData = await generateBriefingData(name, { goals, tasks, habits, today, yesterday });
+    // Fetch calendar events if Google is connected
+    let schedule: { time: string; title: string }[] = [];
+    try {
+      const googleToken = await getValidAccessToken(uid);
+      if (googleToken) {
+        const events = await getTodayEvents(googleToken);
+        schedule = events
+          .filter(e => !e.allDay)
+          .map(e => ({ time: fmtEventTime(e.start), title: e.title }));
+      }
+    } catch {}
+
+    const briefingData = await generateBriefingData(name, { goals, tasks, habits, today, yesterday, schedule });
     const contentText = briefingDataToText(briefingData);
 
     const title = `Morning Briefing — ${todayLabel()}`;

@@ -12,12 +12,18 @@ export interface BriefingHabit {
   status: 'at_risk' | 'on_track' | 'done';
 }
 
+export interface BriefingScheduleItem {
+  time: string;
+  title: string;
+}
+
 export interface BriefingData {
   openingLine: string;
   top3: BriefingTop3Item[];
   looseEnd: { text: string } | null;
   habits: BriefingHabit[];
   patternCallout: string | null;
+  schedule: BriefingScheduleItem[];
 }
 
 const groq = createOpenAI({
@@ -58,6 +64,7 @@ export async function generateBriefingData(
     habits: { title: string; streak: number; completedDates: string[] }[];
     today: string;
     yesterday: string;
+    schedule?: { time: string; title: string }[];
   }
 ): Promise<BriefingData> {
   const { today, yesterday } = input;
@@ -87,6 +94,10 @@ export async function generateBriefingData(
       }).join('\n')
     : 'None.';
 
+  const scheduleText = input.schedule?.length
+    ? input.schedule.map(e => `- ${e.time}: ${e.title}`).join('\n')
+    : 'No calendar events.';
+
   const { text } = await generateText({
     model: groq('llama-3.3-70b-versatile'),
     messages: [
@@ -100,20 +111,24 @@ Output this exact schema:
 {
   "openingLine": "string — one sentence, specific to their data, no Good morning filler",
   "top3": [
-    { "task": "string", "source": "string — e.g. Goal · Fundraising or Due · Tomorrow or Task" }
+    { "task": "string", "source": "string — e.g. Goal · Fundraising or Due · Tomorrow or Task or Meeting · 2pm" }
   ],
   "looseEnd": { "text": "string — what it is and why it still matters" } or null,
   "habits": [
     { "name": "string", "streak": number, "status": "at_risk" or "on_track" or "done" }
   ],
-  "patternCallout": "string" or null
+  "patternCallout": "string" or null,
+  "schedule": [
+    { "time": "string — e.g. 9:00 AM", "title": "string" }
+  ]
 }
 
 Rules:
-- top3: exactly 3 items ranked by urgency and goal alignment. If fewer than 3 tasks exist, infer a high-value action from their goals.
+- top3: exactly 3 items ranked by urgency and goal alignment. Factor in calendar events (meetings eat focus time). If fewer than 3 tasks exist, infer a high-value action from their goals.
 - looseEnd: only if a task was open before today. null if nothing is genuinely overdue.
 - habits: only habits from the input that have active streaks or were done recently. at_risk = streak > 0 and not done today. on_track = streak > 0 and done today. done = completed today.
 - patternCallout: null unless there is a specific, genuine pattern in the data worth naming. Do not invent one.
+- schedule: return the calendar events from the input as-is. Empty array if none.
 - Never use em dashes. Never fabricate tasks or goals not in the input.`,
       },
       {
@@ -129,7 +144,10 @@ OPEN TASKS:
 ${tasksText}
 
 HABITS:
-${habitsText}`,
+${habitsText}
+
+TODAY'S CALENDAR:
+${scheduleText}`,
       },
     ],
     maxTokens: 800,
@@ -153,6 +171,7 @@ ${habitsText}`,
         status: h.completedDates.includes(today) ? 'done' : h.streak > 0 ? 'at_risk' : 'on_track',
       })),
       patternCallout: null,
+      schedule: input.schedule ?? [],
     };
   }
 
