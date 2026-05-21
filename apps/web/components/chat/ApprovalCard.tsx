@@ -20,6 +20,8 @@ const TYPE_LABELS: Record<string, string> = {
   delete_task: 'Delete Task',
   delete_habit: 'Delete Habit',
   delete_goal: 'Delete Goal',
+  create_goal_chat: 'New Goal Chat',
+  delete_goal_chat: 'Delete Chat',
 };
 
 export default function ApprovalCard({ raw }: { raw: string }) {

@@ -11,6 +11,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
+import MessageBubble from '@/components/chat/MessageBubble';
 
 type Timeframe = 'short' | 'long';
 
@@ -79,6 +80,14 @@ const IconSparkle = () => (
     <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
   </svg>
 );
+
+function sanitizeMessages(msgs: Message[]): { id: string; role: string; content: string }[] {
+  return msgs.map(m => ({
+    id: m.id,
+    role: m.role,
+    content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+  }));
+}
 
 export default function GoalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -196,13 +205,17 @@ export default function GoalDetailPage() {
     if (!user || !id) return;
     const chatId = activeChatIdRef.current;
     const isMain = chatId === `goal-${id}`;
-    await setDoc(doc(db, 'users', user.uid, 'conversations', chatId), {
-      goalId: id,
-      ...(isMain ? { title: `Goal: ${goal?.title ?? 'Untitled'}` } : {}),
-      messages: msgs,
-      updatedAt: new Date(),
-      deleted: false,
-    }, { merge: true });
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'conversations', chatId), {
+        goalId: id,
+        ...(isMain ? { title: `Goal: ${goal?.title ?? 'Untitled'}` } : {}),
+        messages: sanitizeMessages(msgs),
+        updatedAt: new Date(),
+        deleted: false,
+      }, { merge: true });
+    } catch (e) {
+      console.error('[goal chat] save failed:', e);
+    }
   }, [user, id, goal]);
 
   // useChat — id is FIXED to goal-${id} so the hook is always stable.
@@ -517,22 +530,11 @@ export default function GoalDetailPage() {
         {/* Chat messages */}
         <div className="space-y-3">
           {messages.map((m, idx) => (
-            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                m.role === 'user'
-                  ? 'bg-brand text-white rounded-br-sm'
-                  : 'bg-panel border border-border text-text rounded-bl-sm'
-              }`}>
-                {typeof m.content === 'string' ? m.content : ''}
-                {isLoading && idx === messages.length - 1 && m.role === 'assistant' && (
-                  <span className="inline-flex gap-0.5 ml-1 align-middle">
-                    <span className="w-1 h-1 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
-                    <span className="w-1 h-1 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />
-                    <span className="w-1 h-1 bg-muted rounded-full animate-bounce [animation-delay:300ms]" />
-                  </span>
-                )}
-              </div>
-            </div>
+            <MessageBubble
+              key={m.id}
+              message={m}
+              isStreaming={isLoading && idx === messages.length - 1}
+            />
           ))}
           {isLoading && messages[messages.length - 1]?.role === 'user' && (
             <div className="flex gap-1 px-1">
