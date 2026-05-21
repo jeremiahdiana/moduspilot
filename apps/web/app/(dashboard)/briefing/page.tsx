@@ -14,6 +14,7 @@ import type { Message } from 'ai';
 import type { BriefingData, BriefingScheduleItem } from '@/lib/briefing';
 import type { GmailThread } from '@/lib/google-gmail';
 import type { CalendarEvent } from '@/lib/google-calendar';
+import MessageBubble from '@/components/chat/MessageBubble';
 
 interface Briefing {
   id: string;
@@ -865,31 +866,16 @@ function BriefingContent({
         {chatMessages.length > 0 && (
           <div className="space-y-2.5 pt-1">
             {chatMessages.map((m, idx) => {
+              // Clean up draft-reply trigger messages before display
               const raw = typeof m.content === 'string' ? m.content : '';
-              // Show a clean label for draft-reply trigger messages
               const isDraftTrigger = raw.startsWith('Write a draft reply for this email directly in chat');
-              const subjectMatch = raw.match(/Subject: ([^\n]+)/);
-              const displayContent = isDraftTrigger
-                ? `Draft a reply → ${subjectMatch?.[1]?.trim() ?? 'email'}`
-                : raw;
-              return (
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
-                  m.role === 'user'
-                    ? 'bg-brand text-white rounded-br-sm'
-                    : 'bg-panel border border-border text-text rounded-bl-sm'
-                }`}>
-                  {displayContent}
-                  {isLoading && idx === chatMessages.length - 1 && m.role === 'assistant' && (
-                    <span className="inline-flex gap-0.5 ml-1 align-middle">
-                      <span className="w-1 h-1 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
-                      <span className="w-1 h-1 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />
-                      <span className="w-1 h-1 bg-muted rounded-full animate-bounce [animation-delay:300ms]" />
-                    </span>
-                  )}
-                </div>
-              </div>
-              );
+              if (isDraftTrigger) {
+                const subjectMatch = raw.match(/Subject: ([^\n]+)/);
+                const clean = { ...m, content: `Draft a reply → ${subjectMatch?.[1]?.trim() ?? 'email'}` };
+                return <MessageBubble key={m.id} message={clean} />;
+              }
+              const isStreaming = isLoading && idx === chatMessages.length - 1 && m.role === 'assistant';
+              return <MessageBubble key={m.id} message={m} isStreaming={isStreaming} />;
             })}
             {isLoading && chatMessages[chatMessages.length - 1]?.role === 'user' && (
               <div className="flex gap-1 px-1">
