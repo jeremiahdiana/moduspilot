@@ -1,5 +1,7 @@
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { getValidAccessToken } from '@/lib/google-oauth';
+import { sendGmailReply } from '@/lib/gmail-send';
 
 function norm(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -138,6 +140,18 @@ export async function POST(req: Request) {
         updatedAt: FieldValue.serverTimestamp(),
       });
       return Response.json({ id: ref.id });
+    }
+    case 'send_email': {
+      const googleToken = await getValidAccessToken(uid);
+      if (!googleToken) return Response.json({ error: 'Google not connected — reconnect in Settings.' }, { status: 400 });
+      await sendGmailReply(
+        googleToken,
+        payload.to as string,
+        payload.subject as string,
+        payload.body as string,
+        payload.threadId as string | undefined,
+      );
+      return Response.json({ ok: true });
     }
     case 'enable_web_search': {
       await userRef.set({ capabilities: { webSearch: true } }, { merge: true });

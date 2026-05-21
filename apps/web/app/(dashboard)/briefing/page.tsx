@@ -770,7 +770,7 @@ function BriefingContent({
   }
 
   function handleDraftReply(thread: GmailThread) {
-    const content = `Write a draft reply for this email directly in chat — no approval card, just the reply text I can copy:\n\nFrom: ${thread.from}\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
+    const content = `Write a draft reply for this email directly in chat — no approval card, just the reply text I can copy. When I say "send it" or "ok send", generate a send_email approval card with type "send_email", to: "${thread.fromAddress}", subject: "${thread.subject}", threadId: "${thread.id}", and body = the draft text.\n\nFrom: ${thread.from} <${thread.fromAddress}>\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
     append({ role: 'user', content });
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }

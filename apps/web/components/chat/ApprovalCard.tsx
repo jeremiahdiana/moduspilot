@@ -24,6 +24,7 @@ const TYPE_LABELS: Record<string, string> = {
   delete_goal_chat: 'Delete Chat',
   connect_google: 'Connect Google',
   enable_web_search: 'Enable Web Search',
+  send_email: 'Send Email',
 };
 
 // Types that redirect to OAuth or a settings flow instead of POSTing to /api/approval

@@ -2,6 +2,7 @@ export interface GmailThread {
   id: string;
   subject: string;
   from: string;
+  fromAddress: string;
   snippet: string;
   body: string;
   date: string;
@@ -113,6 +114,7 @@ export async function getActionableThreads(accessToken: string): Promise<GmailTh
         const subject = firstHeaders.find(h => h.name === 'Subject')?.value ?? '(no subject)';
         const fromRaw = latestHeaders.find(h => h.name === 'From')?.value ?? '';
         const from = cleanFrom(fromRaw);
+        const fromAddress = fromRaw.match(/<([^>]+)>/)?.[1] ?? fromRaw.trim();
         const date = latestHeaders.find(h => h.name === 'Date')?.value ?? '';
         const unread = (latestMsg.labelIds ?? []).includes('UNREAD');
         const body = extractTextBody(latestMsg.payload);
@@ -121,6 +123,7 @@ export async function getActionableThreads(accessToken: string): Promise<GmailTh
           id: t.id,
           subject,
           from,
+          fromAddress,
           snippet: threadData.snippet ?? '',
           body,
           date,
