@@ -4,6 +4,9 @@ import type { CoreMessage } from 'ai';
 import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { queryMemory, upsertMemory } from '@/lib/pinecone';
+import { getValidAccessToken } from '@/lib/google-oauth';
+import { getActionableThreads } from '@/lib/google-gmail';
+import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -61,6 +64,36 @@ export async function POST(req: Request) {
       } catch (e) {
         console.error('[chat] failed to load user settings from admin:', e);
       }
+    }
+
+    // Fetch live Google data if connected
+    let gmailBlock = '';
+    let calendarBlock = '';
+    if (uid) {
+      try {
+        const googleToken = await getValidAccessToken(uid);
+        if (googleToken) {
+          const [threads, events] = await Promise.all([
+            getActionableThreads(googleToken),
+            getTodayEvents(googleToken),
+          ]);
+          if (threads.length > 0) {
+            gmailBlock = '\n\nREAL INBOX (unread, last 48h — these are the ONLY real emails you know about, never invent others):\n' +
+              threads.map((t, i) =>
+                `${i + 1}. From: ${t.from}\n   Subject: ${t.subject}\n   Preview: ${t.snippet}`
+              ).join('\n');
+          } else {
+            gmailBlock = '\n\nREAL INBOX: No unread emails in the last 48 hours.';
+          }
+          const todayEvents = events.filter(e => !e.allDay);
+          if (todayEvents.length > 0) {
+            calendarBlock = "\n\nTODAY'S REAL CALENDAR:\n" +
+              todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
+          } else {
+            calendarBlock = "\n\nTODAY'S REAL CALENDAR: No events today.";
+          }
+        }
+      } catch { /* non-fatal */ }
     }
 
     // Find last user message for memory retrieval
@@ -121,7 +154,11 @@ export async function POST(req: Request) {
       ? `\n\nGOAL FOCUS: This conversation is dedicated to one specific goal: "${gc.title}" (goalId: "${gc.id}"). Current progress: ${gc.progress}%. Timeframe: ${gc.timeframe ?? 'not set'}. ${gc.description ? `Description: ${gc.description}.` : ''}\n\nThe user is currently in chat "${gc.activeChatId ?? `goal-${gc.id}`}".\n\nStay laser-focused on this goal. Ask targeted check-in questions about progress, blockers, and next moves. Only propose an update_goal approval card when the user explicitly states a new progress percentage or says they've finished a major milestone — include goalId: "${gc.id}" in the payload.\n\nIf the user asks to "add a new chat", "open a new chat", or "start a new conversation" on this goal, output a create_goal_chat approval card: title = a short descriptive name for the new chat, payload = { goalId: "${gc.id}" }.\n\n${!isMainChat ? `If the user asks to "delete this chat", "remove this chat", or similar, output a delete_goal_chat approval card: title = a short description, payload = { goalId: "${gc.id}", conversationId: "${gc.activeChatId}" }. Do NOT offer or generate delete_goal_chat for the main chat.` : 'The user is in the main chat — do NOT generate a delete_goal_chat card here.'}\n\nCRITICAL: Do NOT generate create_task, create_habit, create_goal, or any other approval card in this chat unless the user explicitly and clearly says they want to create something new. Casual messages or questions must NEVER be interpreted as requests to create items. Respond to those conversationally.`
       : '';
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock;
+    const googleDataBlock = gmailBlock || calendarBlock
+      ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it.`
+      : '';
+
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock + googleDataBlock;
 
     const result = streamText({
       model: groq('llama-3.3-70b-versatile'),
