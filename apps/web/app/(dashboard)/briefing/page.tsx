@@ -654,19 +654,66 @@ function weatherEmoji(desc: string) {
 
 // ── News card ─────────────────────────────────────────────────────────────────
 
-function NewsCard({ items, industry }: { items: { title: string; url: string; snippet: string }[]; industry: string }) {
+function newsHostname(url: string) {
+  try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; }
+}
+
+function NewsCard({ items, industry, onChangeTopic }: {
+  items: { title: string; url: string; snippet: string; image?: string | null }[];
+  industry: string;
+  onChangeTopic: (topic: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(industry);
+
   if (items.length === 0) return null;
   return (
     <BCard>
-      <Label icon={<IconNewspaper />} color="text-blue-400" text={`In the news · ${industry}`} />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="text-blue-400 shrink-0"><IconNewspaper /></span>
+          {editing ? (
+            <form onSubmit={e => { e.preventDefault(); if (draft.trim()) { onChangeTopic(draft.trim()); } setEditing(false); }}
+              className="flex items-center gap-2 flex-1">
+              <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+                className="text-[11px] bg-bg border border-brand/40 rounded-lg px-2.5 py-1 text-text outline-none flex-1 min-w-0" />
+              <button type="submit" className="text-[11px] font-semibold text-brand shrink-0 cursor-pointer">Save</button>
+              <button type="button" onClick={() => setEditing(false)} className="text-[11px] text-muted shrink-0 cursor-pointer">✕</button>
+            </form>
+          ) : (
+            <button onClick={() => { setDraft(industry); setEditing(true); }}
+              className="flex items-center gap-1.5 group cursor-pointer min-w-0">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted truncate">In the news · {industry}</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className="text-muted/30 group-hover:text-muted transition-colors shrink-0">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
       <div className="divide-y divide-border/50">
-        {items.map((item, i) => (
-          <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
-            className="block py-2.5 first:pt-0 last:pb-0 group">
-            <p className="text-[13px] font-medium text-text group-hover:text-brand transition-colors leading-snug">{item.title}</p>
-            {item.snippet && <p className="text-[11px] text-muted mt-0.5 line-clamp-2 leading-relaxed">{item.snippet}</p>}
-          </a>
-        ))}
+        {items.map((item, i) => {
+          const host = newsHostname(item.url);
+          const favicon = host ? `https://www.google.com/s2/favicons?domain=${host}&sz=32` : null;
+          return (
+            <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
+              className="flex gap-3 py-3 first:pt-0 last:pb-0 group items-start">
+              {item.image ? (
+                <img src={item.image} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0 bg-border" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              ) : favicon ? (
+                <div className="w-7 h-7 rounded-lg bg-bg border border-border flex items-center justify-center shrink-0 mt-0.5">
+                  <img src={favicon} alt="" className="w-4 h-4" />
+                </div>
+              ) : null}
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-text group-hover:text-brand transition-colors leading-snug line-clamp-2">{item.title}</p>
+                {item.snippet && <p className="text-[11px] text-muted mt-0.5 line-clamp-2 leading-relaxed">{item.snippet}</p>}
+                {host && <p className="text-[10px] text-muted/50 mt-1">{host}</p>}
+              </div>
+            </a>
+          );
+        })}
       </div>
     </BCard>
   );
@@ -804,8 +851,10 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   // Live Firestore: habits + due task count
   const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean; completedDates: string[] }[]>([]);
   const [dueTodayCount, setDueTodayCount] = useState(0);
-  const [newsItems, setNewsItems] = useState<{ title: string; url: string; snippet: string }[]>([]);
+  const [newsItems, setNewsItems] = useState<{ title: string; url: string; snippet: string; image?: string | null }[]>([]);
   const [newsIndustry, setNewsIndustry] = useState('');
+  const [newsActiveTopic, setNewsActiveTopic] = useState('');
+  const [newsRefreshKey, setNewsRefreshKey] = useState(0);
 
   // Top 3 completion (Firestore-backed)
   const [completedTop3, setCompletedTop3] = useState<number[]>(briefing.completedTop3);
@@ -833,10 +882,12 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
 
   useEffect(() => {
     if (!authToken) return;
-    fetch('/api/briefing/news', { headers: { Authorization: `Bearer ${authToken}` } })
-      .then(r => r.json()).then(d => { setNewsItems(d.items ?? []); setNewsIndustry(d.industry ?? ''); })
+    const qs = newsActiveTopic ? `?topic=${encodeURIComponent(newsActiveTopic)}` : '';
+    fetch(`/api/briefing/news${qs}`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json()).then(d => { setNewsItems(d.items ?? []); setNewsIndustry(d.industry ?? newsActiveTopic); })
       .catch(() => {});
-  }, [authToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authToken, newsRefreshKey]);
 
   useEffect(() => {
     if (!user) return;
@@ -878,6 +929,16 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
     const next = completedTop3.includes(index) ? completedTop3.filter(i => i !== index) : [...completedTop3, index];
     setCompletedTop3(next);
     await updateDoc(doc(db, 'users', user.uid, 'conversations', briefing.id), { completedTop3: next });
+  }
+
+  async function handleNewsTopicChange(topic: string) {
+    if (!user || !topic.trim()) return;
+    const trimmed = topic.trim();
+    setNewsActiveTopic(trimmed);
+    setNewsIndustry(trimmed);
+    setNewsItems([]);
+    setNewsRefreshKey(k => k + 1);
+    await updateDoc(doc(db, 'users', user.uid), { 'settings.newsIndustry': trimmed });
   }
 
   async function handleConnectGoogle() {
@@ -1048,7 +1109,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
               {data.patternCallout && (
                 <FadeCard delay={0.18}><PatternCard text={data.patternCallout} /></FadeCard>
               )}
-              <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} /></FadeCard>
+              <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} onChangeTopic={handleNewsTopicChange} /></FadeCard>
             </div>
             {/* Right: sticky action panel */}
             <div className="space-y-3 lg:sticky lg:top-6">
