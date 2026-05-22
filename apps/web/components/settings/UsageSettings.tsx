@@ -19,7 +19,7 @@ function UsageBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-export default function UsageSettings({ plan, usage }: Props) {
+export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUpgrade?: () => void }) {
   const isPaid = plan === 'modus' || plan === 'pilot';
   const today = new Date().toISOString().slice(0, 10);
   const isToday = usage.usageDate === today;
@@ -95,7 +95,7 @@ export default function UsageSettings({ plan, usage }: Props) {
             <p className="text-xs text-muted">Upgrade to MODUS for $24/mo — no daily caps, full memory, daily briefings.</p>
           </div>
           <button
-            onClick={() => alert('Stripe checkout coming soon.')}
+            onClick={onUpgrade}
             className="shrink-0 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 transition-colors"
           >
             Upgrade

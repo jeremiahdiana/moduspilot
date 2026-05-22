@@ -115,7 +115,7 @@ function SettingsContent() {
             <BillingSettings plan={plan} />
           )}
           {activeTab === 'usage' && (
-            <UsageSettings plan={plan} usage={usage} />
+            <UsageSettings plan={plan} usage={usage} onUpgrade={() => setTab('billing')} />
           )}
           {activeTab === 'capabilities' && (
             <CapabilitiesSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />

@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 import type { Message } from 'ai';
 
 const FREE_DAILY_LIMIT = 20;
-const TRIAL_DAYS = 4;
+const TRIAL_DAYS = 30;
 
 type Plan = 'free' | 'modus' | 'pilot';
 
@@ -35,6 +35,7 @@ export default function ChatPage() {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number>(TRIAL_DAYS);
   const initDone = useRef(false);
   const pendingConvIdRef = useRef<string | null>(null);
+  const [inFlightMessages, setInFlightMessages] = useState<Message[]>([]);
 
   // Load active conversation from most recent on mount
   useEffect(() => {
@@ -51,6 +52,13 @@ export default function ChatPage() {
       pendingConvIdRef.current = null;
     }
   }, [conversations]);
+
+  // Clear in-flight messages once Firestore has confirmed the conversation has messages
+  useEffect(() => {
+    if (activeConversation?.messages?.length && inFlightMessages.length) {
+      setInFlightMessages([]);
+    }
+  }, [activeConversation?.messages?.length, inFlightMessages.length]);
 
   // Load user plan + daily message count + trial status
   useEffect(() => {
@@ -121,25 +129,22 @@ export default function ChatPage() {
     let convId = activeId ?? pendingConvIdRef.current;
     if (!convId) {
       convId = await createConversation();
-      // Don't setActiveId yet — wait for Firestore to confirm the conversation
-      // with messages before remounting ChatWindow (avoids flash of empty chat).
       pendingConvIdRef.current = convId;
+      setInFlightMessages(messages); // preserve messages across ChatWindow remount
     }
     await saveMessages(convId, messages, title);
   }, [isGuest, uid, activeId, createConversation, saveMessages]);
 
   const handleUserMessage = useCallback(async () => {
-    if (isGuest || isPaid || trialActive) return;
+    if (isGuest || !uid) return;
     const today = new Date().toISOString().slice(0, 10);
     const newCount = msgCount + 1;
     setMsgCount(newCount);
-    if (uid) {
-      await updateDoc(doc(db, 'users', uid), {
-        dailyMessages: increment(1),
-        usageDate: today,
-      });
-    }
-    if (newCount >= FREE_DAILY_LIMIT) {
+    await updateDoc(doc(db, 'users', uid), {
+      dailyMessages: increment(1),
+      usageDate: today,
+    });
+    if (!isPaid && !trialActive && newCount >= FREE_DAILY_LIMIT) {
       setShowPaywall(true);
     }
   }, [isGuest, isPaid, trialActive, msgCount, uid]);
@@ -239,7 +244,7 @@ export default function ChatPage() {
           <ChatWindow
             key={activeId ?? 'guest'}
             conversationId={activeId}
-            initialMessages={activeConversation?.messages ?? []}
+            initialMessages={activeConversation?.messages?.length ? activeConversation.messages : inFlightMessages}
             initialInput={initialQuery}
             onMessagesChange={isGuest ? undefined : handleMessagesChange}
             onUserMessage={handleUserMessage}
