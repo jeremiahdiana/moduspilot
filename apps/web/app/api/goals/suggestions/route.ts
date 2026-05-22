@@ -26,20 +26,19 @@ export async function POST(req: Request) {
 
     const prompt = `Someone has a goal: "${title}"${description ? `. Context: ${description}` : ''}${tfLabel ? `. Timeframe: ${tfLabel}` : ''}.
 
-Generate exactly 5 short, personal conversation starters that help them think through their own situation with a trusted advisor. These should prompt reflection or planning — not external research. They're starting a coaching conversation, not a Google search.
+Generate exactly 5 short conversation starters specifically about THIS goal. Each should feel like a natural thing to say to a trusted advisor who knows the goal — not a generic coaching question that could apply to anything.
 
-Good examples:
-- "What's the biggest thing blocking me right now?"
-- "Break this into 90-day milestones"
-- "What would 50% progress actually look like?"
-- "What do I need to stop doing to make room for this?"
-- "What's one move I can make this week?"
+Rules:
+- Reference the actual goal or its domain directly (don't say "this goal", say what it is)
+- Personal and reflective — about their own situation, blockers, next steps
+- NOT external research (no "how did X person do Y", no "what do experts say")
+- Under 10 words each
+- Varied: mix planning, blockers, reflection, next actions
 
-Bad examples (too specific / research-y):
-- "How did [famous person] achieve X?"
-- "What strategies do experts recommend for..."
+Example for goal "Launch my Shopify store by August":
+["What's left before the store goes live?", "Which product should I launch with first?", "What's stopping me from setting the launch date?", "Walk me through my first week of marketing", "What's realistic revenue in month one?"]
 
-Keep each under 8 words. Output ONLY a valid JSON array of exactly 5 strings. No explanation, no markdown.`;
+Output ONLY a valid JSON array of exactly 5 strings. No explanation, no markdown.`;
 
     const { text } = await generateText({
       model: groq('llama-3.3-70b-versatile'),
