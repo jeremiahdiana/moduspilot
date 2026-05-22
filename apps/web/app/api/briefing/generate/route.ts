@@ -1,5 +1,5 @@
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
 import { getValidAccessToken } from '@/lib/google-oauth';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
@@ -22,6 +22,18 @@ export async function POST(req: Request) {
       name = decoded.name?.split(' ')[0] || 'there';
     } catch {
       return Response.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Dedup: if a briefing already exists for today, return it
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const existingSnap = await adminDb
+      .collection('users').doc(uid).collection('conversations')
+      .where('briefing', '==', true)
+      .where('createdAt', '>=', Timestamp.fromDate(todayStart))
+      .limit(1)
+      .get();
+    if (!existingSnap.empty) {
+      return Response.json({ existing: true, id: existingSnap.docs[0].id });
     }
 
     const today = new Date().toISOString().split('T')[0];

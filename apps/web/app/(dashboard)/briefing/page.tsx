@@ -217,117 +217,133 @@ function ContactAvatar({ name }: { name: string }) {
 function ApprovalQueueCard({
   threads,
   connected,
+  filter,
+  onFilterChange,
   onConnectGoogle,
   onDraftReply,
 }: {
   threads: GmailThread[];
   connected: boolean;
+  filter: 'primary' | 'all';
+  onFilterChange: (f: 'primary' | 'all') => void;
   onConnectGoogle: () => void;
   onDraftReply: (thread: GmailThread) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [showFull, setShowFull] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const LIMIT = 5;
+  const shown = showAll ? threads : threads.slice(0, LIMIT);
+
+  const FilterToggle = () => (
+    <div className="flex items-center bg-bg border border-border rounded-lg p-0.5 gap-0.5">
+      {(['primary', 'all'] as const).map(f => (
+        <button
+          key={f}
+          onClick={() => onFilterChange(f)}
+          className={`text-[10px] font-medium px-2 py-0.5 rounded transition-colors ${
+            filter === f ? 'bg-brand text-white' : 'text-muted hover:text-text'
+          }`}
+        >
+          {f === 'primary' ? 'Primary' : 'All'}
+        </button>
+      ))}
+    </div>
+  );
 
   if (!connected) {
     return (
       <BCard>
-        <Label icon={<IconChecks />} color="text-emerald-500" text="Approval queue" />
-        <p className="text-xs text-muted mb-3">
-          Connect Gmail to surface emails that need your attention.
-        </p>
-        <button
-          onClick={onConnectGoogle}
-          className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"
-        >
+        <div className="flex items-center justify-between mb-3">
+          <Label icon={<IconChecks />} color="text-emerald-500" text="Inbox" />
+          <FilterToggle />
+        </div>
+        <p className="text-xs text-muted mb-3">Connect Gmail to surface emails that need your attention.</p>
+        <button onClick={onConnectGoogle} className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer">
           Connect Google →
         </button>
       </BCard>
     );
   }
 
-  if (threads.length === 0) {
-    return (
-      <BCard>
-        <Label
-          icon={<IconChecks />}
-          color="text-emerald-500"
-          text="Approval queue"
-          right={
-            <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              All clear
-            </span>
-          }
-        />
-        <p className="text-xs text-muted">No unread emails in the last 48 hours.</p>
-      </BCard>
-    );
-  }
-
   return (
-    <BCard>
-      <Label
-        icon={<IconChecks />}
-        color="text-emerald-500"
-        text="Approval queue"
-        right={
-          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            {threads.length} unread
-          </span>
-        }
-      />
-      <div className="space-y-1.5">
-        {threads.map(t => (
-          <div key={t.id} className="rounded-lg border border-border overflow-hidden">
-            {/* Email row */}
-            <button
-              onClick={() => setExpanded(expanded === t.id ? null : t.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-bg hover:bg-brand/5 transition-colors text-left cursor-pointer"
-            >
-              <ContactAvatar name={t.from || t.fromAddress} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-text truncate">{t.subject}</p>
-                <p className="text-[11px] text-muted truncate">
-                  {t.from}{t.fromAddress && t.fromAddress !== t.from ? ` · ${t.fromAddress}` : ''}
-                </p>
-              </div>
-              <span className="text-[10px] text-muted shrink-0">{expanded === t.id ? '▲' : '▼'}</span>
-            </button>
-
-            {/* Expanded body */}
-            {expanded === t.id && (
-              <div className="px-3 pb-3 bg-bg border-t border-border">
-                {(() => {
-                  const full = t.body || t.snippet || '';
-                  const isLong = full.length > BODY_PREVIEW_LEN;
-                  const shown = showFull === t.id || !isLong ? full : full.slice(0, BODY_PREVIEW_LEN) + '…';
-                  return (
-                    <>
-                      <p className="text-[12px] text-text/80 leading-relaxed whitespace-pre-wrap mt-2">
-                        {shown || 'No content available.'}
-                      </p>
-                      {isLong && (
-                        <button
-                          onClick={() => setShowFull(showFull === t.id ? null : t.id)}
-                          className="mt-1 text-[11px] text-brand hover:underline cursor-pointer"
-                        >
-                          {showFull === t.id ? 'Show less' : 'Show full email'}
-                        </button>
-                      )}
-                    </>
-                  );
-                })()}
-                <button
-                  onClick={() => onDraftReply(t)}
-                  className="mt-3 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"
-                >
-                  Draft reply with MODUS ↗
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+    <div className="bg-panel border border-border rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-500"><IconChecks /></span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Inbox</span>
+          {threads.length > 0 && (
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              {threads.length} unread
+            </span>
+          )}
+        </div>
+        <FilterToggle />
       </div>
-    </BCard>
+
+      {threads.length === 0 ? (
+        <div className="px-5 py-4 space-y-1">
+          <p className="text-xs text-muted">
+            {filter === 'primary' ? 'No unread primary emails in 48h.' : 'No unread emails in 48h.'}
+          </p>
+          {filter === 'primary' && (
+            <button onClick={() => onFilterChange('all')} className="text-[11px] text-brand hover:underline cursor-pointer">
+              Show all categories →
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          {shown.map(t => (
+            <div key={t.id} className="border-b border-border/50 last:border-b-0">
+              <button
+                onClick={() => setExpanded(expanded === t.id ? null : t.id)}
+                className="w-full flex items-start gap-3 px-5 py-3.5 hover:bg-brand/5 transition-colors text-left cursor-pointer"
+              >
+                <ContactAvatar name={t.from || t.fromAddress} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                    <span className="text-xs font-semibold text-text truncate">{t.from}</span>
+                    <span className="text-[10px] text-muted shrink-0">{t.date?.slice(0, 6)}</span>
+                  </div>
+                  <p className="text-[12px] text-text/90 truncate">{t.subject}</p>
+                  {expanded !== t.id && (
+                    <p className="text-[11px] text-muted truncate mt-0.5">{t.snippet}</p>
+                  )}
+                </div>
+                {t.unread && <div className="w-1.5 h-1.5 rounded-full bg-brand shrink-0 mt-1.5" />}
+              </button>
+
+              {expanded === t.id && (
+                <div className="px-5 pb-4">
+                  <div className="bg-bg rounded-lg p-3 mt-0.5">
+                    <p className="text-[12px] text-text/80 leading-relaxed whitespace-pre-wrap">
+                      {(t.body || t.snippet || 'No content available.').slice(0, 600)}
+                      {(t.body || t.snippet || '').length > 600 && '…'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onDraftReply(t)}
+                    className="mt-2.5 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer"
+                  >
+                    Draft reply with MODUS ↗
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {threads.length > LIMIT && (
+            <button
+              onClick={() => setShowAll(v => !v)}
+              className="w-full py-2.5 text-xs text-muted hover:text-text text-center transition-colors cursor-pointer"
+            >
+              {showAll ? 'Show less' : `+ ${threads.length - LIMIT} more`}
+            </button>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -475,6 +491,24 @@ function PatternCard({ text }: { text: string }) {
     >
       <Label icon={<IconEye />} color="text-amber-500" text="Modus noticed" />
       <p className="text-[13px] text-text">{text}</p>
+    </div>
+  );
+}
+
+// ── Mission card (top focus) ──────────────────────────────────────────────────
+
+function MissionCard({ task, source }: { task: string; source?: string }) {
+  return (
+    <div
+      className="rounded-xl border border-brand/20 px-5 py-4"
+      style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(124,58,237,0.03) 100%)' }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-brand"><IconTarget /></span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-brand/70">Mission today</span>
+      </div>
+      <p className="text-[15px] font-semibold text-text leading-snug">{task}</p>
+      {source && <p className="text-[11px] text-muted mt-1">{source}</p>}
     </div>
   );
 }
@@ -634,31 +668,38 @@ export default function BriefingPage() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Sidebar */}
+      {/* Sidebar — one entry per calendar day (latest briefing per day) */}
       <aside className="w-52 shrink-0 border-r border-border flex flex-col">
         <div className="px-4 py-4 border-b border-border">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-widest">Briefings</h2>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
-          {briefings.map(b => (
-            <button
-              key={b.id}
-              onClick={() => setSelected(b)}
-              className={`w-full text-left px-4 py-3 transition-colors ${
-                selected?.id === b.id ? 'bg-brand/10 border-r-2 border-brand' : 'hover:bg-panel'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {!b.read && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
-                <p className={`text-xs font-medium truncate ${selected?.id === b.id ? 'text-brand' : 'text-text'}`}>
-                  {fmtShort(b.createdAt)}
+          {briefings
+            .reduce((acc: Briefing[], b) => {
+              const dayKey = b.createdAt.toISOString().slice(0, 10);
+              const alreadyHasDay = acc.some(x => x.createdAt.toISOString().slice(0, 10) === dayKey);
+              if (!alreadyHasDay) acc.push(b);
+              return acc;
+            }, [])
+            .map(b => (
+              <button
+                key={b.id}
+                onClick={() => setSelected(b)}
+                className={`w-full text-left px-4 py-3 transition-colors ${
+                  selected?.id === b.id ? 'bg-brand/10 border-r-2 border-brand' : 'hover:bg-panel'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {!b.read && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
+                  <p className={`text-xs font-medium truncate ${selected?.id === b.id ? 'text-brand' : 'text-text'}`}>
+                    {fmtShort(b.createdAt)}
+                  </p>
+                </div>
+                <p className="text-[11px] text-muted mt-0.5 truncate">
+                  {b.briefingData?.openingLine ?? b.content.slice(0, 55)}
                 </p>
-              </div>
-              <p className="text-[11px] text-muted mt-0.5 truncate">
-                {b.briefingData?.openingLine ?? b.content.slice(0, 55)}
-              </p>
-            </button>
-          ))}
+              </button>
+            ))}
         </div>
       </aside>
 
@@ -1031,6 +1072,7 @@ function BriefingContent({
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [calendarConnected, setCalendarConnected] = useState(false);
+  const [emailFilter, setEmailFilter] = useState<'primary' | 'all'>('primary');
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async u => {
@@ -1039,16 +1081,19 @@ function BriefingContent({
     return unsub;
   }, []);
 
-  // Fetch Gmail and Calendar once per briefing load
+  // Fetch Gmail (re-fetches when filter changes)
   useEffect(() => {
     if (!authToken) return;
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    fetch(`/api/integrations/gmail`, { headers: { Authorization: `Bearer ${authToken}` } })
+    fetch(`/api/integrations/gmail?filter=${emailFilter}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json())
       .then(d => { setGmailThreads(d.threads ?? []); setGmailConnected(d.connected ?? false); })
       .catch(() => {});
+  }, [authToken, emailFilter]);
 
+  // Fetch Calendar once per briefing load
+  useEffect(() => {
+    if (!authToken) return;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     fetch(`/api/integrations/calendar?tz=${encodeURIComponent(tz)}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json())
       .then(d => { setCalendarEvents(d.events ?? []); setCalendarConnected(d.connected ?? false); })
@@ -1224,6 +1269,12 @@ function BriefingContent({
 
         {data ? (
           <>
+            {data.top3.length > 0 && (
+              <FadeCard delay={0.03}>
+                <MissionCard task={data.top3[0].task} source={data.top3[0].source} />
+              </FadeCard>
+            )}
+
             <FadeCard delay={0.05}>
               <EnergyCard
                 energy={briefing.energy}
@@ -1238,6 +1289,8 @@ function BriefingContent({
               <ApprovalQueueCard
                 threads={gmailThreads}
                 connected={gmailConnected}
+                filter={emailFilter}
+                onFilterChange={setEmailFilter}
                 onConnectGoogle={handleConnectGoogle}
                 onDraftReply={handleDraftReply}
               />
