@@ -15,9 +15,13 @@ import MessageBubble from '@/components/chat/MessageBubble';
 import { motion } from 'framer-motion';
 
 type Timeframe = 'short' | 'long';
+type GoalTab = 'tasks' | 'habits' | 'notes' | 'explore';
 
 interface Milestone { id: string; title: string; done: boolean; }
 interface ProgressEntry { progress: number; date: string; }
+interface Note { id: string; content: string; date: string; }
+interface GoalTask { id: string; title: string; done: boolean; }
+interface HabitRef { id: string; title: string; streak: number; }
 
 interface Goal {
   id: string;
@@ -30,6 +34,8 @@ interface Goal {
   createdAt?: string;
   milestones: Milestone[];
   progressLog: ProgressEntry[];
+  linkedHabitIds: string[];
+  notes: Note[];
 }
 
 interface GoalChat { id: string; title: string; messages: Message[]; createdAt: Date; }
@@ -75,22 +81,18 @@ function getMomentum(goal: Goal): { label: string; color: string } | null {
   if (now > due) return { label: 'Past due', color: 'text-red-400' };
   const total = due.getTime() - created.getTime();
   if (total <= 0) return null;
-  const elapsed = now.getTime() - created.getTime();
-  const expected = Math.min(100, (elapsed / total) * 100);
+  const expected = Math.min(100, ((now.getTime() - created.getTime()) / total) * 100);
   const gap = goal.progress - expected;
-  if (gap >= 10) return { label: 'Ahead of schedule', color: 'text-emerald-500' };
+  if (gap >= 10)  return { label: 'Ahead of schedule', color: 'text-emerald-500' };
   if (gap >= -10) return { label: 'On track', color: 'text-brand' };
   if (gap >= -25) return { label: 'Slightly behind', color: 'text-amber-500' };
   return { label: 'At risk', color: 'text-red-400' };
 }
 
 function checkinMessage(goal: Goal): string {
-  if (goal.progress === 0)
-    return `You're at 0% on "${goal.title}". What's the first move to get this started?`;
-  if (goal.progress < 50)
-    return `You're ${goal.progress}% into "${goal.title}". What's moved since you set this — and what's next?`;
-  if (goal.progress < 100)
-    return `You're ${goal.progress}% through "${goal.title}" — solid. What's left to get this across the line?`;
+  if (goal.progress === 0)   return `You're at 0% on "${goal.title}". What's the first move to get this started?`;
+  if (goal.progress < 50)    return `You're ${goal.progress}% into "${goal.title}". What's moved since you set this — and what's next?`;
+  if (goal.progress < 100)   return `You're ${goal.progress}% through "${goal.title}" — solid. What's left to get this across the line?`;
   return `"${goal.title}" is done. Want to capture any lessons before closing it out?`;
 }
 
@@ -138,12 +140,31 @@ export default function GoalDetailPage() {
   const [savingProgress, setSavingProgress] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
 
+  // Left column tab
+  const [activeTab, setActiveTab] = useState<GoalTab>('tasks');
+
   // Milestones
   const [addingMilestone, setAddingMilestone] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+  const [planGenerating, setPlanGenerating] = useState(false);
   const milestoneInputRef = useRef<HTMLInputElement>(null);
 
-  // Suggestions
+  // Tasks
+  const [goalTasks, setGoalTasks] = useState<GoalTask[]>([]);
+  const [addingTask, setAddingTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [showDoneTasks, setShowDoneTasks] = useState(false);
+  const taskInputRef = useRef<HTMLInputElement>(null);
+
+  // Habits
+  const [allHabits, setAllHabits] = useState<HabitRef[]>([]);
+  const [showHabitPicker, setShowHabitPicker] = useState(false);
+  const habitPickerRef = useRef<HTMLDivElement>(null);
+
+  // Notes
+  const [newNoteContent, setNewNoteContent] = useState('');
+
+  // Suggestions (explore tab)
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const suggestionsFetchedRef = useRef(false);
@@ -155,13 +176,14 @@ export default function GoalDetailPage() {
   const [activeChatId, _setActiveChatId] = useState(`goal-${id}`);
   const setActiveChatId = (newId: string) => { activeChatIdRef.current = newId; _setActiveChatId(newId); };
 
-  const pendingMsgRef = useRef<string | null>(null);
-  const savedLengthRef = useRef(0);
-  const prevLoadingRef = useRef(false);
-  const seededRef = useRef(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const pendingMsgRef   = useRef<string | null>(null);
+  const savedLengthRef  = useRef(0);
+  const prevLoadingRef  = useRef(false);
+  const seededRef       = useRef(false);
+  const bottomRef       = useRef<HTMLDivElement>(null);
 
-  // Auth token
+  // ── Effects ──────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async u => {
       setAuthToken(u ? await u.getIdToken() : null);
@@ -186,12 +208,42 @@ export default function GoalDetailPage() {
         createdAt: d.createdAt?.toDate?.()?.toISOString() ?? d.createdAt,
         milestones: d.milestones ?? [],
         progressLog: d.progressLog ?? [],
+        linkedHabitIds: d.linkedHabitIds ?? [],
+        notes: d.notes ?? [],
       });
       setDraftProgress(d.progress ?? 0);
       setLoading(false);
     }, () => setLoading(false));
     return unsub;
   }, [user, id, router]);
+
+  // Load goal tasks
+  useEffect(() => {
+    if (!user || !id) return;
+    const q = query(collection(db, 'users', user.uid, 'tasks'), where('goalId', '==', id));
+    const unsub = onSnapshot(q, snap => {
+      setGoalTasks(
+        snap.docs
+          .filter(d => !d.data().deleted)
+          .map(d => ({ id: d.id, title: d.data().title ?? '', done: d.data().done ?? false }))
+          .sort((a, b) => Number(a.done) - Number(b.done))
+      );
+    });
+    return unsub;
+  }, [user, id]);
+
+  // Load all habits for picker
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(collection(db, 'users', user.uid, 'habits'), snap => {
+      setAllHabits(snap.docs.map(d => ({
+        id: d.id,
+        title: d.data().title ?? '',
+        streak: d.data().streak ?? 0,
+      })));
+    });
+    return unsub;
+  }, [user]);
 
   // Load chats
   useEffect(() => {
@@ -216,9 +268,9 @@ export default function GoalDetailPage() {
     return unsub;
   }, [user, id]);
 
-  // Suggestions
+  // Load suggestions (only when explore tab is opened)
   useEffect(() => {
-    if (!goal || suggestionsFetchedRef.current) return;
+    if (activeTab !== 'explore' || !goal || suggestionsFetchedRef.current) return;
     suggestionsFetchedRef.current = true;
     setSuggestionsLoading(true);
     fetch('/api/goals/suggestions', {
@@ -233,7 +285,20 @@ export default function GoalDetailPage() {
       .then(data => { if (data.suggestions?.length) setSuggestions(data.suggestions); })
       .catch(() => {})
       .finally(() => setSuggestionsLoading(false));
-  }, [goal, authToken]);
+  }, [activeTab, goal, authToken]);
+
+  // Close habit picker on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (!habitPickerRef.current?.contains(e.target as Node)) setShowHabitPicker(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Auto-focus inputs
+  useEffect(() => { if (addingMilestone) milestoneInputRef.current?.focus(); }, [addingMilestone]);
+  useEffect(() => { if (addingTask) taskInputRef.current?.focus(); }, [addingTask]);
 
   // Save conversation
   const saveConversation = useCallback(async (msgs: Message[]) => {
@@ -248,9 +313,7 @@ export default function GoalDetailPage() {
         updatedAt: new Date(),
         deleted: false,
       }, { merge: true });
-    } catch (e) {
-      console.error('[goal chat] save failed:', e);
-    }
+    } catch (e) { console.error('[goal chat] save failed:', e); }
   }, [user, id, goal]);
 
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
@@ -268,7 +331,6 @@ export default function GoalDetailPage() {
     },
   });
 
-  // Seed main chat once
   useEffect(() => {
     if (!chatsLoaded || seededRef.current || !goal) return;
     seededRef.current = true;
@@ -281,7 +343,6 @@ export default function GoalDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatsLoaded, goal]);
 
-  // Fire pending message after messages reset
   useEffect(() => {
     if (!pendingMsgRef.current || isLoading) return;
     const msg = pendingMsgRef.current;
@@ -290,27 +351,19 @@ export default function GoalDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
-  // Auto-save after response
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
     prevLoadingRef.current = isLoading;
-    if (!justFinished || messages.length === 0) return;
-    if (messages.length <= savedLengthRef.current) return;
+    if (!justFinished || messages.length === 0 || messages.length <= savedLengthRef.current) return;
     savedLengthRef.current = messages.length;
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
-  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus milestone input
-  useEffect(() => {
-    if (addingMilestone) milestoneInputRef.current?.focus();
-  }, [addingMilestone]);
-
-  // ── Chat helpers ───────────────────────────────────────────────────────────
+  // ── Chat helpers ──────────────────────────────────────────────────────────────
 
   const mainChatId = `goal-${id}`;
   const isMainChat = activeChatId === mainChatId;
@@ -375,7 +428,7 @@ export default function GoalDetailPage() {
     await append({ role: 'user', content: val });
   }
 
-  // ── Progress helpers ───────────────────────────────────────────────────────
+  // ── Progress ──────────────────────────────────────────────────────────────────
 
   async function saveProgress() {
     if (!user || !goal) return;
@@ -398,14 +451,12 @@ export default function GoalDetailPage() {
     router.push('/goals');
   }
 
-  // ── Milestone helpers ──────────────────────────────────────────────────────
+  // ── Milestones ────────────────────────────────────────────────────────────────
 
   async function addMilestone() {
     if (!user || !goal || !newMilestoneTitle.trim()) return;
     const milestone: Milestone = { id: crypto.randomUUID(), title: newMilestoneTitle.trim(), done: false };
-    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
-      milestones: [...goal.milestones, milestone],
-    });
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), { milestones: [...goal.milestones, milestone] });
     setNewMilestoneTitle('');
     setAddingMilestone(false);
   }
@@ -432,13 +483,90 @@ export default function GoalDetailPage() {
     const newMilestones = goal.milestones.filter(m => m.id !== milestoneId);
     const updates: Record<string, unknown> = { milestones: newMilestones };
     if (newMilestones.length > 0) {
-      const doneCount = newMilestones.filter(m => m.done).length;
-      updates.progress = Math.round((doneCount / newMilestones.length) * 100);
+      updates.progress = Math.round((newMilestones.filter(m => m.done).length / newMilestones.length) * 100);
     }
     await updateDoc(doc(db, 'users', user.uid, 'goals', id), updates);
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  async function generatePlan() {
+    if (!user || !goal || !authToken || planGenerating) return;
+    setPlanGenerating(true);
+    try {
+      const res = await fetch('/api/goals/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ title: goal.title, description: goal.description, timeframe: goal.timeframe }),
+      });
+      const data = await res.json();
+      if (data.milestones?.length) {
+        const milestones: Milestone[] = (data.milestones as string[]).map(t => ({
+          id: crypto.randomUUID(), title: t, done: false,
+        }));
+        await updateDoc(doc(db, 'users', user.uid, 'goals', id), { milestones });
+      }
+    } catch { /* silent */ } finally { setPlanGenerating(false); }
+  }
+
+  // ── Tasks ─────────────────────────────────────────────────────────────────────
+
+  async function addTask() {
+    if (!user || !newTaskTitle.trim()) return;
+    await addDoc(collection(db, 'users', user.uid, 'tasks'), {
+      title: newTaskTitle.trim(),
+      goalId: id,
+      done: false,
+      deleted: false,
+      createdAt: serverTimestamp(),
+      source: 'manual',
+    });
+    setNewTaskTitle('');
+    setAddingTask(false);
+  }
+
+  async function toggleTask(taskId: string) {
+    const task = goalTasks.find(t => t.id === taskId);
+    if (!user || !task) return;
+    await updateDoc(doc(db, 'users', user.uid, 'tasks', taskId), { done: !task.done });
+  }
+
+  // ── Habits ────────────────────────────────────────────────────────────────────
+
+  async function linkHabit(habitId: string) {
+    if (!user || !goal) return;
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      linkedHabitIds: [...goal.linkedHabitIds, habitId],
+    });
+    setShowHabitPicker(false);
+  }
+
+  async function unlinkHabit(habitId: string) {
+    if (!user || !goal) return;
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      linkedHabitIds: goal.linkedHabitIds.filter(hid => hid !== habitId),
+    });
+  }
+
+  // ── Notes ─────────────────────────────────────────────────────────────────────
+
+  async function addNote() {
+    if (!user || !goal || !newNoteContent.trim()) return;
+    const note: Note = {
+      id: crypto.randomUUID(),
+      content: newNoteContent.trim(),
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    };
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), { notes: [note, ...goal.notes] });
+    setNewNoteContent('');
+  }
+
+  async function deleteNote(noteId: string) {
+    if (!user || !goal) return;
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      notes: goal.notes.filter(n => n.id !== noteId),
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   if (loading || !goal) {
     return (
@@ -452,16 +580,15 @@ export default function GoalDetailPage() {
   const hasMilestones = goal.milestones.length > 0;
   const momentum = getMomentum(goal);
   const progressChanged = draftProgress !== goal.progress;
+  const incompleteTasks = goalTasks.filter(t => !t.done).length;
+  const unlinkedHabits = allHabits.filter(h => !goal.linkedHabitIds.includes(h.id));
 
   return (
     <div className="h-full overflow-hidden flex flex-col bg-bg">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="shrink-0 border-b border-border px-8 py-5 flex items-start gap-5">
-        <button
-          onClick={() => router.push('/goals')}
-          className="shrink-0 mt-1 text-xs text-muted hover:text-text transition-colors"
-        >
+        <button onClick={() => router.push('/goals')} className="shrink-0 mt-1 text-xs text-muted hover:text-text transition-colors">
           ← Goals
         </button>
         <div className="flex-1 min-w-0">
@@ -472,13 +599,9 @@ export default function GoalDetailPage() {
               </span>
             )}
             {goal.status === 'completed' && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
-                Complete
-              </span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">Complete</span>
             )}
-            {goal.dueDate && (
-              <span className="text-xs text-muted">{formatDue(goal.dueDate)}</span>
-            )}
+            {goal.dueDate && <span className="text-xs text-muted">{formatDue(goal.dueDate)}</span>}
           </div>
           <h1 className="text-2xl font-bold text-text leading-tight">{goal.title}</h1>
           {goal.description && <p className="text-sm text-muted mt-0.5">{goal.description}</p>}
@@ -496,182 +619,345 @@ export default function GoalDetailPage() {
       {/* ── 2-column body ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden flex min-h-0">
 
-        {/* Left ─ scrollable detail */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5 border-r border-border min-w-0">
+        {/* Left ─ scrollable */}
+        <div className="flex-1 overflow-y-auto min-w-0 flex flex-col">
 
-          {/* Progress hero */}
-          <div className="bg-panel border border-border rounded-xl p-6">
-            <div className="flex items-center gap-8">
-              <div className="relative shrink-0">
-                <Ring pct={goal.progress} color={ringColor} size={116} stroke={7} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-text leading-none">{goal.progress}%</span>
-                  <span className="text-[10px] text-muted mt-0.5">complete</span>
+          {/* Always-visible: progress + milestones */}
+          <div className="px-8 pt-6 pb-4 space-y-5">
+
+            {/* Progress hero */}
+            <div className="bg-panel border border-border rounded-xl p-6">
+              <div className="flex items-center gap-8">
+                <div className="relative shrink-0">
+                  <Ring pct={goal.progress} color={ringColor} size={116} stroke={7} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-text leading-none">{goal.progress}%</span>
+                    <span className="text-[10px] text-muted mt-0.5">complete</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 space-y-3">
+                  {momentum && <p className={`text-xs font-semibold ${momentum.color}`}>{momentum.label}</p>}
+                  {!hasMilestones && goal.status === 'active' && (
+                    <div className="space-y-2">
+                      <input
+                        type="range" min={0} max={100} step={5}
+                        value={draftProgress}
+                        onChange={e => setDraftProgress(Number(e.target.value))}
+                        className="w-full accent-brand"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted">{draftProgress}%</span>
+                        {progressChanged && (
+                          <button onClick={saveProgress} disabled={savingProgress}
+                            className="text-xs font-semibold text-brand hover:underline disabled:opacity-50">
+                            {savingProgress ? 'Saving…' : 'Save progress'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {hasMilestones && <p className="text-xs text-muted">Progress synced from milestones</p>}
+                  {goal.progressLog.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      {goal.progressLog.slice(0, 4).map((entry, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-muted">
+                          <span className="w-1 h-1 rounded-full bg-border shrink-0" />
+                          <span>{entry.date}</span>
+                          <span className="font-medium text-text/50">{entry.progress}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="bg-panel border border-border rounded-xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Milestones</span>
+                  {hasMilestones && (
+                    <span className="text-[10px] bg-border text-muted px-1.5 py-0.5 rounded-full">
+                      {goal.milestones.filter(m => m.done).length}/{goal.milestones.length}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {goal.status === 'active' && (
+                    <button onClick={generatePlan} disabled={planGenerating}
+                      className="text-xs text-muted hover:text-brand transition-colors disabled:opacity-50">
+                      {planGenerating ? 'Generating…' : hasMilestones ? '↺ Regenerate' : '✦ Generate plan'}
+                    </button>
+                  )}
+                  {goal.status === 'active' && !addingMilestone && (
+                    <button onClick={() => setAddingMilestone(true)} className="text-xs text-muted hover:text-brand transition-colors">
+                      + Add
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="flex-1 min-w-0 space-y-3">
-                {momentum && (
-                  <p className={`text-xs font-semibold ${momentum.color}`}>{momentum.label}</p>
+              {goal.milestones.length === 0 && !addingMilestone && (
+                <p className="text-xs text-muted/50 text-center py-3">
+                  Add steps manually or hit &ldquo;Generate plan&rdquo; to let MODUS build them for you.
+                </p>
+              )}
+
+              <div className="space-y-0.5">
+                {goal.milestones.map(m => (
+                  <div key={m.id} className="flex items-center gap-2.5 group py-1.5">
+                    <button
+                      onClick={() => goal.status === 'active' && toggleMilestone(m.id)}
+                      className={`w-4 h-4 shrink-0 rounded border transition-colors flex items-center justify-center ${
+                        m.done ? 'bg-brand border-brand' : 'border-border hover:border-brand'
+                      } ${goal.status !== 'active' ? 'cursor-default' : ''}`}
+                    >
+                      {m.done && <span className="text-white text-[8px] leading-none">✓</span>}
+                    </button>
+                    <span className={`flex-1 text-sm ${m.done ? 'line-through text-muted' : 'text-text'}`}>{m.title}</span>
+                    {goal.status === 'active' && (
+                      <button onClick={() => deleteMilestone(m.id)}
+                        className="opacity-0 group-hover:opacity-100 text-muted/50 hover:text-red-400 text-base leading-none transition-all">
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {addingMilestone && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input ref={milestoneInputRef} value={newMilestoneTitle}
+                    onChange={e => setNewMilestoneTitle(e.target.value)}
+                    placeholder="Milestone description…"
+                    className="flex-1 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') addMilestone();
+                      if (e.key === 'Escape') { setAddingMilestone(false); setNewMilestoneTitle(''); }
+                    }}
+                  />
+                  <button onClick={addMilestone} disabled={!newMilestoneTitle.trim()}
+                    className="text-xs font-semibold text-brand hover:underline disabled:opacity-40">Add</button>
+                  <button onClick={() => { setAddingMilestone(false); setNewMilestoneTitle(''); }}
+                    className="text-xs text-muted hover:text-text transition-colors">Cancel</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tab switcher */}
+          <div className="shrink-0 border-t border-b border-border px-8 flex items-center gap-0.5">
+            {([
+              { key: 'tasks',   label: 'Tasks',   badge: incompleteTasks > 0 ? incompleteTasks : null },
+              { key: 'habits',  label: 'Habits',  badge: goal.linkedHabitIds.length > 0 ? goal.linkedHabitIds.length : null },
+              { key: 'notes',   label: 'Notes',   badge: goal.notes.length > 0 ? goal.notes.length : null },
+              { key: 'explore', label: 'Explore', badge: null },
+            ] as { key: GoalTab; label: string; badge: number | null }[]).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                  activeTab === t.key
+                    ? 'border-brand text-brand'
+                    : 'border-transparent text-muted hover:text-text'
+                }`}
+              >
+                {t.label}
+                {t.badge !== null && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
+                    activeTab === t.key ? 'bg-brand/20 text-brand' : 'bg-border text-muted'
+                  }`}>{t.badge}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="flex-1 px-8 py-5">
+
+            {/* Tasks tab */}
+            {activeTab === 'tasks' && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    {goalTasks.some(t => t.done) && (
+                      <button onClick={() => setShowDoneTasks(s => !s)} className="text-xs text-muted hover:text-text transition-colors">
+                        {showDoneTasks ? 'Hide done' : `Show done (${goalTasks.filter(t => t.done).length})`}
+                      </button>
+                    )}
+                  </div>
+                  {!addingTask && goal.status === 'active' && (
+                    <button onClick={() => setAddingTask(true)} className="text-xs text-muted hover:text-brand transition-colors">
+                      + Add task
+                    </button>
+                  )}
+                </div>
+
+                {goalTasks.length === 0 && !addingTask && (
+                  <p className="text-xs text-muted/50 text-center py-8">Add tasks to build a daily action plan for this goal.</p>
                 )}
 
-                {!hasMilestones && goal.status === 'active' && (
-                  <div className="space-y-2">
-                    <input
-                      type="range" min={0} max={100} step={5}
-                      value={draftProgress}
-                      onChange={e => setDraftProgress(Number(e.target.value))}
-                      className="w-full accent-brand"
-                    />
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted">{draftProgress}%</span>
-                      {progressChanged && (
-                        <button
-                          onClick={saveProgress}
-                          disabled={savingProgress}
-                          className="text-xs font-semibold text-brand hover:underline disabled:opacity-50"
-                        >
-                          {savingProgress ? 'Saving…' : 'Save progress'}
-                        </button>
-                      )}
+                <div className="space-y-0.5">
+                  {goalTasks.filter(t => showDoneTasks || !t.done).map(t => (
+                    <div key={t.id} className="flex items-center gap-2.5 py-1.5">
+                      <button
+                        onClick={() => toggleTask(t.id)}
+                        className={`w-4 h-4 shrink-0 rounded border transition-colors flex items-center justify-center ${
+                          t.done ? 'bg-brand border-brand' : 'border-border hover:border-brand'
+                        }`}
+                      >
+                        {t.done && <span className="text-white text-[8px] leading-none">✓</span>}
+                      </button>
+                      <span className={`flex-1 text-sm ${t.done ? 'line-through text-muted' : 'text-text'}`}>{t.title}</span>
                     </div>
+                  ))}
+                </div>
+
+                {addingTask && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <input ref={taskInputRef} value={newTaskTitle}
+                      onChange={e => setNewTaskTitle(e.target.value)}
+                      placeholder="Task description…"
+                      className="flex-1 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') addTask();
+                        if (e.key === 'Escape') { setAddingTask(false); setNewTaskTitle(''); }
+                      }}
+                    />
+                    <button onClick={addTask} disabled={!newTaskTitle.trim()}
+                      className="text-xs font-semibold text-brand hover:underline disabled:opacity-40">Add</button>
+                    <button onClick={() => { setAddingTask(false); setNewTaskTitle(''); }}
+                      className="text-xs text-muted hover:text-text transition-colors">Cancel</button>
                   </div>
                 )}
+              </div>
+            )}
 
-                {hasMilestones && (
-                  <p className="text-xs text-muted">Progress synced from milestones</p>
+            {/* Habits tab */}
+            {activeTab === 'habits' && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs text-muted">Link habits that support this goal to track consistency.</p>
+                  <div className="relative shrink-0" ref={habitPickerRef}>
+                    <button
+                      onClick={() => setShowHabitPicker(s => !s)}
+                      disabled={unlinkedHabits.length === 0}
+                      className="text-xs text-muted hover:text-brand transition-colors disabled:opacity-40"
+                    >
+                      + Link habit
+                    </button>
+                    {showHabitPicker && unlinkedHabits.length > 0 && (
+                      <div className="absolute right-0 top-6 z-50 bg-panel border border-border rounded-xl shadow-lg w-56 py-1 max-h-52 overflow-y-auto">
+                        {unlinkedHabits.map(h => (
+                          <button key={h.id} onClick={() => linkHabit(h.id)}
+                            className="w-full text-left px-4 py-2 text-sm text-muted hover:text-text hover:bg-bg transition-colors flex items-center justify-between gap-2">
+                            <span className="truncate">{h.title}</span>
+                            {h.streak > 0 && <span className="text-xs shrink-0">{h.streak}🔥</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {goal.linkedHabitIds.length === 0 ? (
+                  <p className="text-xs text-muted/50 text-center py-8">No habits linked yet.</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {goal.linkedHabitIds
+                      .map(hid => allHabits.find(h => h.id === hid))
+                      .filter((h): h is HabitRef => !!h)
+                      .map(h => (
+                        <div key={h.id} className="flex items-center gap-2.5 group py-1.5">
+                          <div className="w-4 h-4 shrink-0 rounded border border-brand/30 bg-brand/5 flex items-center justify-center">
+                            <span className="text-brand text-[8px] leading-none">↺</span>
+                          </div>
+                          <span className="flex-1 text-sm text-text">{h.title}</span>
+                          {h.streak > 0 && <span className="text-xs text-muted">{h.streak}🔥</span>}
+                          <button onClick={() => unlinkHabit(h.id)}
+                            className="opacity-0 group-hover:opacity-100 text-muted/50 hover:text-red-400 text-base leading-none transition-all">
+                            ×
+                          </button>
+                        </div>
+                      ))
+                    }
+                  </div>
                 )}
+              </div>
+            )}
 
-                {goal.progressLog.length > 0 && (
-                  <div className="space-y-1 pt-1">
-                    {goal.progressLog.slice(0, 4).map((entry, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-muted">
-                        <span className="w-1 h-1 rounded-full bg-border shrink-0" />
-                        <span>{entry.date}</span>
-                        <span className="font-medium text-text/50">{entry.progress}%</span>
+            {/* Notes tab */}
+            {activeTab === 'notes' && (
+              <div>
+                <div className="mb-4">
+                  <textarea
+                    value={newNoteContent}
+                    onChange={e => setNewNoteContent(e.target.value)}
+                    placeholder="Log a quick note, win, or blocker…"
+                    rows={3}
+                    className="w-full bg-panel border border-border rounded-xl px-4 py-3 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors resize-none"
+                    onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addNote(); }}
+                  />
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-[10px] text-muted">⌘↵ to save</span>
+                    <button onClick={addNote} disabled={!newNoteContent.trim()}
+                      className="text-xs font-semibold text-brand hover:underline disabled:opacity-40">
+                      Save note
+                    </button>
+                  </div>
+                </div>
+
+                {goal.notes.length === 0 ? (
+                  <p className="text-xs text-muted/50 text-center py-8">Your notes and updates will appear here.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {goal.notes.map(n => (
+                      <div key={n.id} className="group bg-panel border border-border rounded-xl px-4 py-3">
+                        <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-[10px] text-muted">{n.date}</span>
+                          <button onClick={() => deleteNote(n.id)}
+                            className="opacity-0 group-hover:opacity-100 text-[10px] text-muted/50 hover:text-red-400 transition-all">
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Milestones */}
-          <div className="bg-panel border border-border rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Milestones</span>
-                {hasMilestones && (
-                  <span className="text-[10px] bg-border text-muted px-1.5 py-0.5 rounded-full">
-                    {goal.milestones.filter(m => m.done).length}/{goal.milestones.length}
-                  </span>
+            {/* Explore tab */}
+            {activeTab === 'explore' && (
+              <div>
+                <p className="text-xs text-muted mb-4">Tap a question to open a dedicated chat thread with MODUS.</p>
+                {suggestionsLoading ? (
+                  <div className="flex flex-wrap gap-2">
+                    {[100, 140, 115, 160, 125].map((w, i) => (
+                      <div key={i} className="h-7 rounded-full bg-border animate-pulse" style={{ width: `${w}px` }} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(suggestions.length > 0 ? suggestions : CHAT_CHIPS).map(s => (
+                      <button key={s} onClick={() => tapSuggestion(s)}
+                        className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors text-left">
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
-              {goal.status === 'active' && !addingMilestone && (
-                <button
-                  onClick={() => setAddingMilestone(true)}
-                  className="text-xs text-muted hover:text-brand transition-colors"
-                >
-                  + Add
-                </button>
-              )}
-            </div>
-
-            {goal.milestones.length === 0 && !addingMilestone && (
-              <p className="text-xs text-muted/50 text-center py-3">
-                Break this goal into checkable steps — each one auto-updates progress.
-              </p>
             )}
 
-            <div className="space-y-0.5">
-              {goal.milestones.map(m => (
-                <div key={m.id} className="flex items-center gap-2.5 group py-1.5">
-                  <button
-                    onClick={() => goal.status === 'active' && toggleMilestone(m.id)}
-                    className={`w-4 h-4 shrink-0 rounded border transition-colors flex items-center justify-center ${
-                      m.done ? 'bg-brand border-brand' : 'border-border hover:border-brand'
-                    } ${goal.status !== 'active' ? 'cursor-default' : 'cursor-pointer'}`}
-                  >
-                    {m.done && <span className="text-white text-[8px] leading-none">✓</span>}
-                  </button>
-                  <span className={`flex-1 text-sm ${m.done ? 'line-through text-muted' : 'text-text'}`}>
-                    {m.title}
-                  </span>
-                  {goal.status === 'active' && (
-                    <button
-                      onClick={() => deleteMilestone(m.id)}
-                      className="opacity-0 group-hover:opacity-100 text-muted/50 hover:text-red-400 text-base leading-none transition-all"
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {addingMilestone && (
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  ref={milestoneInputRef}
-                  value={newMilestoneTitle}
-                  onChange={e => setNewMilestoneTitle(e.target.value)}
-                  placeholder="Milestone description…"
-                  className="flex-1 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') addMilestone();
-                    if (e.key === 'Escape') { setAddingMilestone(false); setNewMilestoneTitle(''); }
-                  }}
-                />
-                <button
-                  onClick={addMilestone}
-                  disabled={!newMilestoneTitle.trim()}
-                  className="text-xs font-semibold text-brand hover:underline disabled:opacity-40"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={() => { setAddingMilestone(false); setNewMilestoneTitle(''); }}
-                  className="text-xs text-muted hover:text-text transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* Explore */}
-          <div className="bg-panel border border-border rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand shrink-0">
-                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
-              </svg>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Explore with MODUS</span>
-            </div>
-            {suggestionsLoading ? (
-              <div className="flex gap-1.5 flex-wrap">
-                {[80, 120, 95, 140, 105].map((w, i) => (
-                  <div key={i} className="h-6 rounded-full bg-border animate-pulse" style={{ width: `${w}px` }} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {(suggestions.length > 0 ? suggestions : CHAT_CHIPS).map(s => (
-                  <button key={s} onClick={() => tapSuggestion(s)}
-                    className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors text-left">
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
         </div>
 
         {/* Right ─ MODUS chat */}
-        <div className="w-[360px] shrink-0 flex flex-col overflow-hidden">
+        <div className="w-[360px] shrink-0 flex flex-col overflow-hidden border-l border-border">
 
-          {/* Chat tabs */}
           <div className="shrink-0 border-b border-border px-3 pt-3 pb-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">MODUS on this goal</p>
             <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
@@ -694,7 +980,6 @@ export default function GoalDetailPage() {
               >
                 Main
               </button>
-
               {extraChats.map(c => (
                 <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
                   activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
@@ -705,17 +990,12 @@ export default function GoalDetailPage() {
                     }`}>
                     {c.title.length > 14 ? c.title.slice(0, 11) + '…' : c.title}
                   </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
-                    className={`pr-2 py-1 text-sm leading-none transition-colors ${
+                  <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
+                    className={`pr-2 py-1 text-sm leading-none ${
                       activeChatId === c.id ? 'text-white/60 hover:text-white' : 'text-muted/50 hover:text-muted'
-                    }`}
-                  >
-                    ×
-                  </button>
+                    }`}>×</button>
                 </div>
               ))}
-
               <button onClick={startNewChat}
                 className="shrink-0 text-xs px-2.5 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors">
                 + New
@@ -723,14 +1003,9 @@ export default function GoalDetailPage() {
             </div>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.map((m, idx) => (
-              <MessageBubble
-                key={m.id}
-                message={m}
-                isStreaming={isLoading && idx === messages.length - 1}
-              />
+              <MessageBubble key={m.id} message={m} isStreaming={isLoading && idx === messages.length - 1} />
             ))}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex gap-1 px-1">
@@ -742,7 +1017,6 @@ export default function GoalDetailPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Quick chips */}
           <div className="shrink-0 border-t border-border px-3 py-2 flex gap-1 flex-wrap">
             {CHAT_CHIPS.map(chip => (
               <button key={chip} onClick={() => setInput(chip)} disabled={isLoading}
@@ -752,15 +1026,10 @@ export default function GoalDetailPage() {
             ))}
           </div>
 
-          {/* Input */}
           <div className="shrink-0 border-t border-border">
             <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-3">
-              <input
-                value={input}
-                onChange={handleInputChange}
-                placeholder="Message MODUS…"
-                className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none"
-              />
+              <input value={input} onChange={handleInputChange} placeholder="Message MODUS…"
+                className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none" />
               <button type="submit" disabled={!input.trim() || isLoading}
                 className="w-7 h-7 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -769,7 +1038,6 @@ export default function GoalDetailPage() {
               </button>
             </form>
           </div>
-
         </div>
       </div>
     </div>
