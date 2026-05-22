@@ -9,6 +9,7 @@ import { useRef, useState, useEffect } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Minimal inline SVG icons — stroke-based, 24x24 viewBox
 function Ico({ d, d2, className }: { d: string; d2?: string; className?: string }) {
@@ -80,22 +81,143 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
   );
 }
 
+function SidebarContent({
+  pathname,
+  user,
+  open,
+  setOpen,
+  onCmdOpen,
+  onNavClick,
+}: {
+  pathname: string;
+  user: ReturnType<typeof useAuth>['user'];
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  onCmdOpen: () => void;
+  onNavClick?: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [setOpen]);
+
+  return (
+    <div className="flex flex-col h-full py-5 px-3">
+      {/* Logo */}
+      <div className="mb-5 px-3 flex items-baseline gap-1.5">
+        <span className="text-lg font-black tracking-widest text-brand">Modus</span>
+        <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+      </div>
+
+      {/* Ask MODUS button */}
+      <button
+        onClick={onCmdOpen}
+        className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
+          <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+        </svg>
+        <span className="flex-1 text-xs font-medium">Ask MODUS</span>
+        <div className="flex items-center gap-0.5">
+          <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
+          <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>
+        </div>
+      </button>
+
+      {/* Nav */}
+      <nav className="flex flex-col gap-0.5 flex-1">
+        {NAV.slice(0, 1).map(item => (
+          <Link key={item.href} href={item.href} onClick={onNavClick}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+            }`}
+          >
+            <Ico d={ICONS[item.icon]} />{item.label}
+          </Link>
+        ))}
+        <BriefingNavLink pathname={pathname} />
+        {NAV.slice(1).map(item => (
+          <Link key={item.href} href={item.href} onClick={onNavClick}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+            }`}
+          >
+            <Ico d={ICONS[item.icon]} />{item.label}
+          </Link>
+        ))}
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <Link href="/settings" onClick={onNavClick}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              pathname === '/settings' ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+            }`}
+          >
+            <Ico d={ICONS.settings} />Settings
+          </Link>
+        </div>
+      </nav>
+
+      {/* User menu */}
+      <div className="mt-auto pt-3 border-t border-border" ref={menuRef}>
+        <div className="px-2 pb-2 flex justify-end">
+          <AnimatedThemeToggler sound={false} />
+        </div>
+        {open && user && (
+          <div className="mb-2 bg-panel border border-border rounded-xl overflow-hidden shadow-lg">
+            <Link href="/settings?tab=billing" onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /></svg>
+              Upgrade Plan
+            </Link>
+            <button onClick={() => { signOut(auth); setOpen(false); }}
+              className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-900/10 transition-colors border-t border-border">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+              Sign Out
+            </button>
+          </div>
+        )}
+        {user ? (
+          <button onClick={() => setOpen(!open)}
+            className="flex items-center gap-2.5 w-full px-2 py-2 rounded-xl hover:bg-panel transition-colors">
+            {user.photoURL ? (
+              <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                <span className="text-xs text-brand font-semibold">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs text-text font-medium truncate">{user.displayName || user.email}</p>
+              <p className="text-[10px] text-muted">Account</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-muted">
+              <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+            </svg>
+          </button>
+        ) : (
+          <Link href="/login"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors">
+            <Ico d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />Sign in
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   // Global Cmd+K / Ctrl+K listener
   useEffect(() => {
@@ -104,7 +226,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         e.preventDefault();
         setCmdOpen(o => !o);
       }
-      if (e.key === 'Escape') setCmdOpen(false);
+      if (e.key === 'Escape') { setCmdOpen(false); setMobileOpen(false); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -112,135 +234,72 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
-      <aside className="w-56 shrink-0 border-r border-border flex flex-col py-5 px-3">
-        {/* Logo */}
-        <div className="mb-5 px-3 flex items-baseline gap-1.5">
-          <span className="text-lg font-black tracking-widest text-brand">Modus</span>
-          <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
-        </div>
-
-        {/* Ask MODUS button — teaches Cmd+K */}
-        <button
-          onClick={() => setCmdOpen(true)}
-          className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
-            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-          </svg>
-          <span className="flex-1 text-xs font-medium">Ask MODUS</span>
-          <div className="flex items-center gap-0.5">
-            <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
-            <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>
-          </div>
-        </button>
-
-        {/* Nav */}
-        <nav className="flex flex-col gap-0.5 flex-1">
-          {NAV.slice(0, 1).map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-              }`}
-            >
-              <Ico d={ICONS[item.icon]} />
-              {item.label}
-            </Link>
-          ))}
-          <BriefingNavLink pathname={pathname} />
-          {NAV.slice(1).map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-              }`}
-            >
-              <Ico d={ICONS[item.icon]} />
-              {item.label}
-            </Link>
-          ))}
-
-          <div className="mt-2 pt-2 border-t border-border/50">
-            <Link
-              href="/settings"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === '/settings' ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-              }`}
-            >
-              <Ico d={ICONS.settings} />
-              Settings
-            </Link>
-          </div>
-        </nav>
-
-        {/* User menu */}
-        <div className="mt-auto pt-3 border-t border-border" ref={menuRef}>
-          <div className="px-2 pb-2 flex justify-end">
-            <AnimatedThemeToggler sound={false} />
-          </div>
-          {open && user && (
-            <div className="mb-2 bg-panel border border-border rounded-xl overflow-hidden shadow-lg">
-              <Link
-                href="/settings?tab=billing"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors"
-              >
-                <span className="text-xs">◆</span> Upgrade Plan
-              </Link>
-              <Link
-                href="/how-it-works"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors border-t border-border"
-              >
-                <span className="text-xs">→</span> Learn More
-              </Link>
-              <button
-                onClick={() => { signOut(auth); setOpen(false); }}
-                className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-900/10 transition-colors border-t border-border"
-              >
-                <span className="text-xs">↩</span> Sign Out
-              </button>
-            </div>
-          )}
-
-          {user ? (
-            <button
-              onClick={() => setOpen(o => !o)}
-              className="flex items-center gap-2.5 w-full px-2 py-2 rounded-xl hover:bg-panel transition-colors"
-            >
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs text-brand font-semibold">
-                    {(user.displayName || user.email || '?')[0].toUpperCase()}
-                  </span>
-                </div>
-              )}
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs text-text font-medium truncate">{user.displayName || user.email}</p>
-                <p className="text-[10px] text-muted">Account</p>
-              </div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-muted">
-                <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
-              </svg>
-            </button>
-          ) : (
-            <Link
-              href="/login"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors"
-            >
-              <Ico d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
-              Sign in
-            </Link>
-          )}
-        </div>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 shrink-0 border-r border-border flex-col">
+        <SidebarContent
+          pathname={pathname} user={user} open={open} setOpen={setOpen}
+          onCmdOpen={() => setCmdOpen(true)}
+        />
       </aside>
 
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.div
+              initial={{ x: -224 }}
+              animate={{ x: 0 }}
+              exit={{ x: -224 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed inset-y-0 left-0 z-50 w-56 bg-bg border-r border-border md:hidden"
+            >
+              <SidebarContent
+                pathname={pathname} user={user} open={open} setOpen={setOpen}
+                onCmdOpen={() => { setCmdOpen(true); setMobileOpen(false); }}
+                onNavClick={() => setMobileOpen(false)}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <main className="flex-1 overflow-hidden flex flex-col">
-        {children}
+        {/* Mobile header bar */}
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="w-8 h-8 flex items-center justify-center text-muted hover:text-text transition-colors rounded-lg hover:bg-panel"
+            aria-label="Open menu"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span className="text-sm font-bold text-brand tracking-widest">Modus</span>
+        </div>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex-1 min-h-0 flex flex-col overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} />

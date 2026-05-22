@@ -15,15 +15,24 @@ import CapabilitiesSettings from '@/components/settings/CapabilitiesSettings';
 import ConnectorsSettings from '@/components/settings/ConnectorsSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
 
+function TabIcon({ d, d2 }: { d: string; d2?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+      <path d={d} />
+      {d2 && <path d={d2} />}
+    </svg>
+  );
+}
+
 const TABS = [
-  { key: 'general',      label: 'General',      icon: '◈' },
-  { key: 'account',      label: 'Account',      icon: '◎' },
-  { key: 'privacy',      label: 'Privacy',      icon: '◉' },
-  { key: 'billing',      label: 'Billing',      icon: '◆' },
-  { key: 'usage',        label: 'Usage',        icon: '▣' },
-  { key: 'capabilities', label: 'Capabilities', icon: '◇' },
-  { key: 'connectors',   label: 'Connectors',   icon: '⊕' },
-  { key: 'memory',       label: 'Memory',       icon: '⊙' },
+  { key: 'general',      label: 'General',      icon: <TabIcon d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /> },
+  { key: 'account',      label: 'Account',      icon: <TabIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" d2="M12 3a4 4 0 110 8 4 4 0 010-8z" /> },
+  { key: 'privacy',      label: 'Privacy',      icon: <TabIcon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /> },
+  { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
+  { key: 'usage',        label: 'Usage',        icon: <TabIcon d="M18 20V10M12 20V4M6 20v-6" /> },
+  { key: 'capabilities', label: 'Capabilities', icon: <TabIcon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /> },
+  { key: 'connectors',   label: 'Connectors',   icon: <TabIcon d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" d2="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /> },
+  { key: 'memory',       label: 'Memory',       icon: <TabIcon d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4l3 3" /> },
 ] as const;
 
 type Tab = typeof TABS[number]['key'];
@@ -72,7 +81,7 @@ function SettingsContent() {
                   : 'text-muted hover:text-text hover:bg-panel'
               }`}
             >
-              <span className="text-base">{tab.icon}</span>
+              {tab.icon}
               {tab.label}
             </button>
           ))}
@@ -82,7 +91,9 @@ function SettingsContent() {
             onClick={() => signOut(auth)}
             className="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors"
           >
-            <span className="text-base">→</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
             Sign out
           </button>
         </div>
