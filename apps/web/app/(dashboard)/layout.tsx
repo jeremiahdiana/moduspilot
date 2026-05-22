@@ -209,12 +209,32 @@ function SidebarContent({
   );
 }
 
+const SIDEBAR_MIN = 180;
+const SIDEBAR_MAX = 320;
+const SIDEBAR_DEFAULT = 224;
+
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(SIDEBAR_DEFAULT);
+  const dragCurrentWidth = useRef(SIDEBAR_DEFAULT);
+
+  // Load persisted width
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-width');
+    if (saved) {
+      const w = Number(saved);
+      if (w >= SIDEBAR_MIN && w <= SIDEBAR_MAX) {
+        setSidebarWidth(w);
+        dragCurrentWidth.current = w;
+      }
+    }
+  }, []);
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -232,13 +252,46 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  function startSidebarDrag(e: React.MouseEvent) {
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    dragCurrentWidth.current = sidebarWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(ev: MouseEvent) {
+      const w = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, dragStartWidth.current + ev.clientX - dragStartX.current));
+      setSidebarWidth(w);
+      dragCurrentWidth.current = w;
+    }
+
+    function onUp() {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('sidebar-width', String(dragCurrentWidth.current));
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 shrink-0 border-r border-border flex-col">
+      <aside
+        className="hidden md:flex shrink-0 border-r border-border flex-col relative"
+        style={{ width: sidebarWidth }}
+      >
         <SidebarContent
           pathname={pathname} user={user} open={open} setOpen={setOpen}
           onCmdOpen={() => setCmdOpen(true)}
+        />
+        {/* Drag handle */}
+        <div
+          className="absolute inset-y-0 right-0 w-1 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-10"
+          onMouseDown={startSidebarDrag}
         />
       </aside>
 
