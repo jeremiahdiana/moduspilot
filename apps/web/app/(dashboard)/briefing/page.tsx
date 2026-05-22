@@ -913,8 +913,8 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const unreadCount = gmailThreads.filter(t => t.unread).length;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg">
-      <div className="px-6 py-8 max-w-screen-xl mx-auto">
+    <div className="flex-1 overflow-y-auto bg-bg" style={{ backgroundImage: 'radial-gradient(ellipse at 60% 0%, rgba(245,158,11,0.04) 0%, transparent 65%)' }}>
+      <div className="px-6 py-10 max-w-2xl mx-auto">
 
         {autoGenerating && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-brand/10 border border-brand/20 rounded-xl text-[12px] text-brand mb-6">
@@ -928,12 +928,13 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
           transition={{ duration: 0.4, ease }} className="mb-7">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.08em] text-muted mb-2">{fmtHeader(briefing.createdAt)}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted mb-3">Morning Briefing</p>
+              <h1 className="text-3xl font-bold text-text leading-tight mb-4">{fmtHeader(briefing.createdAt)}</h1>
               {/* Narrative paragraph or opening line headline */}
               {data?.narrative ? (
-                <p className="text-sm text-text/90 leading-relaxed max-w-3xl mb-1">{data.narrative}</p>
+                <p className="text-[15px] text-text/80 leading-relaxed mb-1">{data.narrative}</p>
               ) : data?.openingLine ? (
-                <h1 className="text-xl font-bold text-text leading-tight max-w-3xl mb-1">{data.openingLine}</h1>
+                <p className="text-[15px] text-text/80 leading-relaxed mb-1">{data.openingLine}</p>
               ) : null}
               {/* Yesterday recap */}
               {yesterday && (yesterday.tasksDone > 0 || yesterday.habitsDone > 0) && (
@@ -998,44 +999,32 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
         {/* Main content */}
         {data ? (
           <div className="space-y-3">
-            {/* 2-column grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {/* Left: action items */}
-              <div className="space-y-3">
-                {data.top3.length > 0 && (
-                  <FadeCard delay={0.03}><MissionCard task={data.top3[0].task} source={data.top3[0].source} /></FadeCard>
-                )}
-                <FadeCard delay={0.08}>
-                  <EnergyCard energy={briefing.energy} onSelect={(key, chatMsg) => { onEnergySelect(key); append({ role: 'user', content: chatMsg }); }} />
-                </FadeCard>
-                <FadeCard delay={0.13}>
-                  <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter}
-                    onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />
-                </FadeCard>
-                {data.looseEnd && (
-                  <FadeCard delay={0.18}><LooseEndCard text={data.looseEnd.text} onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)} /></FadeCard>
-                )}
-              </div>
-
-              {/* Right: context */}
-              <div className="space-y-3">
-                <FadeCard delay={0.05}>
-                  <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
-                </FadeCard>
-                {data.top3.length > 0 && (
-                  <FadeCard delay={0.10}>
-                    <CheckableTop3Card items={data.top3} completedIndices={completedTop3} onToggle={toggleTop3} />
-                  </FadeCard>
-                )}
-                <FadeCard delay={0.15}>
-                  <InlineBriefingHabits habits={habits} onToggle={toggleHabit} />
-                </FadeCard>
-              </div>
-            </div>
-
-            {/* Full-width pattern callout */}
+            {data.top3.length > 0 && (
+              <FadeCard delay={0.03}><MissionCard task={data.top3[0].task} source={data.top3[0].source} /></FadeCard>
+            )}
+            <FadeCard delay={0.06}>
+              <EnergyCard energy={briefing.energy} onSelect={(key, chatMsg) => { onEnergySelect(key); append({ role: 'user', content: chatMsg }); }} />
+            </FadeCard>
+            {data.top3.length > 0 && (
+              <FadeCard delay={0.09}>
+                <CheckableTop3Card items={data.top3} completedIndices={completedTop3} onToggle={toggleTop3} />
+              </FadeCard>
+            )}
+            <FadeCard delay={0.12}>
+              <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
+            </FadeCard>
+            <FadeCard delay={0.15}>
+              <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter}
+                onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />
+            </FadeCard>
+            <FadeCard delay={0.18}>
+              <InlineBriefingHabits habits={habits} onToggle={toggleHabit} />
+            </FadeCard>
+            {data.looseEnd && (
+              <FadeCard delay={0.21}><LooseEndCard text={data.looseEnd.text} onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)} /></FadeCard>
+            )}
             {data.patternCallout && (
-              <FadeCard delay={0.22}><PatternCard text={data.patternCallout} /></FadeCard>
+              <FadeCard delay={0.24}><PatternCard text={data.patternCallout} /></FadeCard>
             )}
           </div>
         ) : (
