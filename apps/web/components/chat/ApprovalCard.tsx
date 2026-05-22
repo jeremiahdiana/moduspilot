@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<string, string> = {
   schedule_event: 'Schedule Event',
   draft_email: 'Draft Email',
   update_goal: 'Update Goal',
+  update_goal_progress: 'Goal Progress',
   delete_task: 'Delete Task',
   delete_habit: 'Delete Habit',
   delete_goal: 'Delete Goal',
@@ -34,6 +35,7 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>('pending');
   const [loading, setLoading] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
+  const [editedProgress, setEditedProgress] = useState(0);
   const [error, setError] = useState('');
 
   let data: ApprovalPayload;
@@ -43,7 +45,7 @@ export default function ApprovalCard({ raw }: { raw: string }) {
     return null;
   }
 
-  async function approve(title: string) {
+  async function approve(title: string, overridePayload?: Record<string, unknown>) {
     setLoading(true);
     setError('');
     try {
@@ -62,11 +64,13 @@ export default function ApprovalCard({ raw }: { raw: string }) {
       }
 
       // If MODUS puts fields at top level instead of inside payload, hoist them
-      const payload = data.payload && Object.keys(data.payload).length > 0
+      const basePayload = data.payload && Object.keys(data.payload).length > 0
         ? data.payload
         : Object.fromEntries(
             Object.entries(data).filter(([k]) => !['type', 'title', 'description'].includes(k))
           );
+
+      const payload = overridePayload ? { ...basePayload, ...overridePayload } : basePayload;
 
       const res = await fetch('/api/approval', {
         method: 'POST',
@@ -110,28 +114,55 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   }
 
   if (status === 'editing') {
+    const isProgress = data.type === 'update_goal_progress';
     return (
       <div className="border border-border bg-panel rounded-xl px-4 py-4 space-y-3">
         <div>
           <p className="text-xs text-muted uppercase tracking-wider mb-2">
             {TYPE_LABELS[data.type] ?? data.type.replace(/_/g, ' ')}
           </p>
-          <input
-            autoFocus
-            value={editedTitle}
-            onChange={e => setEditedTitle(e.target.value)}
-            className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-brand transition-colors"
-            onKeyDown={e => { if (e.key === 'Enter') approve(editedTitle); if (e.key === 'Escape') setStatus('pending'); }}
-          />
-          <p className="text-xs text-muted mt-1.5">{data.description}</p>
+          {isProgress ? (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-text">{data.title}</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted">Progress</span>
+                  <span className="text-sm font-semibold text-brand">{editedProgress}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={editedProgress}
+                  onChange={e => setEditedProgress(Number(e.target.value))}
+                  className="w-full accent-brand"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <input
+                autoFocus
+                value={editedTitle}
+                onChange={e => setEditedTitle(e.target.value)}
+                className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-brand transition-colors"
+                onKeyDown={e => { if (e.key === 'Enter') approve(editedTitle); if (e.key === 'Escape') setStatus('pending'); }}
+              />
+              <p className="text-xs text-muted mt-1.5">{data.description}</p>
+            </>
+          )}
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => approve(editedTitle)}
-            disabled={loading || !editedTitle.trim()}
+            onClick={() => isProgress
+              ? approve(data.title, { progress: editedProgress })
+              : approve(editedTitle)
+            }
+            disabled={loading || (!isProgress && !editedTitle.trim())}
             className="flex-1 bg-brand text-white text-xs font-semibold py-2 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Confirm'}
+            {loading ? 'Saving...' : 'Confirm'}
           </button>
           <button
             onClick={() => setStatus('pending')}
@@ -144,6 +175,8 @@ export default function ApprovalCard({ raw }: { raw: string }) {
     );
   }
 
+  const pendingProgress = typeof data.payload?.progress === 'number' ? data.payload.progress : 0;
+
   return (
     <div className="border border-border bg-panel rounded-xl px-4 py-4 space-y-3">
       <div>
@@ -151,7 +184,16 @@ export default function ApprovalCard({ raw }: { raw: string }) {
           {TYPE_LABELS[data.type] ?? data.type.replace(/_/g, ' ')}
         </p>
         <p className="text-sm font-semibold text-text">{data.title}</p>
-        <p className="text-xs text-muted mt-0.5">{data.description}</p>
+        {data.type === 'update_goal_progress' ? (
+          <div className="mt-2 space-y-1.5">
+            <div className="h-1.5 bg-border rounded-full overflow-hidden">
+              <div className="h-full bg-brand rounded-full transition-all" style={{ width: `${pendingProgress}%` }} />
+            </div>
+            <p className="text-xs text-muted">{pendingProgress}% complete</p>
+          </div>
+        ) : (
+          <p className="text-xs text-muted mt-0.5">{data.description}</p>
+        )}
       </div>
       <div className="flex gap-2">
         <button
@@ -159,10 +201,14 @@ export default function ApprovalCard({ raw }: { raw: string }) {
           disabled={loading}
           className="flex-1 bg-brand text-white text-xs font-semibold py-2 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Approve'}
+          {loading ? 'Saving...' : 'Approve'}
         </button>
         <button
-          onClick={() => { setEditedTitle(data.title); setStatus('editing'); }}
+          onClick={() => {
+            setEditedTitle(data.title);
+            setEditedProgress(pendingProgress);
+            setStatus('editing');
+          }}
           className="flex-1 border border-border text-muted text-xs font-semibold py-2 rounded-lg hover:text-text hover:border-brand/50 transition-colors"
         >
           Edit

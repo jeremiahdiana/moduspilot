@@ -50,6 +50,8 @@ export default function HabitTracker() {
     const sorted = [...newDates].sort().reverse();
     let streak = 0;
     const check = new Date();
+    // When unchecking today, count consecutive days starting from yesterday
+    if (doneToday) check.setDate(check.getDate() - 1);
     for (const d of sorted) {
       const expected = check.toISOString().slice(0, 10);
       if (d === expected) {

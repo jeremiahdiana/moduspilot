@@ -993,6 +993,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
     const sorted = [...newDates].sort().reverse();
     let streak = 0;
     const check = new Date();
+    if (done) check.setDate(check.getDate() - 1);
     for (const d of sorted) { if (d === check.toISOString().slice(0,10)) { streak++; check.setDate(check.getDate()-1); } else break; }
     await updateDoc(doc(db, 'users', user.uid, 'habits', h.id), { completedDates: newDates, streak });
   }

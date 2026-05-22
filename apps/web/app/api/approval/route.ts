@@ -85,6 +85,18 @@ export async function POST(req: Request) {
       const ref = await userRef.collection('drafts').add(base);
       return Response.json({ id: ref.id });
     }
+    case 'update_goal_progress': {
+      const progress = Math.min(100, Math.max(0, Number(payload.progress ?? 0)));
+      const goalId = payload.goalId as string | undefined;
+      if (goalId) {
+        await userRef.collection('goals').doc(goalId).update({ progress, updatedAt: FieldValue.serverTimestamp() });
+        return Response.json({ id: goalId });
+      }
+      const match = await fuzzyFind(userRef.collection('goals'), title);
+      if (!match) return Response.json({ error: 'Goal not found' }, { status: 404 });
+      await match.ref.update({ progress, updatedAt: FieldValue.serverTimestamp() });
+      return Response.json({ id: match.id });
+    }
     case 'update_goal': {
       const goalId = payload.goalId as string | undefined;
       if (goalId) {
