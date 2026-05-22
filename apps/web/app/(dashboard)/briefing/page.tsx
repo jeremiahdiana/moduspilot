@@ -5,7 +5,7 @@ import {
   collection, query, where, orderBy, onSnapshot,
   Timestamp, doc, updateDoc,
 } from 'firebase/firestore';
-import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -677,6 +677,124 @@ export default function BriefingPage() {
   );
 }
 
+// ── Stagger card wrapper ──────────────────────────────────────────────────────
+
+const ease = [0.16, 1, 0.3, 1] as const;
+function FadeCard({ delay = 0, children }: { delay?: number; children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.38, delay, ease }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ── Weather hook (Open-Meteo, free, no key) ───────────────────────────────────
+
+const WMO: Record<number, string> = {
+  0:'Clear sky', 1:'Mainly clear', 2:'Partly cloudy', 3:'Overcast',
+  45:'Foggy', 48:'Foggy', 51:'Light drizzle', 53:'Drizzle', 55:'Heavy drizzle',
+  61:'Light rain', 63:'Rain', 65:'Heavy rain', 71:'Light snow', 73:'Snow', 75:'Heavy snow',
+  80:'Rain showers', 81:'Rain showers', 82:'Heavy showers', 95:'Thunderstorm',
+};
+
+function useWeather() {
+  const [weather, setWeather] = useState<{ temp: number; unit: string; desc: string } | null>(null);
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`)
+        .then(r => r.json())
+        .then(d => {
+          const cw = d.current_weather;
+          if (!cw) return;
+          const desc = WMO[cw.weathercode] ?? 'Clear';
+          setWeather({ temp: Math.round(cw.temperature), unit: '°F', desc });
+        })
+        .catch(() => {});
+    }, () => {});
+  }, []);
+  return weather;
+}
+
+// ── Yesterday recap hook ──────────────────────────────────────────────────────
+
+interface YesterdayStats { tasksDone: number; habitsDone: number; habitsTotal: number }
+
+function useYesterdayStats(uid: string | null): YesterdayStats | null {
+  const [stats, setStats] = useState<YesterdayStats | null>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toISOString().slice(0, 10);
+    const yStart = new Date(yStr + 'T00:00:00');
+    const yEnd   = new Date(yStr + 'T23:59:59');
+
+    let tasksDone = 0;
+    let habitsDone = 0;
+    let habitsTotal = 0;
+
+    const unsubTasks = onSnapshot(
+      query(collection(db, 'users', uid, 'tasks'), where('done', '==', true)),
+      snap => {
+        tasksDone = snap.docs.filter(d => {
+          const ca = d.data().completedAt?.toDate?.();
+          return ca && ca >= yStart && ca <= yEnd;
+        }).length;
+        setStats(s => ({ tasksDone, habitsDone: s?.habitsDone ?? 0, habitsTotal: s?.habitsTotal ?? 0 }));
+      }, () => {},
+    );
+
+    const unsubHabits = onSnapshot(
+      query(collection(db, 'users', uid, 'habits'), orderBy('createdAt', 'desc')),
+      snap => {
+        habitsTotal = snap.size;
+        habitsDone = snap.docs.filter(d => (d.data().completedDates ?? []).includes(yStr)).length;
+        setStats(s => ({ tasksDone: s?.tasksDone ?? 0, habitsDone, habitsTotal }));
+      }, () => {},
+    );
+
+    return () => { unsubTasks(); unsubHabits(); };
+  }, [uid]);
+
+  return stats;
+}
+
+// ── Day readiness ring ────────────────────────────────────────────────────────
+
+function DayScoreRing({ score }: { score: number }) {
+  const size = 44;
+  const r = (size - 5) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(100, score);
+  const color = pct >= 80 ? '#10B981' : pct >= 40 ? '#7C3AED' : '#F59E0B';
+
+  return (
+    <div className="relative shrink-0" title={`Day readiness: ${pct}%`}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="currentColor" strokeWidth={3} className="text-border" />
+        <motion.circle
+          cx={size/2} cy={size/2} r={r}
+          fill="none" stroke={color} strokeWidth={3}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ - (pct / 100) * circ }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[10px] font-bold leading-none" style={{ color }}>{pct}%</span>
+      </div>
+    </div>
+  );
+}
+
 // ── Web Speech listen hook ────────────────────────────────────────────────────
 
 function useSpeech(text: string) {
@@ -719,7 +837,8 @@ function BriefingContextPanel({
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [dueTasks, setDueTasks] = useState<{ id: string; title: string; priority?: string; dueDate: string }[]>([]);
-  const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean }[]>([]);
+  const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean; completedDates: string[] }[]>([]);
+  const weather = useWeather();
 
   useEffect(() => {
     if (!user) return;
@@ -746,12 +865,26 @@ function BriefingContextPanel({
           id: d.id,
           title: d.data().title ?? 'Untitled',
           streak: d.data().streak ?? 0,
+          completedDates: d.data().completedDates ?? [],
           done: (d.data().completedDates ?? []).includes(today),
         })));
       }, () => {},
     );
     return unsub;
   }, [user]);
+
+  async function toggleHabit(h: { id: string; completedDates: string[] }) {
+    if (!user) return;
+    const done = h.completedDates.includes(today);
+    const newDates = done ? h.completedDates.filter(d => d !== today) : [...h.completedDates, today];
+    const sorted = [...newDates].sort().reverse();
+    let streak = 0;
+    const check = new Date();
+    for (const d of sorted) {
+      if (d === check.toISOString().slice(0, 10)) { streak++; check.setDate(check.getDate() - 1); } else break;
+    }
+    await updateDoc(doc(db, 'users', user.uid, 'habits', h.id), { completedDates: newDates, streak });
+  }
 
   const upcomingEvents = calendarEvents.filter(e => !e.allDay).slice(0, 5);
   const doneHabits = habits.filter(h => h.done).length;
@@ -760,14 +893,33 @@ function BriefingContextPanel({
   const PRIORITY_DOT: Record<string, string> = { high: 'bg-red-400', medium: 'bg-yellow-400', low: 'bg-muted' };
 
   return (
-    <div className="h-full overflow-y-auto py-6 px-4 space-y-5">
+    <div className="h-full overflow-y-auto py-5 px-4 space-y-5">
+
+      {/* Weather */}
+      {weather && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg border border-border">
+          <span className="text-base">{
+            weather.desc.includes('Clear') ? '☀️' :
+            weather.desc.includes('cloud') || weather.desc.includes('Overcast') ? '⛅' :
+            weather.desc.includes('rain') || weather.desc.includes('Rain') || weather.desc.includes('shower') ? '🌧️' :
+            weather.desc.includes('snow') || weather.desc.includes('Snow') ? '❄️' :
+            weather.desc.includes('Thunder') ? '⛈️' :
+            weather.desc.includes('Fog') ? '🌫️' : '🌤️'
+          }</span>
+          <div>
+            <p className="text-xs font-semibold text-text">{weather.temp}{weather.unit}</p>
+            <p className="text-[10px] text-muted">{weather.desc}</p>
+          </div>
+        </div>
+      )}
+
       {/* Schedule */}
       {calendarConnected && upcomingEvents.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2.5">Today&apos;s schedule</p>
           <div className="space-y-1.5">
             {upcomingEvents.map((e, i) => (
-              <div key={i} className="flex items-start gap-2.5 group">
+              <div key={i} className="flex items-start gap-2.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-1.5" />
                 <div className="min-w-0">
                   <p className="text-xs text-text leading-snug truncate">{e.title}</p>
@@ -798,43 +950,57 @@ function BriefingContextPanel({
         </div>
       )}
 
-      {/* Habits */}
+      {/* Habits — interactive */}
       {habits.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Habits</p>
             <span className={`text-[10px] font-medium ${allDone ? 'text-emerald-400' : 'text-muted'}`}>
               {doneHabits}/{habits.length}
             </span>
           </div>
-          {/* Mini progress bar */}
-          <div className="h-1 bg-border rounded-full overflow-hidden mb-2.5">
-            <div
-              className="h-full bg-brand rounded-full transition-all duration-500"
-              style={{ width: `${habits.length > 0 ? (doneHabits / habits.length) * 100 : 0}%` }}
+          <div className="h-1 bg-border rounded-full overflow-hidden mb-3">
+            <motion.div
+              className="h-full bg-brand rounded-full"
+              animate={{ width: `${habits.length > 0 ? (doneHabits / habits.length) * 100 : 0}%` }}
+              transition={{ duration: 0.5 }}
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {habits.map(h => (
-              <div key={h.id} className="flex items-center gap-2">
-                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${h.done ? 'bg-brand border-brand' : 'border-border'}`}>
+              <button
+                key={h.id}
+                onClick={() => toggleHabit(h)}
+                className="w-full flex items-center gap-2 py-1 rounded-lg hover:bg-bg transition-colors text-left group"
+              >
+                <motion.div
+                  whileTap={{ scale: 0.8 }}
+                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${h.done ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}
+                >
                   {h.done && <span className="text-white text-[7px] leading-none">✓</span>}
-                </div>
-                <p className={`text-xs truncate flex-1 ${h.done ? 'text-muted line-through' : 'text-text'}`}>{h.title}</p>
+                </motion.div>
+                <p className={`text-xs truncate flex-1 transition-colors ${h.done ? 'text-muted line-through' : 'text-text'}`}>{h.title}</p>
                 {h.streak > 0 && <span className="text-[10px] text-muted shrink-0">{h.streak}🔥</span>}
-              </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Perfect day banner */}
-      {allDone && (
-        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2.5 text-center">
-          <p className="text-xs font-semibold text-emerald-400">🎉 Perfect day so far!</p>
-          <p className="text-[10px] text-muted mt-0.5">All habits complete</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {allDone && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2.5 text-center"
+          >
+            <p className="text-xs font-semibold text-emerald-400">🎉 Perfect day so far!</p>
+            <p className="text-[10px] text-muted mt-0.5">All habits complete</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -966,6 +1132,25 @@ function BriefingContent({
   const energyOpt = ENERGY_OPTS.find(o => o.key === briefing.energy);
   const speechText = briefingToSpeech(data, briefing.content);
   const { speaking, toggle: toggleSpeech } = useSpeech(speechText);
+  const yesterday = useYesterdayStats(user?.uid ?? null);
+
+  // Day score: 25% viewed (always), 25% energy set, 50% habits done
+  const [habitsDoneCount, setHabitsDoneCount] = useState(0);
+  const [habitsTotal, setHabitsTotal] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const unsub = onSnapshot(
+      query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'desc')),
+      snap => {
+        setHabitsTotal(snap.size);
+        setHabitsDoneCount(snap.docs.filter(d => (d.data().completedDates ?? []).includes(today)).length);
+      }, () => {},
+    );
+    return unsub;
+  }, [user]);
+  const habitPct = habitsTotal > 0 ? (habitsDoneCount / habitsTotal) : 1;
+  const dayScore = Math.round(25 + (briefing.energy ? 25 : 0) + habitPct * 50);
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
@@ -982,95 +1167,123 @@ function BriefingContent({
         )}
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.08em] text-muted mb-0.5">
-              {fmtHeader(briefing.createdAt)}
-            </p>
-            <p className="text-[18px] font-medium text-text leading-snug">
-              {data?.openingLine ?? briefing.title}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0 ml-4">
-            {/* Listen button */}
-            <button
-              onClick={toggleSpeech}
-              title={speaking ? 'Stop listening' : 'Listen to briefing'}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${
-                speaking
-                  ? 'border-brand/40 bg-brand/10 text-brand'
-                  : 'border-border bg-panel text-muted hover:text-text hover:border-border/80'
-              }`}
-            >
-              {speaking ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/><path d="M19.07 4.93a10 10 0 010 14.14"/>
-                </svg>
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease }}
+          className="mb-6"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.08em] text-muted mb-1">
+                {fmtHeader(briefing.createdAt)}
+              </p>
+              {/* Bigger, bolder opening line */}
+              <h1 className="text-2xl font-bold text-text leading-tight">
+                {data?.openingLine ?? briefing.title}
+              </h1>
+              {/* Yesterday recap */}
+              {yesterday && (yesterday.tasksDone > 0 || yesterday.habitsDone > 0) && (
+                <p className="text-xs text-muted mt-1.5">
+                  Yesterday:{' '}
+                  {yesterday.tasksDone > 0 && <span className="text-text/80">{yesterday.tasksDone} task{yesterday.tasksDone !== 1 ? 's' : ''} done</span>}
+                  {yesterday.tasksDone > 0 && yesterday.habitsDone > 0 && <span> · </span>}
+                  {yesterday.habitsDone > 0 && <span className="text-text/80">{yesterday.habitsDone}/{yesterday.habitsTotal} habits</span>}
+                </p>
               )}
-              {speaking ? 'Stop' : 'Listen'}
-            </button>
-            {briefing.energy && energyOpt && (
-              <div className="flex items-center gap-1.5 bg-panel border border-border rounded-lg px-2.5 py-1.5">
-                <span className="text-amber-500"><IconBolt /></span>
-                <span className="text-[12px] font-medium text-muted">{energyOpt.emoji} {energyOpt.label}</span>
-              </div>
-            )}
+            </div>
+
+            {/* Day score ring + controls */}
+            <div className="flex items-center gap-2 shrink-0">
+              <DayScoreRing score={dayScore} />
+              <button
+                onClick={toggleSpeech}
+                title={speaking ? 'Stop' : 'Listen to briefing'}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${
+                  speaking ? 'border-brand/40 bg-brand/10 text-brand' : 'border-border bg-panel text-muted hover:text-text hover:border-border/80'
+                }`}
+              >
+                {speaking ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/><path d="M19.07 4.93a10 10 0 010 14.14"/>
+                  </svg>
+                )}
+                {speaking ? 'Stop' : 'Listen'}
+              </button>
+              {briefing.energy && energyOpt && (
+                <div className="flex items-center gap-1.5 bg-panel border border-border rounded-lg px-2.5 py-1.5">
+                  <span className="text-amber-500"><IconBolt /></span>
+                  <span className="text-[12px] font-medium text-muted hidden sm:inline">{energyOpt.emoji} {energyOpt.label}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </motion.div>
 
         {data ? (
           <>
-            {/* Section 1: Energy check */}
-            <EnergyCard
-              energy={briefing.energy}
-              onSelect={(key, chatMsg) => {
-                onEnergySelect(key);
-                append({ role: 'user', content: chatMsg });
-              }}
-            />
+            <FadeCard delay={0.05}>
+              <EnergyCard
+                energy={briefing.energy}
+                onSelect={(key, chatMsg) => {
+                  onEnergySelect(key);
+                  append({ role: 'user', content: chatMsg });
+                }}
+              />
+            </FadeCard>
 
-            {/* Section 2: Approval queue (Gmail) */}
-            <ApprovalQueueCard
-              threads={gmailThreads}
-              connected={gmailConnected}
-              onConnectGoogle={handleConnectGoogle}
-              onDraftReply={handleDraftReply}
-            />
+            <FadeCard delay={0.12}>
+              <ApprovalQueueCard
+                threads={gmailThreads}
+                connected={gmailConnected}
+                onConnectGoogle={handleConnectGoogle}
+                onDraftReply={handleDraftReply}
+              />
+            </FadeCard>
 
-            {/* Section 2b: Calendar */}
-            <CalendarCard
-              events={calendarEvents}
-              schedule={data.schedule ?? []}
-              connected={calendarConnected}
-              onConnectGoogle={handleConnectGoogle}
-            />
+            <FadeCard delay={0.18}>
+              <CalendarCard
+                events={calendarEvents}
+                schedule={data.schedule ?? []}
+                connected={calendarConnected}
+                onConnectGoogle={handleConnectGoogle}
+              />
+            </FadeCard>
 
-            {/* Section 3: Top 3 */}
-            {data.top3.length > 0 && <Top3Card items={data.top3} />}
-
-            {/* Section 4: Loose end + Habit check side by side */}
-            {(data.looseEnd || data.habits.length > 0) && (
-              <div className={`grid gap-2.5 ${data.looseEnd && data.habits.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {data.looseEnd && (
-                  <LooseEndCard
-                    text={data.looseEnd.text}
-                    onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)}
-                  />
-                )}
-                {data.habits.length > 0 && <HabitCheckCard habits={data.habits} />}
-              </div>
+            {data.top3.length > 0 && (
+              <FadeCard delay={0.24}>
+                <Top3Card items={data.top3} />
+              </FadeCard>
             )}
 
-            {/* Section 5: Pattern callout — conditional */}
-            {data.patternCallout && <PatternCard text={data.patternCallout} />}
+            {(data.looseEnd || data.habits.length > 0) && (
+              <FadeCard delay={0.30}>
+                <div className={`grid gap-2.5 ${data.looseEnd && data.habits.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {data.looseEnd && (
+                    <LooseEndCard
+                      text={data.looseEnd.text}
+                      onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)}
+                    />
+                  )}
+                  {data.habits.length > 0 && <HabitCheckCard habits={data.habits} />}
+                </div>
+              </FadeCard>
+            )}
+
+            {data.patternCallout && (
+              <FadeCard delay={0.36}>
+                <PatternCard text={data.patternCallout} />
+              </FadeCard>
+            )}
           </>
         ) : (
-          /* Old plain-text briefing */
-          <BCard>
-            <p className="text-sm text-text whitespace-pre-wrap">{briefing.content}</p>
-          </BCard>
+          <FadeCard delay={0.05}>
+            <BCard>
+              <p className="text-sm text-text whitespace-pre-wrap">{briefing.content}</p>
+            </BCard>
+          </FadeCard>
         )}
 
         {/* Follow-up chat messages */}
@@ -1100,14 +1313,15 @@ function BriefingContent({
 
         <div ref={bottomRef} />
 
-        {/* Section 6: Closing chat bar */}
-        <ClosingChatBar
-          input={input}
-          onChange={handleInputChange}
-          onSubmit={handleSubmit}
-          onChip={handleChip}
-          isLoading={isLoading}
-        />
+        <FadeCard delay={0.42}>
+          <ClosingChatBar
+            input={input}
+            onChange={handleInputChange}
+            onSubmit={handleSubmit}
+            onChip={handleChip}
+            isLoading={isLoading}
+          />
+        </FadeCard>
         </div>{/* end max-w-2xl */}
       </div>{/* end left scroll column */}
 
