@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   doc, onSnapshot, updateDoc, collection, query, where,
-  orderBy, addDoc, serverTimestamp, setDoc,
+  addDoc, serverTimestamp, setDoc,
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -12,8 +12,12 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
+import { motion } from 'framer-motion';
 
 type Timeframe = 'short' | 'long';
+
+interface Milestone { id: string; title: string; done: boolean; }
+interface ProgressEntry { progress: number; date: string; }
 
 interface Goal {
   id: string;
@@ -23,15 +27,24 @@ interface Goal {
   status: 'active' | 'completed';
   dueDate?: string;
   timeframe?: Timeframe;
+  createdAt?: string;
+  milestones: Milestone[];
+  progressLog: ProgressEntry[];
 }
 
-interface LinkedTask { id: string; title: string }
-interface GoalChat  { id: string; title: string; messages: Message[]; createdAt: Date }
+interface GoalChat { id: string; title: string; messages: Message[]; createdAt: Date; }
 
-const TIMEFRAME_LABELS: Record<Timeframe, string> = { short: 'Short term', long: 'Long term' };
-const TIMEFRAME_COLORS: Record<Timeframe, string> = {
+const TF_BADGE: Record<Timeframe, string> = {
   short: 'bg-blue-500/10 text-blue-500',
   long:  'bg-brand/10 text-brand',
+};
+const TF_RING: Record<Timeframe, string> = {
+  short: '#3B82F6',
+  long:  '#7C3AED',
+};
+const TF_LABEL: Record<Timeframe, string> = {
+  short: 'Short term',
+  long:  'Long term',
 };
 
 const CHAT_CHIPS = [
@@ -40,6 +53,36 @@ const CHAT_CHIPS = [
   'Help me plan next steps',
   'Reflect on this goal',
 ];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function formatDue(dueDate: string): string {
+  const due = new Date(dueDate + 'T00:00:00');
+  const now = new Date();
+  const days = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const dateStr = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (days < 0) return `${dateStr} · ${Math.abs(days)}d overdue`;
+  if (days === 0) return `${dateStr} · Due today`;
+  if (days === 1) return `${dateStr} · Tomorrow`;
+  return `${dateStr} · ${days}d left`;
+}
+
+function getMomentum(goal: Goal): { label: string; color: string } | null {
+  if (!goal.dueDate || !goal.createdAt || goal.status !== 'active') return null;
+  const created = new Date(goal.createdAt);
+  const due = new Date(goal.dueDate + 'T00:00:00');
+  const now = new Date();
+  if (now > due) return { label: 'Past due', color: 'text-red-400' };
+  const total = due.getTime() - created.getTime();
+  if (total <= 0) return null;
+  const elapsed = now.getTime() - created.getTime();
+  const expected = Math.min(100, (elapsed / total) * 100);
+  const gap = goal.progress - expected;
+  if (gap >= 10) return { label: 'Ahead of schedule', color: 'text-emerald-500' };
+  if (gap >= -10) return { label: 'On track', color: 'text-brand' };
+  if (gap >= -25) return { label: 'Slightly behind', color: 'text-amber-500' };
+  return { label: 'At risk', color: 'text-red-400' };
+}
 
 function checkinMessage(goal: Goal): string {
   if (goal.progress === 0)
@@ -51,36 +94,6 @@ function checkinMessage(goal: Goal): string {
   return `"${goal.title}" is done. Want to capture any lessons before closing it out?`;
 }
 
-function GCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-panel border border-border rounded-xl px-5 py-4 ${className}`}>{children}</div>;
-}
-function SectionLabel({ icon, color, text, right }: { icon: React.ReactNode; color: string; text: string; right?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <span className={color}>{icon}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">{text}</span>
-      </div>
-      {right}
-    </div>
-  );
-}
-const IconTarget = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
-  </svg>
-);
-const IconCheck = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12l4 4L20 4"/>
-  </svg>
-);
-const IconSparkle = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
-  </svg>
-);
-
 function sanitizeMessages(msgs: Message[]): { id: string; role: string; content: string }[] {
   return msgs.map(m => ({
     id: m.id,
@@ -89,6 +102,30 @@ function sanitizeMessages(msgs: Message[]): { id: string; role: string; content:
   }));
 }
 
+// ── Ring ───────────────────────────────────────────────────────────────────────
+
+function Ring({ pct, color, size = 52, stroke = 5 }: { pct: number; color: string; size?: number; stroke?: number }) {
+  const r = (size - stroke * 2) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (Math.min(100, Math.max(0, pct)) / 100) * circ;
+  return (
+    <svg width={size} height={size} className="shrink-0 -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-border" />
+      <motion.circle
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none" stroke={color} strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        initial={{ strokeDashoffset: circ }}
+        animate={{ strokeDashoffset: circ - dash }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      />
+    </svg>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function GoalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -96,27 +133,29 @@ export default function GoalDetailPage() {
   const { settings } = useUserSettings(user);
 
   const [goal, setGoal] = useState<Goal | null>(null);
-  const [linkedTasks, setLinkedTasks] = useState<LinkedTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProgress, setEditingProgress] = useState(false);
   const [draftProgress, setDraftProgress] = useState(0);
   const [savingProgress, setSavingProgress] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
+
+  // Milestones
+  const [addingMilestone, setAddingMilestone] = useState(false);
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+  const milestoneInputRef = useRef<HTMLInputElement>(null);
+
+  // Suggestions
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const suggestionsFetchedRef = useRef(false);
 
-  // Multi-chat state
+  // Multi-chat
   const [allChats, setAllChats] = useState<GoalChat[]>([]);
   const [chatsLoaded, setChatsLoaded] = useState(false);
-  // activeChatId is tracked via ref (sync) + state (for UI re-render)
   const activeChatIdRef = useRef(`goal-${id}`);
   const [activeChatId, _setActiveChatId] = useState(`goal-${id}`);
   const setActiveChatId = (newId: string) => { activeChatIdRef.current = newId; _setActiveChatId(newId); };
 
-  // Pending message to send after messages reset (avoids setTimeout race)
   const pendingMsgRef = useRef<string | null>(null);
-
   const savedLengthRef = useRef(0);
   const prevLoadingRef = useRef(false);
   const seededRef = useRef(false);
@@ -130,54 +169,31 @@ export default function GoalDetailPage() {
     return unsub;
   }, []);
 
-  // Fetch AI-personalized suggestions once goal + auth token are ready
-  useEffect(() => {
-    if (!goal || suggestionsFetchedRef.current) return;
-    suggestionsFetchedRef.current = true;
-    setSuggestionsLoading(true);
-    fetch('/api/goals/suggestions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      },
-      body: JSON.stringify({ title: goal.title, description: goal.description, timeframe: goal.timeframe }),
-    })
-      .then(r => r.json())
-      .then(data => { if (data.suggestions?.length) setSuggestions(data.suggestions); })
-      .catch(() => {})
-      .finally(() => setSuggestionsLoading(false));
-  }, [goal, authToken]);
-
   // Load goal
   useEffect(() => {
     if (!user || !id) return;
     const unsub = onSnapshot(doc(db, 'users', user.uid, 'goals', id), snap => {
       if (!snap.exists()) { router.replace('/goals'); return; }
       const d = snap.data();
-      setGoal({ id: snap.id, title: d.title ?? 'Untitled', description: d.description,
-        progress: d.progress ?? 0, status: d.status ?? 'active', dueDate: d.dueDate, timeframe: d.timeframe });
+      setGoal({
+        id: snap.id,
+        title: d.title ?? 'Untitled',
+        description: d.description,
+        progress: d.progress ?? 0,
+        status: d.status ?? 'active',
+        dueDate: d.dueDate,
+        timeframe: d.timeframe,
+        createdAt: d.createdAt?.toDate?.()?.toISOString() ?? d.createdAt,
+        milestones: d.milestones ?? [],
+        progressLog: d.progressLog ?? [],
+      });
       setDraftProgress(d.progress ?? 0);
       setLoading(false);
     }, () => setLoading(false));
     return unsub;
   }, [user, id, router]);
 
-  // Load linked tasks
-  useEffect(() => {
-    if (!user || !goal) return;
-    const q = query(collection(db, 'users', user.uid, 'tasks'), where('done', '==', false), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const tasks = snap.docs
-        .filter(d => !d.data().deleted)
-        .map(d => ({ id: d.id, title: d.data().title ?? '' }))
-        .filter(t => t.title.toLowerCase().includes(goal.title.toLowerCase().split(' ')[0]));
-      setLinkedTasks(tasks.slice(0, 5));
-    }, () => {});
-    return unsub;
-  }, [user, goal]);
-
-  // Load all chats for this goal
+  // Load chats
   useEffect(() => {
     if (!user || !id) return;
     const unsub = onSnapshot(
@@ -200,7 +216,26 @@ export default function GoalDetailPage() {
     return unsub;
   }, [user, id]);
 
-  // Save to the currently active chat doc
+  // Suggestions
+  useEffect(() => {
+    if (!goal || suggestionsFetchedRef.current) return;
+    suggestionsFetchedRef.current = true;
+    setSuggestionsLoading(true);
+    fetch('/api/goals/suggestions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: JSON.stringify({ title: goal.title, description: goal.description, timeframe: goal.timeframe }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data.suggestions?.length) setSuggestions(data.suggestions); })
+      .catch(() => {})
+      .finally(() => setSuggestionsLoading(false));
+  }, [goal, authToken]);
+
+  // Save conversation
   const saveConversation = useCallback(async (msgs: Message[]) => {
     if (!user || !id) return;
     const chatId = activeChatIdRef.current;
@@ -218,8 +253,6 @@ export default function GoalDetailPage() {
     }
   }, [user, id, goal]);
 
-  // useChat — id is FIXED to goal-${id} so the hook is always stable.
-  // We swap messages manually via setMessages when switching chats.
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
     api: '/api/chat',
     initialMessages: [],
@@ -235,7 +268,7 @@ export default function GoalDetailPage() {
     },
   });
 
-  // Seed main chat messages once Firestore loads
+  // Seed main chat once
   useEffect(() => {
     if (!chatsLoaded || seededRef.current || !goal) return;
     seededRef.current = true;
@@ -248,8 +281,7 @@ export default function GoalDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatsLoaded, goal]);
 
-  // Fire pending message AFTER messages state has reset to []
-  // (avoids race condition — pendingMsgRef is set, then messages clears, then this fires)
+  // Fire pending message after messages reset
   useEffect(() => {
     if (!pendingMsgRef.current || isLoading) return;
     const msg = pendingMsgRef.current;
@@ -258,7 +290,7 @@ export default function GoalDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
-  // Auto-save after AI finishes responding
+  // Auto-save after response
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
     prevLoadingRef.current = isLoading;
@@ -268,41 +300,50 @@ export default function GoalDetailPage() {
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Switch to an existing chat
+  // Focus milestone input
+  useEffect(() => {
+    if (addingMilestone) milestoneInputRef.current?.focus();
+  }, [addingMilestone]);
+
+  // ── Chat helpers ───────────────────────────────────────────────────────────
+
+  const mainChatId = `goal-${id}`;
+  const isMainChat = activeChatId === mainChatId;
+  const extraChats = allChats.filter(c => c.id !== mainChatId);
+
   function switchChat(chat: GoalChat) {
     setActiveChatId(chat.id);
     const msgs: Message[] = chat.messages.length
       ? chat.messages
-      : (chat.id === `goal-${id}` && goal)
+      : (chat.id === mainChatId && goal)
         ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }]
         : [];
     setMessages(msgs);
     savedLengthRef.current = msgs.length;
   }
 
-  // Delete an extra chat (soft delete)
   async function deleteChat(chatId: string) {
     if (!user) return;
     await updateDoc(doc(db, 'users', user.uid, 'conversations', chatId), { deleted: true });
     if (activeChatId === chatId) {
       const main = allChats.find(c => c.id === mainChatId);
-      if (main) {
-        switchChat(main);
-      } else {
+      if (main) { switchChat(main); }
+      else {
         setActiveChatId(mainChatId);
-        const checkin: Message[] = goal ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }] : [];
-        setMessages(checkin);
+        const msgs: Message[] = goal
+          ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }]
+          : [];
+        setMessages(msgs);
         savedLengthRef.current = 0;
       }
     }
   }
 
-  // Start a new blank chat (user types first)
   async function startNewChat() {
     if (!user) return;
     const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
@@ -314,34 +355,16 @@ export default function GoalDetailPage() {
     savedLengthRef.current = 0;
   }
 
-  // Tap a suggestion — creates a new chat and queues the first message
   async function tapSuggestion(text: string) {
     if (!user) return;
     const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
       goalId: id, title: text, messages: [],
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(), deleted: false,
     });
-    setActiveChatId(ref.id);      // update ref synchronously
+    setActiveChatId(ref.id);
     savedLengthRef.current = 0;
-    pendingMsgRef.current = text; // queue the message
-    setMessages([]);              // reset → triggers the pendingMsg effect
-  }
-
-  async function saveProgress() {
-    if (!user || !goal) return;
-    setSavingProgress(true);
-    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
-      progress: draftProgress,
-      ...(draftProgress >= 100 ? { status: 'completed' } : {}),
-    });
-    setSavingProgress(false);
-    setEditingProgress(false);
-  }
-
-  async function markComplete() {
-    if (!user) return;
-    await updateDoc(doc(db, 'users', user.uid, 'goals', id), { status: 'completed', progress: 100 });
-    router.push('/goals');
+    pendingMsgRef.current = text;
+    setMessages([]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -352,6 +375,71 @@ export default function GoalDetailPage() {
     await append({ role: 'user', content: val });
   }
 
+  // ── Progress helpers ───────────────────────────────────────────────────────
+
+  async function saveProgress() {
+    if (!user || !goal) return;
+    setSavingProgress(true);
+    const today = new Date().toISOString().slice(0, 10);
+    const newLog = [{ progress: draftProgress, date: today }, ...goal.progressLog].slice(0, 10);
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      progress: draftProgress,
+      progressLog: newLog,
+      ...(draftProgress >= 100 ? { status: 'completed' } : {}),
+    });
+    setSavingProgress(false);
+  }
+
+  async function markComplete() {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const newLog = [{ progress: 100, date: today }, ...(goal?.progressLog ?? [])].slice(0, 10);
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), { status: 'completed', progress: 100, progressLog: newLog });
+    router.push('/goals');
+  }
+
+  // ── Milestone helpers ──────────────────────────────────────────────────────
+
+  async function addMilestone() {
+    if (!user || !goal || !newMilestoneTitle.trim()) return;
+    const milestone: Milestone = { id: crypto.randomUUID(), title: newMilestoneTitle.trim(), done: false };
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      milestones: [...goal.milestones, milestone],
+    });
+    setNewMilestoneTitle('');
+    setAddingMilestone(false);
+  }
+
+  async function toggleMilestone(milestoneId: string) {
+    if (!user || !goal) return;
+    const newMilestones = goal.milestones.map(m => m.id === milestoneId ? { ...m, done: !m.done } : m);
+    const doneCount = newMilestones.filter(m => m.done).length;
+    const newProgress = Math.round((doneCount / newMilestones.length) * 100);
+    const today = new Date().toISOString().slice(0, 10);
+    const newLog = newProgress !== goal.progress
+      ? [{ progress: newProgress, date: today }, ...goal.progressLog].slice(0, 10)
+      : goal.progressLog;
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      milestones: newMilestones,
+      progress: newProgress,
+      progressLog: newLog,
+      ...(newProgress >= 100 ? { status: 'completed' } : {}),
+    });
+  }
+
+  async function deleteMilestone(milestoneId: string) {
+    if (!user || !goal) return;
+    const newMilestones = goal.milestones.filter(m => m.id !== milestoneId);
+    const updates: Record<string, unknown> = { milestones: newMilestones };
+    if (newMilestones.length > 0) {
+      const doneCount = newMilestones.filter(m => m.done).length;
+      updates.progress = Math.round((doneCount / newMilestones.length) * 100);
+    }
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), updates);
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   if (loading || !goal) {
     return (
       <div className="flex-1 flex items-center justify-center h-full">
@@ -360,221 +448,329 @@ export default function GoalDetailPage() {
     );
   }
 
-  const mainChatId = `goal-${id}`;
-  const isMainChat = activeChatId === mainChatId;
-  const extraChats = allChats.filter(c => c.id !== mainChatId);
-  const activeChat = allChats.find(c => c.id === activeChatId);
-  const progressDisplay = editingProgress ? draftProgress : goal.progress;
+  const ringColor = goal.timeframe ? TF_RING[goal.timeframe] : '#7C3AED';
+  const hasMilestones = goal.milestones.length > 0;
+  const momentum = getMomentum(goal);
+  const progressChanged = draftProgress !== goal.progress;
 
   return (
-    <div className="h-full overflow-y-auto bg-bg">
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-4">
+    <div className="h-full overflow-hidden flex flex-col bg-bg">
 
-        {/* Back */}
-        <button onClick={() => router.push('/goals')} className="flex items-center gap-1.5 text-xs text-muted hover:text-text transition-colors">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-border px-8 py-5 flex items-start gap-5">
+        <button
+          onClick={() => router.push('/goals')}
+          className="shrink-0 mt-1 text-xs text-muted hover:text-text transition-colors"
+        >
           ← Goals
         </button>
-
-        {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             {goal.timeframe && (
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TIMEFRAME_COLORS[goal.timeframe]}`}>
-                {TIMEFRAME_LABELS[goal.timeframe]}
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TF_BADGE[goal.timeframe]}`}>
+                {TF_LABEL[goal.timeframe]}
               </span>
             )}
-            {goal.dueDate && <span className="text-xs text-muted">Due {goal.dueDate}</span>}
+            {goal.status === 'completed' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
+                Complete
+              </span>
+            )}
+            {goal.dueDate && (
+              <span className="text-xs text-muted">{formatDue(goal.dueDate)}</span>
+            )}
           </div>
-          <h1 className="text-xl font-bold text-text leading-snug">{goal.title}</h1>
-          {goal.description && <p className="text-sm text-muted mt-1">{goal.description}</p>}
+          <h1 className="text-2xl font-bold text-text leading-tight">{goal.title}</h1>
+          {goal.description && <p className="text-sm text-muted mt-0.5">{goal.description}</p>}
         </div>
+        {goal.status === 'active' && (
+          <button
+            onClick={markComplete}
+            className="shrink-0 text-xs font-medium px-4 py-2 rounded-lg border border-border text-muted hover:text-emerald-500 hover:border-emerald-500/30 transition-colors"
+          >
+            Mark complete
+          </button>
+        )}
+      </div>
 
-        {/* Progress */}
-        <GCard>
-          <SectionLabel
-            icon={<IconTarget />}
-            color="text-blue-500"
-            text="Progress"
-            right={
-              goal.status === 'active' ? (
-                <button onClick={() => setEditingProgress(e => !e)} className="text-xs text-brand hover:underline">
-                  {editingProgress ? 'Cancel' : 'Update'}
-                </button>
-              ) : undefined
-            }
-          />
-          <div className="h-2 bg-border rounded-full overflow-hidden mb-2">
-            <div className="h-full bg-brand rounded-full transition-all duration-300" style={{ width: `${Math.min(100, progressDisplay)}%` }} />
-          </div>
-          <p className="text-sm text-text font-semibold">{progressDisplay}% complete</p>
-          {editingProgress && (
-            <div className="mt-4 space-y-3">
-              <input type="range" min={0} max={100} step={5} value={draftProgress}
-                onChange={e => setDraftProgress(Number(e.target.value))} className="w-full accent-brand" />
-              <div className="flex items-center gap-3">
-                <input type="number" min={0} max={100} value={draftProgress}
-                  onChange={e => setDraftProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
-                  className="w-20 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text outline-none focus:border-brand" />
-                <span className="text-sm text-muted">%</span>
-                <button onClick={saveProgress} disabled={savingProgress}
-                  className="ml-auto bg-brand text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-60">
-                  {savingProgress ? 'Saving…' : 'Save'}
-                </button>
+      {/* ── 2-column body ─────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-hidden flex min-h-0">
+
+        {/* Left ─ scrollable detail */}
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5 border-r border-border min-w-0">
+
+          {/* Progress hero */}
+          <div className="bg-panel border border-border rounded-xl p-6">
+            <div className="flex items-center gap-8">
+              <div className="relative shrink-0">
+                <Ring pct={goal.progress} color={ringColor} size={116} stroke={7} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-text leading-none">{goal.progress}%</span>
+                  <span className="text-[10px] text-muted mt-0.5">complete</span>
+                </div>
+              </div>
+
+              <div className="flex-1 min-w-0 space-y-3">
+                {momentum && (
+                  <p className={`text-xs font-semibold ${momentum.color}`}>{momentum.label}</p>
+                )}
+
+                {!hasMilestones && goal.status === 'active' && (
+                  <div className="space-y-2">
+                    <input
+                      type="range" min={0} max={100} step={5}
+                      value={draftProgress}
+                      onChange={e => setDraftProgress(Number(e.target.value))}
+                      className="w-full accent-brand"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted">{draftProgress}%</span>
+                      {progressChanged && (
+                        <button
+                          onClick={saveProgress}
+                          disabled={savingProgress}
+                          className="text-xs font-semibold text-brand hover:underline disabled:opacity-50"
+                        >
+                          {savingProgress ? 'Saving…' : 'Save progress'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {hasMilestones && (
+                  <p className="text-xs text-muted">Progress synced from milestones</p>
+                )}
+
+                {goal.progressLog.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    {goal.progressLog.slice(0, 4).map((entry, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-muted">
+                        <span className="w-1 h-1 rounded-full bg-border shrink-0" />
+                        <span>{entry.date}</span>
+                        <span className="font-medium text-text/50">{entry.progress}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          )}
-          {goal.status === 'active' && goal.progress < 100 && !editingProgress && (
-            <button onClick={markComplete} className="mt-3 text-xs text-muted hover:text-text transition-colors">
-              Mark as complete →
-            </button>
-          )}
-        </GCard>
+          </div>
 
-        {/* Linked tasks */}
-        {linkedTasks.length > 0 && (
-          <GCard>
-            <SectionLabel icon={<IconCheck />} color="text-emerald-500" text="Linked tasks" />
-            <div className="space-y-1.5">
-              {linkedTasks.map(t => (
-                <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 bg-bg rounded-lg">
-                  <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                  <span className="text-[13px] text-text">{t.title}</span>
+          {/* Milestones */}
+          <div className="bg-panel border border-border rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Milestones</span>
+                {hasMilestones && (
+                  <span className="text-[10px] bg-border text-muted px-1.5 py-0.5 rounded-full">
+                    {goal.milestones.filter(m => m.done).length}/{goal.milestones.length}
+                  </span>
+                )}
+              </div>
+              {goal.status === 'active' && !addingMilestone && (
+                <button
+                  onClick={() => setAddingMilestone(true)}
+                  className="text-xs text-muted hover:text-brand transition-colors"
+                >
+                  + Add
+                </button>
+              )}
+            </div>
+
+            {goal.milestones.length === 0 && !addingMilestone && (
+              <p className="text-xs text-muted/50 text-center py-3">
+                Break this goal into checkable steps — each one auto-updates progress.
+              </p>
+            )}
+
+            <div className="space-y-0.5">
+              {goal.milestones.map(m => (
+                <div key={m.id} className="flex items-center gap-2.5 group py-1.5">
+                  <button
+                    onClick={() => goal.status === 'active' && toggleMilestone(m.id)}
+                    className={`w-4 h-4 shrink-0 rounded border transition-colors flex items-center justify-center ${
+                      m.done ? 'bg-brand border-brand' : 'border-border hover:border-brand'
+                    } ${goal.status !== 'active' ? 'cursor-default' : 'cursor-pointer'}`}
+                  >
+                    {m.done && <span className="text-white text-[8px] leading-none">✓</span>}
+                  </button>
+                  <span className={`flex-1 text-sm ${m.done ? 'line-through text-muted' : 'text-text'}`}>
+                    {m.title}
+                  </span>
+                  {goal.status === 'active' && (
+                    <button
+                      onClick={() => deleteMilestone(m.id)}
+                      className="opacity-0 group-hover:opacity-100 text-muted/50 hover:text-red-400 text-base leading-none transition-all"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
-          </GCard>
-        )}
 
-        {/* Explore */}
-        <GCard>
-          <SectionLabel icon={<IconSparkle />} color="text-brand" text="Explore this goal" />
-          <p className="text-xs text-muted mb-3">Tap a question to open a dedicated chat thread.</p>
-          {suggestionsLoading ? (
-            <div className="flex gap-1.5 flex-wrap">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="h-6 rounded-full bg-border animate-pulse" style={{ width: `${100 + i * 30}px` }} />
-              ))}
-            </div>
-          ) : suggestions.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {suggestions.map(s => (
-                <button key={s} onClick={() => tapSuggestion(s)}
-                  className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors text-left">
-                  {s}
+            {addingMilestone && (
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  ref={milestoneInputRef}
+                  value={newMilestoneTitle}
+                  onChange={e => setNewMilestoneTitle(e.target.value)}
+                  placeholder="Milestone description…"
+                  className="flex-1 bg-bg border border-border rounded-lg px-3 py-1.5 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') addMilestone();
+                    if (e.key === 'Escape') { setAddingMilestone(false); setNewMilestoneTitle(''); }
+                  }}
+                />
+                <button
+                  onClick={addMilestone}
+                  disabled={!newMilestoneTitle.trim()}
+                  className="text-xs font-semibold text-brand hover:underline disabled:opacity-40"
+                >
+                  Add
                 </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted/50">No suggestions available.</p>
-          )}
-        </GCard>
-
-        {/* Divider + chat tabs */}
-        <div>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-[11px] text-muted uppercase tracking-widest">MODUS on this goal</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            <button
-              onClick={() => {
-                const main = allChats.find(c => c.id === mainChatId);
-                if (main) switchChat(main);
-                else {
-                  setActiveChatId(mainChatId);
-                  const checkin: Message[] = goal ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }] : [];
-                  setMessages(checkin);
-                  savedLengthRef.current = 0;
-                }
-              }}
-              className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors ${
-                isMainChat ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
-              }`}
-            >
-              Main chat
-            </button>
-
-            {extraChats.map(c => (
-              <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
-                activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
-              }`}>
-                <button onClick={() => switchChat(c)} title={c.title}
-                  className={`text-xs pl-3 pr-1.5 py-1 max-w-[120px] truncate ${
-                    activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
-                  }`}>
-                  {c.title.length > 20 ? c.title.slice(0, 17) + '…' : c.title}
-                </button>
-                <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
-                  title="Delete chat"
-                  className={`pr-2.5 py-1 text-sm leading-none transition-colors ${
-                    activeChatId === c.id ? 'text-white/60 hover:text-white' : 'text-muted/50 hover:text-muted'
-                  }`}>
-                  ×
+                <button
+                  onClick={() => { setAddingMilestone(false); setNewMilestoneTitle(''); }}
+                  className="text-xs text-muted hover:text-text transition-colors"
+                >
+                  Cancel
                 </button>
               </div>
-            ))}
-
-            <button onClick={startNewChat}
-              className="shrink-0 text-xs px-3 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors">
-              + New
-            </button>
+            )}
           </div>
 
-          {!isMainChat && activeChat && (
-            <p className="text-[11px] text-muted mt-1.5 truncate">{activeChat.title}</p>
-          )}
-        </div>
-
-        {/* Chat messages */}
-        <div className="space-y-3">
-          {messages.map((m, idx) => (
-            <MessageBubble
-              key={m.id}
-              message={m}
-              isStreaming={isLoading && idx === messages.length - 1}
-            />
-          ))}
-          {isLoading && messages[messages.length - 1]?.role === 'user' && (
-            <div className="flex gap-1 px-1">
-              <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:300ms]" />
+          {/* Explore */}
+          <div className="bg-panel border border-border rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand shrink-0">
+                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+              </svg>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Explore with MODUS</span>
             </div>
-          )}
-          <div ref={bottomRef} />
+            {suggestionsLoading ? (
+              <div className="flex gap-1.5 flex-wrap">
+                {[80, 120, 95, 140, 105].map((w, i) => (
+                  <div key={i} className="h-6 rounded-full bg-border animate-pulse" style={{ width: `${w}px` }} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {(suggestions.length > 0 ? suggestions : CHAT_CHIPS).map(s => (
+                  <button key={s} onClick={() => tapSuggestion(s)}
+                    className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors text-left">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
-        {/* Chat bar */}
-        <GCard className="!p-0 overflow-hidden">
-          <div className="px-5 pt-4 pb-3">
-            <p className="text-xs font-semibold text-muted mb-0.5">Talk to MODUS about this goal</p>
-            <p className="text-[11px] text-muted/60">Share a win, log progress, or ask for help.</p>
+        {/* Right ─ MODUS chat */}
+        <div className="w-[360px] shrink-0 flex flex-col overflow-hidden">
+
+          {/* Chat tabs */}
+          <div className="shrink-0 border-b border-border px-3 pt-3 pb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">MODUS on this goal</p>
+            <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+              <button
+                onClick={() => {
+                  const main = allChats.find(c => c.id === mainChatId);
+                  if (main) { switchChat(main); }
+                  else {
+                    setActiveChatId(mainChatId);
+                    const msgs: Message[] = goal
+                      ? [{ id: `goal-checkin-${id}`, role: 'assistant' as const, content: checkinMessage(goal) }]
+                      : [];
+                    setMessages(msgs);
+                    savedLengthRef.current = 0;
+                  }
+                }}
+                className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  isMainChat ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
+                }`}
+              >
+                Main
+              </button>
+
+              {extraChats.map(c => (
+                <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
+                  activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
+                }`}>
+                  <button onClick={() => switchChat(c)} title={c.title}
+                    className={`text-xs pl-2.5 pr-1 py-1 max-w-[90px] truncate ${
+                      activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
+                    }`}>
+                    {c.title.length > 14 ? c.title.slice(0, 11) + '…' : c.title}
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
+                    className={`pr-2 py-1 text-sm leading-none transition-colors ${
+                      activeChatId === c.id ? 'text-white/60 hover:text-white' : 'text-muted/50 hover:text-muted'
+                    }`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              <button onClick={startNewChat}
+                className="shrink-0 text-xs px-2.5 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors">
+                + New
+              </button>
+            </div>
           </div>
-          <div className="px-5 pb-3 border-t border-border pt-3 flex gap-1.5 flex-wrap">
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+            {messages.map((m, idx) => (
+              <MessageBubble
+                key={m.id}
+                message={m}
+                isStreaming={isLoading && idx === messages.length - 1}
+              />
+            ))}
+            {isLoading && messages[messages.length - 1]?.role === 'user' && (
+              <div className="flex gap-1 px-1">
+                <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Quick chips */}
+          <div className="shrink-0 border-t border-border px-3 py-2 flex gap-1 flex-wrap">
             {CHAT_CHIPS.map(chip => (
               <button key={chip} onClick={() => setInput(chip)} disabled={isLoading}
-                className="text-[11px] px-3 py-1 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors disabled:opacity-40">
+                className="text-[10px] px-2.5 py-1 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors disabled:opacity-40 whitespace-nowrap">
                 {chip}
               </button>
             ))}
           </div>
-          <div className="border-t border-border">
-            <form onSubmit={handleSubmit} className="flex items-center gap-3 px-5 py-3">
-              <input value={input} onChange={handleInputChange}
-                placeholder={`What's happening with "${goal.title}"?`}
-                className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none" />
+
+          {/* Input */}
+          <div className="shrink-0 border-t border-border">
+            <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-3">
+              <input
+                value={input}
+                onChange={handleInputChange}
+                placeholder="Message MODUS…"
+                className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none"
+              />
               <button type="submit" disabled={!input.trim() || isLoading}
-                className="w-8 h-8 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                className="w-7 h-7 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
                 </svg>
               </button>
             </form>
           </div>
-        </GCard>
 
+        </div>
       </div>
     </div>
   );
