@@ -26,13 +26,20 @@ export async function POST(req: Request) {
 
     const prompt = `Someone has a goal: "${title}"${description ? `. Context: ${description}` : ''}${tfLabel ? `. Timeframe: ${tfLabel}` : ''}.
 
-Generate exactly 5 ultra-specific research questions or exploration prompts to help them deeply pursue this goal. These must be highly specific to THIS exact goal — reference real people, methods, paths, or breakdowns where relevant. Not generic self-help questions.
+Generate exactly 5 short, personal conversation starters that help them think through their own situation with a trusted advisor. These should prompt reflection or planning — not external research. They're starting a coaching conversation, not a Google search.
 
-Examples of the specificity level wanted:
-- Goal "be a pro soccer player" → "How did Cristiano Ronaldo structure his development from age 12–18?" or "What's the difference between MLS vs European academy paths for youth players?"
-- Goal "build a million dollar business" → "How did Shopify go from $0 to $1M ARR and what made it click?" or "What business models produce the fastest path to $1M revenue?"
+Good examples:
+- "What's the biggest thing blocking me right now?"
+- "Break this into 90-day milestones"
+- "What would 50% progress actually look like?"
+- "What do I need to stop doing to make room for this?"
+- "What's one move I can make this week?"
 
-Output ONLY a valid JSON array of exactly 5 strings. No explanation, no markdown, no extra text. Just the array.`;
+Bad examples (too specific / research-y):
+- "How did [famous person] achieve X?"
+- "What strategies do experts recommend for..."
+
+Keep each under 8 words. Output ONLY a valid JSON array of exactly 5 strings. No explanation, no markdown.`;
 
     const { text } = await generateText({
       model: groq('llama-3.3-70b-versatile'),
