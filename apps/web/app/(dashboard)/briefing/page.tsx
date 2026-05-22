@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   collection, query, where, orderBy, onSnapshot,
-  Timestamp, doc, updateDoc,
+  Timestamp, doc, updateDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from '@/lib/firebase';
@@ -193,6 +193,88 @@ function EmailSkeleton() {
         </div>
       ))}
     </div>
+  );
+}
+
+// ── Action queue ──────────────────────────────────────────────────────────────
+
+interface ActionItem {
+  id: string;
+  type: 'task' | 'streak';
+  title: string;
+  sub: string;
+}
+
+function ActionQueueCard({ items, onDoneTask, onLogHabit }: {
+  items: ActionItem[];
+  onDoneTask: (id: string) => void;
+  onLogHabit: (id: string) => void;
+}) {
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  const visible = items.filter(i => !dismissed.has(i.id));
+
+  function handleTask(id: string) {
+    onDoneTask(id);
+    setDismissed(prev => new Set(prev).add(id));
+  }
+  function handleHabit(id: string) {
+    onLogHabit(id);
+    setDismissed(prev => new Set(prev).add(id));
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <BCard className="!px-0 !py-0 overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+        <span className="text-amber-500"><IconBolt /></span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">Needs attention</span>
+        {visible.length > 0 && (
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500">{visible.length}</span>
+        )}
+      </div>
+      {visible.length === 0 ? (
+        <div className="px-5 py-4">
+          <p className="text-xs text-emerald-500 font-medium">✓ All clear — nothing urgent right now.</p>
+        </div>
+      ) : (
+        <div>
+          <AnimatePresence initial={false}>
+            {visible.map(item => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-3 px-5 py-3 border-b border-border/50 last:border-b-0"
+              >
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.type === 'task' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-text font-medium truncate">{item.title}</p>
+                  <p className="text-[11px] text-muted">{item.sub}</p>
+                </div>
+                {item.type === 'task' ? (
+                  <button
+                    onClick={() => handleTask(item.id)}
+                    className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-emerald-500 hover:bg-emerald-500/15 transition-colors shrink-0 cursor-pointer"
+                  >
+                    Done ✓
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleHabit(item.id)}
+                    className="text-[11px] px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/5 text-amber-500 hover:bg-amber-500/15 transition-colors shrink-0 cursor-pointer"
+                  >
+                    Log it
+                  </button>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </BCard>
   );
 }
 
@@ -922,6 +1004,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   // Live Firestore: habits + due task count
   const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean; completedDates: string[] }[]>([]);
   const [dueTodayCount, setDueTodayCount] = useState(0);
+  const [overdueTasks, setOverdueTasks] = useState<{ id: string; title: string; dueDate: string }[]>([]);
   const [newsItems, setNewsItems] = useState<{ title: string; url: string; snippet: string; image?: string | null }[]>([]);
   const [newsIndustry, setNewsIndustry] = useState('');
   const [newsActiveTopic, setNewsActiveTopic] = useState('');
@@ -980,11 +1063,28 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
     if (!user) return;
     const unsub = onSnapshot(
       query(collection(db, 'users', user.uid, 'tasks'), where('done', '==', false), where('deleted', '==', false)),
-      snap => setDueTodayCount(snap.docs.filter(d => { const dd = d.data().dueDate ?? ''; return dd !== '' && dd <= todayStr; }).length),
+      snap => {
+        const overdue = snap.docs
+          .filter(d => { const dd = d.data().dueDate ?? ''; return dd !== '' && dd <= todayStr; })
+          .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', dueDate: d.data().dueDate }));
+        setDueTodayCount(overdue.length);
+        setOverdueTasks(overdue);
+      },
       () => {},
     );
     return unsub;
   }, [user]);
+
+  async function markTaskDone(taskId: string) {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.uid, 'tasks', taskId), { done: true, completedAt: serverTimestamp() });
+  }
+
+  async function logHabitFromQueue(habitId: string) {
+    const h = habits.find(h => h.id === habitId);
+    if (!h || h.done) return;
+    await toggleHabit(h);
+  }
 
   async function toggleHabit(h: { id: string; completedDates: string[] }) {
     if (!user) return;
@@ -1173,6 +1273,22 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
               <FadeCard delay={0.05}>
                 <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
               </FadeCard>
+              {(() => {
+                const taskItems: ActionItem[] = overdueTasks.map(t => ({
+                  id: t.id, type: 'task' as const, title: t.title,
+                  sub: `Overdue · due ${new Date(t.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+                }));
+                const streakItems: ActionItem[] = habits
+                  .filter(h => !h.done && h.streak >= 2)
+                  .map(h => ({ id: h.id, type: 'streak' as const, title: h.title, sub: `${h.streak}-day streak — log before midnight` }));
+                const allItems = [...taskItems, ...streakItems];
+                if (allItems.length === 0) return null;
+                return (
+                  <FadeCard delay={0.08}>
+                    <ActionQueueCard items={allItems} onDoneTask={markTaskDone} onLogHabit={logHabitFromQueue} />
+                  </FadeCard>
+                );
+              })()}
               <FadeCard delay={0.10}>
                 <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter} loading={gmailLoading}
                   onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />

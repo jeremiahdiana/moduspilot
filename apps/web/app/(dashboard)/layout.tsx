@@ -355,7 +355,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         </AnimatePresence>
       </main>
 
-      <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} user={user} />
     </div>
   );
 }
