@@ -19,6 +19,7 @@ export interface BriefingScheduleItem {
 
 export interface BriefingData {
   openingLine: string;
+  narrative?: string;
   top3: BriefingTop3Item[];
   looseEnd: { text: string } | null;
   habits: BriefingHabit[];
@@ -38,7 +39,7 @@ export function todayLabel() {
 }
 
 export function briefingDataToText(data: BriefingData): string {
-  const lines: string[] = [data.openingLine, ''];
+  const lines: string[] = [data.narrative ?? data.openingLine, ''];
   lines.push('Top 3 for today:');
   data.top3.forEach((item, i) => lines.push(`${i + 1}. ${item.task} (${item.source})`));
   if (data.looseEnd) {
@@ -109,9 +110,10 @@ Today is ${todayLabel()}.
 
 Output this exact schema:
 {
-  "openingLine": "string — one sentence, specific to their data, no Good morning filler",
+  "openingLine": "string — one punchy sentence, specific to their data, no filler",
+  "narrative": "string — 2-3 sentences. Synthesize the full day: name the calendar constraint if any, call out the most urgent task and why, give one specific timing recommendation. Be direct, no filler.",
   "top3": [
-    { "task": "string", "source": "string — e.g. Goal · Fundraising or Due · Tomorrow or Task or Meeting · 2pm" }
+    { "task": "string", "source": "string — e.g. Goal · Fundraising or Due · Tomorrow or Meeting · 2pm" }
   ],
   "looseEnd": { "text": "string — what it is and why it still matters" } or null,
   "habits": [
@@ -124,6 +126,8 @@ Output this exact schema:
 }
 
 Rules:
+- openingLine: one sentence hook, name something specific from their data.
+- narrative: 2-3 sentences, concrete and actionable. If meetings exist, mention the focus window around them. Name the #1 risk or opportunity. End with a recommendation.
 - top3: exactly 3 items ranked by urgency and goal alignment. Factor in calendar events (meetings eat focus time). If fewer than 3 tasks exist, infer a high-value action from their goals.
 - looseEnd: only if a task was open before today. null if nothing is genuinely overdue.
 - habits: only habits from the input that have active streaks or were done recently. at_risk = streak > 0 and not done today. on_track = streak > 0 and done today. done = completed today.
@@ -150,7 +154,7 @@ TODAY'S CALENDAR:
 ${scheduleText}`,
       },
     ],
-    maxTokens: 800,
+    maxTokens: 900,
   });
 
   // Strip markdown fences if model wraps in ```json ... ```
@@ -160,9 +164,9 @@ ${scheduleText}`,
   try {
     data = JSON.parse(cleaned);
   } catch {
-    // Fallback if JSON parse fails
     data = {
       openingLine: `${todayLabel()} — let's get to it.`,
+      narrative: `Here's your day, ${name}. Review your top tasks and check your schedule.`,
       top3: input.tasks.slice(0, 3).map(t => ({ task: t.title, source: 'Task' })),
       looseEnd: null,
       habits: activeHabits.map(h => ({
