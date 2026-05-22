@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 interface Habit {
   id: string;
@@ -216,6 +217,8 @@ export default function HabitsPage() {
   const { user } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const prevDoneCount = useRef(0);
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
@@ -263,6 +266,16 @@ export default function HabitsPage() {
   const doneToday = habits.filter(h => h.completedDates.includes(today)).length;
   const topStreak = habits.reduce((m, h) => Math.max(m, h.streak), 0);
 
+  // Celebrate when all habits completed for the first time today
+  useEffect(() => {
+    if (!loading && totalHabits > 0 && doneToday === totalHabits && prevDoneCount.current < totalHabits) {
+      setShowCelebration(true);
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#7C3AED', '#A78BFA', '#10B981', '#F59E0B'] });
+      setTimeout(() => setShowCelebration(false), 3500);
+    }
+    prevDoneCount.current = doneToday;
+  }, [doneToday, totalHabits, loading]);
+
   return (
     <div className="p-8 overflow-y-auto h-full">
       {/* Header */}
@@ -274,6 +287,25 @@ export default function HabitsPage() {
       >
         <h1 className="text-2xl font-bold text-text">Habits</h1>
         <p className="text-muted text-sm mt-0.5">Build consistency, one day at a time.</p>
+
+        {/* Perfect day celebration banner */}
+        <AnimatePresence>
+          {showCelebration && (
+            <motion.div
+              initial={{ opacity: 0, y: -12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="mt-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3"
+            >
+              <span className="text-xl">🎉</span>
+              <div>
+                <p className="text-sm font-semibold text-emerald-400">Perfect day!</p>
+                <p className="text-xs text-muted">All {totalHabits} habits complete. Keep the streak alive tomorrow.</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {totalHabits > 0 && (
           <div className="flex items-center gap-3 mt-4 flex-wrap">

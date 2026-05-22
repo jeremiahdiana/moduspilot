@@ -5,6 +5,7 @@ import {
   collection, query, where, orderBy, onSnapshot,
   Timestamp, doc, updateDoc,
 } from 'firebase/firestore';
+import confetti from 'canvas-confetti';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -676,6 +677,168 @@ export default function BriefingPage() {
   );
 }
 
+// ── Web Speech listen hook ────────────────────────────────────────────────────
+
+function useSpeech(text: string) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+  function toggle() {
+    if (!window.speechSynthesis) return;
+    if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.95;
+    utt.onend = () => setSpeaking(false);
+    utt.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utt);
+  }
+  return { speaking, toggle };
+}
+
+function briefingToSpeech(data: BriefingData | null, content: string): string {
+  if (!data) return content;
+  const parts: string[] = [];
+  if (data.openingLine) parts.push(data.openingLine);
+  if (data.top3.length) parts.push('Your top 3 today: ' + data.top3.map((t, i) => `${i + 1}. ${t.task}`).join('. '));
+  if (data.schedule.length) parts.push('Schedule: ' + data.schedule.map(s => `${s.time} — ${s.title}`).join('. '));
+  if (data.looseEnd) parts.push('Loose end: ' + data.looseEnd.text);
+  if (data.patternCallout) parts.push('MODUS noticed: ' + data.patternCallout);
+  return parts.join('. ');
+}
+
+// ── Right context panel ───────────────────────────────────────────────────────
+
+function BriefingContextPanel({
+  user,
+  calendarEvents,
+  calendarConnected,
+}: {
+  user: ReturnType<typeof useAuth>['user'];
+  calendarEvents: CalendarEvent[];
+  calendarConnected: boolean;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [dueTasks, setDueTasks] = useState<{ id: string; title: string; priority?: string; dueDate: string }[]>([]);
+  const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean }[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(
+      query(collection(db, 'users', user.uid, 'tasks'), where('done', '==', false), where('deleted', '==', false)),
+      snap => {
+        const tasks = snap.docs
+          .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', priority: d.data().priority, dueDate: d.data().dueDate ?? '' }))
+          .filter(t => t.dueDate <= today && t.dueDate !== '')
+          .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+          .slice(0, 6);
+        setDueTasks(tasks);
+      }, () => {},
+    );
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(
+      query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'desc')),
+      snap => {
+        setHabits(snap.docs.map(d => ({
+          id: d.id,
+          title: d.data().title ?? 'Untitled',
+          streak: d.data().streak ?? 0,
+          done: (d.data().completedDates ?? []).includes(today),
+        })));
+      }, () => {},
+    );
+    return unsub;
+  }, [user]);
+
+  const upcomingEvents = calendarEvents.filter(e => !e.allDay).slice(0, 5);
+  const doneHabits = habits.filter(h => h.done).length;
+  const allDone = habits.length > 0 && doneHabits === habits.length;
+
+  const PRIORITY_DOT: Record<string, string> = { high: 'bg-red-400', medium: 'bg-yellow-400', low: 'bg-muted' };
+
+  return (
+    <div className="h-full overflow-y-auto py-6 px-4 space-y-5">
+      {/* Schedule */}
+      {calendarConnected && upcomingEvents.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2.5">Today&apos;s schedule</p>
+          <div className="space-y-1.5">
+            {upcomingEvents.map((e, i) => (
+              <div key={i} className="flex items-start gap-2.5 group">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-1.5" />
+                <div className="min-w-0">
+                  <p className="text-xs text-text leading-snug truncate">{e.title}</p>
+                  {e.start && (
+                    <p className="text-[10px] text-muted">
+                      {new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Due tasks */}
+      {dueTasks.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2.5">Due & overdue</p>
+          <div className="space-y-1.5">
+            {dueTasks.map(t => (
+              <div key={t.id} className="flex items-center gap-2">
+                {t.priority && <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] ?? 'bg-border'}`} />}
+                <p className={`text-xs leading-snug truncate flex-1 ${t.dueDate < today ? 'text-red-400' : 'text-text'}`}>{t.title}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Habits */}
+      {habits.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted">Habits</p>
+            <span className={`text-[10px] font-medium ${allDone ? 'text-emerald-400' : 'text-muted'}`}>
+              {doneHabits}/{habits.length}
+            </span>
+          </div>
+          {/* Mini progress bar */}
+          <div className="h-1 bg-border rounded-full overflow-hidden mb-2.5">
+            <div
+              className="h-full bg-brand rounded-full transition-all duration-500"
+              style={{ width: `${habits.length > 0 ? (doneHabits / habits.length) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="space-y-1.5">
+            {habits.map(h => (
+              <div key={h.id} className="flex items-center gap-2">
+                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${h.done ? 'bg-brand border-brand' : 'border-border'}`}>
+                  {h.done && <span className="text-white text-[7px] leading-none">✓</span>}
+                </div>
+                <p className={`text-xs truncate flex-1 ${h.done ? 'text-muted line-through' : 'text-text'}`}>{h.title}</p>
+                {h.streak > 0 && <span className="text-[10px] text-muted shrink-0">{h.streak}🔥</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Perfect day banner */}
+      {allDone && (
+        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2.5 text-center">
+          <p className="text-xs font-semibold text-emerald-400">🎉 Perfect day so far!</p>
+          <p className="text-[10px] text-muted mt-0.5">All habits complete</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Briefing content panel ────────────────────────────────────────────────────
 
 function BriefingContent({
@@ -801,10 +964,14 @@ function BriefingContent({
 
   const data = briefing.briefingData;
   const energyOpt = ENERGY_OPTS.find(o => o.key === briefing.energy);
+  const speechText = briefingToSpeech(data, briefing.content);
+  const { speaking, toggle: toggleSpeech } = useSpeech(speechText);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg">
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-2.5">
+    <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+      {/* Main scrollable column */}
+      <div className="flex-1 overflow-y-auto bg-bg">
+        <div className="max-w-2xl mx-auto px-6 py-8 space-y-2.5">
 
         {/* Auto-generating banner */}
         {autoGenerating && (
@@ -824,12 +991,33 @@ function BriefingContent({
               {data?.openingLine ?? briefing.title}
             </p>
           </div>
-          {briefing.energy && energyOpt && (
-            <div className="flex items-center gap-1.5 bg-panel border border-border rounded-lg px-2.5 py-1.5 shrink-0 ml-4">
-              <span className="text-amber-500"><IconBolt /></span>
-              <span className="text-[12px] font-medium text-muted">{energyOpt.emoji} {energyOpt.label}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0 ml-4">
+            {/* Listen button */}
+            <button
+              onClick={toggleSpeech}
+              title={speaking ? 'Stop listening' : 'Listen to briefing'}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${
+                speaking
+                  ? 'border-brand/40 bg-brand/10 text-brand'
+                  : 'border-border bg-panel text-muted hover:text-text hover:border-border/80'
+              }`}
+            >
+              {speaking ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/><path d="M19.07 4.93a10 10 0 010 14.14"/>
+                </svg>
+              )}
+              {speaking ? 'Stop' : 'Listen'}
+            </button>
+            {briefing.energy && energyOpt && (
+              <div className="flex items-center gap-1.5 bg-panel border border-border rounded-lg px-2.5 py-1.5">
+                <span className="text-amber-500"><IconBolt /></span>
+                <span className="text-[12px] font-medium text-muted">{energyOpt.emoji} {energyOpt.label}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {data ? (
@@ -919,6 +1107,19 @@ function BriefingContent({
           onSubmit={handleSubmit}
           onChip={handleChip}
           isLoading={isLoading}
+        />
+        </div>{/* end max-w-2xl */}
+      </div>{/* end left scroll column */}
+
+      {/* Right context panel — desktop only */}
+      <div className="hidden lg:flex w-72 shrink-0 border-l border-border flex-col bg-panel/40">
+        <div className="px-4 py-4 border-b border-border">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Today at a glance</p>
+        </div>
+        <BriefingContextPanel
+          user={user}
+          calendarEvents={calendarEvents}
+          calendarConnected={calendarConnected}
         />
       </div>
     </div>

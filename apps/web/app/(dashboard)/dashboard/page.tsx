@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -57,6 +57,72 @@ function useStats(uid: string | null): Stats {
   return stats;
 }
 
+function useFocusTask(uid: string | null) {
+  const [focus, setFocus] = useState<{ title: string; source: 'briefing' | 'task' } | null>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    // Try today's briefing first (top3[0])
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const unsubBriefing = onSnapshot(
+      query(
+        collection(db, 'users', uid, 'conversations'),
+        where('briefing', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(1),
+      ),
+      snap => {
+        const doc = snap.docs[0];
+        if (!doc) return;
+        const top3 = doc.data().briefingData?.top3 ?? [];
+        const createdAt = doc.data().createdAt?.toDate?.() ?? new Date(0);
+        if (top3[0]?.task && createdAt >= todayStart) {
+          setFocus({ title: top3[0].task, source: 'briefing' });
+          return;
+        }
+        // Fall back to most urgent task due today
+        onSnapshot(
+          query(collection(db, 'users', uid, 'tasks'), where('done', '==', false), where('dueDate', '==', todayStr), limit(1)),
+          tSnap => {
+            const t = tSnap.docs[0];
+            if (t) setFocus({ title: t.data().title, source: 'task' });
+          },
+          () => {},
+        );
+      },
+      () => {},
+    );
+    return unsubBriefing;
+  }, [uid]);
+
+  return focus;
+}
+
+function FocusCard({ focus }: { focus: { title: string; source: 'briefing' | 'task' } }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+      className="mb-5 px-5 py-4 rounded-2xl bg-brand/5 border border-brand/20 flex items-center gap-4"
+    >
+      <div className="w-9 h-9 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5 text-brand w-[18px] h-[18px]">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand/70 mb-0.5">
+          {focus.source === 'briefing' ? 'Your focus today' : 'Up next'}
+        </p>
+        <p className="text-sm font-semibold text-text truncate">{focus.title}</p>
+      </div>
+    </motion.div>
+  );
+}
+
 function useCountUp(target: number, duration = 600): number {
   const [display, setDisplay] = useState(0);
   const raf = useRef<number>(0);
@@ -106,6 +172,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] ?? '';
   const stats = useStats(user?.uid ?? null);
+  const focus = useFocusTask(user?.uid ?? null);
 
   return (
     <div className="p-8 overflow-y-auto h-full">
@@ -129,6 +196,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      {focus && <FocusCard focus={focus} />}
       <DashboardGrid />
     </div>
   );

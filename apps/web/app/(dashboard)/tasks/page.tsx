@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useRef, useState } from 'react';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -39,6 +39,8 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'todo' | 'done'>('todo');
+  const [quickAdd, setQuickAdd] = useState('');
+  const quickRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -63,6 +65,19 @@ export default function TasksPage() {
     await updateDoc(doc(db, 'users', user.uid, 'tasks', task.id), {
       done: !task.done,
       ...(task.done ? {} : { completedAt: serverTimestamp() }),
+    });
+  }
+
+  async function handleQuickAdd(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter' || !quickAdd.trim() || !user) return;
+    const title = quickAdd.trim();
+    setQuickAdd('');
+    await addDoc(collection(db, 'users', user.uid, 'tasks'), {
+      title,
+      done: false,
+      deleted: false,
+      source: 'manual',
+      createdAt: serverTimestamp(),
     });
   }
 
@@ -96,6 +111,24 @@ export default function TasksPage() {
         <h1 className="text-2xl font-bold text-text">Tasks</h1>
         <p className="text-muted text-sm mt-0.5">Everything you need to get done.</p>
       </motion.div>
+
+      {/* Quick-add input */}
+      <div className="flex items-center gap-2 max-w-2xl mb-5 px-4 py-2.5 bg-panel border border-border rounded-xl group focus-within:border-brand/50 transition-colors">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-muted shrink-0">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <input
+          ref={quickRef}
+          value={quickAdd}
+          onChange={e => setQuickAdd(e.target.value)}
+          onKeyDown={handleQuickAdd}
+          placeholder="Add a task and press Enter..."
+          className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/50 outline-none"
+        />
+        {quickAdd && (
+          <kbd className="text-[10px] text-muted bg-bg border border-border rounded px-1 py-0.5 font-mono shrink-0">↵</kbd>
+        )}
+      </div>
 
       <div className="flex gap-1 mb-6 bg-panel border border-border rounded-lg p-1 w-fit">
         {(['todo', 'done'] as const).map(t => (
