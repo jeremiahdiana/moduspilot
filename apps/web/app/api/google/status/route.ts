@@ -1,25 +1,15 @@
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminAuth } from '@/lib/firebase-admin';
+import { getAllGoogleAccounts } from '@/lib/google-oauth';
 
 export async function GET(req: Request) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!token) return Response.json({ connected: false });
+  if (!token) return Response.json({ accounts: [] });
 
   try {
     const { uid } = await adminAuth.verifyIdToken(token);
-    const snap = await adminDb
-      .collection('users').doc(uid)
-      .collection('integrations').doc('google')
-      .get();
-
-    if (!snap.exists) return Response.json({ connected: false });
-
-    const data = snap.data()!;
-    return Response.json({
-      connected: true,
-      email: data.email ?? '',
-      connectedAt: data.connectedAt?.toDate?.()?.toISOString() ?? null,
-    });
+    const accounts = await getAllGoogleAccounts(uid);
+    return Response.json({ accounts, connected: accounts.length > 0 });
   } catch {
-    return Response.json({ connected: false });
+    return Response.json({ accounts: [], connected: false });
   }
 }

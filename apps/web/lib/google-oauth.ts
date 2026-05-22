@@ -18,7 +18,9 @@ export function buildOAuthUrl(uid: string): string {
     response_type: 'code',
     scope: GOOGLE_SCOPES,
     access_type: 'offline',
-    prompt: 'consent',
+    // select_account lets them choose which Google account to add;
+    // consent ensures we always get a refresh_token for the chosen account
+    prompt: 'select_account consent',
     state: Buffer.from(JSON.stringify({ uid })).toString('base64url'),
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
@@ -40,10 +42,7 @@ export async function exchangeCode(code: string): Promise<{
       grant_type: 'authorization_code',
     }),
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Token exchange failed: ${err}`);
-  }
+  if (!res.ok) throw new Error(`Token exchange failed: ${await res.text()}`);
   return res.json();
 }
 
@@ -62,54 +61,124 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token:
   return res.json();
 }
 
+// ── Multi-account storage ─────────────────────────────────────────────────────
+
+function accountsCol(uid: string) {
+  return adminDb.collection('users').doc(uid).collection('google_accounts');
+}
+
+export async function storeGoogleAccountTokens(uid: string, tokens: {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  email: string;
+}) {
+  // Use email as doc ID (Firestore allows all chars except /)
+  const docId = tokens.email.replace(/\//g, '_');
+  await accountsCol(uid).doc(docId).set({
+    email: tokens.email,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiresAt: Date.now() + tokens.expires_in * 1000,
+    connectedAt: FieldValue.serverTimestamp(),
+  });
+}
+
+export async function getAllGoogleAccounts(uid: string): Promise<{
+  email: string;
+  connectedAt: string | null;
+}[]> {
+  await migrateLegacyToken(uid);
+  const snap = await accountsCol(uid).orderBy('connectedAt', 'asc').get();
+  return snap.docs.map(d => ({
+    email: d.data().email as string,
+    connectedAt: d.data().connectedAt?.toDate?.()?.toISOString() ?? null,
+  }));
+}
+
+// Returns a valid access token for every connected account (refreshes as needed)
+export async function getAllValidAccessTokens(uid: string): Promise<{
+  email: string;
+  token: string;
+}[]> {
+  await migrateLegacyToken(uid);
+  const snap = await accountsCol(uid).get();
+  if (snap.empty) return [];
+
+  const buffer = 60 * 1000;
+  const results = await Promise.all(
+    snap.docs.map(async docSnap => {
+      const data = docSnap.data();
+      try {
+        if (data.expiresAt > Date.now() + buffer) {
+          return { email: data.email as string, token: data.accessToken as string };
+        }
+        const refreshed = await refreshAccessToken(data.refreshToken);
+        await docSnap.ref.update({
+          accessToken: refreshed.access_token,
+          expiresAt: Date.now() + refreshed.expires_in * 1000,
+        });
+        return { email: data.email as string, token: refreshed.access_token };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return results.filter((r): r is { email: string; token: string } => r !== null);
+}
+
+// Backward-compat: return the first account's token (used by calendar/drive)
+export async function getValidAccessToken(uid: string): Promise<string | null> {
+  const all = await getAllValidAccessTokens(uid);
+  return all[0]?.token ?? null;
+}
+
+export async function disconnectGoogleAccount(uid: string, email: string) {
+  const docId = email.replace(/\//g, '_');
+  await accountsCol(uid).doc(docId).delete();
+}
+
+// ── Legacy migration ──────────────────────────────────────────────────────────
+// On first access, move the old integrations/google doc into google_accounts
+
+async function migrateLegacyToken(uid: string) {
+  const legacyRef = adminDb.collection('users').doc(uid).collection('integrations').doc('google');
+  const legacySnap = await legacyRef.get();
+  if (!legacySnap.exists) return;
+
+  const data = legacySnap.data()!;
+  if (!data.email) { await legacyRef.delete(); return; }
+
+  // Only migrate if the new subcollection doesn't already have this account
+  const docId = (data.email as string).replace(/\//g, '_');
+  const existing = await accountsCol(uid).doc(docId).get();
+  if (!existing.exists) {
+    await accountsCol(uid).doc(docId).set({
+      email: data.email,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresAt: data.expiresAt,
+      connectedAt: data.connectedAt ?? FieldValue.serverTimestamp(),
+    });
+  }
+  await legacyRef.delete();
+}
+
+// Keep storeGoogleTokens for any callers that haven't been updated yet
 export async function storeGoogleTokens(uid: string, tokens: {
   access_token: string;
   refresh_token: string;
   expires_in: number;
   email?: string;
 }) {
-  await adminDb
-    .collection('users').doc(uid)
-    .collection('integrations').doc('google')
-    .set({
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresAt: Date.now() + tokens.expires_in * 1000,
-      email: tokens.email ?? '',
-      connectedAt: FieldValue.serverTimestamp(),
-    });
-}
-
-export async function getValidAccessToken(uid: string): Promise<string | null> {
-  const snap = await adminDb
-    .collection('users').doc(uid)
-    .collection('integrations').doc('google')
-    .get();
-
-  if (!snap.exists) return null;
-
-  const data = snap.data()!;
-  const buffer = 60 * 1000;
-
-  if (data.expiresAt > Date.now() + buffer) {
-    return data.accessToken as string;
-  }
-
-  try {
-    const refreshed = await refreshAccessToken(data.refreshToken);
-    await snap.ref.update({
-      accessToken: refreshed.access_token,
-      expiresAt: Date.now() + refreshed.expires_in * 1000,
-    });
-    return refreshed.access_token;
-  } catch {
-    return null;
-  }
+  if (!tokens.email) return;
+  await storeGoogleAccountTokens(uid, { ...tokens, email: tokens.email });
 }
 
 export async function disconnectGoogle(uid: string) {
-  await adminDb
-    .collection('users').doc(uid)
-    .collection('integrations').doc('google')
-    .delete();
+  // Disconnect all accounts
+  const snap = await accountsCol(uid).get();
+  await Promise.all(snap.docs.map(d => d.ref.delete()));
+  // Also delete legacy doc if it exists
+  await adminDb.collection('users').doc(uid).collection('integrations').doc('google').delete().catch(() => {});
 }
