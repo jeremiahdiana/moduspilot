@@ -173,8 +173,31 @@ function ContactAvatar({ name }: { name: string }) {
   );
 }
 
-function ApprovalQueueCard({ threads, connected, filter, onFilterChange, onConnectGoogle, onDraftReply }: {
-  threads: GmailThread[]; connected: boolean; filter: 'primary' | 'all';
+function EmailSkeleton() {
+  return (
+    <div className="bg-panel border border-border rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-500"><IconChecks /></span>
+          <div className="h-3 w-10 bg-border rounded-full animate-pulse" />
+        </div>
+        <div className="h-6 w-20 bg-border rounded-lg animate-pulse" />
+      </div>
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="flex gap-3 px-5 py-3.5 border-b border-border/50 last:border-0 items-center">
+          <div className="w-7 h-7 bg-border rounded-full animate-pulse shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 bg-border rounded-full animate-pulse w-2/5" />
+            <div className="h-2.5 bg-border/60 rounded-full animate-pulse w-3/5" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange, onConnectGoogle, onDraftReply }: {
+  threads: GmailThread[]; connected: boolean; filter: 'primary' | 'all'; loading: boolean;
   onFilterChange: (f: 'primary' | 'all') => void;
   onConnectGoogle: () => void; onDraftReply: (t: GmailThread) => void;
 }) {
@@ -182,6 +205,8 @@ function ApprovalQueueCard({ threads, connected, filter, onFilterChange, onConne
   const [showAll, setShowAll] = useState(false);
   const LIMIT = 5;
   const shown = showAll ? threads : threads.slice(0, LIMIT);
+
+  if (loading) return <EmailSkeleton />;
 
   const FilterToggle = () => (
     <div className="flex items-center bg-bg border border-border rounded-lg p-0.5 gap-0.5">
@@ -654,44 +679,88 @@ function weatherEmoji(desc: string) {
 
 // ── News card ─────────────────────────────────────────────────────────────────
 
+const NEWS_TOPICS = [
+  'Fitness & Health', 'Technology & SaaS', 'Finance & Investing', 'Real Estate',
+  'E-commerce & Retail', 'Marketing & Advertising', 'Trades & Skilled Labor',
+  'Food & Beverage', 'Fashion & Beauty', 'Entertainment & Media', 'Sports',
+  'Healthcare & Medicine', 'Legal', 'Education', 'Travel & Hospitality',
+  'Construction', 'Manufacturing', 'Entrepreneurship & Startups', 'Crypto & Web3',
+  'Government & Policy',
+];
+
 function newsHostname(url: string) {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; }
 }
 
-function NewsCard({ items, industry, onChangeTopic }: {
-  items: { title: string; url: string; snippet: string; image?: string | null }[];
-  industry: string;
-  onChangeTopic: (topic: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(industry);
-
-  if (items.length === 0) return null;
+function NewsSkeleton() {
   return (
     <BCard>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-blue-400 shrink-0"><IconNewspaper /></span>
-          {editing ? (
-            <form onSubmit={e => { e.preventDefault(); if (draft.trim()) { onChangeTopic(draft.trim()); } setEditing(false); }}
-              className="flex items-center gap-2 flex-1">
-              <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
-                className="text-[11px] bg-bg border border-brand/40 rounded-lg px-2.5 py-1 text-text outline-none flex-1 min-w-0" />
-              <button type="submit" className="text-[11px] font-semibold text-brand shrink-0 cursor-pointer">Save</button>
-              <button type="button" onClick={() => setEditing(false)} className="text-[11px] text-muted shrink-0 cursor-pointer">✕</button>
-            </form>
-          ) : (
-            <button onClick={() => { setDraft(industry); setEditing(true); }}
-              className="flex items-center gap-1.5 group cursor-pointer min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted truncate">In the news · {industry}</span>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className="text-muted/30 group-hover:text-muted transition-colors shrink-0">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-          )}
-        </div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-blue-400"><IconNewspaper /></span>
+        <div className="h-3 w-36 bg-border rounded-full animate-pulse" />
       </div>
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="flex gap-3 py-3 border-b border-border/50 last:border-0 items-start">
+          <div className="w-7 h-7 bg-border rounded-lg animate-pulse shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 bg-border rounded-full animate-pulse" />
+            <div className="h-2.5 bg-border/60 rounded-full animate-pulse w-3/4" />
+          </div>
+        </div>
+      ))}
+    </BCard>
+  );
+}
+
+function NewsCard({ items, industry, loading, onChangeTopic }: {
+  items: { title: string; url: string; snippet: string; image?: string | null }[];
+  industry: string;
+  loading: boolean;
+  onChangeTopic: (topic: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [customTopic, setCustomTopic] = useState('');
+
+  if (loading) return <NewsSkeleton />;
+  if (items.length === 0) return null;
+
+  return (
+    <BCard>
+      <div className="flex items-center gap-2 mb-3 flex-1 min-w-0">
+        <span className="text-blue-400 shrink-0"><IconNewspaper /></span>
+        <button onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-1.5 group cursor-pointer min-w-0 flex-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted truncate">In the news · {industry || 'Select topic'}</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            className={`text-muted/40 group-hover:text-muted transition-all shrink-0 ${open ? 'rotate-180' : ''}`}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className="mb-3 border border-border rounded-xl overflow-hidden bg-bg">
+          <div className="max-h-44 overflow-y-auto">
+            {NEWS_TOPICS.map(topic => (
+              <button key={topic} onClick={() => { onChangeTopic(topic); setOpen(false); setCustomTopic(''); }}
+                className={`w-full text-left px-3 py-2 text-[12px] transition-colors cursor-pointer border-b border-border/40 last:border-0 hover:bg-brand/5 ${topic === industry ? 'text-brand font-semibold bg-brand/5' : 'text-text'}`}>
+                {topic}
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-border px-3 py-2 flex items-center gap-2">
+            <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && customTopic.trim()) { onChangeTopic(customTopic.trim()); setOpen(false); setCustomTopic(''); } }}
+              placeholder="Other — type any topic..."
+              className="flex-1 bg-transparent text-[12px] text-text placeholder:text-muted/40 outline-none" />
+            {customTopic.trim() && (
+              <button onClick={() => { onChangeTopic(customTopic.trim()); setOpen(false); setCustomTopic(''); }}
+                className="text-[11px] font-semibold text-brand cursor-pointer shrink-0">Go →</button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="divide-y divide-border/50">
         {items.map((item, i) => {
           const host = newsHostname(item.url);
@@ -847,6 +916,8 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const [gmailConnected, setGmailConnected] = useState(false);
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [emailFilter, setEmailFilter] = useState<'primary' | 'all'>('primary');
+  const [gmailLoading, setGmailLoading] = useState(true);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   // Live Firestore: habits + due task count
   const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean; completedDates: string[] }[]>([]);
@@ -867,9 +938,10 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
 
   useEffect(() => {
     if (!authToken) return;
+    setGmailLoading(true);
     fetch(`/api/integrations/gmail?filter=${emailFilter}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json()).then(d => { setGmailThreads(d.threads ?? []); setGmailConnected(d.connected ?? false); })
-      .catch(() => {});
+      .catch(() => {}).finally(() => setGmailLoading(false));
   }, [authToken, emailFilter]);
 
   useEffect(() => {
@@ -882,10 +954,11 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
 
   useEffect(() => {
     if (!authToken) return;
+    setNewsLoading(true);
     const qs = newsActiveTopic ? `?topic=${encodeURIComponent(newsActiveTopic)}` : '';
     fetch(`/api/briefing/news${qs}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json()).then(d => { setNewsItems(d.items ?? []); setNewsIndustry(d.industry ?? newsActiveTopic); })
-      .catch(() => {});
+      .catch(() => {}).finally(() => setNewsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authToken, newsRefreshKey]);
 
@@ -1009,7 +1082,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
 
   return (
     <div className="flex-1 overflow-y-auto bg-bg" style={{ backgroundImage: 'radial-gradient(ellipse at 60% 0%, rgba(245,158,11,0.04) 0%, transparent 65%)' }}>
-      <div className="px-6 py-10 max-w-5xl mx-auto">
+      <div className="px-6 py-10">
 
         {autoGenerating && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-brand/10 border border-brand/20 rounded-xl text-[12px] text-brand mb-6">
@@ -1100,7 +1173,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
                 <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
               </FadeCard>
               <FadeCard delay={0.10}>
-                <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter}
+                <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter} loading={gmailLoading}
                   onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />
               </FadeCard>
               {data.looseEnd && (
@@ -1109,7 +1182,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
               {data.patternCallout && (
                 <FadeCard delay={0.18}><PatternCard text={data.patternCallout} /></FadeCard>
               )}
-              <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} onChangeTopic={handleNewsTopicChange} /></FadeCard>
+              <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} loading={newsLoading} onChangeTopic={handleNewsTopicChange} /></FadeCard>
             </div>
             {/* Right: sticky action panel */}
             <div className="space-y-3 lg:sticky lg:top-6">
