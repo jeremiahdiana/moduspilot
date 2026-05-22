@@ -16,12 +16,20 @@ import { motion } from 'framer-motion';
 
 type Timeframe = 'short' | 'long';
 type GoalTab = 'tasks' | 'habits' | 'notes' | 'explore';
+type NoteType = 'win' | 'blocker' | 'idea' | 'reflection';
 
 interface Milestone { id: string; title: string; done: boolean; }
 interface ProgressEntry { progress: number; date: string; }
-interface Note { id: string; content: string; date: string; }
+interface Note { id: string; content: string; date: string; type?: NoteType; pinned?: boolean; }
 interface GoalTask { id: string; title: string; done: boolean; }
 interface HabitRef { id: string; title: string; streak: number; }
+
+const NOTE_TYPES: Record<NoteType, { label: string; color: string; bg: string; border: string }> = {
+  win:        { label: 'Win',        color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  blocker:    { label: 'Blocker',    color: 'text-red-400',     bg: 'bg-red-400/10',     border: 'border-red-400/30'     },
+  idea:       { label: 'Idea',       color: 'text-amber-500',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30'   },
+  reflection: { label: 'Reflection', color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30'       },
+};
 
 interface Goal {
   id: string;
@@ -163,6 +171,11 @@ export default function GoalDetailPage() {
 
   // Notes
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [selectedNoteType, setSelectedNoteType] = useState<NoteType | undefined>(undefined);
+  const [noteFilter, setNoteFilter] = useState<'all' | NoteType>('all');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const editNoteRef = useRef<HTMLTextAreaElement>(null);
 
   // Suggestions (explore tab)
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -299,6 +312,7 @@ export default function GoalDetailPage() {
   // Auto-focus inputs
   useEffect(() => { if (addingMilestone) milestoneInputRef.current?.focus(); }, [addingMilestone]);
   useEffect(() => { if (addingTask) taskInputRef.current?.focus(); }, [addingTask]);
+  useEffect(() => { if (editingNoteId) editNoteRef.current?.focus(); }, [editingNoteId]);
 
   // Save conversation
   const saveConversation = useCallback(async (msgs: Message[]) => {
@@ -554,9 +568,27 @@ export default function GoalDetailPage() {
       id: crypto.randomUUID(),
       content: newNoteContent.trim(),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      ...(selectedNoteType ? { type: selectedNoteType } : {}),
     };
     await updateDoc(doc(db, 'users', user.uid, 'goals', id), { notes: [note, ...goal.notes] });
     setNewNoteContent('');
+    setSelectedNoteType(undefined);
+  }
+
+  async function updateNote(noteId: string, content: string) {
+    if (!user || !goal) return;
+    setEditingNoteId(null);
+    if (!content.trim()) { await deleteNote(noteId); return; }
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      notes: goal.notes.map(n => n.id === noteId ? { ...n, content: content.trim() } : n),
+    });
+  }
+
+  async function togglePin(noteId: string) {
+    if (!user || !goal) return;
+    await updateDoc(doc(db, 'users', user.uid, 'goals', id), {
+      notes: goal.notes.map(n => n.id === noteId ? { ...n, pinned: !n.pinned } : n),
+    });
   }
 
   async function deleteNote(noteId: string) {
@@ -888,46 +920,155 @@ export default function GoalDetailPage() {
             )}
 
             {/* Notes tab */}
-            {activeTab === 'notes' && (
-              <div>
-                <div className="mb-4">
-                  <textarea
-                    value={newNoteContent}
-                    onChange={e => setNewNoteContent(e.target.value)}
-                    placeholder="Log a quick note, win, or blocker…"
-                    rows={3}
-                    className="w-full bg-panel border border-border rounded-xl px-4 py-3 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors resize-none"
-                    onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addNote(); }}
-                  />
-                  <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-[10px] text-muted">⌘↵ to save</span>
-                    <button onClick={addNote} disabled={!newNoteContent.trim()}
-                      className="text-xs font-semibold text-brand hover:underline disabled:opacity-40">
-                      Save note
-                    </button>
-                  </div>
-                </div>
-
-                {goal.notes.length === 0 ? (
-                  <p className="text-xs text-muted/50 text-center py-8">Your notes and updates will appear here.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {goal.notes.map(n => (
-                      <div key={n.id} className="group bg-panel border border-border rounded-xl px-4 py-3">
-                        <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">{n.content}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-[10px] text-muted">{n.date}</span>
-                          <button onClick={() => deleteNote(n.id)}
-                            className="opacity-0 group-hover:opacity-100 text-[10px] text-muted/50 hover:text-red-400 transition-all">
-                            Delete
+            {activeTab === 'notes' && (() => {
+              const sorted = [...goal.notes]
+                .sort((a, b) => Number(b.pinned ?? false) - Number(a.pinned ?? false))
+                .filter(n => noteFilter === 'all' || n.type === noteFilter);
+              return (
+                <div>
+                  {/* Compose */}
+                  <div className="mb-5 bg-panel border border-border rounded-xl overflow-hidden">
+                    <textarea
+                      value={newNoteContent}
+                      onChange={e => setNewNoteContent(e.target.value)}
+                      placeholder="Log a win, blocker, idea, or reflection…"
+                      rows={3}
+                      className="w-full bg-transparent px-4 pt-3 pb-2 text-sm text-text placeholder:text-muted outline-none resize-none"
+                      onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addNote(); }}
+                    />
+                    <div className="flex items-center justify-between px-4 pb-3 gap-3">
+                      {/* Type selector */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {(Object.keys(NOTE_TYPES) as NoteType[]).map(type => (
+                          <button
+                            key={type}
+                            onClick={() => setSelectedNoteType(selectedNoteType === type ? undefined : type)}
+                            className={`text-[10px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                              selectedNoteType === type
+                                ? `${NOTE_TYPES[type].bg} ${NOTE_TYPES[type].color} ${NOTE_TYPES[type].border}`
+                                : 'border-border text-muted hover:text-text'
+                            }`}
+                          >
+                            {NOTE_TYPES[type].label}
                           </button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                      <button onClick={addNote} disabled={!newNoteContent.trim()}
+                        className="shrink-0 text-xs font-semibold text-brand hover:underline disabled:opacity-40">
+                        Save  <span className="text-muted font-normal">⌘↵</span>
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Filter pills */}
+                  {goal.notes.length > 0 && (
+                    <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+                      <button
+                        onClick={() => setNoteFilter('all')}
+                        className={`text-[10px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                          noteFilter === 'all' ? 'bg-border text-text border-border' : 'border-border text-muted hover:text-text'
+                        }`}
+                      >
+                        All ({goal.notes.length})
+                      </button>
+                      {(Object.keys(NOTE_TYPES) as NoteType[])
+                        .filter(type => goal.notes.some(n => n.type === type))
+                        .map(type => (
+                          <button
+                            key={type}
+                            onClick={() => setNoteFilter(noteFilter === type ? 'all' : type)}
+                            className={`text-[10px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                              noteFilter === type
+                                ? `${NOTE_TYPES[type].bg} ${NOTE_TYPES[type].color} ${NOTE_TYPES[type].border}`
+                                : 'border-border text-muted hover:text-text'
+                            }`}
+                          >
+                            {NOTE_TYPES[type].label} ({goal.notes.filter(n => n.type === type).length})
+                          </button>
+                        ))
+                      }
+                    </div>
+                  )}
+
+                  {/* Notes list */}
+                  {sorted.length === 0 ? (
+                    <p className="text-xs text-muted/50 text-center py-8">
+                      {noteFilter === 'all' ? 'Your notes will appear here.' : `No ${NOTE_TYPES[noteFilter as NoteType].label.toLowerCase()} notes yet.`}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {sorted.map(n => (
+                        <div
+                          key={n.id}
+                          className={`group relative bg-panel border rounded-xl px-4 py-3 transition-colors ${
+                            n.type ? NOTE_TYPES[n.type].border : 'border-border'
+                          } ${n.pinned ? 'ring-1 ring-brand/20' : ''}`}
+                        >
+                          {/* Top row: type tag + pin + delete */}
+                          <div className="flex items-center justify-between mb-2 gap-2">
+                            <div className="flex items-center gap-2">
+                              {n.pinned && (
+                                <span className="text-[9px] font-semibold uppercase tracking-wider text-brand">Pinned</span>
+                              )}
+                              {n.type && (
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${NOTE_TYPES[n.type].bg} ${NOTE_TYPES[n.type].color}`}>
+                                  {NOTE_TYPES[n.type].label}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => togglePin(n.id)}
+                                title={n.pinned ? 'Unpin' : 'Pin'}
+                                className={`text-xs transition-colors ${n.pinned ? 'text-brand' : 'text-muted hover:text-brand'}`}
+                              >
+                                {n.pinned ? '📌' : '📍'}
+                              </button>
+                              <button onClick={() => deleteNote(n.id)}
+                                className="text-[10px] text-muted/50 hover:text-red-400 transition-colors">
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Content — click to edit */}
+                          {editingNoteId === n.id ? (
+                            <textarea
+                              ref={editNoteRef}
+                              defaultValue={n.content}
+                              rows={3}
+                              className="w-full bg-transparent text-sm text-text outline-none resize-none leading-relaxed"
+                              onChange={e => setEditDraft(e.target.value)}
+                              onFocus={e => setEditDraft(e.target.value)}
+                              onBlur={() => updateNote(n.id, editDraft || n.content)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) updateNote(n.id, editDraft || n.content);
+                                if (e.key === 'Escape') setEditingNoteId(null);
+                              }}
+                            />
+                          ) : (
+                            <p
+                              onClick={() => { setEditingNoteId(n.id); setEditDraft(n.content); }}
+                              className="text-sm text-text leading-relaxed whitespace-pre-wrap cursor-text"
+                            >
+                              {n.content}
+                            </p>
+                          )}
+
+                          {/* Footer */}
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-[10px] text-muted">{n.date}</span>
+                            {editingNoteId === n.id && (
+                              <span className="text-[10px] text-muted">⌘↵ save · ESC cancel</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Explore tab */}
             {activeTab === 'explore' && (
