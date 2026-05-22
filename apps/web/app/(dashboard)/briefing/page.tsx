@@ -77,6 +77,11 @@ const IconArrowUp = () => (
     <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
   </svg>
 );
+const IconNewspaper = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
+  </svg>
+);
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 
@@ -647,6 +652,26 @@ function weatherEmoji(desc: string) {
   return '🌤️';
 }
 
+// ── News card ─────────────────────────────────────────────────────────────────
+
+function NewsCard({ items, industry }: { items: { title: string; url: string; snippet: string }[]; industry: string }) {
+  if (items.length === 0) return null;
+  return (
+    <BCard>
+      <Label icon={<IconNewspaper />} color="text-blue-400" text={`In the news · ${industry}`} />
+      <div className="divide-y divide-border/50">
+        {items.map((item, i) => (
+          <a key={i} href={item.url} target="_blank" rel="noopener noreferrer"
+            className="block py-2.5 first:pt-0 last:pb-0 group">
+            <p className="text-[13px] font-medium text-text group-hover:text-brand transition-colors leading-snug">{item.title}</p>
+            {item.snippet && <p className="text-[11px] text-muted mt-0.5 line-clamp-2 leading-relaxed">{item.snippet}</p>}
+          </a>
+        ))}
+      </div>
+    </BCard>
+  );
+}
+
 // ── Main BriefingPage ─────────────────────────────────────────────────────────
 
 export default function BriefingPage() {
@@ -779,6 +804,8 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   // Live Firestore: habits + due task count
   const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean; completedDates: string[] }[]>([]);
   const [dueTodayCount, setDueTodayCount] = useState(0);
+  const [newsItems, setNewsItems] = useState<{ title: string; url: string; snippet: string }[]>([]);
+  const [newsIndustry, setNewsIndustry] = useState('');
 
   // Top 3 completion (Firestore-backed)
   const [completedTop3, setCompletedTop3] = useState<number[]>(briefing.completedTop3);
@@ -801,6 +828,13 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     fetch(`/api/integrations/calendar?tz=${encodeURIComponent(tz)}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json()).then(d => { setCalendarEvents(d.events ?? []); setCalendarConnected(d.connected ?? false); })
+      .catch(() => {});
+  }, [authToken]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch('/api/briefing/news', { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json()).then(d => { setNewsItems(d.items ?? []); setNewsIndustry(d.industry ?? ''); })
       .catch(() => {});
   }, [authToken]);
 
@@ -914,7 +948,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
 
   return (
     <div className="flex-1 overflow-y-auto bg-bg" style={{ backgroundImage: 'radial-gradient(ellipse at 60% 0%, rgba(245,158,11,0.04) 0%, transparent 65%)' }}>
-      <div className="px-6 py-10 max-w-2xl mx-auto">
+      <div className="px-6 py-10 max-w-5xl mx-auto">
 
         {autoGenerating && (
           <div className="flex items-center gap-2 px-4 py-2.5 bg-brand/10 border border-brand/20 rounded-xl text-[12px] text-brand mb-6">
@@ -998,34 +1032,41 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
 
         {/* Main content */}
         {data ? (
-          <div className="space-y-3">
-            {data.top3.length > 0 && (
-              <FadeCard delay={0.03}><MissionCard task={data.top3[0].task} source={data.top3[0].source} /></FadeCard>
-            )}
-            <FadeCard delay={0.06}>
-              <EnergyCard energy={briefing.energy} onSelect={(key, chatMsg) => { onEnergySelect(key); append({ role: 'user', content: chatMsg }); }} />
-            </FadeCard>
-            {data.top3.length > 0 && (
-              <FadeCard delay={0.09}>
-                <CheckableTop3Card items={data.top3} completedIndices={completedTop3} onToggle={toggleTop3} />
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_272px] gap-5 items-start">
+            {/* Left: reading column */}
+            <div className="space-y-3">
+              <FadeCard delay={0.05}>
+                <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
               </FadeCard>
-            )}
-            <FadeCard delay={0.12}>
-              <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
-            </FadeCard>
-            <FadeCard delay={0.15}>
-              <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter}
-                onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />
-            </FadeCard>
-            <FadeCard delay={0.18}>
-              <InlineBriefingHabits habits={habits} onToggle={toggleHabit} />
-            </FadeCard>
-            {data.looseEnd && (
-              <FadeCard delay={0.21}><LooseEndCard text={data.looseEnd.text} onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)} /></FadeCard>
-            )}
-            {data.patternCallout && (
-              <FadeCard delay={0.24}><PatternCard text={data.patternCallout} /></FadeCard>
-            )}
+              <FadeCard delay={0.10}>
+                <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter}
+                  onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />
+              </FadeCard>
+              {data.looseEnd && (
+                <FadeCard delay={0.15}><LooseEndCard text={data.looseEnd.text} onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)} /></FadeCard>
+              )}
+              {data.patternCallout && (
+                <FadeCard delay={0.18}><PatternCard text={data.patternCallout} /></FadeCard>
+              )}
+              <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} /></FadeCard>
+            </div>
+            {/* Right: sticky action panel */}
+            <div className="space-y-3 lg:sticky lg:top-6">
+              {data.top3.length > 0 && (
+                <FadeCard delay={0.03}><MissionCard task={data.top3[0].task} source={data.top3[0].source} /></FadeCard>
+              )}
+              <FadeCard delay={0.07}>
+                <EnergyCard energy={briefing.energy} onSelect={(key, chatMsg) => { onEnergySelect(key); append({ role: 'user', content: chatMsg }); }} />
+              </FadeCard>
+              {data.top3.length > 0 && (
+                <FadeCard delay={0.11}>
+                  <CheckableTop3Card items={data.top3} completedIndices={completedTop3} onToggle={toggleTop3} />
+                </FadeCard>
+              )}
+              <FadeCard delay={0.15}>
+                <InlineBriefingHabits habits={habits} onToggle={toggleHabit} />
+              </FadeCard>
+            </div>
           </div>
         ) : (
           <FadeCard delay={0.05}>
