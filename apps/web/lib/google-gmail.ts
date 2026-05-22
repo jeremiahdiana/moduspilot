@@ -73,11 +73,17 @@ function cleanFrom(raw: string): string {
   return raw.replace(/<[^>]*>/g, '').replace(/^["']|["']$/g, '').trim() || raw.trim();
 }
 
-export async function getActionableThreads(accessToken: string): Promise<GmailThread[]> {
+export async function getActionableThreads(
+  accessToken: string,
+  options?: { filter?: 'primary' | 'all' },
+): Promise<GmailThread[]> {
   try {
+    const filter = options?.filter ?? 'all';
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
     const dateStr = `${since.getFullYear()}/${String(since.getMonth() + 1).padStart(2, '0')}/${String(since.getDate()).padStart(2, '0')}`;
-    const query = `in:inbox is:unread after:${dateStr}`;
+    const query = filter === 'primary'
+      ? `in:inbox category:primary is:unread after:${dateStr}`
+      : `in:inbox is:unread after:${dateStr}`;
 
     const listRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(query)}&maxResults=10`,
