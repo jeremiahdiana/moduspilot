@@ -53,13 +53,6 @@ export default function ChatPage() {
     }
   }, [conversations]);
 
-  // Clear in-flight messages once Firestore has confirmed the conversation has messages
-  useEffect(() => {
-    if (activeConversation?.messages?.length && inFlightMessages.length) {
-      setInFlightMessages([]);
-    }
-  }, [activeConversation?.messages?.length, inFlightMessages.length]);
-
   // Load user plan + daily message count + trial status
   useEffect(() => {
     if (!uid || initDone.current) return;
@@ -99,6 +92,13 @@ export default function ChatPage() {
   const isAtLimit = !isPaid && !isGuest && !trialActive && msgCount >= FREE_DAILY_LIMIT;
 
   const activeConversation = conversations.find(c => c.id === activeId) ?? null;
+
+  // Clear in-flight messages once Firestore has confirmed the conversation has messages
+  useEffect(() => {
+    if (activeConversation?.messages?.length && inFlightMessages.length) {
+      setInFlightMessages([]);
+    }
+  }, [activeConversation?.messages?.length, inFlightMessages.length]);
 
   const handleNew = useCallback(async () => {
     if (isGuest) { setActiveId(null); return; }
