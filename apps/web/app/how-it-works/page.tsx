@@ -504,7 +504,7 @@ export default function HowItWorksPage() {
           >
             Start your free trial →
           </Link>
-          <p className="text-xs text-muted">4 days free. No credit card needed.</p>
+          <p className="text-xs text-muted">30 days free. No credit card needed.</p>
         </motion.div>
       </Section>
       </div>

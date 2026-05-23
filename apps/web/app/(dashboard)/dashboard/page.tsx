@@ -109,7 +109,7 @@ function FocusCard({ focus }: { focus: { title: string; source: 'briefing' | 'ta
       className="mb-5 px-5 py-4 rounded-2xl bg-brand/5 border border-brand/20 flex items-center gap-4"
     >
       <div className="w-9 h-9 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5 text-brand w-[18px] h-[18px]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-brand">
           <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
         </svg>
       </div>

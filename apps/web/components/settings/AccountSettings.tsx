@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { updateProfile, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 
 const FREE_DAILY_LIMIT = 20;
-const TRIAL_DAYS = 4;
+const TRIAL_DAYS = 30;
 
 interface Props {
   user: User;
@@ -25,12 +25,7 @@ export default function AccountSettings({ user }: Props) {
   const [msgCount, setMsgCount] = useState(0);
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot'>('free');
   const [trialDaysLeft, setTrialDaysLeft] = useState(TRIAL_DAYS);
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [connectingGoogle, setConnectingGoogle] = useState(false);
-  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -43,52 +38,7 @@ export default function AccountSettings({ user }: Props) {
       setPlan(data.plan === 'modus' || data.plan === 'pilot' ? data.plan : 'free');
       setMsgCount(data.usageDate === today ? (data.dailyMessages ?? 0) : 0);
     }).catch(() => {});
-
-    // Check Google integration status
-    getDoc(doc(db, 'users', user.uid, 'integrations', 'google')).then(snap => {
-      if (snap.exists()) {
-        setGoogleConnected(true);
-        setGoogleEmail(snap.data()?.email ?? '');
-      }
-    }).catch(() => {});
   }, [user]);
-
-  // Handle OAuth callback params
-  useEffect(() => {
-    if (searchParams.get('connected') === 'google') {
-      setGoogleConnected(true);
-      router.replace('/settings');
-    }
-  }, [searchParams, router]);
-
-  async function handleConnectGoogle() {
-    setConnectingGoogle(true);
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/auth/google/connect', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-    } catch {
-      setConnectingGoogle(false);
-    }
-  }
-
-  async function handleDisconnectGoogle() {
-    setDisconnectingGoogle(true);
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      await fetch('/api/auth/google/disconnect', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setGoogleConnected(false);
-      setGoogleEmail('');
-    } catch {}
-    setDisconnectingGoogle(false);
-  }
 
   const handleSaveName = async () => {
     setNameSaving(true);
@@ -97,7 +47,7 @@ export default function AccountSettings({ user }: Props) {
       await updateProfile(user, { displayName });
       setNameSaved(true);
       setTimeout(() => setNameSaved(false), 2000);
-    } catch (e) {
+    } catch {
       setError('Failed to update name.');
     } finally {
       setNameSaving(false);
@@ -109,8 +59,7 @@ export default function AccountSettings({ user }: Props) {
     setDeleting(true);
     setError('');
     try {
-      // Delete all Firestore subcollections we know about
-      const subcols = ['conversations', 'goals', 'tasks', 'habits', 'memories'];
+      const subcols = ['conversations', 'goals', 'tasks', 'habits', 'memories', 'google_accounts', 'integrations'];
       for (const sub of subcols) {
         const snap = await getDocs(collection(db, 'users', user.uid, sub));
         await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
@@ -210,9 +159,16 @@ export default function AccountSettings({ user }: Props) {
             <button
               onClick={handleSaveName}
               disabled={nameSaving || !displayName.trim()}
-              className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors min-w-[80px]"
+              className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors min-w-[80px] flex items-center justify-center gap-1.5"
             >
-              {nameSaved ? '✓ Saved' : nameSaving ? 'Saving…' : 'Save'}
+              {nameSaved ? (
+                <>
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                    <path d="M2 6l3 3 5-5" />
+                  </svg>
+                  Saved
+                </>
+              ) : nameSaving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>
@@ -239,53 +195,6 @@ export default function AccountSettings({ user }: Props) {
           ))}
           {providers.length === 0 && (
             <p className="text-xs text-muted">No linked accounts.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Integrations */}
-      <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold text-text">Integrations</h3>
-          <p className="text-xs text-muted mt-0.5">Connect your tools so MODUS can see your full day.</p>
-        </div>
-        <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-bg border border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text">Google Calendar + Gmail</p>
-              {googleConnected && googleEmail
-                ? <p className="text-xs text-muted">{googleEmail}</p>
-                : <p className="text-xs text-muted">Calendar events and email in your briefing</p>
-              }
-            </div>
-          </div>
-          {googleConnected ? (
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-emerald-500">Connected</span>
-              <button
-                onClick={handleDisconnectGoogle}
-                disabled={disconnectingGoogle}
-                className="text-xs text-muted hover:text-red-400 transition-colors disabled:opacity-40"
-              >
-                {disconnectingGoogle ? 'Disconnecting…' : 'Disconnect'}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleConnectGoogle}
-              disabled={connectingGoogle}
-              className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors disabled:opacity-40 cursor-pointer"
-            >
-              {connectingGoogle ? 'Redirecting…' : 'Connect'}
-            </button>
           )}
         </div>
       </div>

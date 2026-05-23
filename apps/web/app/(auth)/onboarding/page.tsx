@@ -162,7 +162,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
             <p className="text-sm font-semibold text-text">Start free today</p>
             <p className="text-xs text-muted">No credit card needed to begin</p>
           </div>
-          <span className="text-xs font-semibold text-brand bg-brand/10 px-3 py-1 rounded-full">4-day free trial</span>
+          <span className="text-xs font-semibold text-brand bg-brand/10 px-3 py-1 rounded-full">30-day free trial</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="border border-border rounded-xl p-4">
@@ -188,7 +188,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         >
           Start your free trial →
         </motion.button>
-        <p className="text-xs text-muted">4 days free. Cancel anytime.</p>
+        <p className="text-xs text-muted">30 days free. Cancel anytime.</p>
       </motion.div>
     </div>
   );
