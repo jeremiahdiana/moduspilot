@@ -7,11 +7,12 @@ export default function HeroSection() {
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-16">
       {/* Animated ambient background */}
       <div className="absolute inset-0 -z-10">
+        {/* Subtle purple tint so it's never plain white in light mode */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50/80 via-bg to-bg dark:from-bg dark:via-bg dark:to-bg" />
         <div className="hero-orb hero-orb-1" />
         <div className="hero-orb hero-orb-2" />
         <div className="hero-orb hero-orb-3" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,transparent_50%,#0a0a0f_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(124,58,237,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.04)_1px,transparent_1px)] bg-[size:60px_60px]" />
       </div>
 
       <div className="max-w-4xl mx-auto text-center">

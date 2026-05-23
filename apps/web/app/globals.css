@@ -92,6 +92,18 @@ body {
   animation-delay: -8s;
   animation-duration: 16s;
 }
+
+/* Boost orb visibility in light mode */
+:root .hero-orb-1 {
+  background: radial-gradient(circle, rgba(124,58,237,0.22) 0%, transparent 70%);
+}
+:root .hero-orb-2 {
+  background: radial-gradient(circle, rgba(124,58,237,0.16) 0%, transparent 70%);
+}
+:root .hero-orb-3 {
+  background: radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 70%);
+}
+
 @keyframes orb-drift {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(30px, -20px) scale(1.05); }
