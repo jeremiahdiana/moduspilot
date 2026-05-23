@@ -2,12 +2,12 @@ import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export const GOOGLE_SCOPES = [
+  // Calendar — full scope implies readonly, no need to list both
   'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/gmail.modify',
+  // Gmail — readonly + send covers all use cases without the broader modify scope
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/drive.file',
+  // Drive — readonly is all we need (we read docs, don't create them)
   'https://www.googleapis.com/auth/drive.readonly',
   'openid',
   'email',
@@ -21,7 +21,8 @@ export function buildOAuthUrl(uid: string, origin: string = 'settings'): string 
     response_type: 'code',
     scope: GOOGLE_SCOPES,
     access_type: 'offline',
-    prompt: 'select_account consent',
+    // select_account always shows account picker; consent only fires when truly needed
+    prompt: 'select_account',
     state: Buffer.from(JSON.stringify({ uid, origin })).toString('base64url'),
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
