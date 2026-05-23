@@ -17,19 +17,27 @@ export default function FinalCTA() {
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-text leading-tight mb-6">
-            Ready to stop managing your life
-            <br />
-            <span className="text-brand">and start living it?</span>
+            Your goals deserve more than<br />
+            <span className="text-brand">another productivity app.</span>
           </h2>
-          <p className="text-muted text-lg mb-10">
-            Join now and build the OS version of you.
+          <p className="text-muted text-lg mb-10 max-w-xl mx-auto">
+            MODUS runs the system. You make the calls. Start free — no credit card needed.
           </p>
-          <a
-            href="/login"
-            className="inline-block px-10 py-4 bg-brand text-white text-base font-bold rounded-xl hover:bg-brand/90 hover:shadow-[0_0_60px_rgba(124,58,237,0.5)] transition-all hover:scale-105 active:scale-100"
-          >
-            Make Your Modus
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/login"
+              className="inline-block px-10 py-4 bg-brand text-white text-base font-bold rounded-xl hover:bg-brand/90 hover:shadow-[0_0_60px_rgba(124,58,237,0.5)] transition-all hover:scale-105 active:scale-100"
+            >
+              Get Early Access
+            </a>
+            <a
+              href="#features"
+              className="inline-block px-10 py-4 border border-border text-muted text-base font-medium rounded-xl hover:border-brand/40 hover:text-text transition-all"
+            >
+              See how it works
+            </a>
+          </div>
+          <p className="text-xs text-muted/40 mt-6">30-day free trial · No credit card · Cancel anytime</p>
         </motion.div>
       </div>
     </section>

@@ -2,6 +2,12 @@
 
 import { motion } from 'framer-motion';
 
+const STATS = [
+  { value: '12+', label: 'apps the average person uses to manage their life' },
+  { value: '0', label: 'of them talk to each other' },
+  { value: '100%', label: 'of the glue work falls on you' },
+];
+
 export default function QuoteSection() {
   return (
     <section className="relative py-32 px-6 overflow-hidden">
@@ -15,12 +21,31 @@ export default function QuoteSection() {
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
-          <div className="text-brand text-5xl font-serif mb-8 opacity-40">"</div>
-          <blockquote className="text-2xl md:text-3xl lg:text-4xl font-bold text-text leading-tight mb-8">
-            While every other tool forces you to manually manage your software,
-            MODUS is the first software that actively manages your reality.
+          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-6">The Problem</p>
+          <blockquote className="text-2xl md:text-3xl lg:text-4xl font-bold text-text leading-tight mb-12">
+            You're using Gmail, Notion, Todoist, Google Calendar, ChatGPT, and six other apps —
+            and <span className="text-brand">you're still the one holding it all together.</span>
           </blockquote>
-          <p className="text-muted text-sm tracking-wider uppercase">— MODUS Pilot, Product Vision</p>
+
+          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+            {STATS.map(s => (
+              <motion.div
+                key={s.value}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="text-center"
+              >
+                <p className="text-4xl font-black text-brand mb-2">{s.value}</p>
+                <p className="text-xs text-muted leading-relaxed">{s.label}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <p className="text-muted text-base mt-12 max-w-xl mx-auto">
+            MODUS is the intelligence layer that connects everything — and runs the parts that don't need you.
+          </p>
         </motion.div>
       </div>
     </section>

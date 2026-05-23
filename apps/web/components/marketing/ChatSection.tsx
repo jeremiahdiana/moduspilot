@@ -21,15 +21,12 @@ function ApprovalCardMockup() {
 
   return (
     <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-2xl">
-      {/* Chat window header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
         <span className="text-xs text-muted font-medium">MODUS Chat</span>
       </div>
 
-      {/* Messages */}
       <div className="p-4 space-y-4 min-h-[280px]">
-        {/* User message */}
         <div className="flex justify-end">
           <div className="bg-brand/20 border border-brand/20 rounded-xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
             <p className="text-sm text-text">
@@ -39,7 +36,6 @@ function ApprovalCardMockup() {
           </div>
         </div>
 
-        {/* MODUS response */}
         <div className="flex gap-2.5">
           <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-xs font-black text-brand shrink-0 mt-0.5">M</div>
           <div className="flex-1 space-y-3">
@@ -48,7 +44,6 @@ function ApprovalCardMockup() {
               <p className="text-sm text-text">Three actions queued. Approval card ready.</p>
             </div>
 
-            {/* Approval card */}
             <div className="bg-bg border border-brand/30 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-brand" />
@@ -77,7 +72,6 @@ function ApprovalCardMockup() {
         </div>
       </div>
 
-      {/* Input */}
       <div className="px-4 py-3 border-t border-border">
         <div className="bg-bg border border-border rounded-xl px-3 py-2 text-xs text-muted/40">
           Message MODUS…
@@ -92,7 +86,6 @@ export default function ChatSection() {
     <section className="py-32 px-6 bg-panel/30">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Copy */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -100,31 +93,29 @@ export default function ChatSection() {
             transition={{ duration: 0.7, ease: 'easeOut' }}
           >
             <h2 className="text-4xl md:text-5xl font-black text-text mb-6 leading-tight">
-              One Conversation.<br />Your Entire Life.
+              One Message.<br />Your Entire Life.
             </h2>
             <p className="text-muted text-base leading-relaxed mb-6">
-              The AI Chat is not a feature. It is the intelligence core MODUS is built on.
-              From a single message you can connect a new integration, execute cross-app actions,
-              retrieve a decision you made three months ago, restructure your goals, or get a
-              proactive alert about something time-sensitive.
+              The chat is not a feature — it's the operating surface MODUS is built on.
+              From a single message you can connect integrations, execute cross-app actions,
+              surface a decision you made three months ago, or restructure your goals entirely.
             </p>
-            <div className="bg-panel border border-border rounded-xl px-4 py-3 mb-8 inline-block">
+            <div className="bg-panel border border-border rounded-xl px-4 py-3 mb-8">
               <p className="text-sm text-muted italic">
                 "Draft a reply to Marcus, block tomorrow morning, move my 3 PM to Friday."
                 <span className="text-text not-italic"> One message. Three actions. One approval card.</span>
               </p>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted">
-              {['iOS', 'Web', 'Mac'].map(p => (
-                <span key={p} className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand/60" />
-                  {p}
-                </span>
-              ))}
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-text font-medium">Web App</span>
+                <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">Live</span>
+              </div>
+              <span className="text-muted text-sm">iOS · Mac <span className="text-[10px] text-muted/50">Coming Soon</span></span>
             </div>
           </motion.div>
 
-          {/* Mockup */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}

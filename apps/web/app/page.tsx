@@ -7,7 +7,9 @@ import FeaturesSection from '@/components/marketing/FeaturesSection';
 import ChatSection from '@/components/marketing/ChatSection';
 import PlatformsSection from '@/components/marketing/PlatformsSection';
 import ModusVsPilot from '@/components/marketing/ModusVsPilot';
+import CompareSection from '@/components/marketing/CompareSection';
 import PricingSection from '@/components/marketing/PricingSection';
+import FAQSection from '@/components/marketing/FAQSection';
 import FinalCTA from '@/components/marketing/FinalCTA';
 import Footer from '@/components/marketing/Footer';
 
@@ -34,7 +36,9 @@ export default function MarketingPage() {
       <ChatSection />
       <PlatformsSection />
       <ModusVsPilot />
+      <CompareSection />
       <PricingSection />
+      <FAQSection />
       <FinalCTA />
       <Footer />
     </main>

@@ -6,56 +6,65 @@ const FEATURES = [
   {
     icon: '◎',
     title: 'Daily Briefing',
-    desc: 'Every morning, MODUS reaches out — not the other way around. Energy check-in, approval queue, top 3 priorities, and loose ends from yesterday. In your inbox before you open your eyes.',
+    desc: 'Every morning, MODUS reaches out — not the other way around. Energy check-in, top 3 priorities, overdue tasks, and habit streaks at risk. In your browser before you open your inbox.',
     size: 'large',
+    span2: true,
   },
   {
     icon: '◆',
-    title: 'Approve / Redirect Queue',
-    desc: 'Every action MODUS wants to take surfaces as a card. See exactly what it plans to do. Approve, edit, or skip. Nothing executes without you.',
+    title: 'Approve / Redirect',
+    desc: 'Every action surfaces as an approval card. See exactly what MODUS plans to do. Approve, edit, or skip. Nothing executes without you.',
     size: 'normal',
+    span2: false,
   },
   {
     icon: '◈',
     title: 'Goal → Habit → Task Engine',
-    desc: 'Set a macro goal in chat. MODUS breaks it into weekly milestones and daily micro-actions — and adjusts automatically when you fall behind.',
+    desc: 'Set a goal in chat. MODUS breaks it into milestones, links daily habits, and surfaces tasks automatically — adjusting when you fall behind.',
     size: 'normal',
+    span2: false,
   },
   {
     icon: '◉',
-    title: 'Comms Triage',
-    desc: 'Reads your email. Categorizes by urgency. Drafts responses as approval cards. You stop opening Gmail to check — MODUS tells you when it needs you.',
+    title: 'Email & Calendar Triage',
+    desc: 'Reads your Gmail. Categorizes by urgency. Drafts replies as approval cards. Pulls today\'s meetings into your briefing automatically.',
     size: 'normal',
+    span2: false,
   },
   {
     icon: '⊙',
-    title: 'Context Memory',
-    desc: 'Remembers everything across every platform, conversation, and integration — goals, patterns, relationships, commitments, open loops. The longer you use MODUS, the more precisely it knows you.',
+    title: 'Cross-Conversation Memory',
+    desc: 'Remembers everything — goals, decisions, commitments, patterns — across every session. The longer you use MODUS, the more precisely it knows you.',
     size: 'large',
+    span2: true,
   },
   {
     icon: '⊕',
-    title: 'Command Bar',
-    desc: 'Natural language override on every platform. ⌘K on Mac and web, swipe-up on iOS. One message, cross-app execution, one approval card.',
+    title: 'Bring Your Own Model',
+    desc: 'Use MODUS with Groq (default), your own OpenAI key for GPT-4o, or your own Anthropic key for Claude. You choose the brain. MODUS is the OS.',
     size: 'normal',
+    span2: false,
   },
   {
     icon: '▣',
     title: 'Pattern Recognition',
     desc: 'Spots what you can\'t. Repeated deferrals, energy dips, misaligned priorities. Named once, neutrally. This is the moat.',
     size: 'normal',
+    span2: false,
   },
   {
     icon: '◇',
     title: 'Focus Protection',
-    desc: 'Actively defends your deep work blocks. Mutes notifications, reschedules conflicts, proposes changes via approval cards — so you never have to.',
+    desc: 'Actively defends your deep work blocks. Mutes notifications, reschedules conflicts, proposes changes via approval cards.',
     size: 'normal',
+    span2: false,
   },
   {
     icon: '⊞',
-    title: 'Weekly Review',
-    desc: 'Every Sunday: what you accomplished, what slipped, patterns noticed, recalibrated plan for the week ahead. Automatically.',
+    title: 'Cmd+K Global Search',
+    desc: 'Search every goal, task, habit, and conversation from anywhere. Or ask MODUS a question. One shortcut. Your entire life.',
     size: 'normal',
+    span2: false,
   },
 ];
 
@@ -84,7 +93,7 @@ export default function FeaturesSection() {
             Everything You're Managing Right Now.<br />Automated.
           </h2>
           <p className="text-muted text-lg max-w-xl mx-auto">
-            MODUS handles the cognitive load. You handle the decisions.
+            MODUS handles the cognitive load. You handle the decisions that actually matter.
           </p>
         </motion.div>
 
@@ -100,8 +109,8 @@ export default function FeaturesSection() {
               key={f.title}
               variants={item}
               className={`bg-panel border border-border rounded-2xl p-6 hover:border-brand/30 transition-all group ${
-                f.size === 'large' ? 'md:col-span-1 md:row-span-1' : ''
-              } ${i === 0 ? 'md:col-span-2' : ''} ${i === 4 ? 'md:col-span-2' : ''}`}
+                f.span2 ? 'md:col-span-2' : ''
+              }`}
             >
               <div className="text-2xl mb-4 text-brand/70 group-hover:text-brand transition-colors">{f.icon}</div>
               <h3 className="text-base font-bold text-text mb-2">{f.title}</h3>
