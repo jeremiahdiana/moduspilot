@@ -69,7 +69,7 @@ export default function CoreLoop() {
 
   return (
     <section id="how-it-works" className="py-32 px-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(124,58,237,0.07),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(124,58,237,0.20),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(124,58,237,0.07),transparent)]" />
 
       <div className="max-w-5xl mx-auto relative">
         <motion.div

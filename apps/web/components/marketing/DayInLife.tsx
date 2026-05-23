@@ -44,7 +44,7 @@ export default function DayInLife() {
   return (
     <section className="py-32 px-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-panel/40" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(124,58,237,0.06),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(124,58,237,0.18),transparent)] dark:bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(124,58,237,0.06),transparent)]" />
 
       <div className="max-w-5xl mx-auto relative">
         <motion.div

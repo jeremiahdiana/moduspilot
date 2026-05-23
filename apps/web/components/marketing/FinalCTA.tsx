@@ -6,8 +6,8 @@ export default function FinalCTA() {
   return (
     <section className="relative py-40 px-6 overflow-hidden">
       <div className="absolute inset-0 bg-panel" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,rgba(124,58,237,0.15),transparent)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,rgba(124,58,237,0.35),transparent)] dark:bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,rgba(124,58,237,0.15),transparent)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(124,58,237,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
 
       <div className="relative max-w-3xl mx-auto text-center">
         <motion.div

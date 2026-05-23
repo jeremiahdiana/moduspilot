@@ -12,7 +12,7 @@ export default function QuoteSection() {
   return (
     <section className="relative py-32 px-6 overflow-hidden">
       <div className="absolute inset-0 bg-panel" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,rgba(124,58,237,0.12),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,rgba(124,58,237,0.30),transparent)] dark:bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,rgba(124,58,237,0.12),transparent)]" />
 
       <div className="relative max-w-4xl mx-auto text-center">
         <motion.div
