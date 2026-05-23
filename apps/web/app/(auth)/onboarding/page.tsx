@@ -76,10 +76,14 @@ function MultiOption({ label, selected, onClick, dashed }: { label: string; sele
           : 'border-border bg-panel text-muted hover:text-text hover:border-brand/40'
       }`}
     >
-      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 text-[10px] font-bold transition-all ${
-        selected ? 'border-brand bg-brand text-white' : 'border-muted/30'
+      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+        selected ? 'border-brand bg-brand' : 'border-muted/30'
       }`}>
-        {selected ? '✓' : ''}
+        {selected && (
+          <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+            <path d="M2 6l3 3 5-5" />
+          </svg>
+        )}
       </span>
       {label}
     </motion.button>

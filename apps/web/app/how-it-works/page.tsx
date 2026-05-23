@@ -11,13 +11,13 @@ const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 // ── thinking dots ───────────────────────────────────────────────────────────
 function ThinkingDots() {
   return (
-    <div className="flex items-center gap-1 px-4 py-3 bg-[#1a1a2e] border border-white/10 rounded-2xl rounded-tl-sm w-fit">
+    <div className="flex items-center gap-1 px-4 py-3 bg-panel border border-border rounded-2xl rounded-tl-sm w-fit">
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
           animate={{ y: [0, -4, 0] }}
           transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-          className="w-1.5 h-1.5 rounded-full bg-purple-400"
+          className="w-1.5 h-1.5 rounded-full bg-brand"
         />
       ))}
     </div>
@@ -36,8 +36,8 @@ function ChatMsg({ role, text }: { role: 'modus' | 'user'; text: string }) {
     >
       <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
         role === 'user'
-          ? 'bg-purple-600 text-white rounded-br-sm'
-          : 'bg-[#1a1a2e] border border-white/10 text-gray-200 rounded-tl-sm'
+          ? 'bg-brand text-white rounded-br-sm'
+          : 'bg-panel border border-border text-text rounded-tl-sm'
       }`}>
         {text}
       </div>
@@ -49,26 +49,26 @@ function ChatMsg({ role, text }: { role: 'modus' | 'user'; text: string }) {
 function ActionCard({ actions, buttons }: { actions: { label: string; detail: string; badge?: string }[]; buttons?: string[] }) {
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-      className="bg-[#1a1a2e] border border-purple-500/30 rounded-2xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-purple-400" />
-        <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Action set ready</span>
+      className="bg-panel border border-brand/20 rounded-2xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-brand" />
+        <span className="text-xs font-semibold text-brand uppercase tracking-wider">Action set ready</span>
       </div>
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-border/50">
         {actions.map((a, i) => (
           <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm text-white font-medium">{a.label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{a.detail}</p>
+              <p className="text-sm text-text font-medium">{a.label}</p>
+              <p className="text-xs text-muted mt-0.5">{a.detail}</p>
             </div>
-            {a.badge && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${a.badge === 'Urgent' ? 'bg-red-500/20 text-red-400' : 'bg-purple-500/20 text-purple-300'}`}>{a.badge}</span>}
+            {a.badge && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${a.badge === 'Urgent' ? 'bg-red-500/20 text-red-400' : 'bg-brand/10 text-brand'}`}>{a.badge}</span>}
           </div>
         ))}
       </div>
       {buttons && (
-        <div className="px-4 py-3 border-t border-white/10 flex gap-2">
-          <button className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors">{buttons[0]}</button>
-          {buttons[1] && <button className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold rounded-lg transition-colors">{buttons[1]}</button>}
+        <div className="px-4 py-3 border-t border-border flex gap-2">
+          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">{buttons[0]}</button>
+          {buttons[1] && <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">{buttons[1]}</button>}
         </div>
       )}
     </motion.div>
@@ -137,9 +137,9 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'msg', role: 'modus', text: "Got it. Based on your current workload and schedule, here's how I'd break that down — and I'll track it week by week so nothing falls behind.", delay: 1700 },
     { type: 'card', delay: 2600, component: (
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-        className="bg-[#1a1a2e] border border-purple-500/30 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10">
-          <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Goal plan · $10k this month</span>
+        className="bg-panel border border-brand/20 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <span className="text-xs font-semibold text-brand uppercase tracking-wider">Goal plan · $10k this month</span>
         </div>
         <div className="p-4 space-y-3">
           {[
@@ -149,17 +149,17 @@ const SCENES: Record<string, SceneItem[]> = {
             { week: 'Week 4', title: 'Invoice, collect, and review', note: 'MODUS drafts invoices + sends progress summary' },
           ].map((w, i) => (
             <div key={i} className="flex gap-3">
-              <span className="text-[10px] font-bold text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full h-fit mt-0.5 shrink-0">{w.week}</span>
+              <span className="text-[10px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full h-fit mt-0.5 shrink-0">{w.week}</span>
               <div>
-                <p className="text-sm text-white">{w.title}</p>
-                <p className="text-xs text-gray-400">{w.note}</p>
+                <p className="text-sm text-text">{w.title}</p>
+                <p className="text-xs text-muted">{w.note}</p>
               </div>
             </div>
           ))}
         </div>
-        <div className="px-4 py-3 border-t border-white/10 flex gap-2">
-          <button className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors">Approve plan</button>
-          <button className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold rounded-lg transition-colors">Adjust</button>
+        <div className="px-4 py-3 border-t border-border flex gap-2">
+          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Approve plan</button>
+          <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Adjust</button>
         </div>
       </motion.div>
     )},
@@ -170,30 +170,30 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'thinking', delay: 2000 },
     { type: 'card', delay: 2800, component: (
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-        className="bg-[#1a1a2e] border border-purple-500/30 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10">
-          <p className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Needs your reply today (3)</p>
+        className="bg-panel border border-brand/20 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <p className="text-xs font-semibold text-brand uppercase tracking-wider">Needs your reply today (3)</p>
         </div>
         {[
           { from: 'Alex', subject: '"Contract ready to sign"', badge: 'Reply drafted', urgent: false },
           { from: 'Marcus', subject: '"Quick question on the deck"', badge: 'Reply drafted', urgent: false },
           { from: 'Your accountant', subject: '"Invoice overdue"', badge: 'Urgent', urgent: true },
         ].map((e, i) => (
-          <div key={i} className="px-4 py-3 border-b border-white/5 flex items-center justify-between gap-3">
+          <div key={i} className="px-4 py-3 border-b border-border/50 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-white font-medium">{e.from}</p>
-              <p className="text-xs text-gray-400">{e.subject}</p>
+              <p className="text-sm text-text font-medium">{e.from}</p>
+              <p className="text-xs text-muted">{e.subject}</p>
             </div>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${e.urgent ? 'bg-red-500/20 text-red-400' : 'bg-purple-500/20 text-purple-300'}`}>{e.badge}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${e.urgent ? 'bg-red-500/20 text-red-400' : 'bg-brand/10 text-brand'}`}>{e.badge}</span>
           </div>
         ))}
-        <div className="px-4 py-3 border-b border-white/5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Noise — already buried (44)</p>
-          <p className="text-xs text-gray-500">Newsletters, promos, notifications · Archived. You won't see them unless you ask.</p>
+        <div className="px-4 py-3 border-b border-border/50">
+          <p className="text-xs font-semibold text-muted/60 uppercase tracking-wider mb-2">Noise — already buried (44)</p>
+          <p className="text-xs text-muted/60">Newsletters, promos, notifications · Archived. You won't see them unless you ask.</p>
         </div>
         <div className="px-4 py-3 flex gap-2">
-          <button className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors">Approve all 3 replies</button>
-          <button className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold rounded-lg transition-colors">Review drafts</button>
+          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Approve all 3 replies</button>
+          <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Review drafts</button>
         </div>
       </motion.div>
     )},
@@ -202,18 +202,18 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'msg', role: 'modus', text: "Something came up in your memory from 3 weeks ago that I think is worth revisiting.", delay: 400 },
     { type: 'card', delay: 1200, component: (
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-        className="bg-purple-900/30 border border-purple-500/40 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-purple-500/20">
-          <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Memory · 3 weeks ago</span>
+        className="bg-brand/10 border border-brand/30 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-brand/20">
+          <span className="text-xs font-semibold text-brand uppercase tracking-wider">Memory · 3 weeks ago</span>
         </div>
         <div className="px-4 py-4 space-y-3">
-          <p className="text-sm text-white italic">"I think I want to pivot my offer and go more premium by Q3."</p>
-          <p className="text-xs text-gray-400">You said this 3 weeks ago — it hasn't come up since.</p>
-          <p className="text-sm text-purple-200 font-medium">It's week 6 of Q2. Do you want to start building that out now so you're ready?</p>
+          <p className="text-sm text-text italic">"I think I want to pivot my offer and go more premium by Q3."</p>
+          <p className="text-xs text-muted">You said this 3 weeks ago — it hasn't come up since.</p>
+          <p className="text-sm text-brand font-medium">It's week 6 of Q2. Do you want to start building that out now so you're ready?</p>
         </div>
-        <div className="px-4 py-3 border-t border-purple-500/20 flex gap-2">
-          <button className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors">Yes, let's plan it</button>
-          <button className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold rounded-lg transition-colors">Not yet</button>
+        <div className="px-4 py-3 border-t border-brand/20 flex gap-2">
+          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Yes, let's plan it</button>
+          <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Not yet</button>
         </div>
       </motion.div>
     )},
@@ -280,7 +280,7 @@ function Section({ children, className = '' }: { children: React.ReactNode; clas
 }
 
 function Eyebrow({ text }: { text: string }) {
-  return <p className="text-xs font-semibold text-purple-400 uppercase tracking-widest mb-3">{text}</p>;
+  return <p className="text-xs font-semibold text-brand uppercase tracking-widest mb-3">{text}</p>;
 }
 
 // ── main page ───────────────────────────────────────────────────────────────
@@ -311,7 +311,7 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* Divider */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-border/40" />
 
       {/* Section 2 — 4 steps */}
       <Section>
@@ -333,7 +333,7 @@ export default function HowItWorksPage() {
               transition={{ duration: 0.4 }}
               className="bg-panel border border-border rounded-2xl p-6"
             >
-              <p className="text-4xl font-black text-purple-500/30 mb-3">{step.n}</p>
+              <p className="text-4xl font-black text-brand/20 mb-3">{step.n}</p>
               <h3 className="text-base font-bold text-text mb-2">{step.title}</h3>
               <p className="text-sm text-muted leading-relaxed">{step.desc}</p>
             </motion.div>
@@ -342,7 +342,7 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* Divider */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-border/40" />
 
       {/* Section 3 — Animated scenarios */}
       <Section>
@@ -358,8 +358,8 @@ export default function HowItWorksPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                  ? 'bg-brand text-white'
+                  : 'bg-panel border border-border text-muted hover:text-text hover:border-brand/30'
               }`}
             >
               {tab.label}
@@ -368,13 +368,13 @@ export default function HowItWorksPage() {
         </div>
 
         {/* Chat window */}
-        <div className="bg-[#0f0f1e] border border-white/10 rounded-2xl overflow-hidden">
+        <div className="bg-panel border border-border rounded-2xl overflow-hidden">
           {/* Window bar */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
-            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-            <span className="text-xs text-gray-500 ml-2">MODUS Chat</span>
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+            <div className="w-2.5 h-2.5 rounded-full bg-border" />
+            <div className="w-2.5 h-2.5 rounded-full bg-border" />
+            <div className="w-2.5 h-2.5 rounded-full bg-border" />
+            <span className="text-xs text-muted/60 ml-2">MODUS Chat</span>
           </div>
           <AnimatePresence mode="wait">
             <motion.div
@@ -391,7 +391,7 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* Divider */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-border/40" />
 
       {/* Section 4 — Differentiation table */}
       <Section>
@@ -403,10 +403,10 @@ export default function HowItWorksPage() {
               <tr className="border-b border-border">
                 <th className="text-left py-3 pr-6 text-muted font-medium w-1/4" />
                 <th className="text-left py-3 px-4 text-muted font-semibold">ChatGPT / Claude</th>
-                <th className="text-left py-3 px-4 text-purple-300 font-semibold bg-purple-500/10 rounded-t-xl">MODUS</th>
+                <th className="text-left py-3 px-4 text-brand font-semibold bg-brand/5 rounded-t-xl">MODUS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-border/50">
               {[
                 {
                   dim: 'What it is',
@@ -438,7 +438,7 @@ export default function HowItWorksPage() {
                 >
                   <td className="py-4 pr-6 text-muted font-medium align-top">{row.dim}</td>
                   <td className="py-4 px-4 text-muted align-top leading-relaxed">{row.them}</td>
-                  <td className="py-4 px-4 text-text align-top leading-relaxed bg-purple-500/10">{row.us}</td>
+                  <td className="py-4 px-4 text-text align-top leading-relaxed bg-brand/5">{row.us}</td>
                 </motion.tr>
               ))}
             </tbody>
@@ -447,7 +447,7 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* Divider */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-border/40" />
 
       {/* Section 5 — Integrations */}
       <Section>
@@ -480,7 +480,7 @@ export default function HowItWorksPage() {
       </Section>
 
       {/* Divider */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-border/40" />
 
       {/* Section 6 — Closing */}
       <Section className="text-center">
@@ -500,7 +500,7 @@ export default function HowItWorksPage() {
           </p>
           <Link
             href="/login"
-            className="inline-block px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors"
+            className="btn-primary inline-block px-8 py-4 bg-brand hover:bg-brand/90 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-100"
           >
             Start your free trial →
           </Link>

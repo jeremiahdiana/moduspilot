@@ -240,7 +240,11 @@ export default function TasksPage() {
                               t.done ? 'bg-brand border-brand' : 'border-border hover:border-brand'
                             }`}
                           >
-                            {t.done && <span className="text-white text-[8px] leading-none">✓</span>}
+                            {t.done && (
+                              <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+                                <path d="M2 6l3 3 5-5" />
+                              </svg>
+                            )}
                           </motion.button>
 
                           <div className="flex-1 min-w-0">

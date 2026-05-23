@@ -352,7 +352,11 @@ export default function GoalsPage() {
             >
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-base font-semibold text-text">{editingGoal ? 'Edit goal' : 'Add goal'}</h2>
-                <button onClick={() => setModalOpen(false)} className="text-muted hover:text-text transition-colors">✕</button>
+                <button onClick={() => setModalOpen(false)} className="text-muted hover:text-text transition-colors">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
               </div>
               <div className="space-y-4">
                 <div>
@@ -536,15 +540,23 @@ function GoalMenu({ g, menuOpen, setMenuOpen, menuRef, onEdit, onDelete }: {
         onClick={e => { e.stopPropagation(); setMenuOpen(menuOpen === g.id ? null : g.id); }}
         className="w-6 h-6 flex items-center justify-center text-muted hover:text-text rounded transition-colors opacity-0 group-hover:opacity-100"
       >
-        ···
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+          <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+        </svg>
       </button>
       {menuOpen === g.id && (
         <div className="absolute right-0 top-7 z-50 bg-panel border border-border rounded-xl overflow-hidden shadow-lg w-32">
           <button onClick={e => { e.stopPropagation(); onEdit(); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-muted hover:text-text hover:bg-bg transition-colors text-left">
-            <span className="text-xs">✎</span> Edit
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            Edit
           </button>
           <button onClick={e => { e.stopPropagation(); onDelete(); }} className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-900/10 transition-colors text-left border-t border-border">
-            <span className="text-xs">✕</span> Delete
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/>
+            </svg>
+            Delete
           </button>
         </div>
       )}
