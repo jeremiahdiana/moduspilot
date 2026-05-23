@@ -13,7 +13,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { uid } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const { uid, origin = 'settings' } = decoded;
     const tokens = await exchangeCode(code);
 
     // Fetch the email of the account that just authorized
@@ -31,9 +32,17 @@ export async function GET(req: Request) {
     if (!email) throw new Error('Could not determine account email');
 
     await storeGoogleAccountTokens(uid, { ...tokens, email });
+
+    if (origin === 'onboarding') {
+      return Response.redirect(`${appUrl}/onboarding?connected=${encodeURIComponent(email)}`);
+    }
     return Response.redirect(`${appUrl}/settings?tab=connectors&connected=${encodeURIComponent(email)}`);
   } catch (e) {
     console.error('[google/callback]', e);
+    const origin = (() => { try { return JSON.parse(Buffer.from(state!, 'base64url').toString()).origin ?? 'settings'; } catch { return 'settings'; } })();
+    if (origin === 'onboarding') {
+      return Response.redirect(`${appUrl}/onboarding?error=google_failed`);
+    }
     return Response.redirect(`${appUrl}/settings?tab=connectors&error=google_failed`);
   }
 }

@@ -2,26 +2,27 @@ import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export const GOOGLE_SCOPES = [
+  'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive.readonly',
   'openid',
   'email',
   'profile',
 ].join(' ');
 
-export function buildOAuthUrl(uid: string): string {
+export function buildOAuthUrl(uid: string, origin: string = 'settings'): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`,
     response_type: 'code',
     scope: GOOGLE_SCOPES,
     access_type: 'offline',
-    // select_account lets them choose which Google account to add;
-    // consent ensures we always get a refresh_token for the chosen account
     prompt: 'select_account consent',
-    state: Buffer.from(JSON.stringify({ uid })).toString('base64url'),
+    state: Buffer.from(JSON.stringify({ uid, origin })).toString('base64url'),
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
