@@ -99,12 +99,7 @@ export async function generateBriefingData(
     ? input.schedule.map(e => `- ${e.time}: ${e.title}`).join('\n')
     : 'No calendar events.';
 
-  const { text } = await generateText({
-    model: groq('llama-3.3-70b-versatile'),
-    messages: [
-      {
-        role: 'system',
-        content: `You are MODUS, an AI chief of staff. Output ONLY a valid JSON object — no markdown fences, no explanation, no other text before or after.
+  const systemPrompt = `You are MODUS, an AI chief of staff. Output ONLY a valid JSON object — no markdown fences, no explanation, no other text before or after.
 
 Today is ${todayLabel()}.
 
@@ -133,11 +128,9 @@ Rules:
 - habits: only habits from the input that have active streaks or were done recently. at_risk = streak > 0 and not done today. on_track = streak > 0 and done today. done = completed today.
 - patternCallout: null unless there is a specific, genuine pattern in the data worth naming. Do not invent one.
 - schedule: return the calendar events from the input as-is. Empty array if none.
-- Never use em dashes. Never fabricate tasks or goals not in the input.`,
-      },
-      {
-        role: 'user',
-        content: `Name: ${name}
+- Never use em dashes. Never fabricate tasks or goals not in the input.`;
+
+  const userPrompt = `Name: ${name}
 Today: ${today}
 Yesterday: ${yesterday}
 
@@ -151,33 +144,42 @@ HABITS:
 ${habitsText}
 
 TODAY'S CALENDAR:
-${scheduleText}`,
-      },
-    ],
-    maxTokens: 900,
+${scheduleText}`;
+
+  const fallback = (): BriefingData => ({
+    openingLine: `${todayLabel()} — let's get to it.`,
+    narrative: `Here's your day, ${name}. Review your top tasks and check your schedule.`,
+    top3: input.tasks.slice(0, 3).map(t => ({ task: t.title, source: 'Task' })),
+    looseEnd: null,
+    habits: activeHabits.map(h => ({
+      name: h.title,
+      streak: h.streak,
+      status: h.completedDates.includes(today) ? 'done' : h.streak > 0 ? 'at_risk' : 'on_track',
+    })),
+    patternCallout: null,
+    schedule: input.schedule ?? [],
   });
 
-  // Strip markdown fences if model wraps in ```json ... ```
-  const cleaned = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-
-  let data: BriefingData;
-  try {
-    data = JSON.parse(cleaned);
-  } catch {
-    data = {
-      openingLine: `${todayLabel()} — let's get to it.`,
-      narrative: `Here's your day, ${name}. Review your top tasks and check your schedule.`,
-      top3: input.tasks.slice(0, 3).map(t => ({ task: t.title, source: 'Task' })),
-      looseEnd: null,
-      habits: activeHabits.map(h => ({
-        name: h.title,
-        streak: h.streak,
-        status: h.completedDates.includes(today) ? 'done' : h.streak > 0 ? 'at_risk' : 'on_track',
-      })),
-      patternCallout: null,
-      schedule: input.schedule ?? [],
-    };
+  // Try primary model, fall back to smaller model, then fall back to structured data
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+  for (const modelId of models) {
+    try {
+      const { text } = await generateText({
+        model: groq(modelId),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        maxTokens: 800,
+      });
+      const cleaned = text.trim()
+        .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+      return JSON.parse(cleaned) as BriefingData;
+    } catch {
+      // Try next model
+    }
   }
 
-  return data;
+  // All models failed — return structured fallback so we never throw
+  return fallback();
 }

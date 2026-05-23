@@ -236,7 +236,8 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden">
-          {(loading || settingsLoading) && !isGuest ? (
+          {/* Wait until activeId is settled so ChatWindow doesn't remount with a key change */}
+          {!isGuest && (loading || settingsLoading || (conversations.length > 0 && !activeId)) ? (
             <div className="flex items-center justify-center h-full">
               <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>

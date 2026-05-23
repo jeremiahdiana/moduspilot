@@ -1378,11 +1378,28 @@ function EmptyBriefing() {
 
   async function generate() {
     setGenerating(true); setError('');
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/briefing/generate', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (!res.ok) throw new Error(await res.text());
-    } catch { setError('Something went wrong. Try again.'); setGenerating(false); }
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        // Force-refresh token on retries in case it expired
+        const token = await auth.currentUser?.getIdToken(attempt > 0);
+        const res = await fetch('/api/briefing/generate', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) return; // success — parent's onSnapshot will render the briefing
+        if (attempt < MAX_ATTEMPTS - 1) {
+          await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+          continue;
+        }
+        throw new Error(`${res.status}`);
+      } catch {
+        if (attempt === MAX_ATTEMPTS - 1) {
+          setError('Something went wrong. Try again.');
+          setGenerating(false);
+        }
+      }
+    }
   }
 
   return (
