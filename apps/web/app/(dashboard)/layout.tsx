@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from 'firebase/auth';
@@ -109,8 +110,9 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full py-5 px-3">
       {/* Logo */}
-      <div className="mb-5 px-3 flex items-baseline gap-1.5">
-        <span className="text-lg font-black tracking-widest text-brand">Modus</span>
+      <div className="mb-5 px-3 flex items-center gap-2">
+        <Image src="/logo.png" alt="MODUS" width={28} height={28} className="object-contain shrink-0" />
+        <span className="text-lg font-black tracking-widest text-brand">MODUS</span>
         <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
       </div>
 
@@ -338,7 +340,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <span className="text-sm font-bold text-brand tracking-widest">Modus</span>
+          <div className="flex items-center gap-1.5">
+            <Image src="/logo.png" alt="MODUS" width={22} height={22} className="object-contain" />
+            <span className="text-sm font-bold text-brand tracking-widest">MODUS</span>
+          </div>
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
