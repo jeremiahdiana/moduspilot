@@ -241,10 +241,11 @@ export async function POST(req: Request) {
       maxTokens: 2048,
       onFinish: async ({ text }) => {
         if (!uid || !queryText || !process.env.PINECONE_API_KEY) return;
+        const isSubstantive = (s: string) => s.trim().length >= 40 && s.trim().split(/\s+/).length >= 6;
         try {
           await Promise.all([
-            upsertMemory(uid, queryText, { type: 'user_message', ts: Date.now().toString() }),
-            upsertMemory(uid, text, { type: 'assistant_response', ts: Date.now().toString() }),
+            isSubstantive(queryText) ? upsertMemory(uid, queryText, { type: 'user_message', ts: Date.now().toString() }) : Promise.resolve(),
+            isSubstantive(text) ? upsertMemory(uid, text, { type: 'assistant_response', ts: Date.now().toString() }) : Promise.resolve(),
           ]);
         } catch (e) {
           console.error('[chat] memory upsert failed:', e);

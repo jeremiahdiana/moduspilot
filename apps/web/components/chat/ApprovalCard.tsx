@@ -99,7 +99,9 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   if (status === 'approved') {
     return (
       <div className="border border-brand/30 bg-brand/5 rounded-xl px-4 py-3 flex items-center gap-2">
-        <span className="text-brand text-xs">✓</span>
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-brand shrink-0">
+          <path d="M2 6l3 3 5-5" />
+        </svg>
         <span className="text-sm text-brand">{editedTitle || data.title} — done</span>
       </div>
     );
