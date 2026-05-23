@@ -41,7 +41,7 @@ export default function Navbar({ solid = false }: Props) {
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="MODUS" width={36} height={36} className="object-contain" />
+          <Image src="/logo.png" alt="MODUS" width={64} height={48} className="object-contain" />
           <span className="text-xl font-black tracking-widest text-brand">MODUS</span>
           <span className="text-xs font-medium text-muted tracking-widest">pilot</span>
         </Link>

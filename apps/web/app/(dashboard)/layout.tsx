@@ -111,7 +111,7 @@ function SidebarContent({
     <div className="flex flex-col h-full py-5 px-3">
       {/* Logo */}
       <div className="mb-5 px-3 flex items-center gap-2">
-        <Image src="/logo.png" alt="MODUS" width={28} height={28} className="object-contain shrink-0" />
+        <Image src="/logo.png" alt="MODUS" width={54} height={40} className="object-contain shrink-0" />
         <span className="text-lg font-black tracking-widest text-brand">MODUS</span>
         <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
       </div>
@@ -341,7 +341,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
           <div className="flex items-center gap-1.5">
-            <Image src="/logo.png" alt="MODUS" width={22} height={22} className="object-contain" />
+            <Image src="/logo.png" alt="MODUS" width={43} height={32} className="object-contain" />
             <span className="text-sm font-bold text-brand tracking-widest">MODUS</span>
           </div>
         </div>
