@@ -3,23 +3,36 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import Navbar from '@/components/marketing/Navbar';
 
 // ── animation helpers ───────────────────────────────────────────────────────
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
+// ── modus avatar ────────────────────────────────────────────────────────────
+function ModusAvatar() {
+  return (
+    <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+      <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75" />
+    </div>
+  );
+}
+
 // ── thinking dots ───────────────────────────────────────────────────────────
 function ThinkingDots() {
   return (
-    <div className="flex items-center gap-1 px-4 py-3 bg-panel border border-border rounded-2xl rounded-tl-sm w-fit">
-      {[0, 1, 2].map(i => (
-        <motion.div
-          key={i}
-          animate={{ y: [0, -4, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-          className="w-1.5 h-1.5 rounded-full bg-brand"
-        />
-      ))}
+    <div className="flex items-end gap-2.5">
+      <ModusAvatar />
+      <div className="flex items-center gap-1 px-4 py-3 bg-panel border border-border rounded-2xl rounded-tl-sm w-fit">
+        {[0, 1, 2].map(i => (
+          <motion.div
+            key={i}
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+            className="w-1.5 h-1.5 rounded-full bg-brand"
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -31,10 +44,11 @@ function ChatMsg({ role, text }: { role: 'modus' | 'user'; text: string }) {
       variants={fadeUp}
       initial="hidden"
       animate="show"
-      transition={{ duration: 0.35 }}
-      className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className={`flex items-end gap-2.5 ${role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
-      <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+      {role === 'modus' && <ModusAvatar />}
+      <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
         role === 'user'
           ? 'bg-brand text-white rounded-br-sm'
           : 'bg-panel border border-border text-text rounded-tl-sm'
@@ -224,6 +238,8 @@ const SCENES: Record<string, SceneItem[]> = {
 function ScenarioPlayer({ tabId }: { tabId: string }) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [showThinking, setShowThinking] = useState(false);
+  const [done, setDone] = useState(false);
+  const [replayKey, setReplayKey] = useState(0);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -231,42 +247,71 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
     timeoutsRef.current = [];
     setVisibleCount(0);
     setShowThinking(false);
+    setDone(false);
 
     const scene = SCENES[tabId] ?? [];
     let msgIdx = 0;
+    let maxDelay = 0;
 
     scene.forEach(item => {
+      if (item.delay > maxDelay) maxDelay = item.delay;
       if (item.type === 'thinking') {
-        const t1 = setTimeout(() => setShowThinking(true), item.delay);
-        timeoutsRef.current.push(t1);
+        const t = setTimeout(() => setShowThinking(true), item.delay);
+        timeoutsRef.current.push(t);
       } else {
         const capturedIdx = msgIdx++;
-        const t2 = setTimeout(() => {
+        const t = setTimeout(() => {
           setShowThinking(false);
           setVisibleCount(capturedIdx + 1);
         }, item.delay);
-        timeoutsRef.current.push(t2);
+        timeoutsRef.current.push(t);
       }
     });
 
+    const tDone = setTimeout(() => setDone(true), maxDelay + 1000);
+    timeoutsRef.current.push(tDone);
+
     return () => timeoutsRef.current.forEach(clearTimeout);
-  }, [tabId]);
+  }, [tabId, replayKey]);
 
   const scene = SCENES[tabId] ?? [];
   const renderItems = scene.filter(s => s.type !== 'thinking');
 
   return (
-    <div className="space-y-3 p-5 h-[480px] overflow-y-auto flex flex-col justify-end">
+    <div className="relative">
+      <div className="space-y-3 p-5 h-[480px] overflow-y-auto flex flex-col justify-end">
+        <AnimatePresence>
+          {renderItems.slice(0, visibleCount).map((item, i) => (
+            <div key={`${tabId}-${replayKey}-${i}`}>
+              {item.type === 'msg' && <ChatMsg role={item.role} text={item.text} />}
+              {item.type === 'card' && item.component}
+            </div>
+          ))}
+          {showThinking && (
+            <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ThinkingDots />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       <AnimatePresence>
-        {renderItems.slice(0, visibleCount).map((item, i) => (
-          <div key={i}>
-            {item.type === 'msg' && <ChatMsg role={item.role} text={item.text} />}
-            {item.type === 'card' && item.component}
-          </div>
-        ))}
-        {showThinking && (
-          <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <ThinkingDots />
+        {done && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-4 right-4"
+          >
+            <button
+              onClick={() => { setReplayKey(k => k + 1); setDone(false); }}
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-brand border border-border hover:border-brand/30 bg-bg/80 backdrop-blur-sm px-3 py-1.5 rounded-full transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+              </svg>
+              Replay
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -368,13 +413,19 @@ export default function HowItWorksPage() {
         </div>
 
         {/* Chat window */}
-        <div className="bg-panel border border-border rounded-2xl overflow-hidden">
+        <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-xl shadow-black/10">
           {/* Window bar */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <div className="w-2.5 h-2.5 rounded-full bg-border" />
-            <div className="w-2.5 h-2.5 rounded-full bg-border" />
-            <div className="w-2.5 h-2.5 rounded-full bg-border" />
-            <span className="text-xs text-muted/60 ml-2">MODUS Chat</span>
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg/50">
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400/50" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/50" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400/50" />
+            </div>
+            <div className="flex-1 flex items-center justify-center gap-2">
+              <Image src="/logo.png" alt="" width={14} height={14} className="opacity-50" />
+              <span className="text-xs font-semibold text-muted/50 tracking-wide">MODUS</span>
+            </div>
+            <div className="w-[52px]" />
           </div>
           <AnimatePresence mode="wait">
             <motion.div
@@ -456,12 +507,30 @@ export default function HowItWorksPage() {
         <p className="text-muted mb-10">MODUS doesn't live in one app. It lives across all of them.</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
-            { icon: '✉', name: 'Email', desc: 'Draft, send, follow up' },
-            { icon: '📅', name: 'Calendar', desc: 'Schedule, block, reschedule' },
-            { icon: '💬', name: 'SMS', desc: 'Texts & check-ins' },
-            { icon: '⌚', name: 'Watch & health', desc: 'Activity & recovery data' },
-            { icon: '🔔', name: 'Reminders', desc: 'Push, alarm, or call' },
-            { icon: '⚡', name: 'Whop', desc: 'Commerce & subscriptions' },
+            {
+              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+              name: 'Email', desc: 'Draft, send, follow up',
+            },
+            {
+              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+              name: 'Calendar', desc: 'Schedule, block, reschedule',
+            },
+            {
+              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+              name: 'SMS', desc: 'Texts & check-ins',
+            },
+            {
+              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+              name: 'Watch & health', desc: 'Activity & recovery data',
+            },
+            {
+              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+              name: 'Reminders', desc: 'Push, alarm, or call',
+            },
+            {
+              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+              name: 'Whop', desc: 'Commerce & subscriptions',
+            },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -471,7 +540,7 @@ export default function HowItWorksPage() {
               transition={{ delay: i * 0.07 }}
               className="bg-panel border border-border rounded-2xl p-5"
             >
-              <span className="text-2xl mb-3 block">{item.icon}</span>
+              <div className="mb-3 w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center">{item.icon}</div>
               <p className="text-sm font-semibold text-text">{item.name}</p>
               <p className="text-xs text-muted mt-1">{item.desc}</p>
             </motion.div>

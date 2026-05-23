@@ -1,4 +1,6 @@
 import type { Message } from 'ai';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 import ApprovalCard from './ApprovalCard';
 
 function parseApprovalBlocks(content: string): Array<{ type: 'text'; value: string } | { type: 'approval'; value: string }> {
@@ -28,6 +30,14 @@ function extractTextContent(content: Message['content']): string {
   return '';
 }
 
+function ModusAvatar() {
+  return (
+    <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+      <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75" />
+    </div>
+  );
+}
+
 export default function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
   const isUser = message.role === 'user';
 
@@ -35,7 +45,12 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
     const text = extractTextContent(message.content);
     const hasImage = Array.isArray(message.content) && message.content.some(p => p.type === 'image');
     return (
-      <div className="flex justify-end">
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        className="flex justify-end"
+      >
         <div className="max-w-[72%] space-y-1.5">
           {hasImage && (
             <div className="bg-brand/10 border border-brand/20 rounded-xl px-3 py-2 text-xs text-brand text-right">
@@ -48,13 +63,12 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   const rawText = extractTextContent(message.content);
 
-  // While streaming, strip approval code blocks so the user never sees raw JSON
   const hasApprovalBlock = rawText.includes('```approval');
   const streamingText = hasApprovalBlock
     ? rawText.replace(/```approval[\s\S]*?```/g, '').replace(/```approval[\s\S]*$/g, '').trimEnd()
@@ -65,7 +79,13 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
     : parseApprovalBlocks(rawText);
 
   return (
-    <div className="flex justify-start">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="flex justify-start gap-2.5"
+    >
+      <ModusAvatar />
       <div className="max-w-[72%] space-y-3">
         {parts.map((part, i) =>
           part.type === 'approval' ? (
@@ -81,6 +101,6 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

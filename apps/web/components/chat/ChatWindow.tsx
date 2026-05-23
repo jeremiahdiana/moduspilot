@@ -4,6 +4,7 @@ import { useChat } from 'ai/react';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import { useRef, useEffect, useState } from 'react';
+import Image from 'next/image';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
 
@@ -154,11 +155,16 @@ export default function ChatWindow({
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center mt-20">
-            <p className="text-text text-lg font-semibold mb-2">What&apos;s on your plate?</p>
-            <p className="text-muted text-sm">
-              {isGuest ? 'Sign in to save your conversations.' : 'Your chief of staff. Ready when you are.'}
-            </p>
+          <div className="flex flex-col items-center justify-center mt-20 gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+              <Image src="/logo.png" alt="MODUS" width={24} height={24} className="opacity-75" />
+            </div>
+            <div className="text-center">
+              <p className="text-text text-base font-semibold mb-1">What&apos;s on your plate?</p>
+              <p className="text-muted text-sm">
+                {isGuest ? 'Sign in to save your conversations.' : 'Your chief of staff. Ready when you are.'}
+              </p>
+            </div>
           </div>
         )}
         {messages.map((m, idx) => (
@@ -169,10 +175,15 @@ export default function ChatWindow({
           />
         ))}
         {isLoading && (
-          <div className="flex gap-1 px-4">
-            <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
-            <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:300ms]" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+              <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75" />
+            </div>
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-brand/50 rounded-full animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 bg-brand/50 rounded-full animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 bg-brand/50 rounded-full animate-bounce [animation-delay:300ms]" />
+            </div>
           </div>
         )}
         <div ref={bottomRef} />
