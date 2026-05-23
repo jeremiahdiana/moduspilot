@@ -21,6 +21,7 @@ export default function AccountSettings({ user }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState('');
   const [msgCount, setMsgCount] = useState(0);
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot'>('free');
@@ -66,7 +67,8 @@ export default function AccountSettings({ user }: Props) {
       }
       await deleteDoc(doc(db, 'users', user.uid));
       await deleteUser(user);
-      router.push('/login');
+      setDeleted(true);
+      setTimeout(() => router.push('/login'), 2500);
     } catch (e: unknown) {
       if (e instanceof Error && e.message.includes('requires-recent-login')) {
         setError('Please sign out and sign back in, then try again.');
@@ -238,7 +240,15 @@ export default function AccountSettings({ user }: Props) {
             </div>
           </div>
         )}
-        {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        {deleted && (
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-emerald-400 shrink-0">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <p className="text-sm text-emerald-400 font-medium">Account successfully deleted. Signing you out…</p>
+          </div>
+        )}
       </div>
     </div>
   );

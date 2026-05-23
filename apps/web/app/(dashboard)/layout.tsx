@@ -283,7 +283,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg">
+    <div className="flex h-screen overflow-hidden bg-bg max-w-[100vw]">
       {/* Desktop sidebar */}
       <aside
         className="hidden md:flex shrink-0 border-r border-border flex-col relative"
@@ -329,7 +329,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 overflow-hidden flex flex-col">
+      <main className="flex-1 overflow-hidden overflow-x-hidden flex flex-col min-w-0">
         {/* Mobile header bar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
           <button
@@ -357,7 +357,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex-1 min-h-0 flex flex-col overflow-hidden"
+            className="flex-1 min-h-0 flex flex-col overflow-hidden overflow-x-hidden"
           >
             {children}
           </motion.div>

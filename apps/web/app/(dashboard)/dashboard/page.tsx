@@ -288,7 +288,7 @@ export default function DashboardPage() {
   return (
     <div className="overflow-y-auto h-full">
       {/* Header with gradient background */}
-      <div className="relative px-8 pt-8 pb-6 border-b border-border/50">
+      <div className="relative px-4 md:px-8 pt-6 md:pt-8 pb-6 border-b border-border/50">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_100%_at_0%_0%,rgba(124,58,237,0.08),transparent)] pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-brand/[0.04] to-transparent pointer-events-none" />
 
@@ -333,7 +333,7 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      <div className="p-8 pt-6">
+      <div className="p-4 md:p-8 md:pt-6">
         {focus && <FocusCard focus={focus} />}
         <DashboardGrid />
       </div>

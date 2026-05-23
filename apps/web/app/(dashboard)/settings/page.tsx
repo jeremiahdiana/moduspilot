@@ -68,9 +68,38 @@ function SettingsContent() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Left nav */}
-      <aside className="w-52 shrink-0 border-r border-border py-6 px-3 flex flex-col">
+    <div className="flex h-full overflow-hidden flex-col md:flex-row">
+      {/* Mobile: horizontal scrolling tab bar */}
+      <div className="md:hidden flex-shrink-0 border-b border-border overflow-x-auto">
+        <div className="flex items-center gap-1 px-3 py-2 min-w-max">
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setTab(tab.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-brand/10 text-brand'
+                  : 'text-muted hover:text-text hover:bg-panel'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+          <button
+            onClick={() => signOut(auth)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap text-red-400 hover:bg-red-900/10 transition-colors ml-1 border-l border-border pl-3"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop: Left nav */}
+      <aside className="hidden md:flex w-52 shrink-0 border-r border-border py-6 px-3 flex-col">
         <p className="text-xs font-semibold text-muted uppercase tracking-wider px-3 mb-3">Settings</p>
         <nav className="flex flex-col gap-0.5 flex-1">
           {TABS.map(tab => (
@@ -102,7 +131,7 @@ function SettingsContent() {
       </aside>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto py-8 px-8">
+      <main className="flex-1 overflow-y-auto py-6 px-4 md:py-8 md:px-8">
         <div className="max-w-2xl">
           {activeTab === 'general' && (
             <GeneralSettings settings={settings} saving={saving} onSave={saveSettings} />
