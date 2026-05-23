@@ -250,7 +250,7 @@ function DashboardPreview() {
 /* ── Hero ── */
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-20 pb-16">
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pt-20 pb-16">
 
       {/* Background */}
       <div className="absolute inset-0 -z-10">
@@ -275,20 +275,20 @@ export default function HeroSection() {
         />
       </div>
 
-      {/* Text block */}
-      <div className="relative max-w-3xl mx-auto text-center z-10 mb-12">
+      {/* Text block — w-full forces it to fill the flex container so text-center works correctly on mobile */}
+      <div className="relative w-full max-w-3xl mx-auto text-center z-10 mb-12">
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand/30 bg-brand/5 backdrop-blur-sm text-brand text-xs font-semibold mb-8"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand/30 bg-brand/5 backdrop-blur-sm text-brand text-[11px] font-semibold mb-8 max-w-full"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-          Early Access Open — 30 days free, no card needed
+          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+          <span className="truncate">Early Access — 30 days free, no card needed</span>
         </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[1.04] tracking-tight mb-6"
+          className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[1.08] tracking-tight mb-6"
         >
           <span className="text-text">The AI That</span><br />
           <span className="hero-gradient-text">Runs Your Life.</span>
@@ -297,7 +297,7 @@ export default function HeroSection() {
         <motion.p
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.22, ease: 'easeOut' }}
-          className="text-lg text-muted max-w-xl mx-auto mb-10 leading-relaxed"
+          className="text-base sm:text-lg text-muted max-w-xl mx-auto mb-10 leading-relaxed"
         >
           Tell MODUS your goals. It <Typewriter /> — every morning.
           You approve every action. Nothing runs without you.
@@ -310,7 +310,7 @@ export default function HeroSection() {
         >
           <a
             href="/login"
-            className="btn-primary group relative px-8 py-4 bg-brand text-white text-base font-bold rounded-xl transition-all hover:scale-[1.03] hover:shadow-[0_0_56px_rgba(124,58,237,0.60)] active:scale-100"
+            className="btn-primary group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand text-white text-sm sm:text-base font-bold rounded-xl transition-all hover:scale-[1.03] hover:shadow-[0_0_56px_rgba(124,58,237,0.60)] active:scale-100 text-center"
           >
             <span className="relative z-10">Start free — no credit card needed</span>
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-600 via-brand to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -324,9 +324,9 @@ export default function HeroSection() {
         {/* Trust bar */}
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.5 }}
-          className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted/60"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted/60"
         >
-          {['Gmail & Calendar connected', 'Use your own GPT-4o or Claude key', 'Privacy-first', 'Cancel anytime'].map(t => (
+          {['Gmail & Calendar', 'GPT-4o or Claude', 'Privacy-first', 'Cancel anytime'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <span className="text-brand/60">✓</span> {t}
             </span>
