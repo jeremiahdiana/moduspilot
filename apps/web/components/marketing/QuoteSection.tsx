@@ -27,7 +27,7 @@ export default function QuoteSection() {
             and <span className="text-brand">you're still the one holding it all together.</span>
           </blockquote>
 
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-2xl mx-auto">
             {STATS.map(s => (
               <motion.div
                 key={s.value}

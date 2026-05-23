@@ -86,7 +86,7 @@ export default function CoreLoop() {
         </motion.div>
 
         {/* Step tabs */}
-        <div className="grid grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {STEPS.map((step, i) => (
             <button
               key={step.label}

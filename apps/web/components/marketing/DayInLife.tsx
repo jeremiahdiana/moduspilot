@@ -71,8 +71,8 @@ export default function DayInLife() {
             {EVENTS.map((event, i) => (
               <motion.div
                 key={event.time}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.5, delay: i * 0.08, ease: 'easeOut' }}
                 className="flex gap-6 md:gap-10 relative pb-10 last:pb-0"

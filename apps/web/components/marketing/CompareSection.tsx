@@ -22,7 +22,7 @@ function Cell({ value }: { value: boolean | string }) {
 
 export default function CompareSection() {
   return (
-    <section className="py-32 px-6">
+    <section className="py-32 px-6 overflow-hidden">
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

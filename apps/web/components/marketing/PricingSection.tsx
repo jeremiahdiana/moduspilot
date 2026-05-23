@@ -76,7 +76,7 @@ const item = {
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="py-32 px-6 bg-panel/30">
+    <section id="pricing" className="py-32 px-6 bg-panel/30 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

@@ -49,7 +49,7 @@ const item = {
 
 export default function PlatformsSection() {
   return (
-    <section className="py-32 px-6">
+    <section className="py-32 px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
