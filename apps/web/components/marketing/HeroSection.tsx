@@ -120,10 +120,13 @@ export default function HeroSection() {
 
       {/* Background */}
       <div className="absolute inset-0 -z-10">
-        {/* Base — light mode gets a rich violet tint, dark stays pure dark */}
-        <div className="absolute inset-0 bg-gradient-to-b from-violet-100/70 via-violet-50/30 to-bg dark:from-violet-950/50 dark:via-bg dark:to-bg" />
-        {/* Sweeping top gradient arc */}
-        <div className="absolute top-0 left-0 right-0 h-[70%] bg-[radial-gradient(ellipse_100%_80%_at_50%_-10%,rgba(124,58,237,0.18),transparent_60%)] dark:bg-[radial-gradient(ellipse_100%_80%_at_50%_-10%,rgba(124,58,237,0.25),transparent_60%)]" />
+        {/* Base — visible violet in light mode, deep dark in dark mode */}
+        <div className="absolute inset-0 bg-gradient-to-b from-violet-300/30 via-violet-200/15 to-bg dark:from-violet-950/60 dark:via-bg dark:to-bg" />
+        {/* Strong sweeping arc from top */}
+        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.30),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.35),transparent_65%)]" />
+        {/* Side accent blushes */}
+        <div className="absolute top-0 left-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.14),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.20),transparent)]" />
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.12),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.18),transparent)]" />
         <div className="hero-orb hero-orb-1" />
         <div className="hero-orb hero-orb-2" />
         <div className="hero-orb hero-orb-3" />

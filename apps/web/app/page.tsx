@@ -6,7 +6,6 @@ import CoreLoop from '@/components/marketing/CoreLoop';
 import QuoteSection from '@/components/marketing/QuoteSection';
 import FeaturesSection from '@/components/marketing/FeaturesSection';
 import DayInLife from '@/components/marketing/DayInLife';
-import SocialProof from '@/components/marketing/SocialProof';
 import PlatformsSection from '@/components/marketing/PlatformsSection';
 import CompareSection from '@/components/marketing/CompareSection';
 import PricingSection from '@/components/marketing/PricingSection';
@@ -36,7 +35,6 @@ export default function MarketingPage() {
       <QuoteSection />
       <FeaturesSection />
       <DayInLife />
-      <SocialProof />
       <PlatformsSection />
       <CompareSection />
       <PricingSection />
