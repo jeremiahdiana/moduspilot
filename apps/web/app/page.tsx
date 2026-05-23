@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Navbar from '@/components/marketing/Navbar';
 import HeroSection from '@/components/marketing/HeroSection';
+import ChatSection from '@/components/marketing/ChatSection';
 import CoreLoop from '@/components/marketing/CoreLoop';
 import QuoteSection from '@/components/marketing/QuoteSection';
 import FeaturesSection from '@/components/marketing/FeaturesSection';
-import ChatSection from '@/components/marketing/ChatSection';
+import DayInLife from '@/components/marketing/DayInLife';
+import SocialProof from '@/components/marketing/SocialProof';
 import PlatformsSection from '@/components/marketing/PlatformsSection';
-import ModusVsPilot from '@/components/marketing/ModusVsPilot';
 import CompareSection from '@/components/marketing/CompareSection';
 import PricingSection from '@/components/marketing/PricingSection';
 import FAQSection from '@/components/marketing/FAQSection';
@@ -14,14 +15,14 @@ import FinalCTA from '@/components/marketing/FinalCTA';
 import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
-  title: 'Modus — Your AI Chief of Staff',
+  title: 'MODUS — The AI That Runs Your Life',
   description:
-    'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
+    'Tell MODUS your goals. It builds the plan, tracks your habits, triages your inbox, and tells you exactly what to focus on — every morning. You approve every action.',
   openGraph: {
-    title: 'Modus — Your AI Chief of Staff',
-    description: 'The AI that runs your week. Modus monitors what matters, surfaces what\'s urgent, and acts on your behalf — with your approval.',
+    title: 'MODUS — The AI That Runs Your Life',
+    description: 'The AI personal operating system. Connects your goals, habits, inbox, and calendar. Acts with your approval. Nothing runs without you.',
     url: 'https://moduspilot.com',
-    siteName: 'Modus',
+    siteName: 'MODUS',
   },
 };
 
@@ -30,12 +31,13 @@ export default function MarketingPage() {
     <main className="bg-bg text-text min-h-screen overflow-x-hidden">
       <Navbar />
       <HeroSection />
+      <ChatSection />
       <CoreLoop />
       <QuoteSection />
       <FeaturesSection />
-      <ChatSection />
+      <DayInLife />
+      <SocialProof />
       <PlatformsSection />
-      <ModusVsPilot />
       <CompareSection />
       <PricingSection />
       <FAQSection />
