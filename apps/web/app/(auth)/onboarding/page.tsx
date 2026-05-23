@@ -71,25 +71,16 @@ const cardItemVariants = {
   show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
 };
 
-// ── background blobs ─────────────────────────────────────────────────────────
-function BackgroundBlobs() {
+// ── background (matches login page) ──────────────────────────────────────────
+function PageBackground() {
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      <motion.div
-        animate={{ x: [0, 28, -18, 0], y: [0, -38, 22, 0], scale: [1, 1.08, 0.96, 1] }}
-        transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-brand/7 rounded-full blur-3xl"
-      />
-      <motion.div
-        animate={{ x: [0, -22, 32, 0], y: [0, 28, -18, 0], scale: [1, 0.92, 1.12, 1] }}
-        transition={{ duration: 28, repeat: Infinity, ease: 'easeInOut', delay: 6 }}
-        className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-violet-500/5 rounded-full blur-3xl"
-      />
-      <motion.div
-        animate={{ x: [0, 18, -28, 0], y: [0, -18, 28, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 12 }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-indigo-500/4 rounded-full blur-3xl"
-      />
+    <div className="fixed inset-0 -z-10 bg-bg overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-bg to-bg dark:from-violet-950/40" />
+      <div className="hero-orb hero-orb-1" style={{ opacity: 0.65 }} />
+      <div className="hero-orb hero-orb-2" style={{ opacity: 0.42 }} />
+      <div className="hero-orb hero-orb-3" style={{ opacity: 0.32 }} />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.07)_1px,transparent_1px)] bg-[size:28px_28px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_65%_at_50%_50%,rgba(124,58,237,0.06),transparent_70%)]" />
     </div>
   );
 }
@@ -186,15 +177,18 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         className="text-center space-y-4"
       >
         <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
+          initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="w-16 h-16 rounded-2xl bg-brand mx-auto flex items-center justify-center shadow-[0_8px_32px_rgba(124,58,237,0.35)]"
+          className="flex flex-col items-center gap-2"
         >
-          <Image src="/logo.png" alt="MODUS" width={36} height={36} className="object-contain" />
+          <Image src="/logo.png" alt="MODUS" width={80} height={60} className="object-contain block dark:hidden drop-shadow-sm" />
+          <Image src="/logo-dark.png" alt="MODUS" width={80} height={60} className="object-contain hidden dark:block drop-shadow-sm" />
+          <h2 className="hero-gradient-text text-3xl font-black tracking-widest">MODUS</h2>
+          <p className="text-muted/70 text-[10px] tracking-widest uppercase font-semibold">pilot</p>
         </motion.div>
         <div>
-          <p className="text-xs font-bold text-brand uppercase tracking-[0.18em] mb-3">Everything. One AI.</p>
+          <p className="text-xs font-bold text-brand uppercase tracking-[0.18em] mb-3 mt-2">Everything. One AI.</p>
           <h1 className="text-4xl font-black text-text leading-[1.08] tracking-tight">
             Your executive<br />assistant is ready.
           </h1>
@@ -260,10 +254,10 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         className="space-y-3"
       >
         <motion.button
-          whileHover={{ scale: 1.02, boxShadow: '0 8px 32px rgba(124,58,237,0.3)' }}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={onStart}
-          className="w-full py-4 bg-brand text-white text-sm font-bold rounded-2xl transition-all shadow-[0_4px_16px_rgba(124,58,237,0.25)]"
+          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl"
         >
           Start your free trial →
         </motion.button>
@@ -319,7 +313,7 @@ function NameScreen({ name, setName, onNext }: { name: string; setName: (v: stri
         whileTap={name.trim() ? { scale: 0.97 } : {}}
         onClick={onNext}
         disabled={!name.trim()}
-        className="w-full py-4 bg-brand text-white text-sm font-bold rounded-2xl hover:bg-brand/90 transition-all disabled:opacity-35 shadow-[0_4px_16px_rgba(124,58,237,0.2)]"
+        className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl"
       >
         Continue →
       </motion.button>
@@ -467,9 +461,13 @@ function CompletionScreen({ name }: { name: string }) {
         initial={{ scale: 0.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, type: 'spring', stiffness: 220, damping: 16 }}
-        className="w-20 h-20 rounded-3xl bg-brand mx-auto flex items-center justify-center shadow-[0_12px_40px_rgba(124,58,237,0.4)]"
+        className="mx-auto flex flex-col items-center gap-2"
       >
-        <Image src="/logo.png" alt="MODUS" width={44} height={44} className="object-contain" />
+        <div className="w-20 h-20 rounded-3xl bg-brand/12 border border-brand/25 flex items-center justify-center shadow-[0_12px_40px_rgba(124,58,237,0.28)]">
+          <Image src="/logo.png" alt="MODUS" width={48} height={36} className="object-contain block dark:hidden" />
+          <Image src="/logo-dark.png" alt="MODUS" width={48} height={36} className="object-contain hidden dark:block" />
+        </div>
+        <p className="hero-gradient-text text-2xl font-black tracking-widest">MODUS</p>
       </motion.div>
 
       <div className="space-y-2">
@@ -828,7 +826,7 @@ export default function OnboardingPage() {
   if (screen === 'welcome') {
     return (
       <div className="relative min-h-screen flex flex-col items-center overflow-y-auto">
-        <BackgroundBlobs />
+        <PageBackground />
         <div className="relative z-10">
           <WelcomeScreen onStart={() => go('name')} />
         </div>
@@ -839,7 +837,7 @@ export default function OnboardingPage() {
   if (screen === 'name') {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
-        <BackgroundBlobs />
+        <PageBackground />
         <div className="relative z-10 w-full">
           <NameScreen name={name} setName={setName} onNext={() => name.trim() && go(1)} />
         </div>
@@ -850,7 +848,7 @@ export default function OnboardingPage() {
   if (screen === 'done') {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
-        <BackgroundBlobs />
+        <PageBackground />
         <div className="relative z-10">
           <CompletionScreen name={name} />
         </div>
@@ -867,7 +865,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center">
-      <BackgroundBlobs />
+      <PageBackground />
 
       {/* Top bar */}
       <div className="relative z-10 w-full max-w-md px-6 pt-8 pb-2">
@@ -932,7 +930,7 @@ export default function OnboardingPage() {
               whileTap={valid ? { scale: 0.97 } : {}}
               onClick={isLast ? handleFinish : () => go(stepNum + 1)}
               disabled={!valid || saving}
-              className="px-7 py-3 bg-brand text-white text-sm font-bold rounded-2xl hover:bg-brand/90 transition-all disabled:opacity-35 shadow-[0_4px_16px_rgba(124,58,237,0.25)]"
+              className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl"
             >
               {isLast ? 'Launch MODUS →' : 'Continue →'}
             </motion.button>

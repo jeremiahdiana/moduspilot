@@ -1182,7 +1182,14 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const unreadCount = gmailThreads.filter(t => t.unread).length;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg" style={{ backgroundImage: 'radial-gradient(ellipse at 60% 0%, rgba(245,158,11,0.04) 0%, transparent 65%)' }}>
+    <div className="flex-1 overflow-y-auto" style={{
+      background: 'rgb(var(--color-bg))',
+      backgroundImage: `
+        radial-gradient(ellipse 100% 45% at 50% -5%, rgba(124,58,237,0.11) 0%, transparent 70%),
+        radial-gradient(ellipse 55% 30% at 88% 20%, rgba(139,92,246,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 35% 20% at 12% 75%, rgba(167,139,250,0.04) 0%, transparent 50%)
+      `,
+    }}>
       <div className="px-6 py-10">
 
         {autoGenerating && (
@@ -1384,7 +1391,7 @@ function EmptyBriefing() {
       <h2 className="text-lg font-semibold text-text">No briefings yet</h2>
       <p className="text-sm text-muted max-w-xs">Your first briefing will arrive at your scheduled time, or generate one now.</p>
       <button onClick={generate} disabled={generating}
-        className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-60 flex items-center gap-2">
+        className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl flex items-center gap-2">
         {generating && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
         {generating ? 'Generating...' : 'Generate briefing now'}
       </button>
