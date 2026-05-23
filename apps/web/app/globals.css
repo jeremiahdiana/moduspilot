@@ -83,10 +83,16 @@ body {
   animation: orb-drift-3 18s ease-in-out infinite;
 }
 .hero-orb-4 {
-  width: 450px; height: 450px;
+  width: 500px; height: 500px;
   top: 35%; left: -80px;
   background: radial-gradient(circle, rgba(192,132,252,0.14) 0%, transparent 70%);
   animation: orb-drift-1 22s ease-in-out infinite reverse;
+}
+.hero-orb-5 {
+  width: 350px; height: 350px;
+  bottom: 10%; right: 15%;
+  background: radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%);
+  animation: orb-drift-2 25s ease-in-out infinite;
 }
 
 /* Boost in light mode */
