@@ -1,6 +1,7 @@
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
-import type { CoreMessage } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import type { CoreMessage, LanguageModel } from 'ai';
 import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { queryMemory, upsertMemory } from '@/lib/pinecone';
@@ -179,10 +180,19 @@ export async function POST(req: Request) {
       }
     }
 
-    const groq = createOpenAI({
-      baseURL: 'https://api.groq.com/openai/v1',
-      apiKey: key,
-    });
+    // Resolve model — user's BYOK preference or fall back to Groq
+    let chatModel: LanguageModel;
+    const ms = userData.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
+    const modelProvider = ms?.provider ?? 'groq';
+    const modelId = ms?.model ?? 'llama-3.3-70b-versatile';
+
+    if (modelProvider === 'openai' && ms?.openaiKey) {
+      chatModel = createOpenAI({ apiKey: ms.openaiKey })(modelId);
+    } else if (modelProvider === 'anthropic' && ms?.anthropicKey) {
+      chatModel = createAnthropic({ apiKey: ms.anthropicKey })(modelId);
+    } else {
+      chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(modelId === 'llama-3.3-70b-versatile' || !ms?.model ? 'llama-3.3-70b-versatile' : modelId);
+    }
 
     // Build system prompt with user context always included
     const userContextBlock = personalContext
@@ -225,7 +235,7 @@ export async function POST(req: Request) {
     const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock + googleDataBlock + webSearchBlock + driveBlock;
 
     const result = streamText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: chatModel,
       system: fullSystemPrompt,
       messages: body.messages,
       maxTokens: 2048,

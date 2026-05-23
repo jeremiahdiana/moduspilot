@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/openai": "1.3.24",
     "@next/env": "^14.2.35",
     "@pinecone-database/pinecone": "^3.0.0",

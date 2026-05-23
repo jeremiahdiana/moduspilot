@@ -14,6 +14,7 @@ import UsageSettings from '@/components/settings/UsageSettings';
 import CapabilitiesSettings from '@/components/settings/CapabilitiesSettings';
 import ConnectorsSettings from '@/components/settings/ConnectorsSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
+import ModelSettings from '@/components/settings/ModelSettings';
 
 function TabIcon({ d, d2 }: { d: string; d2?: string }) {
   return (
@@ -33,6 +34,7 @@ const TABS = [
   { key: 'capabilities', label: 'Capabilities', icon: <TabIcon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /> },
   { key: 'connectors',   label: 'Connectors',   icon: <TabIcon d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" d2="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /> },
   { key: 'memory',       label: 'Memory',       icon: <TabIcon d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4l3 3" /> },
+  { key: 'model',        label: 'Model',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
 ] as const;
 
 type Tab = typeof TABS[number]['key'];
@@ -132,6 +134,9 @@ function SettingsContent() {
               onAdd={addMemory}
               onDelete={deleteMemory}
             />
+          )}
+          {activeTab === 'model' && (
+            <ModelSettings settings={settings} saving={saving} onSave={saveSettings} />
           )}
         </div>
       </main>
