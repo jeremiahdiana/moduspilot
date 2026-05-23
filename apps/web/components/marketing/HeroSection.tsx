@@ -113,6 +113,140 @@ function Ticker() {
   );
 }
 
+/* ── Dashboard product preview ── */
+function DashboardPreview() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 48 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 1, delay: 1, ease: [0.16, 1, 0.3, 1] }}
+      className="relative w-full max-w-5xl mx-auto mt-8 px-4 z-10"
+    >
+      {/* glow behind window */}
+      <div className="absolute -inset-8 bg-[radial-gradient(ellipse_80%_50%_at_50%_60%,rgba(124,58,237,0.28),transparent)] pointer-events-none" />
+
+      {/* browser chrome */}
+      <div className="relative rounded-2xl overflow-hidden border border-brand/25 shadow-[0_32px_80px_rgba(124,58,237,0.22)] bg-panel">
+        {/* top bar */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-bg border-b border-border/60">
+          <div className="flex gap-1.5 shrink-0">
+            <div className="w-3 h-3 rounded-full bg-red-400/60" />
+            <div className="w-3 h-3 rounded-full bg-yellow-400/60" />
+            <div className="w-3 h-3 rounded-full bg-green-400/60" />
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="bg-panel border border-border rounded-lg px-4 py-1 text-[11px] text-muted/60 font-mono">
+              moduspilot.com/dashboard
+            </div>
+          </div>
+        </div>
+
+        {/* dashboard interior */}
+        <div className="flex h-[340px] sm:h-[400px] overflow-hidden">
+          {/* sidebar */}
+          <div className="w-32 sm:w-40 border-r border-border bg-bg/60 flex flex-col py-4 px-2.5 gap-0.5 shrink-0">
+            <div className="px-2 mb-3 flex items-center gap-1.5">
+              <div className="w-5 h-5 bg-brand/20 rounded-md flex items-center justify-center">
+                <div className="w-2.5 h-2.5 bg-brand/60 rounded-sm" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-brand">MODUS</span>
+            </div>
+            {['Dashboard', 'Briefing', 'Chat', 'Goals', 'Tasks', 'Habits'].map((label, i) => (
+              <div key={label} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[9px] sm:text-[10px] font-medium ${i === 0 ? 'bg-brand/10 text-brand' : 'text-muted'}`}>
+                <div className={`w-2.5 h-2.5 rounded-sm shrink-0 ${i === 0 ? 'bg-brand/50' : 'bg-border'}`} />
+                {label}
+              </div>
+            ))}
+          </div>
+
+          {/* main content */}
+          <div className="flex-1 bg-bg p-4 overflow-hidden">
+            {/* header */}
+            <div className="mb-4">
+              <div className="h-5 w-40 bg-text/10 rounded-md mb-1.5" />
+              <div className="h-3 w-24 bg-muted/20 rounded mb-3" />
+              <div className="flex gap-2 flex-wrap">
+                <div className="h-6 w-24 bg-brand/10 border border-brand/25 rounded-full" />
+                <div className="h-6 w-24 bg-yellow-500/10 border border-yellow-500/25 rounded-full" />
+                <div className="h-6 w-28 bg-orange-500/10 border border-orange-500/25 rounded-full" />
+              </div>
+            </div>
+
+            {/* focus card */}
+            <div className="mb-4 px-4 py-3 rounded-xl bg-brand/8 border border-brand/20 flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-brand/20 shrink-0" />
+              <div>
+                <div className="h-2 w-16 bg-brand/30 rounded mb-1.5" />
+                <div className="h-3 w-36 sm:w-48 bg-text/15 rounded" />
+              </div>
+            </div>
+
+            {/* widgets grid */}
+            <div className="grid grid-cols-[1fr_100px] sm:grid-cols-[1fr_130px] gap-3">
+              <div className="space-y-3">
+                <div className="bg-panel border border-border/60 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <div className="w-4 h-4 bg-brand/10 rounded" />
+                    <div className="h-3 w-28 bg-text/10 rounded" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="h-2.5 w-full bg-muted/10 rounded" />
+                    <div className="h-2.5 w-5/6 bg-muted/10 rounded" />
+                    <div className="h-2.5 w-4/6 bg-muted/8 rounded" />
+                  </div>
+                </div>
+                <div className="bg-panel border border-border/60 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <div className="w-4 h-4 bg-brand/10 rounded" />
+                    <div className="h-3 w-16 bg-text/10 rounded" />
+                  </div>
+                  <div className="space-y-2">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-border/60 shrink-0" />
+                        <div>
+                          <div className="h-2 w-20 sm:w-28 bg-text/10 rounded mb-1" />
+                          <div className="h-1.5 w-16 sm:w-24 bg-muted/10 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-panel border border-border/60 rounded-xl p-3">
+                  <div className="h-3 w-10 bg-text/10 rounded mb-2.5" />
+                  {[65, 30].map((pct, i) => (
+                    <div key={i} className="mb-2">
+                      <div className="h-2 w-full bg-muted/10 rounded mb-1" />
+                      <div className="h-1.5 w-full bg-border/50 rounded-full">
+                        <div className="h-full bg-brand/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-panel border border-border/60 rounded-xl p-3">
+                  <div className="h-3 w-10 bg-text/10 rounded mb-2.5" />
+                  {[true, false, false].map((done, i) => (
+                    <div key={i} className="flex items-center gap-1.5 mb-1.5">
+                      <div className={`w-3 h-3 rounded border shrink-0 ${done ? 'bg-brand border-brand' : 'border-border'}`} />
+                      <div className={`h-2 rounded ${done ? 'w-14 bg-muted/10' : 'w-16 bg-text/10'}`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* caption */}
+      <p className="text-center text-xs text-muted/50 mt-4">Your actual dashboard — goals, inbox, habits, calendar. All in one place.</p>
+    </motion.div>
+  );
+}
+
 /* ── Hero ── */
 export default function HeroSection() {
   return (
@@ -121,18 +255,18 @@ export default function HeroSection() {
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         {/* Base — visible violet in light mode, deep dark in dark mode */}
-        <div className="absolute inset-0 bg-gradient-to-b from-violet-300/30 via-violet-200/15 to-bg dark:from-violet-950/60 dark:via-bg dark:to-bg" />
+        <div className="absolute inset-0 bg-gradient-to-b from-violet-300/70 via-violet-200/30 to-bg dark:from-violet-950/60 dark:via-bg dark:to-bg" />
         {/* Strong sweeping arc from top */}
-        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.30),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.35),transparent_65%)]" />
+        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.55),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.35),transparent_65%)]" />
         {/* Side accent blushes */}
-        <div className="absolute top-0 left-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.14),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.20),transparent)]" />
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.12),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.18),transparent)]" />
+        <div className="absolute top-0 left-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.35),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.20),transparent)]" />
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.30),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.18),transparent)]" />
         <div className="hero-orb hero-orb-1" />
         <div className="hero-orb hero-orb-2" />
         <div className="hero-orb hero-orb-3" />
         <div className="hero-orb hero-orb-4" />
         <ParticleCanvas />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.10)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(124,58,237,0.18)_1px,transparent_1px)] bg-[size:28px_28px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.22)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(124,58,237,0.18)_1px,transparent_1px)] bg-[size:28px_28px]" />
         {/* Animated spotlight sweep */}
         <motion.div
           className="absolute inset-0 bg-[radial-gradient(ellipse_50%_35%_at_50%_35%,rgba(124,58,237,0.12),transparent_70%)]"
@@ -204,6 +338,8 @@ export default function HeroSection() {
           <Ticker />
         </motion.div>
       </div>
+
+      <DashboardPreview />
 
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-bg to-transparent pointer-events-none z-20" />
     </section>

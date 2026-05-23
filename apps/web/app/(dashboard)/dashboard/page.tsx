@@ -168,6 +168,71 @@ function StatPill({ value, label, href, color, delay = 0 }: { value: number; lab
   );
 }
 
+const QUICK_ACTIONS = [
+  {
+    label: '+ Task',
+    href: '/tasks',
+    color: 'border-yellow-500/30 bg-yellow-500/5 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+        <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+      </svg>
+    ),
+  },
+  {
+    label: '+ Goal',
+    href: '/goals',
+    color: 'border-brand/30 bg-brand/5 text-brand hover:bg-brand/10',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+        <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+      </svg>
+    ),
+  },
+  {
+    label: '+ Log habit',
+    href: '/habits',
+    color: 'border-orange-500/30 bg-orange-500/5 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+      </svg>
+    ),
+  },
+  {
+    label: '+ Ask MODUS',
+    href: '/chat',
+    color: 'border-violet-400/30 bg-violet-500/5 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+      </svg>
+    ),
+  },
+] as const;
+
+function QuickActions() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: 0.35 }}
+      className="flex items-center gap-2 mt-4 flex-wrap"
+    >
+      {QUICK_ACTIONS.map(action => (
+        <Link
+          key={action.href}
+          href={action.href}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${action.color}`}
+        >
+          {action.icon}
+          {action.label}
+        </Link>
+      ))}
+    </motion.div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] ?? '';
@@ -194,6 +259,8 @@ export default function DashboardPage() {
             <StatPill value={stats.topStreak} label="day streak 🔥" href="/habits" color="border-orange-500/30 bg-orange-500/5 text-orange-400" delay={0.3} />
           )}
         </div>
+
+        <QuickActions />
       </motion.div>
 
       {focus && <FocusCard focus={focus} />}

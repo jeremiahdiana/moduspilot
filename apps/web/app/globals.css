@@ -8,11 +8,11 @@
 /* Light mode (default — dark class added by JS if preference is dark) */
 :root {
   --font-inter: 'Inter', system-ui, sans-serif;
-  --color-bg: 247 247 251;
-  --color-panel: 255 255 255;
-  --color-border: 226 226 236;
+  --color-bg: 242 238 255;
+  --color-panel: 252 250 255;
+  --color-border: 214 206 235;
   --color-text: 13 13 20;
-  --color-muted: 107 107 128;
+  --color-muted: 98 88 118;
 }
 
 .dark {
@@ -108,10 +108,10 @@ body::after {
 }
 
 /* Boost in light mode */
-:root .hero-orb-1 { background: radial-gradient(circle, rgba(124,58,237,0.26) 0%, transparent 70%); }
-:root .hero-orb-2 { background: radial-gradient(circle, rgba(139,92,246,0.20) 0%, transparent 70%); }
-:root .hero-orb-3 { background: radial-gradient(circle, rgba(167,139,250,0.18) 0%, transparent 70%); }
-:root .hero-orb-4 { background: radial-gradient(circle, rgba(192,132,252,0.16) 0%, transparent 70%); }
+:root .hero-orb-1 { background: radial-gradient(circle, rgba(124,58,237,0.60) 0%, transparent 70%); }
+:root .hero-orb-2 { background: radial-gradient(circle, rgba(139,92,246,0.50) 0%, transparent 70%); }
+:root .hero-orb-3 { background: radial-gradient(circle, rgba(167,139,250,0.45) 0%, transparent 70%); }
+:root .hero-orb-4 { background: radial-gradient(circle, rgba(192,132,252,0.40) 0%, transparent 70%); }
 
 @keyframes orb-drift-1 {
   0%,100% { transform: translate(0, 0) scale(1); }
