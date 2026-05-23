@@ -78,43 +78,6 @@ function Typewriter() {
   );
 }
 
-/* ── Scrolling live activity ticker ── */
-const TICKER = [
-  '✅  Deep work blocked — 9 to 12 AM',
-  '📬  4 emails triaged, 2 drafts queued',
-  '🔥  Running streak: 14 days',
-  '🎯  Milestone reached — Ship landing page',
-  '✅  3 tasks approved by you',
-  '📅  3 PM moved to Friday — approved',
-  '💡  Pattern detected: energy dips after lunch',
-  '🔥  Read 20 min — streak: 21 days',
-  '✅  Weekly review ready for your approval',
-  '📬  Reply sent to Marcus — approved',
-];
-function Ticker() {
-  const items = [...TICKER, ...TICKER];
-  return (
-    <div className="relative overflow-hidden w-full max-w-3xl mx-auto">
-      {/* Fade masks */}
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-bg to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-bg to-transparent z-10 pointer-events-none" />
-      <motion.div
-        animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
-        className="flex gap-6 whitespace-nowrap"
-      >
-        {items.map((item, i) => (
-          <span
-            key={i}
-            className="inline-flex items-center gap-2 text-xs text-muted/70 bg-panel/50 dark:bg-panel/40 backdrop-blur-sm border border-border/40 rounded-full px-3 py-1"
-          >
-            {item}
-          </span>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
 
 /* ── Dashboard mockup ── */
 function DashboardMockup() {
@@ -247,7 +210,7 @@ export default function HeroSection() {
         <motion.h1
           initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
-          className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[1.0] tracking-tight mb-8"
+          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[1.04] tracking-tight mb-6"
         >
           <span className="text-text">The AI That</span><br />
           <span className="hero-gradient-text">Runs Your Life.</span>
@@ -283,18 +246,13 @@ export default function HeroSection() {
         {/* Trust bar */}
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.5 }}
-          className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted/60 mb-10"
+          className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted/60"
         >
           {['Gmail & Calendar connected', 'Use your own GPT-4o or Claude key', 'Privacy-first', 'Cancel anytime'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <span className="text-brand/60">✓</span> {t}
             </span>
           ))}
-        </motion.div>
-
-        {/* Live ticker */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.7 }}>
-          <Ticker />
         </motion.div>
       </div>
 
