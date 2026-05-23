@@ -7,7 +7,7 @@
 
 /* Light mode (default — dark class added by JS if preference is dark) */
 :root {
-  --font-inter: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
   --color-bg: 242 238 255;
   --color-panel: 252 250 255;
   --color-border: 214 206 235;
@@ -30,7 +30,7 @@
 body {
   background: rgb(var(--color-bg));
   color: rgb(var(--color-text));
-  font-family: var(--font-inter);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
