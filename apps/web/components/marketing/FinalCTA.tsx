@@ -26,7 +26,7 @@ export default function FinalCTA() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
               href="/login"
-              className="inline-block px-10 py-4 bg-brand text-white text-base font-bold rounded-xl hover:bg-brand/90 hover:shadow-[0_0_60px_rgba(124,58,237,0.5)] transition-all hover:scale-105 active:scale-100"
+              className="btn-primary inline-block px-10 py-4 bg-brand text-white text-base font-bold rounded-xl hover:shadow-[0_0_60px_rgba(124,58,237,0.55)] transition-all hover:scale-105 active:scale-100"
             >
               Get Early Access
             </a>

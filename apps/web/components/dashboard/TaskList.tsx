@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 
@@ -24,6 +25,7 @@ export default function TaskList() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -50,10 +52,13 @@ export default function TaskList() {
 
   async function markDone(taskId: string) {
     if (!user) return;
+    setCompleting(s => new Set(s).add(taskId));
+    await new Promise(r => setTimeout(r, 600));
     await updateDoc(doc(db, 'users', user.uid, 'tasks', taskId), {
       done: true,
       completedAt: serverTimestamp(),
     });
+    setCompleting(s => { const n = new Set(s); n.delete(taskId); return n; });
   }
 
   return (
@@ -67,27 +72,49 @@ export default function TaskList() {
           <p className="text-muted text-xs text-center">No tasks yet.</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-          {tasks.map(t => (
-            <div key={t.id} className="flex items-start gap-2.5 group">
-              <button
-                onClick={() => markDone(t.id)}
-                className="mt-0.5 w-4 h-4 shrink-0 rounded border border-border group-hover:border-brand transition-colors flex items-center justify-center"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {t.priority && (
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] ?? 'bg-muted'}`} />
-                  )}
-                  <span className="text-sm text-text truncate">{t.title}</span>
-                </div>
-                {t.dueDate && (
-                  <span className="text-xs text-muted">{t.dueDate}</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <AnimatePresence initial={false}>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {tasks.map(t => {
+              const done = completing.has(t.id);
+              return (
+                <motion.div
+                  key={t.id}
+                  layout
+                  initial={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  className="flex items-start gap-2.5 group overflow-hidden"
+                >
+                  <button
+                    onClick={() => markDone(t.id)}
+                    className={`mt-0.5 w-4 h-4 shrink-0 rounded border transition-all duration-200 flex items-center justify-center ${
+                      done ? 'bg-brand border-brand' : 'border-border group-hover:border-brand'
+                    }`}
+                  >
+                    {done && (
+                      <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+                        <path d="M2 6l3 3 5-5" />
+                      </svg>
+                    )}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {t.priority && (
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[t.priority] ?? 'bg-muted'}`} />
+                      )}
+                      <span className={`text-sm truncate transition-all duration-300 ${done ? 'line-through text-muted/50' : 'text-text'}`}>
+                        {t.title}
+                      </span>
+                    </div>
+                    {t.dueDate && (
+                      <span className="text-xs text-muted">{t.dueDate}</span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </AnimatePresence>
       )}
     </div>
   );

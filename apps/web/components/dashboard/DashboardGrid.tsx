@@ -20,7 +20,7 @@ interface WidgetProps {
 
 function Widget({ title, icon, href, action, children, className = '' }: WidgetProps) {
   return (
-    <div className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden ${className}`} style={{ willChange: 'opacity, transform' }}>
+    <div className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden transition-all duration-200 hover:border-brand/20 hover:shadow-[0_4px_24px_rgba(124,58,237,0.07)] ${className}`} style={{ willChange: 'opacity, transform' }}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand">

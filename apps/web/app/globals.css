@@ -147,3 +147,25 @@ body::after {
   33% { transform: translate(30px, -20px) scale(1.05); }
   66% { transform: translate(-20px, 30px) scale(0.96); }
 }
+
+/* Primary button sweep shine */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  animation: btn-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes btn-sweep {
+  0%   { left: -120%; }
+  45%  { left: 120%; }
+  100% { left: 120%; }
+}

@@ -88,9 +88,10 @@ export default function Navbar({ solid = false }: Props) {
               </div>
               <Link
                 href="/dashboard"
-                className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all"
+                className="btn-primary group flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all"
               >
-                Go to Dashboard →
+                Go to Dashboard
+                <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
               </Link>
             </>
           ) : (
@@ -100,7 +101,7 @@ export default function Navbar({ solid = false }: Props) {
               </Link>
               <Link
                 href="/login"
-                className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand/90 transition-colors"
+                className="btn-primary px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all"
               >
                 Get Started
               </Link>
