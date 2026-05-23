@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -15,6 +15,7 @@ interface Props {
 
 export default function Navbar({ solid = false }: Props) {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [authedUser, setAuthedUser] = useState<{ name: string | null; email: string | null } | null>(null);
   const pathname = usePathname();
 
@@ -31,7 +32,9 @@ export default function Navbar({ solid = false }: Props) {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  const showBg = solid || scrolled;
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+
+  const showBg = solid || scrolled || menuOpen;
 
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -45,7 +48,7 @@ export default function Navbar({ solid = false }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 overflow-hidden transition-all duration-300 ${
-        showBg ? 'bg-bg/90 backdrop-blur-xl border-b border-border/60' : 'bg-transparent'
+        showBg ? 'bg-bg/95 backdrop-blur-xl border-b border-border/60' : 'bg-transparent'
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
@@ -101,14 +104,62 @@ export default function Navbar({ solid = false }: Props) {
               </Link>
               <Link
                 href="/login"
-                className="btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
+                className="hidden md:block btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
               >
                 Get Started
               </Link>
+              <button
+                onClick={() => setMenuOpen(o => !o)}
+                className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5"
+                aria-label="Toggle menu"
+              >
+                <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+                <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+              </button>
             </>
           )}
         </div>
       </div>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="md:hidden border-t border-border/60 overflow-hidden"
+          >
+            <div className="px-4 py-4 flex flex-col gap-1">
+              {navLinks.map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    pathname === link.href
+                      ? 'bg-brand/10 text-text font-medium'
+                      : 'text-muted hover:text-text hover:bg-panel'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="mt-2 pt-2 border-t border-border/60">
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-center w-full py-2.5 bg-brand text-white text-sm font-semibold rounded-lg"
+                >
+                  Get Started — free
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 }
