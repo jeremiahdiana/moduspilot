@@ -33,7 +33,6 @@ const CAPABILITIES: CapabilityRow[] = [
     key: 'dailyBriefing',
     label: 'Daily Briefing',
     desc: 'MODUS sends you a morning brief with your top priorities, pending approvals, and a quick check-in.',
-    badge: 'Coming Soon',
   },
   {
     key: 'voiceInput',
@@ -45,7 +44,6 @@ const CAPABILITIES: CapabilityRow[] = [
     key: 'vectorMemory',
     label: 'Vector Memory',
     desc: 'MODUS stores semantic memories from your conversations in Pinecone so it can recall past context across sessions.',
-    badge: 'Coming Soon',
   },
 ];
 

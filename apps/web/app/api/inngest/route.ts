@@ -8,3 +8,4 @@ export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [dailyCheckin, memoryUpsert, habitReminder],
 });
+
