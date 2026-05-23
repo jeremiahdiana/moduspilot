@@ -7,7 +7,7 @@
 
 /* Light mode (default — dark class added by JS if preference is dark) */
 :root {
-  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans: 'Bricolage Grotesque', system-ui, sans-serif;
   --color-bg: 242 238 255;
   --color-panel: 252 250 255;
   --color-border: 214 206 235;

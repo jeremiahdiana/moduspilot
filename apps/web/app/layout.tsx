@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk } from 'next/font/google';
+import { Bricolage_Grotesque } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 
-const spaceGrotesk = Space_Grotesk({
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700', '800'],
   variable: '--font-sans',
 });
 
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={spaceGrotesk.variable}>
+    <html lang="en" className={bricolage.variable}>
       <head>
         {/* Inject theme before first paint to avoid flash. Defaults to dark. */}
         <script dangerouslySetInnerHTML={{ __html: `
