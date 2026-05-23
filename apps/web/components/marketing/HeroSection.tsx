@@ -79,95 +79,36 @@ function Typewriter() {
 }
 
 
-/* ── Dashboard mockup ── */
-function DashboardMockup() {
+/* ── Scrolling live activity ticker ── */
+const TICKER = [
+  '✅  Deep work blocked — 9 to 12 AM',
+  '📬  4 emails triaged, 2 drafts queued',
+  '🔥  Running streak: 14 days',
+  '🎯  Milestone reached — Ship landing page',
+  '✅  3 tasks approved by you',
+  '📅  3 PM moved to Friday — approved',
+  '💡  Pattern detected: energy dips after lunch',
+  '🔥  Read 20 min — streak: 21 days',
+  '✅  Weekly review ready for your approval',
+  '📬  Reply sent to Marcus — approved',
+];
+function Ticker() {
+  const items = [...TICKER, ...TICKER];
   return (
-    <div className="relative w-full max-w-4xl mx-auto">
-      {/* Glow behind the card */}
-      <div className="absolute -inset-4 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(124,58,237,0.18),transparent)] blur-2xl pointer-events-none" />
-
-      {/* Browser chrome */}
-      <div className="relative bg-panel/80 dark:bg-panel/70 backdrop-blur-xl border border-border/60 rounded-2xl overflow-hidden shadow-2xl shadow-black/20">
-        {/* Top bar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/60 bg-bg/40">
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
-          </div>
-          <div className="flex-1 mx-4">
-            <div className="bg-bg/60 border border-border/50 rounded-md px-3 py-1 text-[10px] text-muted/50 text-center">
-              app.moduspilot.com
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard body */}
-        <div className="grid grid-cols-3 gap-0 min-h-[320px]">
-          {/* Sidebar */}
-          <div className="col-span-1 border-r border-border/40 p-4 space-y-1 bg-bg/20">
-            <div className="flex items-center gap-2 mb-4 px-2">
-              <div className="w-5 h-5 rounded bg-brand/20 flex items-center justify-center">
-                <div className="w-2.5 h-2.5 rounded-sm bg-brand/60" />
-              </div>
-              <span className="text-[11px] font-black text-brand tracking-widest">MODUS</span>
-            </div>
-            {['Dashboard', 'Briefing', 'Goals', 'Habits', 'Tasks', 'Chat'].map((item, i) => (
-              <div key={item} className={`px-2 py-1.5 rounded-lg text-[11px] flex items-center gap-2 ${i === 1 ? 'bg-brand/10 text-brand font-medium' : 'text-muted'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${i === 1 ? 'bg-brand' : 'bg-border'}`} />
-                {item}
-              </div>
-            ))}
-          </div>
-
-          {/* Main content */}
-          <div className="col-span-2 p-5 space-y-4">
-            {/* Briefing header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                  <span className="text-[10px] font-bold text-brand uppercase tracking-widest">Morning Briefing</span>
-                </div>
-                <p className="text-sm font-bold text-text">Good morning. Here's your day.</p>
-              </div>
-              <div className="text-[10px] text-muted bg-bg/60 border border-border/50 rounded-lg px-2 py-1">
-                Energy: 7/10
-              </div>
-            </div>
-
-            {/* Top priorities */}
-            <div className="space-y-2">
-              {[
-                { label: 'Finish homepage copy', priority: 'High', done: false },
-                { label: 'Reply to investor email', priority: 'High', done: false },
-                { label: 'Review Q2 goals', priority: 'Med', done: true },
-              ].map((t, i) => (
-                <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[11px] ${t.done ? 'border-border/30 opacity-50' : 'border-border/60 bg-bg/30'}`}>
-                  <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${t.done ? 'bg-brand border-brand' : 'border-border'}`}>
-                    {t.done && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                  </div>
-                  <span className={`flex-1 ${t.done ? 'line-through text-muted' : 'text-text'}`}>{t.label}</span>
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${t.priority === 'High' ? 'bg-brand/10 text-brand' : 'bg-border/60 text-muted'}`}>{t.priority}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Approval card */}
-            <div className="border border-brand/30 bg-brand/5 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-                <span className="text-[10px] font-bold text-brand uppercase tracking-widest">Approval Required</span>
-              </div>
-              <p className="text-[11px] text-muted mb-2">Block tomorrow 9–12 AM as deep work?</p>
-              <div className="flex gap-2">
-                <div className="flex-1 py-1 bg-brand rounded-lg text-white text-[10px] font-semibold text-center">Approve</div>
-                <div className="flex-1 py-1 border border-border rounded-lg text-muted text-[10px] text-center">Edit</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="relative overflow-hidden w-full max-w-3xl mx-auto mt-10">
+      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-bg to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-bg to-transparent z-10 pointer-events-none" />
+      <motion.div
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+        className="flex gap-4 whitespace-nowrap"
+      >
+        {items.map((item, i) => (
+          <span key={i} className="inline-flex items-center gap-2 text-xs text-muted/70 bg-panel/50 dark:bg-panel/40 backdrop-blur-sm border border-border/40 rounded-full px-3 py-1.5">
+            {item}
+          </span>
+        ))}
+      </motion.div>
     </div>
   );
 }
@@ -254,17 +195,12 @@ export default function HeroSection() {
             </span>
           ))}
         </motion.div>
-      </div>
 
-      {/* Dashboard mockup */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, delay: 0.5, ease: 'easeOut' }}
-        className="relative w-full max-w-4xl mx-auto z-10 px-2"
-      >
-        <DashboardMockup />
-      </motion.div>
+        {/* Live ticker */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.7 }}>
+          <Ticker />
+        </motion.div>
+      </div>
 
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-bg to-transparent pointer-events-none z-20" />
     </section>
