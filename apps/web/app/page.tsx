@@ -14,14 +14,14 @@ import FinalCTA from '@/components/marketing/FinalCTA';
 import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
-  title: 'MODUS — The AI That Runs Your Life',
+  title: 'Modus — AI Life OS',
   description:
-    'Tell MODUS your goals. It builds the plan, tracks your habits, triages your inbox, and tells you exactly what to focus on — every morning. You approve every action.',
+    'Tell Modus your goals. It builds the plan, tracks your habits, triages your inbox, and tells you exactly what to focus on — every morning. You approve every action.',
   openGraph: {
-    title: 'MODUS — The AI That Runs Your Life',
+    title: 'Modus — AI Life OS',
     description: 'The AI personal operating system. Connects your goals, habits, inbox, and calendar. Acts with your approval. Nothing runs without you.',
     url: 'https://moduspilot.com',
-    siteName: 'MODUS',
+    siteName: 'Modus',
   },
 };
 
