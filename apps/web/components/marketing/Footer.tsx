@@ -20,7 +20,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative border-t border-border px-6 pt-16 pb-10 overflow-hidden">
+    <footer className="relative bg-panel border-t border-border px-6 pt-16 pb-10 overflow-hidden">
       {/* gradient top glow */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-[radial-gradient(ellipse_at_top,rgba(124,58,237,0.12),transparent)] pointer-events-none" />
