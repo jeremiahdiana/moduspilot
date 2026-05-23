@@ -29,12 +29,44 @@ export async function POST(req: Request) {
     // Auth (optional — degrades gracefully for guests)
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     let uid: string | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let userData: Record<string, any> = {};
     if (token) {
       try {
         const decoded = await adminAuth.verifyIdToken(token);
         uid = decoded.uid;
+        const snap = await adminDb.collection('users').doc(uid).get();
+        userData = snap.data() ?? {};
       } catch {
         // Guest — no memory
+      }
+    }
+
+    // Daily message limit for free users (20 msg/day after 30-day trial)
+    if (uid) {
+      const plan = userData.plan as string | undefined;
+      const isPaid = plan === 'modus' || plan === 'pilot';
+      if (!isPaid) {
+        let inTrial = false;
+        try {
+          const authUser = await adminAuth.getUser(uid);
+          inTrial = Date.now() - new Date(authUser.metadata.creationTime).getTime() < 30 * 24 * 60 * 60 * 1000;
+        } catch { /* treat as not in trial */ }
+
+        if (!inTrial) {
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const usageDate = (userData.usageDate as string) ?? '';
+          const dailyMessages = (userData.dailyMessages as number) ?? 0;
+          const count = usageDate === todayStr ? dailyMessages : 0;
+          if (count >= 20) {
+            return Response.json({ error: 'daily_limit_reached' }, { status: 429 });
+          }
+          // Increment counter (fire and forget)
+          adminDb.collection('users').doc(uid).set(
+            { dailyMessages: count + 1, usageDate: todayStr },
+            { merge: true }
+          ).catch(() => {});
+        }
       }
     }
 
@@ -55,17 +87,12 @@ export async function POST(req: Request) {
     let briefingTimezone = body.briefingTimezone ?? 'UTC';
 
     if (uid && (!personalContext && !responseStyle)) {
-      try {
-        const userDoc = await adminDb.collection('users').doc(uid).get();
-        const settings = userDoc.data()?.settings ?? {};
-        personalContext = settings.personalContext ?? '';
-        responseStyle = settings.responseStyle ?? '';
-        customStyle = settings.customStyle ?? '';
-        briefingHour = settings.briefingHour ?? 7;
-        briefingTimezone = settings.briefingTimezone ?? 'UTC';
-      } catch (e) {
-        console.error('[chat] failed to load user settings from admin:', e);
-      }
+      const settings = userData.settings ?? {};
+      personalContext = settings.personalContext ?? '';
+      responseStyle = settings.responseStyle ?? '';
+      customStyle = settings.customStyle ?? '';
+      briefingHour = settings.briefingHour ?? 7;
+      briefingTimezone = settings.briefingTimezone ?? 'UTC';
     }
 
     // Fetch live Google data if connected
@@ -103,18 +130,10 @@ export async function POST(req: Request) {
     const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
 
     // Fetch user capabilities (stored under settings.capabilities)
-    let capabilities: Record<string, boolean> = {};
-    if (uid) {
-      try {
-        const userDoc = await adminDb.collection('users').doc(uid).get();
-        const data = userDoc.data() ?? {};
-        // Check both locations: settings.capabilities (UI toggle) and top-level capabilities (legacy)
-        capabilities = {
-          ...(data.capabilities as Record<string, boolean> ?? {}),
-          ...(data.settings?.capabilities as Record<string, boolean> ?? {}),
-        };
-      } catch { /* non-fatal */ }
-    }
+    const capabilities: Record<string, boolean> = uid ? {
+      ...(userData.capabilities as Record<string, boolean> ?? {}),
+      ...(userData.settings?.capabilities as Record<string, boolean> ?? {}),
+    } : {};
 
     // Web search (Tavily) — if capability enabled and query looks external
     let webSearchBlock = '';

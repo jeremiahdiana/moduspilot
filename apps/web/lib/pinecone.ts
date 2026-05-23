@@ -43,3 +43,14 @@ export async function queryMemory(userId: string, queryText: string, topK = 5) {
   });
   return result.matches ?? [];
 }
+
+export async function clearMemories(userId: string) {
+  const prefix = `${userId}-`;
+  let paginationToken: string | undefined;
+  do {
+    const result = await pc().index(MEMORY_INDEX).listPaginated({ prefix, limit: 100, ...(paginationToken ? { paginationToken } : {}) });
+    const ids = (result.vectors ?? []).map(v => v.id).filter(Boolean) as string[];
+    if (ids.length > 0) await pc().index(MEMORY_INDEX).deleteMany(ids);
+    paginationToken = result.pagination?.next;
+  } while (paginationToken);
+}

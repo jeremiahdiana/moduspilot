@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { auth } from '@/lib/firebase';
 import type { UserSettings, Memory } from '@/hooks/useUserSettings';
 
 function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -30,6 +31,27 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
   const [newMemory, setNewMemory] = useState('');
   const [adding, setAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const [clearDone, setClearDone] = useState(false);
+
+  async function handleClearAll() {
+    if (!confirm('Clear all memories? This removes everything MODUS has learned from your conversations. This cannot be undone.')) return;
+    setClearing(true);
+    setClearDone(false);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      await fetch('/api/memory/clear', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setClearDone(true);
+      setTimeout(() => setClearDone(false), 3000);
+    } catch {
+      alert('Failed to clear memories. Try again.');
+    } finally {
+      setClearing(false);
+    }
+  }
 
   const handleAdd = async () => {
     if (!newMemory.trim()) return;
@@ -56,6 +78,12 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Memory</h2>
         <p className="text-sm text-muted">MODUS remembers facts about you that persist across all conversations.</p>
+      </div>
+
+      {/* How memory works */}
+      <div className="bg-panel border border-border rounded-xl p-5 space-y-2">
+        <p className="text-sm font-semibold text-text">How MODUS memory works</p>
+        <p className="text-xs text-muted leading-relaxed">MODUS maintains two memory layers. <span className="text-text">Semantic context</span> — every conversation is stored as embeddings so MODUS can surface relevant past context when it's useful. <span className="text-text">Stored memories</span> — explicit facts you add manually or that MODUS extracts, visible below. Both are private to your account and never shared.</p>
       </div>
 
       {/* Settings */}
@@ -106,7 +134,18 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text">Stored Memories</h3>
-          <span className="text-xs text-muted">{memories.length} total</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">{memories.length} total</span>
+            {(memories.length > 0 || true) && (
+              <button
+                onClick={handleClearAll}
+                disabled={clearing}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
+              >
+                {clearing ? 'Clearing…' : clearDone ? '✓ Cleared' : 'Clear all'}
+              </button>
+            )}
+          </div>
         </div>
         {memories.length === 0 ? (
           <p className="text-xs text-muted py-4 text-center">No memories yet. Add one above or enable auto-generation.</p>

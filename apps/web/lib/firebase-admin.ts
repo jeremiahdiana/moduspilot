@@ -13,5 +13,8 @@ function getAdminApp() {
   });
 }
 
-export const adminAuth = { verifyIdToken: (token: string) => getAuth(getAdminApp()).verifyIdToken(token) };
+export const adminAuth = {
+  verifyIdToken: (token: string) => getAuth(getAdminApp()).verifyIdToken(token),
+  getUser: (uid: string) => getAuth(getAdminApp()).getUser(uid),
+};
 export const adminDb = { collection: (name: string) => getFirestore(getAdminApp()).collection(name) };

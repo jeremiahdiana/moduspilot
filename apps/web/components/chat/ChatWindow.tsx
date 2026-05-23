@@ -68,7 +68,9 @@ export default function ChatWindow({
     },
     onError: (err) => {
       const msg = err?.message ?? '';
-      if (msg.includes('Rate limit') || msg.includes('TPD') || msg.includes('tokens per day')) {
+      if (msg.includes('daily_limit_reached')) {
+        setChatError("You've used your 20 free messages for today. Upgrade to MODUS for unlimited.");
+      } else if (msg.includes('Rate limit') || msg.includes('TPD') || msg.includes('tokens per day')) {
         setChatError('Daily message limit reached. Try again in a few hours.');
       } else if (msg.includes('rate limit') || msg.includes('429')) {
         setChatError('Too many messages right now. Wait a minute and try again.');
