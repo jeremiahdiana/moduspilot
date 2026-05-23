@@ -6,15 +6,24 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface Props {
-  /** Always show solid background — use on inner pages (how-it-works, pricing) */
   solid?: boolean;
 }
 
 export default function Navbar({ solid = false }: Props) {
   const [scrolled, setScrolled] = useState(false);
+  const [authedUser, setAuthedUser] = useState<{ name: string | null; email: string | null } | null>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setAuthedUser(u ? { name: u.displayName, email: u.email } : null);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -67,15 +76,36 @@ export default function Navbar({ solid = false }: Props) {
 
         <div className="flex items-center gap-3">
           <AnimatedThemeToggler />
-          <Link href="/login" className="text-sm text-muted hover:text-text transition-colors">
-            Sign In
-          </Link>
-          <Link
-            href="/login"
-            className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand/90 transition-colors"
-          >
-            Get Started
-          </Link>
+          {authedUser ? (
+            <>
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-xs font-bold text-brand">
+                  {(authedUser.name || authedUser.email || '?')[0].toUpperCase()}
+                </div>
+                <span className="hidden sm:block text-text font-medium">
+                  {authedUser.name?.split(' ')[0] ?? 'You'}
+                </span>
+              </div>
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all"
+              >
+                Go to Dashboard →
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-muted hover:text-text transition-colors">
+                Sign In
+              </Link>
+              <Link
+                href="/login"
+                className="px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand/90 transition-colors"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>
