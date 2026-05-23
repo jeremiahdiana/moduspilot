@@ -9,8 +9,8 @@ export default function Footer() {
     Company: [
       { label: 'About', href: '#' },
       { label: 'Blog', href: '#' },
-      { label: 'Privacy', href: '#' },
-      { label: 'Terms', href: '#' },
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
     ],
     'Get Started': [
       { label: 'Sign Up Free', href: '/login' },
@@ -60,8 +60,8 @@ export default function Footer() {
         <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted/50">© 2026 Modus · All rights reserved</p>
           <div className="flex items-center gap-4">
-            <a href="#" className="text-xs text-muted/50 hover:text-muted transition-colors">Privacy</a>
-            <a href="#" className="text-xs text-muted/50 hover:text-muted transition-colors">Terms</a>
+            <a href="/privacy" className="text-xs text-muted/50 hover:text-muted transition-colors">Privacy</a>
+            <a href="/terms" className="text-xs text-muted/50 hover:text-muted transition-colors">Terms</a>
             <span className="text-xs text-muted/30">moduspilot.com</span>
           </div>
         </div>
