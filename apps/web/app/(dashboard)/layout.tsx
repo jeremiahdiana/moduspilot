@@ -111,9 +111,12 @@ function SidebarContent({
     <div className="flex flex-col h-full py-5 px-3">
       {/* Logo */}
       <div className="mb-5 px-3 flex items-center gap-2">
-        <Image src="/logo.png" alt="MODUS" width={54} height={40} className="object-contain shrink-0" />
-        <span className="text-lg font-black tracking-widest text-brand">MODUS</span>
-        <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+        <Image src="/logo.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 block dark:hidden" />
+        <Image src="/logo-dark.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 hidden dark:block" />
+        <div className="flex flex-col leading-none">
+          <span className="text-sm font-black tracking-widest text-brand">MODUS</span>
+          <span className="text-[9px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+        </div>
       </div>
 
       {/* Ask MODUS button */}
@@ -341,8 +344,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
           <div className="flex items-center gap-1.5">
-            <Image src="/logo.png" alt="MODUS" width={43} height={32} className="object-contain" />
-            <span className="text-sm font-bold text-brand tracking-widest">MODUS</span>
+            <Image src="/logo.png" alt="MODUS" width={48} height={36} className="object-contain block dark:hidden" />
+            <Image src="/logo-dark.png" alt="MODUS" width={48} height={36} className="object-contain hidden dark:block" />
+            <span className="text-xs font-black tracking-widest text-brand">MODUS</span>
           </div>
         </div>
 
