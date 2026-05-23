@@ -44,17 +44,17 @@ export default function Navbar({ solid = false }: Props) {
       initial={{ opacity: 0, y: -16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 overflow-hidden transition-all duration-300 ${
         showBg ? 'bg-bg/90 backdrop-blur-xl border-b border-border/60' : 'bg-transparent'
       }`}
     >
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="MODUS" width={74} height={56} className="object-contain block dark:hidden" />
-          <Image src="/logo-dark.png" alt="MODUS" width={74} height={56} className="object-contain hidden dark:block" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <Link href="/" className="flex items-center gap-1.5 shrink-0">
+          <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain block dark:hidden" />
+          <Image src="/logo-dark.png" alt="MODUS" width={52} height={40} className="object-contain hidden dark:block" />
           <div className="flex flex-col leading-none">
-            <span className="text-base font-black tracking-widest text-brand">MODUS</span>
-            <span className="text-[9px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+            <span className="text-sm font-black tracking-widest text-brand">MODUS</span>
+            <span className="text-[8px] font-semibold text-muted tracking-widest uppercase">pilot</span>
           </div>
         </Link>
 
@@ -88,20 +88,20 @@ export default function Navbar({ solid = false }: Props) {
               </div>
               <Link
                 href="/dashboard"
-                className="btn-primary group flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all"
+                className="btn-primary group flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
               >
-                Go to Dashboard
-                <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
+                <span className="hidden sm:inline">Go to </span>Dashboard
+                <span className="group-hover:translate-x-0.5 transition-transform duration-200 hidden sm:inline">→</span>
               </Link>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-sm text-muted hover:text-text transition-colors">
+              <Link href="/login" className="hidden sm:block text-sm text-muted hover:text-text transition-colors shrink-0">
                 Sign In
               </Link>
               <Link
                 href="/login"
-                className="btn-primary px-4 py-2 bg-brand text-white text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all"
+                className="btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
               >
                 Get Started
               </Link>
