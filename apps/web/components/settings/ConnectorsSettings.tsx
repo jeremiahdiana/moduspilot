@@ -332,6 +332,11 @@ export default function ConnectorsSettings({ user }: Props) {
               ? 'MODUS can read Slack channels and send messages on your behalf.'
               : 'Connect Slack to get briefings and use MODUS from your workspace.'}
           </p>
+          {slackAccounts.length > 0 && (
+            <p className="text-xs text-muted/70 mb-4 border border-border rounded-lg px-3 py-2">
+              MODUS can only read channels it has been invited to. Run <span className="font-mono text-text/80">/invite @MODUS</span> in any channel you want it to see.
+            </p>
+          )}
           <ConnectButton
             loading={connecting === 'slack'}
             hasAccounts={slackAccounts.length > 0}
