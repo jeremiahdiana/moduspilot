@@ -13,9 +13,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { uid } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const { uid, origin = 'settings' } = JSON.parse(Buffer.from(state, 'base64url').toString());
     const tokens = await exchangeSlackCode(code);
     await storeSlackTokens(uid, tokens);
+    if (origin === 'chat') {
+      return Response.redirect(`${appUrl}/chat?connected=slack`);
+    }
     return Response.redirect(`${appUrl}/settings?tab=connectors&connected=slack`);
   } catch (e) {
     console.error('[slack/callback]', e);

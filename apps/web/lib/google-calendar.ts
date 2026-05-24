@@ -5,6 +5,7 @@ export interface CalendarEvent {
   end: string;
   location?: string;
   allDay: boolean;
+  accountEmail?: string;
 }
 
 export async function getTodayEvents(accessToken: string, timezone = 'UTC'): Promise<CalendarEvent[]> {
@@ -41,6 +42,48 @@ export async function getTodayEvents(accessToken: string, timezone = 'UTC'): Pro
   } catch {
     return [];
   }
+}
+
+export async function getUpcomingEvents(accessToken: string, windowMinutes = 60, timezone = 'UTC'): Promise<CalendarEvent[]> {
+  try {
+    const now = new Date();
+    const timeMin = now.toISOString();
+    const timeMax = new Date(now.getTime() + windowMinutes * 60 * 1000).toISOString();
+    const params = new URLSearchParams({ timeMin, timeMax, singleEvents: 'true', orderBy: 'startTime', maxResults: '20' });
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.items ?? []).map((e: any) => ({
+      id: e.id, title: e.summary ?? 'Untitled',
+      start: e.start?.dateTime ?? e.start?.date ?? '',
+      end: e.end?.dateTime ?? e.end?.date ?? '',
+      location: e.location ?? undefined,
+      allDay: !e.start?.dateTime,
+    }));
+  } catch { return []; }
+}
+
+export async function getRecentlyEndedEvents(accessToken: string, windowMinutes = 60): Promise<CalendarEvent[]> {
+  try {
+    const now = new Date();
+    const timeMin = new Date(now.getTime() - windowMinutes * 60 * 1000).toISOString();
+    const timeMax = now.toISOString();
+    const params = new URLSearchParams({ timeMin, timeMax, singleEvents: 'true', orderBy: 'startTime', maxResults: '20' });
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.items ?? []).filter((e: any) => e.start?.dateTime && e.end?.dateTime).map((e: any) => ({
+      id: e.id, title: e.summary ?? 'Untitled',
+      start: e.start.dateTime, end: e.end.dateTime,
+      location: e.location ?? undefined, allDay: false,
+    }));
+  } catch { return []; }
 }
 
 export function fmtEventTime(iso: string): string {

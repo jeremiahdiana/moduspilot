@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 
 interface ApprovalPayload {
@@ -24,12 +24,21 @@ const TYPE_LABELS: Record<string, string> = {
   create_goal_chat: 'New Goal Chat',
   delete_goal_chat: 'Delete Chat',
   connect_google: 'Connect Google',
+  connect_notion: 'Connect Notion',
+  connect_slack: 'Connect Slack',
+  connect_github: 'Connect GitHub',
   enable_web_search: 'Enable Web Search',
   send_email: 'Send Email',
 };
 
-// Types that redirect to OAuth or a settings flow instead of POSTing to /api/approval
-const REDIRECT_TYPES = new Set(['connect_google']);
+const CONNECT_ENDPOINTS: Record<string, string> = {
+  connect_google: '/api/auth/google/connect',
+  connect_notion: '/api/auth/notion/connect',
+  connect_slack: '/api/auth/slack/connect',
+  connect_github: '/api/auth/github/connect',
+};
+
+const REDIRECT_TYPES = new Set(Object.keys(CONNECT_ENDPOINTS));
 
 export default function ApprovalCard({ raw }: { raw: string }) {
   const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>('pending');
@@ -38,12 +47,28 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   const [editedProgress, setEditedProgress] = useState(0);
   const [error, setError] = useState('');
 
+  // Multi-account email state
+  const [googleAccounts, setGoogleAccounts] = useState<{ email: string }[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
+
   let data: ApprovalPayload;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  try { data = JSON.parse(raw); } catch { return null; }
+
+  // Fetch Google accounts when this is a send_email card
+  useEffect(() => {
+    if (data.type !== 'send_email') return;
+    auth.currentUser?.getIdToken().then(async token => {
+      try {
+        const res = await fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } });
+        const d = await res.json();
+        const accounts: { email: string }[] = d.accounts ?? [];
+        setGoogleAccounts(accounts);
+        const payloadAccount = data.payload?.from_account as string | undefined;
+        setSelectedAccount(payloadAccount || accounts[0]?.email || '');
+      } catch { /* non-fatal */ }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.type]);
 
   async function approve(title: string, overridePayload?: Record<string, unknown>) {
     setLoading(true);
@@ -51,36 +76,36 @@ export default function ApprovalCard({ raw }: { raw: string }) {
     try {
       const token = await auth.currentUser?.getIdToken();
 
-      // OAuth / redirect-based actions
+      // OAuth / redirect-based connect actions
       if (REDIRECT_TYPES.has(data.type)) {
-        const res = await fetch('/api/auth/google/connect', {
+        const endpoint = CONNECT_ENDPOINTS[data.type];
+        const isGoogle = data.type === 'connect_google';
+        const res = await fetch(endpoint, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(isGoogle ? {} : { origin: 'chat' }),
         });
-        if (!res.ok) { setError('Failed to start Google connection.'); return; }
+        if (!res.ok) { setError('Failed to start connection.'); return; }
         const { url } = await res.json();
         if (url) window.location.href = url;
         return;
       }
 
-      // If MODUS puts fields at top level instead of inside payload, hoist them
       const basePayload = data.payload && Object.keys(data.payload).length > 0
         ? data.payload
-        : Object.fromEntries(
-            Object.entries(data).filter(([k]) => !['type', 'title', 'description'].includes(k))
-          );
+        : Object.fromEntries(Object.entries(data).filter(([k]) => !['type', 'title', 'description'].includes(k)));
 
-      const payload = overridePayload ? { ...basePayload, ...overridePayload } : basePayload;
+      // For send_email, inject the selected Gmail account
+      const emailOverride = data.type === 'send_email' && selectedAccount
+        ? { from_account: selectedAccount }
+        : {};
+
+      const payload = { ...basePayload, ...(overridePayload ?? {}), ...emailOverride };
 
       const res = await fetch('/api/approval', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          type: data.type,
-          title,
-          description: data.description,
-          payload,
-        }),
+        body: JSON.stringify({ type: data.type, title, description: data.description, payload }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -131,45 +156,28 @@ export default function ApprovalCard({ raw }: { raw: string }) {
                   <span className="text-xs text-muted">Progress</span>
                   <span className="text-sm font-semibold text-brand">{editedProgress}%</span>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={editedProgress}
-                  onChange={e => setEditedProgress(Number(e.target.value))}
-                  className="w-full accent-brand"
-                />
+                <input type="range" min={0} max={100} step={5} value={editedProgress}
+                  onChange={e => setEditedProgress(Number(e.target.value))} className="w-full accent-brand" />
               </div>
             </div>
           ) : (
             <>
-              <input
-                autoFocus
-                value={editedTitle}
-                onChange={e => setEditedTitle(e.target.value)}
+              <input autoFocus value={editedTitle} onChange={e => setEditedTitle(e.target.value)}
                 className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-brand transition-colors"
-                onKeyDown={e => { if (e.key === 'Enter') approve(editedTitle); if (e.key === 'Escape') setStatus('pending'); }}
-              />
+                onKeyDown={e => { if (e.key === 'Enter') approve(editedTitle); if (e.key === 'Escape') setStatus('pending'); }} />
               <p className="text-xs text-muted mt-1.5">{data.description}</p>
             </>
           )}
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => isProgress
-              ? approve(data.title, { progress: editedProgress })
-              : approve(editedTitle)
-            }
+            onClick={() => isProgress ? approve(data.title, { progress: editedProgress }) : approve(editedTitle)}
             disabled={loading || (!isProgress && !editedTitle.trim())}
             className="flex-1 bg-brand text-white text-xs font-semibold py-2 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Confirm'}
           </button>
-          <button
-            onClick={() => setStatus('pending')}
-            className="px-4 bg-border text-muted text-xs font-semibold py-2 rounded-lg hover:text-text transition-colors"
-          >
+          <button onClick={() => setStatus('pending')} className="px-4 bg-border text-muted text-xs font-semibold py-2 rounded-lg hover:text-text transition-colors">
             Cancel
           </button>
         </div>
@@ -178,6 +186,7 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   }
 
   const pendingProgress = typeof data.payload?.progress === 'number' ? data.payload.progress : 0;
+  const isConnectCard = REDIRECT_TYPES.has(data.type);
 
   return (
     <div className="border border-border bg-panel rounded-xl px-4 py-4 space-y-3">
@@ -196,25 +205,40 @@ export default function ApprovalCard({ raw }: { raw: string }) {
         ) : (
           <p className="text-xs text-muted mt-0.5">{data.description}</p>
         )}
+
+        {/* Gmail account selector for send_email */}
+        {data.type === 'send_email' && googleAccounts.length > 1 && (
+          <div className="mt-2">
+            <label className="text-[10px] text-muted uppercase tracking-wider block mb-1">Send from</label>
+            <select
+              value={selectedAccount}
+              onChange={e => setSelectedAccount(e.target.value)}
+              className="w-full bg-bg border border-border rounded-lg px-2 py-1.5 text-xs text-text outline-none focus:border-brand transition-colors"
+            >
+              {googleAccounts.map(a => (
+                <option key={a.email} value={a.email}>{a.email}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
+
       <div className="flex gap-2">
         <button
           onClick={() => approve(data.title)}
           disabled={loading}
           className="flex-1 bg-brand text-white text-xs font-semibold py-2 rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50"
         >
-          {loading ? 'Saving...' : 'Approve'}
+          {loading ? (isConnectCard ? 'Redirecting...' : 'Saving...') : (isConnectCard ? 'Connect' : 'Approve')}
         </button>
-        <button
-          onClick={() => {
-            setEditedTitle(data.title);
-            setEditedProgress(pendingProgress);
-            setStatus('editing');
-          }}
-          className="flex-1 border border-border text-muted text-xs font-semibold py-2 rounded-lg hover:text-text hover:border-brand/50 transition-colors"
-        >
-          Edit
-        </button>
+        {!isConnectCard && (
+          <button
+            onClick={() => { setEditedTitle(data.title); setEditedProgress(pendingProgress); setStatus('editing'); }}
+            className="flex-1 border border-border text-muted text-xs font-semibold py-2 rounded-lg hover:text-text hover:border-brand/50 transition-colors"
+          >
+            Edit
+          </button>
+        )}
         <button
           onClick={() => setStatus('dismissed')}
           className="flex-1 bg-border text-muted text-xs font-semibold py-2 rounded-lg hover:text-text transition-colors"

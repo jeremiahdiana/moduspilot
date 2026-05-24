@@ -7,8 +7,8 @@ function accountsCol(uid: string) {
   return adminDb.collection('users').doc(uid).collection('github_accounts');
 }
 
-export function buildGitHubOAuthUrl(uid: string): string {
-  const state = Buffer.from(JSON.stringify({ uid })).toString('base64url');
+export function buildGitHubOAuthUrl(uid: string, origin = 'settings'): string {
+  const state = Buffer.from(JSON.stringify({ uid, origin })).toString('base64url');
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID!,
     scope: GITHUB_SCOPES,

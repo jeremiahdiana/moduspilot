@@ -13,10 +13,13 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { uid } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const { uid, origin = 'settings' } = JSON.parse(Buffer.from(state, 'base64url').toString());
     const { access_token } = await exchangeGitHubCode(code);
     const ghUser = await fetchGitHubUser(access_token);
     await storeGitHubTokens(uid, { access_token, ...ghUser });
+    if (origin === 'chat') {
+      return Response.redirect(`${appUrl}/chat?connected=github`);
+    }
     return Response.redirect(`${appUrl}/settings?tab=connectors&connected=github`);
   } catch (e) {
     console.error('[github/callback]', e);

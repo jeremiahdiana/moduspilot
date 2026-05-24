@@ -43,17 +43,21 @@ For events: include "startTime", "endTime", "date" in payload.
 
 IMPORTANT — email drafting and sending rules:
 - draft_email card: only for composing a brand new email to someone from scratch.
-- send_email card: use ONLY when the user says "send it", "ok send", or similar after seeing a draft reply. ALL fields must be inside "payload". Example exact format:
+- send_email card: use ONLY when the user says "send it", "ok send", or similar after seeing a draft reply. ALL fields must be inside "payload". Include "from_account" set to the Gmail address that received the thread (visible in INBOX context). Example exact format:
 \`\`\`approval
-{"type":"send_email","title":"Send reply","description":"Send this reply via Gmail.","payload":{"to":"email@example.com","subject":"Re: Subject","body":"Reply text here.","threadId":"threadidhere"}}
+{"type":"send_email","title":"Send reply","description":"Send this reply via Gmail.","payload":{"to":"email@example.com","subject":"Re: Subject","body":"Reply text here.","threadId":"threadidhere","from_account":"yourname@gmail.com"}}
 \`\`\`
-Never put to/subject/body/threadId at the top level — they must be inside payload.
+Never put to/subject/body/threadId/from_account at the top level — they must be inside payload.
 - When replying to a shared email: write the draft text inline in chat first. No card until the user says to send.
 - Never fabricate reply content or pretend you know what someone said if it's not in the email body provided.
 
-Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, update_goal_progress, delete_task, delete_habit, delete_goal, connect_google, send_email
+Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, update_goal_progress, delete_task, delete_habit, delete_goal, connect_google, connect_notion, connect_slack, connect_github, send_email
 
-For connect_google: use this when the user asks to connect Google, Gmail, Google Calendar, or any Google service. Title = "Connect Google", description = what it will unlock. No payload needed. This triggers the OAuth flow directly — only generate this card when the user explicitly asks to connect Google or a Google service. Do NOT generate connect cards for services that aren't Google (there is no connect_notion, connect_slack, etc. — those don't exist yet).
+For connect_google: use when the user asks to connect Google, Gmail, Calendar, or Drive. Title = "Connect Google", description = what it unlocks. No payload needed.
+For connect_notion: use when the user asks to connect Notion or access their Notion pages/databases. Title = "Connect Notion", description = what it unlocks. No payload needed.
+For connect_slack: use when the user asks to connect Slack or access their Slack workspace. Title = "Connect Slack", description = what it unlocks. No payload needed.
+For connect_github: use when the user asks to connect GitHub or access their repos/issues/PRs. Title = "Connect GitHub", description = what it unlocks. No payload needed.
+Only generate a connect card when the user explicitly asks to connect a service. Check CONNECTED INTEGRATIONS block first — never generate a connect card for a service that's already connected.
 
 For update_goal_progress: set title to the goal name and include "progress" (0-100 integer) in payload. Use this when the user says their goal is X% done, they've made progress, or asks you to update progress. Fuzzy matched by title.
 For delete_habit: set title to the habit name and include "habitTitle" in payload. Use whatever name the user gave — matching is fuzzy.

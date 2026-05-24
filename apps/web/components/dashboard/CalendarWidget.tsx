@@ -7,14 +7,8 @@ import type { CalendarEvent } from '@/lib/google-calendar';
 function fmtTime(iso: string): string {
   if (!iso) return '';
   try {
-    return new Date(iso).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  } catch {
-    return '';
-  }
+    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } catch { return ''; }
 }
 
 function eventColor(index: number): string {
@@ -27,24 +21,38 @@ export default function CalendarWidget() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [notConnected, setNotConnected] = useState(false);
+  const [accounts, setAccounts] = useState<{ email: string }[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
 
+  // Fetch Google accounts
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (!user) return;
     user.getIdToken().then(async token => {
       try {
-        const res = await fetch('/api/google/today', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        setAccounts(data.accounts ?? []);
+      } catch { /* non-fatal */ }
+    });
+  }, [user]);
+
+  // Fetch events when user or selectedAccount changes
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    setLoading(true);
+    user.getIdToken().then(async token => {
+      try {
+        const url = selectedAccount
+          ? `/api/google/today?account=${encodeURIComponent(selectedAccount)}`
+          : '/api/google/today';
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (data.notConnected) setNotConnected(true);
         setEvents(data.events ?? []);
-      } catch {
-        // non-fatal
-      } finally {
-        setLoading(false);
-      }
+      } catch { /* non-fatal */ }
+      finally { setLoading(false); }
     });
-  }, [user]);
+  }, [user, selectedAccount]);
 
   if (loading) {
     return (
@@ -62,22 +70,43 @@ export default function CalendarWidget() {
     );
   }
 
-  if (events.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-20">
-        <p className="text-xs text-muted">No events scheduled today.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex gap-2 flex-wrap">
-      {events.map((e, i) => (
-        <div key={e.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${eventColor(i)}`}>
-          <span className="font-semibold">{fmtTime(e.start)}</span>
-          <span className="truncate max-w-[160px]">{e.title}</span>
+    <div className="space-y-2">
+      {/* Account filter — only shown when multiple accounts */}
+      {accounts.length > 1 && (
+        <div className="flex gap-1 flex-wrap">
+          <button
+            onClick={() => setSelectedAccount('')}
+            className={`text-[10px] font-medium px-2 py-0.5 rounded-full border transition-colors ${!selectedAccount ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text'}`}
+          >
+            All
+          </button>
+          {accounts.map(a => (
+            <button
+              key={a.email}
+              onClick={() => setSelectedAccount(a.email)}
+              className={`text-[10px] font-medium px-2 py-0.5 rounded-full border transition-colors truncate max-w-[120px] ${selectedAccount === a.email ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text'}`}
+            >
+              {a.email.split('@')[0]}
+            </button>
+          ))}
         </div>
-      ))}
+      )}
+
+      {events.length === 0 ? (
+        <div className="flex items-center justify-center h-16">
+          <p className="text-xs text-muted">No events scheduled today.</p>
+        </div>
+      ) : (
+        <div className="flex gap-2 flex-wrap">
+          {events.map((e, i) => (
+            <div key={e.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${eventColor(i)}`}>
+              <span className="font-semibold">{fmtTime(e.start)}</span>
+              <span className="truncate max-w-[160px]">{e.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

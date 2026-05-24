@@ -17,8 +17,8 @@ function accountsCol(uid: string) {
   return adminDb.collection('users').doc(uid).collection('slack_accounts');
 }
 
-export function buildSlackOAuthUrl(uid: string): string {
-  const state = Buffer.from(JSON.stringify({ uid })).toString('base64url');
+export function buildSlackOAuthUrl(uid: string, origin = 'settings'): string {
+  const state = Buffer.from(JSON.stringify({ uid, origin })).toString('base64url');
   const params = new URLSearchParams({
     client_id: process.env.SLACK_CLIENT_ID!,
     scope: SLACK_SCOPES,

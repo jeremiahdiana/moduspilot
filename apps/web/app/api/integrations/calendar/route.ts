@@ -1,5 +1,5 @@
 import { adminAuth } from '@/lib/firebase-admin';
-import { getValidAccessToken } from '@/lib/google-oauth';
+import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getTodayEvents } from '@/lib/google-calendar';
 
 export async function GET(req: Request) {
@@ -8,10 +8,19 @@ export async function GET(req: Request) {
 
   try {
     const decoded = await adminAuth.verifyIdToken(token);
-    const accessToken = await getValidAccessToken(decoded.uid);
-    if (!accessToken) return Response.json({ events: [], connected: false });
+    const url = new URL(req.url);
+    const tz = url.searchParams.get('tz') ?? 'UTC';
+    const account = url.searchParams.get('account') ?? '';
 
-    const tz = new URL(req.url).searchParams.get('tz') ?? 'UTC';
+    let accessToken: string | null = null;
+    if (account) {
+      const all = await getAllValidAccessTokens(decoded.uid);
+      accessToken = all.find(a => a.email === account)?.token ?? null;
+    } else {
+      accessToken = await getValidAccessToken(decoded.uid);
+    }
+
+    if (!accessToken) return Response.json({ events: [], connected: false });
     const events = await getTodayEvents(accessToken, tz);
     return Response.json({ events, connected: true });
   } catch (e) {

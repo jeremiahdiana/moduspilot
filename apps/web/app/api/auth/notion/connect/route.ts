@@ -7,7 +7,9 @@ export async function POST(req: Request) {
 
   try {
     const decoded = await adminAuth.verifyIdToken(token);
-    const url = buildNotionOAuthUrl(decoded.uid);
+    const body = await req.json().catch(() => ({}));
+    const origin = body?.origin ?? 'settings';
+    const url = buildNotionOAuthUrl(decoded.uid, origin);
     return Response.json({ url });
   } catch {
     return Response.json({ error: 'Invalid token' }, { status: 401 });

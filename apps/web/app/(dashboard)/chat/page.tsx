@@ -33,9 +33,21 @@ export default function ChatPage() {
   const [msgCount, setMsgCount] = useState(0);
   const [plan, setPlan] = useState<Plan>('free');
   const [trialDaysLeft, setTrialDaysLeft] = useState<number>(TRIAL_DAYS);
+  const [connectedToast, setConnectedToast] = useState('');
   const initDone = useRef(false);
   const pendingConvIdRef = useRef<string | null>(null);
   const [inFlightMessages, setInFlightMessages] = useState<Message[]>([]);
+
+  // Show toast when returning from OAuth with ?connected= param
+  useEffect(() => {
+    const connected = searchParams.get('connected');
+    if (!connected) return;
+    const labels: Record<string, string> = { notion: 'Notion connected', slack: 'Slack connected', github: 'GitHub connected', google: 'Google connected' };
+    setConnectedToast(labels[connected] ?? `${connected} connected`);
+    window.history.replaceState({}, '', window.location.pathname);
+    const t = setTimeout(() => setConnectedToast(''), 4000);
+    return () => clearTimeout(t);
+  }, [searchParams]);
 
   // Load active conversation from most recent on mount
   useEffect(() => {
@@ -150,7 +162,16 @@ export default function ChatPage() {
   }, [isGuest, isPaid, trialActive, msgCount, uid]);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
+      {/* OAuth connected toast */}
+      {connectedToast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+            <path d="M2 6l3 3 5-5" />
+          </svg>
+          {connectedToast}
+        </div>
+      )}
       {/* Conversation sidebar — signed in only */}
       {!isGuest && (
         <div className="w-52 shrink-0 border-r border-border flex flex-col py-4">

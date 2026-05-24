@@ -1,6 +1,6 @@
 import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { getValidAccessToken } from '@/lib/google-oauth';
+import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
 import { sendGmailReply } from '@/lib/gmail-send';
 
 function norm(s: string) {
@@ -154,7 +154,13 @@ export async function POST(req: Request) {
       return Response.json({ id: ref.id });
     }
     case 'send_email': {
-      const googleToken = await getValidAccessToken(uid);
+      const fromAccount = payload.from_account as string | undefined;
+      let googleToken: string | null = null;
+      if (fromAccount) {
+        const all = await getAllValidAccessTokens(uid);
+        googleToken = all.find(a => a.email === fromAccount)?.token ?? null;
+      }
+      if (!googleToken) googleToken = await getValidAccessToken(uid);
       if (!googleToken) return Response.json({ error: 'Google not connected — reconnect in Settings.' }, { status: 400 });
       await sendGmailReply(
         googleToken,
@@ -169,8 +175,10 @@ export async function POST(req: Request) {
       await userRef.set({ capabilities: { webSearch: true } }, { merge: true });
       return Response.json({ ok: true });
     }
-    case 'connect_google': {
-      // handled client-side via OAuth redirect — should never reach here
+    case 'connect_google':
+    case 'connect_notion':
+    case 'connect_slack':
+    case 'connect_github': {
       return Response.json({ error: 'Use OAuth flow' }, { status: 400 });
     }
     default:

@@ -5,8 +5,8 @@ function accountsCol(uid: string) {
   return adminDb.collection('users').doc(uid).collection('notion_accounts');
 }
 
-export function buildNotionOAuthUrl(uid: string): string {
-  const state = Buffer.from(JSON.stringify({ uid })).toString('base64url');
+export function buildNotionOAuthUrl(uid: string, origin = 'settings'): string {
+  const state = Buffer.from(JSON.stringify({ uid, origin })).toString('base64url');
   const params = new URLSearchParams({
     client_id: process.env.NOTION_CLIENT_ID!,
     response_type: 'code',

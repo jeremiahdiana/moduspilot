@@ -10,6 +10,9 @@ import { getActionableThreads } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
 import { searchDriveFiles, shouldSearchDrive, mimeLabel } from '@/lib/google-drive';
+import { getNotionAccounts } from '@/lib/notion-oauth';
+import { getSlackAccounts } from '@/lib/slack-oauth';
+import { getGitHubAccounts } from '@/lib/github-oauth';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -232,7 +235,29 @@ export async function POST(req: Request) {
       ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it.`
       : '';
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + memoryContext + goalContextBlock + googleDataBlock + webSearchBlock + driveBlock;
+    // Connector status — injected so MODUS knows what's connected and can offer connect cards
+    let connectorBlock = '';
+    if (uid) {
+      try {
+        const [notionAccounts, slackAccounts, githubAccounts] = await Promise.all([
+          getNotionAccounts(uid),
+          getSlackAccounts(uid),
+          getGitHubAccounts(uid),
+        ]);
+        const connected: string[] = ['Google (Gmail · Calendar · Drive)'];
+        if (notionAccounts.length > 0) connected.push(`Notion (${notionAccounts.map(a => a.workspaceName).join(', ')})`);
+        if (slackAccounts.length > 0) connected.push(`Slack (${slackAccounts.map(a => a.teamName).join(', ')})`);
+        if (githubAccounts.length > 0) connected.push(`GitHub (@${githubAccounts.map(a => a.login).join(', @')})`);
+        const notConnected: string[] = [];
+        if (notionAccounts.length === 0) notConnected.push('Notion');
+        if (slackAccounts.length === 0) notConnected.push('Slack');
+        if (githubAccounts.length === 0) notConnected.push('GitHub');
+        connectorBlock = `\n\nCONNECTED INTEGRATIONS: ${connected.join(', ')}`;
+        if (notConnected.length > 0) connectorBlock += `\nNOT YET CONNECTED: ${notConnected.join(', ')} — generate a connect card if the user asks about these services`;
+      } catch { /* non-fatal */ }
+    }
+
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + googleDataBlock + webSearchBlock + driveBlock;
 
     const result = streamText({
       model: chatModel,
