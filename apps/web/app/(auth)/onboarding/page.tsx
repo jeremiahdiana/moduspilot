@@ -322,8 +322,8 @@ function NameScreen({ name, setName, onNext }: { name: string; setName: (v: stri
 }
 
 // ── google step ───────────────────────────────────────────────────────────────
-function GoogleStep({ googleEmail, onConnect, connecting }: {
-  googleEmail: string; onConnect: () => void; connecting: boolean;
+function GoogleStep({ googleEmail, onConnect, connecting, error }: {
+  googleEmail: string; onConnect: () => void; connecting: boolean; error?: string;
 }) {
   const services = [
     { icon: '✉️', name: 'Gmail', desc: 'Read inbox, draft and send emails', color: '#EA4335' },
@@ -393,6 +393,9 @@ function GoogleStep({ googleEmail, onConnect, connecting }: {
           </svg>
           {connecting ? 'Connecting...' : 'Connect Google Account'}
         </motion.button>
+        {error && (
+          <p className="text-xs text-red-400 text-center mt-1">{error}</p>
+        )}
       )}
     </div>
   );
@@ -531,6 +534,7 @@ export default function OnboardingPage() {
   const [taskSystemOther, setTaskSystemOther] = useState('');
   const [googleEmail,     setGoogleEmail]     = useState('');
   const [googleConnecting, setGoogleConnecting] = useState(false);
+  const [googleError,     setGoogleError]     = useState('');
   // Capture ?connected= param synchronously at mount (before any effect clears it).
   // This is more reliable than sessionStorage which can be cleared by the browser.
   const [oauthConnectedEmail] = useState<string | null>(() =>
@@ -568,7 +572,11 @@ export default function OnboardingPage() {
       } catch {}
     }
 
-    if (connectedEmail) setGoogleEmail(decodeURIComponent(connectedEmail));
+    if (connectedEmail) {
+      setGoogleEmail(decodeURIComponent(connectedEmail));
+    } else if (oauthError) {
+      setGoogleError('Connection failed. Please try again.');
+    }
     window.history.replaceState({}, '', '/onboarding');
     setScreen(7);
   }, []);
@@ -620,6 +628,11 @@ export default function OnboardingPage() {
     if (!user) return;
     setGoogleConnecting(true);
     try {
+      sessionStorage.setItem('onboarding_state', JSON.stringify({
+        name, employment, employmentOther, industry, industryOther,
+        goals, goalsOther, challenge, challengeOther, thirtyDayGoal,
+        taskSystem, taskSystemOther,
+      }));
       const token = await user.getIdToken();
       const res = await fetch('/api/auth/google/connect', {
         method: 'POST',
@@ -631,6 +644,7 @@ export default function OnboardingPage() {
       if (!data.url) throw new Error('no_url');
       window.location.href = data.url;
     } catch {
+      sessionStorage.removeItem('onboarding_state');
       setGoogleConnecting(false);
     }
   }
@@ -836,6 +850,7 @@ export default function OnboardingPage() {
           googleEmail={googleEmail}
           onConnect={handleConnectGoogle}
           connecting={googleConnecting}
+          error={googleError}
         />
       ),
     },

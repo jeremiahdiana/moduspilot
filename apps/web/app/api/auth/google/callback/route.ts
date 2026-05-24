@@ -9,6 +9,13 @@ export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (error || !code || !state) {
+    let origin = 'settings';
+    if (state) {
+      try { origin = JSON.parse(Buffer.from(state, 'base64url').toString()).origin ?? 'settings'; } catch {}
+    }
+    if (origin === 'onboarding') {
+      return Response.redirect(`${appUrl}/onboarding?error=google_denied`);
+    }
     return Response.redirect(`${appUrl}/settings?tab=connectors&error=google_denied`);
   }
 
