@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { doc, setDoc, addDoc, collection, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // ── data ────────────────────────────────────────────────────────────────────
@@ -571,6 +571,17 @@ export default function OnboardingPage() {
     setScreen(7);
   }, []);
 
+  // Pre-populate google email from Firestore if the user already connected Google
+  useEffect(() => {
+    if (!user) return;
+    getDocs(collection(db, 'users', user.uid, 'google_accounts')).then(snap => {
+      if (!snap.empty && !googleEmail) {
+        const firstDoc = snap.docs[0].data();
+        setGoogleEmail(firstDoc.email as string);
+      }
+    }).catch(() => {});
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auth guard
   useEffect(() => {
     if (!loading && !user) {
@@ -601,6 +612,7 @@ export default function OnboardingPage() {
   }
 
   async function handleConnectGoogle() {
+    if (!user) return;
     setGoogleConnecting(true);
     sessionStorage.setItem('onboarding_state', JSON.stringify({
       name, employment, employmentOther, industry, industryOther,
@@ -608,17 +620,21 @@ export default function OnboardingPage() {
       taskSystem, taskSystemOther,
     }));
     try {
-      const token = await user!.getIdToken();
+      const token = await user.getIdToken();
       const res = await fetch('/api/auth/google/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ origin: 'onboarding' }),
       });
+      if (!res.ok) throw new Error('connect_failed');
       const data = await res.json();
+      if (!data.url) throw new Error('no_url');
       // Flag survives the OAuth redirect so auth guard doesn't kick to /login
       // while Firebase is restoring the session on return
       sessionStorage.setItem('oauth_return', '1');
       window.location.href = data.url;
+      // Page navigates away; if for any reason it doesn't, reset after 5s
+      setTimeout(() => setGoogleConnecting(false), 5000);
     } catch {
       sessionStorage.removeItem('onboarding_state');
       sessionStorage.removeItem('oauth_return');
