@@ -16,5 +16,6 @@ function getAdminApp() {
 export const adminAuth = {
   verifyIdToken: (token: string) => getAuth(getAdminApp()).verifyIdToken(token),
   getUser: (uid: string) => getAuth(getAdminApp()).getUser(uid),
+  createCustomToken: (uid: string) => getAuth(getAdminApp()).createCustomToken(uid),
 };
 export const adminDb = { collection: (name: string) => getFirestore(getAdminApp()).collection(name) };
