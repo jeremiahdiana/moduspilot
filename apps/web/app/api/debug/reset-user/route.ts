@@ -10,14 +10,9 @@ export async function POST(req: Request) {
     const uid = decoded.uid;
     const userRef = adminDb.collection('users').doc(uid);
 
-    // Delete google_accounts subcollection
     const googleSnap = await userRef.collection('google_accounts').get();
     await Promise.all(googleSnap.docs.map(d => d.ref.delete()));
-
-    // Delete legacy integrations/google doc
     await userRef.collection('integrations').doc('google').delete().catch(() => {});
-
-    // Reset onboarding flag
     await userRef.set({ onboardingComplete: false }, { merge: true });
 
     return Response.json({ ok: true, uid, cleared: { googleAccounts: googleSnap.size } });
