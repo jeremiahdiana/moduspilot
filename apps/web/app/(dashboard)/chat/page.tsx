@@ -142,7 +142,8 @@ export default function ChatPage() {
     if (!convId) {
       convId = await createConversation();
       pendingConvIdRef.current = convId;
-      setInFlightMessages(messages); // preserve messages across ChatWindow remount
+      setActiveId(convId); // set immediately so spinner never shows when Firestore confirms
+      setInFlightMessages(messages);
     }
     await saveMessages(convId, messages, title);
   }, [isGuest, uid, activeId, createConversation, saveMessages]);
