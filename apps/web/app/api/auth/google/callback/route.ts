@@ -1,4 +1,5 @@
 import { exchangeCode, storeGoogleAccountTokens } from '@/lib/google-oauth';
+import { adminAuth } from '@/lib/firebase-admin';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -24,7 +25,6 @@ export async function GET(req: Request) {
     const { uid, origin = 'settings' } = decoded;
     const tokens = await exchangeCode(code);
 
-    // Fetch the email of the account that just authorized
     let email = '';
     try {
       const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -40,6 +40,18 @@ export async function GET(req: Request) {
 
     await storeGoogleAccountTokens(uid, { ...tokens, email });
 
+    // Issue a custom token so the client can re-establish the Firebase session
+    // after the OAuth redirect. Without this, onAuthStateChanged can fire with
+    // null on return and the user appears "signed out".
+    let customToken = '';
+    try { customToken = await adminAuth.createCustomToken(uid); } catch {}
+
+    if (customToken) {
+      const p = new URLSearchParams({ token: customToken, email, origin });
+      return Response.redirect(`${appUrl}/auth/google-return?${p}`);
+    }
+
+    // Fallback if custom token creation failed
     if (origin === 'onboarding') {
       return Response.redirect(`${appUrl}/onboarding?connected=${encodeURIComponent(email)}`);
     }
