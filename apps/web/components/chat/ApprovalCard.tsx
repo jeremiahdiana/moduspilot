@@ -29,6 +29,7 @@ const TYPE_LABELS: Record<string, string> = {
   connect_github: 'Connect GitHub',
   enable_web_search: 'Enable Web Search',
   send_email: 'Send Email',
+  reschedule_event: 'Reschedule Event',
 };
 
 const CONNECT_ENDPOINTS: Record<string, string> = {

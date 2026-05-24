@@ -175,6 +175,27 @@ export async function POST(req: Request) {
       await userRef.set({ capabilities: { webSearch: true } }, { merge: true });
       return Response.json({ ok: true });
     }
+    case 'reschedule_event': {
+      const { eventId, calendarId = 'primary', newStart, newEnd } = payload as {
+        eventId: string; calendarId?: string; newStart: string; newEnd: string;
+      };
+      const googleToken = await getValidAccessToken(uid);
+      if (!googleToken) return Response.json({ error: 'Google not connected — reconnect in Settings.' }, { status: 400 });
+      const patchRes = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+        {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ start: { dateTime: newStart }, end: { dateTime: newEnd } }),
+        }
+      );
+      if (!patchRes.ok) {
+        const err = await patchRes.text();
+        console.error('[approval/reschedule_event]', err);
+        return Response.json({ error: 'Calendar update failed' }, { status: 500 });
+      }
+      return Response.json({ ok: true });
+    }
     case 'connect_google':
     case 'connect_notion':
     case 'connect_slack':

@@ -89,15 +89,41 @@ export const weeklyReview = inngest.createFunction(
 
             const name = (data.displayName as string | undefined)?.split(' ')[0] || 'there';
 
+            // 30-day pattern analysis — separate call with faster model
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            const allTasksSnap = await adminDb.collection('users').doc(uid).collection('tasks').get();
+            const slipped30 = allTasksSnap.docs
+              .filter(d => !d.data().done && !d.data().deleted)
+              .map(d => d.data().title as string)
+              .slice(0, 20);
+            const habit30Lines = habitsSnap.docs.map(d => {
+              const completedDates = (d.data().completedDates ?? []) as string[];
+              const count = completedDates.filter(dt => dt >= thirtyDaysAgo).length;
+              return `${d.data().title as string}: ${count}/30`;
+            });
+
+            let patternText = '';
+            if (slipped30.length || habit30Lines.length) {
+              try {
+                const { text: p } = await generateText({
+                  model: groq('llama-3.1-8b-instant'),
+                  prompt: `Analyze this person's 30-day behavioral data and identify ONE specific pattern. Be brutally specific — name the category, give exact counts. 1-2 sentences max. No filler, no em dashes.\n\nPending tasks (never completed): ${slipped30.join(', ') || 'none'}\nHabit rates (last 30 days): ${habit30Lines.join(', ') || 'none'}`,
+                  maxTokens: 80,
+                });
+                patternText = p.trim();
+              } catch { /* non-fatal */ }
+            }
+
             const contextLines: string[] = [];
             if (completedThisWeek.length) contextLines.push(`Tasks completed this week: ${completedThisWeek.join(', ')}`);
             if (slippedThisWeek.length) contextLines.push(`Tasks that slipped: ${slippedThisWeek.join(', ')}`);
             if (habitSummary.length) contextLines.push(`Habit consistency: ${habitSummary.map(h => `${h.title} (${h.completedThisWeek}/7 days, streak: ${h.streak})`).join(', ')}`);
             if (goals.length) contextLines.push(`Active goals: ${goals.map(g => `${g.title} at ${g.progress}%`).join(', ')}`);
+            if (patternText) contextLines.push(`Behavioral pattern (30-day analysis): ${patternText}`);
 
             const { text } = await generateText({
               model: groq('llama-3.3-70b-versatile'),
-              prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a weekly review for ${name}. Structure it as: (1) what they shipped this week, (2) what slipped and why it might have, (3) one pattern you noticed, (4) the sharpest focus for next week. Keep it under 200 words. Sharp, direct, no filler, no em dashes. Make it feel like a trusted advisor debriefing them, not a report.\n\n${contextLines.join('\n') || 'No data for this week.'}`,
+              prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a weekly review for ${name}. Structure it as: (1) what they shipped this week, (2) what slipped and why it might have, (3) the behavioral pattern identified below — state it as fact, not speculation, (4) the sharpest focus for next week. Keep it under 200 words. Sharp, direct, no filler, no em dashes. Make it feel like a trusted advisor debriefing them, not a report.\n\n${contextLines.join('\n') || 'No data for this week.'}`,
               maxTokens: 350,
             });
 

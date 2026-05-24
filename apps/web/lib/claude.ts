@@ -51,7 +51,7 @@ Never put to/subject/body/threadId/from_account at the top level — they must b
 - When replying to a shared email: write the draft text inline in chat first. No card until the user says to send.
 - Never fabricate reply content or pretend you know what someone said if it's not in the email body provided.
 
-Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, update_goal_progress, delete_task, delete_habit, delete_goal, connect_google, connect_notion, connect_slack, connect_github, send_email
+Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, update_goal_progress, delete_task, delete_habit, delete_goal, connect_google, connect_notion, connect_slack, connect_github, send_email, reschedule_event
 
 For connect_google: use when the user asks to connect Google, Gmail, Calendar, or Drive. Title = "Connect Google", description = what it unlocks. No payload needed.
 For connect_notion: use when the user asks to connect Notion or access their Notion pages/databases. Title = "Connect Notion", description = what it unlocks. No payload needed.

@@ -24,6 +24,7 @@ export interface BriefingData {
   looseEnd: { text: string } | null;
   habits: BriefingHabit[];
   patternCallout: string | null;
+  relationshipAlert: string | null;
   schedule: BriefingScheduleItem[];
 }
 
@@ -53,6 +54,7 @@ export function briefingDataToText(data: BriefingData): string {
     });
   }
   if (data.patternCallout) lines.push('', data.patternCallout);
+  if (data.relationshipAlert) lines.push('', data.relationshipAlert);
   lines.push('', "That's your morning. Anything on your mind?");
   return lines.join('\n');
 }
@@ -66,6 +68,9 @@ export async function generateBriefingData(
     today: string;
     yesterday: string;
     schedule?: { time: string; title: string }[];
+    staleContacts?: { name: string; daysSince: number }[];
+    slippedTaskTitles30Days?: string[];
+    habitRates30Days?: { title: string; doneOutOf30: number }[];
   }
 ): Promise<BriefingData> {
   const { today, yesterday } = input;
@@ -99,6 +104,15 @@ export async function generateBriefingData(
     ? input.schedule.map(e => `- ${e.time}: ${e.title}`).join('\n')
     : 'No calendar events.';
 
+  const staleContactsText = input.staleContacts?.length
+    ? input.staleContacts.map(c => `- ${c.name} (${c.daysSince} days ago)`).join('\n')
+    : '';
+
+  const patternHistoryText = [
+    input.slippedTaskTitles30Days?.length ? `Pending/slipped tasks (30d): ${input.slippedTaskTitles30Days.join(', ')}` : '',
+    input.habitRates30Days?.length ? `Habit rates (30d): ${input.habitRates30Days.map(h => `${h.title} ${h.doneOutOf30}/30`).join(', ')}` : '',
+  ].filter(Boolean).join('\n');
+
   const systemPrompt = `You are MODUS, an AI chief of staff. Output ONLY a valid JSON object — no markdown fences, no explanation, no other text before or after.
 
 Today is ${todayLabel()}.
@@ -115,6 +129,7 @@ Output this exact schema:
     { "name": "string", "streak": number, "status": "at_risk" or "on_track" or "done" }
   ],
   "patternCallout": "string" or null,
+  "relationshipAlert": "string" or null,
   "schedule": [
     { "time": "string — e.g. 9:00 AM", "title": "string" }
   ]
@@ -126,7 +141,8 @@ Rules:
 - top3: exactly 3 items ranked by urgency and goal alignment. Factor in calendar events (meetings eat focus time). If fewer than 3 tasks exist, infer a high-value action from their goals.
 - looseEnd: only if a task was open before today. null if nothing is genuinely overdue.
 - habits: only habits from the input that have active streaks or were done recently. at_risk = streak > 0 and not done today. on_track = streak > 0 and done today. done = completed today.
-- patternCallout: null unless there is a specific, genuine pattern in the data worth naming. Do not invent one.
+- patternCallout: null unless the 30-DAY HISTORY shows a specific, genuine behavioral pattern (a category of tasks repeatedly avoided, a habit with consistently low completion). Name it with counts. Do not invent one if the history is empty.
+- relationshipAlert: if STALE CONTACTS exist, write one punchy line naming the person and days since contact. If multiple, name the most overdue. null if no stale contacts.
 - schedule: return the calendar events from the input as-is. Empty array if none.
 - Never use em dashes. Never fabricate tasks or goals not in the input.`;
 
@@ -144,7 +160,7 @@ HABITS:
 ${habitsText}
 
 TODAY'S CALENDAR:
-${scheduleText}`;
+${scheduleText}${patternHistoryText ? `\n\n30-DAY HISTORY (for patternCallout only):\n${patternHistoryText}` : ''}${staleContactsText ? `\n\nSTALE CONTACTS (emailed you, no reply yet):\n${staleContactsText}` : ''}`;
 
   const fallback = (): BriefingData => ({
     openingLine: `${todayLabel()} — let's get to it.`,
@@ -157,6 +173,7 @@ ${scheduleText}`;
       status: h.completedDates.includes(today) ? 'done' : h.streak > 0 ? 'at_risk' : 'on_track',
     })),
     patternCallout: null,
+    relationshipAlert: null,
     schedule: input.schedule ?? [],
   });
 

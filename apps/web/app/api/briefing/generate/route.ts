@@ -41,10 +41,15 @@ export async function POST(req: Request) {
     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     const yesterday = yesterdayDate.toISOString().split('T')[0];
 
-    const [goalsSnap, tasksSnap, habitsSnap] = await Promise.all([
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const [goalsSnap, tasksSnap, habitsSnap, allTasksSnap, contactsSnap] = await Promise.all([
       adminDb.collection('users').doc(uid).collection('goals').where('status', '==', 'active').get(),
       adminDb.collection('users').doc(uid).collection('tasks').where('done', '==', false).get(),
       adminDb.collection('users').doc(uid).collection('habits').get(),
+      adminDb.collection('users').doc(uid).collection('tasks').get(),
+      adminDb.collection('users').doc(uid).collection('contacts').get(),
     ]);
 
     const goals = goalsSnap.docs
@@ -66,6 +71,30 @@ export async function POST(req: Request) {
       completedDates: d.data().completedDates ?? [],
     }));
 
+    // 30-day pattern data
+    const slippedTaskTitles30Days = allTasksSnap.docs
+      .filter(d => !d.data().done && !d.data().deleted)
+      .map(d => d.data().title as string)
+      .slice(0, 20);
+
+    const habitRates30Days = habitsSnap.docs.map(d => {
+      const completedDates = (d.data().completedDates ?? []) as string[];
+      return { title: d.data().title as string, doneOutOf30: completedDates.filter(dt => dt >= thirtyDaysAgo).length };
+    });
+
+    // Stale contacts — emailed within 30 days but no reply logged in 7+ days
+    const staleContacts = contactsSnap.docs
+      .filter(d => {
+        const lastEmail = d.data().lastEmailDate as string ?? '';
+        return lastEmail >= thirtyDaysAgo && lastEmail <= sevenDaysAgo;
+      })
+      .map(d => ({
+        name: d.data().name as string,
+        daysSince: Math.floor((Date.now() - new Date(d.data().lastEmailDate as string).getTime()) / 86400000),
+      }))
+      .sort((a, b) => b.daysSince - a.daysSince)
+      .slice(0, 3);
+
     // Fetch calendar events if Google is connected
     let schedule: { time: string; title: string }[] = [];
     try {
@@ -78,7 +107,12 @@ export async function POST(req: Request) {
       }
     } catch {}
 
-    const briefingData = await generateBriefingData(name, { goals, tasks, habits, today, yesterday, schedule });
+    const briefingData = await generateBriefingData(name, {
+      goals, tasks, habits, today, yesterday, schedule,
+      staleContacts: staleContacts.length ? staleContacts : undefined,
+      slippedTaskTitles30Days: slippedTaskTitles30Days.length ? slippedTaskTitles30Days : undefined,
+      habitRates30Days: habitRates30Days.length ? habitRates30Days : undefined,
+    });
     const contentText = briefingDataToText(briefingData);
 
     const title = `Morning Briefing — ${todayLabel()}`;
