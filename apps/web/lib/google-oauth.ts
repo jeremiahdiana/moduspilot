@@ -84,7 +84,6 @@ export async function storeGoogleAccountTokens(uid: string, tokens: {
     connectedAt: FieldValue.serverTimestamp(),
   };
   if (tokens.refresh_token) update.refreshToken = tokens.refresh_token;
-  // merge: true preserves an existing refreshToken if Google didn't issue a new one
   await accountsCol(uid).doc(docId).set(update, { merge: true });
 }
 

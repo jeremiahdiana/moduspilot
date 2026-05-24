@@ -5,8 +5,6 @@ import { signInWithCustomToken } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 
-// Intermediary page: re-establishes the Firebase session with a custom token
-// after the Google OAuth redirect, then forwards to the final destination.
 export default function GoogleReturnPage() {
   const router = useRouter();
 

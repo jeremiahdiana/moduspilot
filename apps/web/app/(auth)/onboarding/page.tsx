@@ -537,8 +537,8 @@ export default function OnboardingPage() {
   const [googleEmail,     setGoogleEmail]     = useState('');
   const [googleConnecting, setGoogleConnecting] = useState(false);
   const [googleError,     setGoogleError]     = useState('');
-  // Capture ?connected= param synchronously at mount (before any effect clears it).
-  // This is more reliable than sessionStorage which can be cleared by the browser.
+  // Captured synchronously at mount so the auth guard can allow the page to
+  // render before Firebase has finished restoring the session from IndexedDB.
   const [oauthConnectedEmail] = useState<string | null>(() =>
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('connected')
@@ -551,8 +551,6 @@ export default function OnboardingPage() {
     const connectedEmail = params.get('connected');
     const oauthError = params.get('error');
     if (!connectedEmail && !oauthError) return;
-
-    sessionStorage.removeItem('oauth_return');
 
     const saved = sessionStorage.getItem('onboarding_state');
     if (saved) {
@@ -594,24 +592,16 @@ export default function OnboardingPage() {
     }).catch(() => {});
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auth guard
   useEffect(() => {
     if (!loading && !user) {
-      // oauthConnectedEmail is set when we just returned from Google OAuth.
-      // Don't redirect to /login in that case — the session may still be
-      // initializing, and the Firestore prefill handles the connected state.
-      if (oauthConnectedEmail) return;
+      if (oauthConnectedEmail) return; // session still initializing after OAuth redirect
       router.push('/login');
       return;
     }
-    if (user) {
-      // Only check onboardingComplete when NOT returning from OAuth
-      // (URL is already cleared by the OAuth handler effect anyway)
-      if (!oauthConnectedEmail) {
-        getDoc(doc(db, 'users', user.uid)).then(snap => {
-          if (snap.data()?.onboardingComplete) router.push('/dashboard');
-        });
-      }
+    if (user && !oauthConnectedEmail) {
+      getDoc(doc(db, 'users', user.uid)).then(snap => {
+        if (snap.data()?.onboardingComplete) router.push('/dashboard');
+      });
     }
   }, [user, loading, router, oauthConnectedEmail]);
 
