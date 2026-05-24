@@ -19,8 +19,8 @@ interface Props {
 const PROVIDERS = [
   {
     id: 'groq' as const,
-    name: 'Groq',
-    description: 'Default. Fast, free, powered by Llama 3.3.',
+    name: 'Modus',
+    description: 'Included. Fast, free, always on.',
     badge: 'Included',
     badgeColor: 'bg-emerald-500/10 text-emerald-400',
     models: [
