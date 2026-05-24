@@ -4,18 +4,14 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from 'firebase/auth';
 
-const COMING_SOON = [
-  { id: 'notion', label: 'Notion', desc: 'Sync goals and tasks with your Notion workspace.' },
-  { id: 'slack',  label: 'Slack',  desc: 'Get briefings and approvals via Slack messages.' },
-  { id: 'github', label: 'GitHub', desc: 'Track repos, issues, and PRs in your context.' },
-];
-
-interface GoogleAccount {
-  email: string;
-  connectedAt: string | null;
-}
+interface GoogleAccount { email: string; connectedAt: string | null; }
+interface NotionAccount { workspaceId: string; workspaceName: string; workspaceIcon: string | null; ownerEmail: string; connectedAt: string | null; }
+interface SlackAccount { teamId: string; teamName: string; connectedAt: string | null; }
+interface GitHubAccount { login: string; name: string | null; avatarUrl: string; connectedAt: string | null; }
 
 interface Props { user: User }
+
+// ── Icons ────────────────────────────────────────────────────────────────────
 
 function GoogleIcon() {
   return (
@@ -28,49 +24,145 @@ function GoogleIcon() {
   );
 }
 
-function avatarColor(email: string) {
+function NotionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+      <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/>
+    </svg>
+  );
+}
+
+function SlackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
+    </svg>
+  );
+}
+
+function GitHubIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+    </svg>
+  );
+}
+
+// ── Helper ───────────────────────────────────────────────────────────────────
+
+function avatarColor(seed: string) {
   const colors = ['bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'];
   let h = 0;
-  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) & 0xffff;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffff;
   return colors[h % colors.length];
 }
 
+function fmtDate(iso: string | null) {
+  if (!iso) return 'Connected';
+  return `Connected ${new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+}
+
+function ConnectedBadge({ count }: { count: number }) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+      {count} {count === 1 ? 'workspace' : 'workspaces'} connected
+    </span>
+  );
+}
+
+function NotConnectedBadge() {
+  return (
+    <span className="flex items-center gap-1.5 text-xs font-medium text-muted bg-bg border border-border px-2.5 py-1 rounded-full">
+      Not connected
+    </span>
+  );
+}
+
+function DisconnectBtn({ loading, onClick }: { loading: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="text-xs text-muted hover:text-red-400 border border-border hover:border-red-400/30 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 shrink-0"
+    >
+      {loading ? (
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 border border-muted border-t-transparent rounded-full animate-spin" />
+          Removing…
+        </span>
+      ) : 'Disconnect'}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function ConnectorsSettings({ user }: Props) {
-  const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
+  const [googleAccounts, setGoogleAccounts] = useState<GoogleAccount[]>([]);
+  const [notionAccounts, setNotionAccounts] = useState<NotionAccount[]>([]);
+  const [slackAccounts, setSlackAccounts] = useState<SlackAccount[]>([]);
+  const [githubAccounts, setGithubAccounts] = useState<GitHubAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     user.getIdToken().then(async token => {
       try {
-        const res = await fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
-        setAccounts(data.accounts ?? []);
+        const [googleRes, connRes] = await Promise.all([
+          fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        const [googleData, connData] = await Promise.all([googleRes.json(), connRes.json()]);
+        setGoogleAccounts(googleData.accounts ?? []);
+        setNotionAccounts(connData.notion ?? []);
+        setSlackAccounts(connData.slack ?? []);
+        setGithubAccounts(connData.github ?? []);
       } catch { /* non-fatal */ }
       finally { setLoading(false); }
     });
   }, [user]);
 
-  // Pick up ?connected= param after OAuth redirect
+  // Handle ?connected= after OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connected = params.get('connected');
-    if (connected && connected !== 'google') {
-      // Refetch accounts list
+    const err = params.get('error');
+    if (err) {
+      const labels: Record<string, string> = { notion_denied: 'Notion auth cancelled.', notion_failed: 'Notion connection failed.', slack_denied: 'Slack auth cancelled.', slack_failed: 'Slack connection failed.', github_denied: 'GitHub auth cancelled.', github_failed: 'GitHub connection failed.' };
+      setError(labels[err] ?? 'Connection failed.');
+      window.history.replaceState({}, '', window.location.pathname + '?tab=connectors');
+    }
+    if (connected && ['notion', 'slack', 'github'].includes(connected)) {
       user.getIdToken().then(async token => {
-        const res = await fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
-        setAccounts(data.accounts ?? []);
-        // Clear the param without reload
+        setNotionAccounts(data.notion ?? []);
+        setSlackAccounts(data.slack ?? []);
+        setGithubAccounts(data.github ?? []);
         window.history.replaceState({}, '', window.location.pathname + '?tab=connectors');
       });
     }
   }, [user]);
 
+  async function connectService(endpoint: string, key: string) {
+    setConnecting(key);
+    setError('');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const { url } = await res.json();
+      window.location.href = url;
+    } catch {
+      setError(`Failed to start ${key} auth. Try again.`);
+      setConnecting(null);
+    }
+  }
+
   async function connectGoogle() {
-    setConnecting(true);
+    setConnecting('google');
     setError('');
     try {
       const token = await user.getIdToken();
@@ -79,26 +171,49 @@ export default function ConnectorsSettings({ user }: Props) {
       window.location.href = url;
     } catch {
       setError('Failed to start Google auth. Try again.');
-      setConnecting(false);
+      setConnecting(null);
     }
   }
 
-  async function disconnectAccount(email: string) {
+  async function disconnectGoogle(email: string) {
     setDisconnecting(email);
     setError('');
     try {
       const token = await user.getIdToken();
-      await fetch('/api/google/disconnect', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      setAccounts(prev => prev.filter(a => a.email !== email));
-    } catch {
-      setError('Failed to disconnect. Try again.');
-    } finally {
-      setDisconnecting(null);
-    }
+      await fetch('/api/google/disconnect', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      setGoogleAccounts(prev => prev.filter(a => a.email !== email));
+    } catch { setError('Failed to disconnect. Try again.'); }
+    finally { setDisconnecting(null); }
+  }
+
+  async function disconnectNotion(workspaceId: string) {
+    setDisconnecting(workspaceId);
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/notion/disconnect', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ workspaceId }) });
+      setNotionAccounts(prev => prev.filter(a => a.workspaceId !== workspaceId));
+    } catch { setError('Failed to disconnect. Try again.'); }
+    finally { setDisconnecting(null); }
+  }
+
+  async function disconnectSlack(teamId: string) {
+    setDisconnecting(teamId);
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/slack/disconnect', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ teamId }) });
+      setSlackAccounts(prev => prev.filter(a => a.teamId !== teamId));
+    } catch { setError('Failed to disconnect. Try again.'); }
+    finally { setDisconnecting(null); }
+  }
+
+  async function disconnectGitHub(login: string) {
+    setDisconnecting(login);
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/github/disconnect', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ login }) });
+      setGithubAccounts(prev => prev.filter(a => a.login !== login));
+    } catch { setError('Failed to disconnect. Try again.'); }
+    finally { setDisconnecting(null); }
   }
 
   return (
@@ -108,125 +223,165 @@ export default function ConnectorsSettings({ user }: Props) {
         <p className="text-sm text-muted">Integrate external accounts and services with MODUS.</p>
       </div>
 
-      {/* Google accounts */}
-      <div className="bg-panel border border-border rounded-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-bg border border-border flex items-center justify-center shrink-0">
-              <GoogleIcon />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-text">Google</p>
-              <p className="text-xs text-muted">Gmail · Calendar · Drive</p>
-            </div>
-          </div>
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">{error}</div>
+      )}
 
-          {loading ? (
-            <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-          ) : accounts.length > 0 ? (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-muted bg-bg border border-border px-2.5 py-1 rounded-full">
-              Not connected
-            </span>
-          )}
-        </div>
-
-        {/* Connected account rows */}
+      {/* ── Google ── */}
+      <ConnectorCard
+        icon={<GoogleIcon />}
+        label="Google"
+        subtitle="Gmail · Calendar · Drive"
+        loading={loading}
+        connectedCount={googleAccounts.length}
+        connectedLabel={`${googleAccounts.length} account${googleAccounts.length !== 1 ? 's' : ''} connected`}
+      >
         <AnimatePresence>
-          {accounts.map((account, i) => (
-            <motion.div
+          {googleAccounts.map(account => (
+            <AccountRow
               key={account.email}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="border-b border-border/50 last:border-b-0"
-            >
-              <div className="flex items-center gap-3 px-6 py-4">
-                {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full ${avatarColor(account.email)} flex items-center justify-center shrink-0`}>
-                  <span className="text-xs font-bold text-white">{account.email[0].toUpperCase()}</span>
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text truncate">{account.email}</p>
-                  <p className="text-[11px] text-muted">
-                    {account.connectedAt
-                      ? `Connected ${new Date(account.connectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                      : 'Connected'}
-                    {' · '}Gmail · Calendar · Drive
-                  </p>
-                </div>
-
-                {/* Disconnect */}
-                <button
-                  onClick={() => disconnectAccount(account.email)}
-                  disabled={disconnecting === account.email}
-                  className="text-xs text-muted hover:text-red-400 border border-border hover:border-red-400/30 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 shrink-0"
-                >
-                  {disconnecting === account.email ? (
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 border border-muted border-t-transparent rounded-full animate-spin" />
-                      Removing…
-                    </span>
-                  ) : 'Disconnect'}
-                </button>
-              </div>
-            </motion.div>
+              avatar={<InitialAvatar seed={account.email} />}
+              title={account.email}
+              subtitle={`${fmtDate(account.connectedAt)} · Gmail · Calendar · Drive`}
+              onDisconnect={() => disconnectGoogle(account.email)}
+              disconnecting={disconnecting === account.email}
+            />
           ))}
         </AnimatePresence>
-
-        {/* Add account / connect first */}
         <div className="px-6 py-5">
           <p className="text-xs text-muted mb-4">
-            {accounts.length > 0
-              ? 'MODUS merges all connected inboxes into one unified view. Add as many Gmail accounts as you need.'
-              : 'Connect Google to give MODUS access to your inbox, calendar, and Drive files.'}
+            {googleAccounts.length > 0
+              ? 'MODUS merges all connected inboxes into one unified view.'
+              : 'Connect Google to give MODUS access to your inbox, calendar, and Drive.'}
           </p>
-
-          {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
-
-          <button
+          <ConnectButton
+            loading={connecting === 'google'}
+            hasAccounts={googleAccounts.length > 0}
+            addLabel="Add another Gmail account"
+            connectLabel="Connect Google"
             onClick={connectGoogle}
-            disabled={connecting}
-            className="flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand/90 disabled:opacity-50 transition-colors"
-          >
-            {connecting ? (
-              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-            )}
-            {connecting ? 'Redirecting…' : accounts.length > 0 ? 'Add another Gmail account' : 'Connect Google'}
-          </button>
+          />
         </div>
-      </div>
+      </ConnectorCard>
 
-      {/* Coming soon */}
-      <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text">More Integrations</h3>
-          <span className="text-xs text-muted bg-border/50 px-2 py-1 rounded">Coming Soon</span>
-        </div>
-        <div className="space-y-2">
-          {COMING_SOON.map(item => (
-            <div key={item.id} className="flex items-center justify-between py-3 px-4 rounded-lg bg-bg border border-border opacity-50">
-              <div>
-                <p className="text-sm text-text font-medium">{item.label}</p>
-                <p className="text-xs text-muted">{item.desc}</p>
-              </div>
-              <span className="text-xs text-muted shrink-0">Soon</span>
-            </div>
+      {/* ── Notion ── */}
+      <ConnectorCard
+        icon={<NotionIcon />}
+        label="Notion"
+        subtitle="Pages · Databases · Notes"
+        loading={loading}
+        connectedCount={notionAccounts.length}
+        connectedLabel={`${notionAccounts.length} workspace${notionAccounts.length !== 1 ? 's' : ''} connected`}
+      >
+        <AnimatePresence>
+          {notionAccounts.map(account => (
+            <AccountRow
+              key={account.workspaceId}
+              avatar={
+                account.workspaceIcon
+                  ? <img src={account.workspaceIcon} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  : <InitialAvatar seed={account.workspaceName} />
+              }
+              title={account.workspaceName}
+              subtitle={`${fmtDate(account.connectedAt)}${account.ownerEmail ? ` · ${account.ownerEmail}` : ''}`}
+              onDisconnect={() => disconnectNotion(account.workspaceId)}
+              disconnecting={disconnecting === account.workspaceId}
+            />
           ))}
+        </AnimatePresence>
+        <div className="px-6 py-5">
+          <p className="text-xs text-muted mb-4">
+            {notionAccounts.length > 0
+              ? 'MODUS can read your Notion pages and databases for context in chat.'
+              : 'Connect Notion to give MODUS access to your pages and databases.'}
+          </p>
+          <ConnectButton
+            loading={connecting === 'notion'}
+            hasAccounts={notionAccounts.length > 0}
+            addLabel="Add another workspace"
+            connectLabel="Connect Notion"
+            onClick={() => connectService('/api/auth/notion/connect', 'notion')}
+          />
         </div>
-      </div>
+      </ConnectorCard>
+
+      {/* ── Slack ── */}
+      <ConnectorCard
+        icon={<SlackIcon />}
+        label="Slack"
+        subtitle="Channels · Messages · DMs"
+        loading={loading}
+        connectedCount={slackAccounts.length}
+        connectedLabel={`${slackAccounts.length} workspace${slackAccounts.length !== 1 ? 's' : ''} connected`}
+      >
+        <AnimatePresence>
+          {slackAccounts.map(account => (
+            <AccountRow
+              key={account.teamId}
+              avatar={<InitialAvatar seed={account.teamName} />}
+              title={account.teamName}
+              subtitle={fmtDate(account.connectedAt)}
+              onDisconnect={() => disconnectSlack(account.teamId)}
+              disconnecting={disconnecting === account.teamId}
+            />
+          ))}
+        </AnimatePresence>
+        <div className="px-6 py-5">
+          <p className="text-xs text-muted mb-4">
+            {slackAccounts.length > 0
+              ? 'MODUS can read Slack channels and send messages on your behalf.'
+              : 'Connect Slack to get briefings and use MODUS from your workspace.'}
+          </p>
+          <ConnectButton
+            loading={connecting === 'slack'}
+            hasAccounts={slackAccounts.length > 0}
+            addLabel="Add another workspace"
+            connectLabel="Connect Slack"
+            onClick={() => connectService('/api/auth/slack/connect', 'slack')}
+          />
+        </div>
+      </ConnectorCard>
+
+      {/* ── GitHub ── */}
+      <ConnectorCard
+        icon={<GitHubIcon />}
+        label="GitHub"
+        subtitle="Repos · Issues · Pull Requests"
+        loading={loading}
+        connectedCount={githubAccounts.length}
+        connectedLabel={`${githubAccounts.length} account${githubAccounts.length !== 1 ? 's' : ''} connected`}
+      >
+        <AnimatePresence>
+          {githubAccounts.map(account => (
+            <AccountRow
+              key={account.login}
+              avatar={
+                account.avatarUrl
+                  ? <img src={account.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  : <InitialAvatar seed={account.login} />
+              }
+              title={account.name ?? account.login}
+              subtitle={`${fmtDate(account.connectedAt)} · @${account.login}`}
+              onDisconnect={() => disconnectGitHub(account.login)}
+              disconnecting={disconnecting === account.login}
+            />
+          ))}
+        </AnimatePresence>
+        <div className="px-6 py-5">
+          <p className="text-xs text-muted mb-4">
+            {githubAccounts.length > 0
+              ? 'MODUS can track your repos, open issues, and pull requests.'
+              : 'Connect GitHub to give MODUS context on your repos and issues.'}
+          </p>
+          <ConnectButton
+            loading={connecting === 'github'}
+            hasAccounts={githubAccounts.length > 0}
+            addLabel="Add another account"
+            connectLabel="Connect GitHub"
+            onClick={() => connectService('/api/auth/github/connect', 'github')}
+          />
+        </div>
+      </ConnectorCard>
 
       {/* Custom MCP */}
       <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
@@ -238,5 +393,110 @@ export default function ConnectorsSettings({ user }: Props) {
         <p className="text-[11px] text-muted/50 italic">Coming soon — MCP server support.</p>
       </div>
     </div>
+  );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function ConnectorCard({ icon, label, subtitle, loading, connectedCount, connectedLabel, children }: {
+  icon: React.ReactNode;
+  label: string;
+  subtitle: string;
+  loading: boolean;
+  connectedCount: number;
+  connectedLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-panel border border-border rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-bg border border-border flex items-center justify-center shrink-0 text-text">
+            {icon}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-text">{label}</p>
+            <p className="text-xs text-muted">{subtitle}</p>
+          </div>
+        </div>
+        {loading ? (
+          <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+        ) : connectedCount > 0 ? (
+          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            {connectedLabel}
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted bg-bg border border-border px-2.5 py-1 rounded-full">
+            Not connected
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function AccountRow({ avatar, title, subtitle, onDisconnect, disconnecting }: {
+  avatar: React.ReactNode;
+  title: string;
+  subtitle: string;
+  onDisconnect: () => void;
+  disconnecting: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="border-b border-border/50"
+    >
+      <div className="flex items-center gap-3 px-6 py-4">
+        <div className="shrink-0">{avatar}</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-text truncate">{title}</p>
+          <p className="text-[11px] text-muted">{subtitle}</p>
+        </div>
+        <DisconnectBtn loading={disconnecting} onClick={onDisconnect} />
+      </div>
+    </motion.div>
+  );
+}
+
+function InitialAvatar({ seed }: { seed: string }) {
+  const colors = ['bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffff;
+  const color = colors[h % colors.length];
+  return (
+    <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center`}>
+      <span className="text-xs font-bold text-white">{seed[0]?.toUpperCase() ?? '?'}</span>
+    </div>
+  );
+}
+
+function ConnectButton({ loading, hasAccounts, addLabel, connectLabel, onClick }: {
+  loading: boolean;
+  hasAccounts: boolean;
+  addLabel: string;
+  connectLabel: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand/90 disabled:opacity-50 transition-colors"
+    >
+      {loading ? (
+        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      )}
+      {loading ? 'Redirecting…' : hasAccounts ? addLabel : connectLabel}
+    </button>
   );
 }
