@@ -91,6 +91,13 @@ export async function getNotionAccessToken(uid: string, workspaceId: string): Pr
   return doc.exists ? (doc.data()!.accessToken as string) : null;
 }
 
+export async function getFirstNotionToken(uid: string): Promise<{ token: string; workspaceName: string } | null> {
+  const snap = await accountsCol(uid).limit(1).get();
+  if (snap.empty) return null;
+  const d = snap.docs[0].data();
+  return { token: d.accessToken as string, workspaceName: d.workspaceName as string };
+}
+
 export async function disconnectNotionWorkspace(uid: string, workspaceId: string) {
   await accountsCol(uid).doc(workspaceId).delete();
 }

@@ -79,7 +79,52 @@ export async function POST(req: Request) {
     }
     case 'schedule_event': {
       const ref = await userRef.collection('events').add(base);
+      // Also create in Google Calendar if connected and datetimes provided
+      const { startDateTime, endDateTime } = payload as { startDateTime?: string; endDateTime?: string };
+      if (startDateTime && endDateTime) {
+        try {
+          const googleToken = await getValidAccessToken(uid);
+          if (googleToken) {
+            await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                summary: title,
+                description: description ?? '',
+                start: { dateTime: startDateTime },
+                end: { dateTime: endDateTime },
+              }),
+            });
+          }
+        } catch { /* non-fatal — event saved to Firestore regardless */ }
+      }
       return Response.json({ id: ref.id });
+    }
+    case 'archive_email': {
+      const threadId = payload.threadId as string | undefined;
+      if (!threadId) return Response.json({ error: 'threadId required' }, { status: 400 });
+      const googleToken = await getValidAccessToken(uid);
+      if (!googleToken) return Response.json({ error: 'Google not connected' }, { status: 400 });
+      const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/modify`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ removeLabelIds: ['INBOX'] }),
+      });
+      if (!res.ok) return Response.json({ error: 'Archive failed' }, { status: 500 });
+      return Response.json({ ok: true });
+    }
+    case 'mark_read_email': {
+      const threadId = payload.threadId as string | undefined;
+      if (!threadId) return Response.json({ error: 'threadId required' }, { status: 400 });
+      const googleToken = await getValidAccessToken(uid);
+      if (!googleToken) return Response.json({ error: 'Google not connected' }, { status: 400 });
+      const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/modify`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
+      });
+      if (!res.ok) return Response.json({ error: 'Mark read failed' }, { status: 500 });
+      return Response.json({ ok: true });
     }
     case 'draft_email': {
       const ref = await userRef.collection('drafts').add(base);

@@ -30,6 +30,8 @@ const TYPE_LABELS: Record<string, string> = {
   enable_web_search: 'Enable Web Search',
   send_email: 'Send Email',
   reschedule_event: 'Reschedule Event',
+  archive_email: 'Archive Email',
+  mark_read_email: 'Mark as Read',
 };
 
 const CONNECT_ENDPOINTS: Record<string, string> = {

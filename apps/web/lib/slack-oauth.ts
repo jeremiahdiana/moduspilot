@@ -88,6 +88,13 @@ export async function getSlackAccessToken(uid: string, teamId: string): Promise<
   return doc.exists ? (doc.data()!.accessToken as string) : null;
 }
 
+export async function getFirstSlackToken(uid: string): Promise<{ token: string; teamName: string } | null> {
+  const snap = await accountsCol(uid).limit(1).get();
+  if (snap.empty) return null;
+  const d = snap.docs[0].data();
+  return { token: d.accessToken as string, teamName: d.teamName as string };
+}
+
 export async function disconnectSlackWorkspace(uid: string, teamId: string) {
   await accountsCol(uid).doc(teamId).delete();
 }

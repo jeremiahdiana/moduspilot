@@ -10,9 +10,12 @@ import { getActionableThreads } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
 import { searchDriveFiles, shouldSearchDrive, mimeLabel } from '@/lib/google-drive';
-import { getNotionAccounts } from '@/lib/notion-oauth';
-import { getSlackAccounts } from '@/lib/slack-oauth';
-import { getGitHubAccounts } from '@/lib/github-oauth';
+import { getNotionAccounts, getFirstNotionToken } from '@/lib/notion-oauth';
+import { getSlackAccounts, getFirstSlackToken } from '@/lib/slack-oauth';
+import { getGitHubAccounts, getFirstGitHubToken } from '@/lib/github-oauth';
+import { getRecentNotionPages } from '@/lib/notion-data';
+import { getRecentSlackActivity } from '@/lib/slack-data';
+import { getGitHubWorkItems } from '@/lib/github-data';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -113,7 +116,7 @@ export async function POST(req: Request) {
           if (threads.length > 0) {
             gmailBlock = '\n\nINBOX (unread, last 48h — these are the only emails you have access to, never invent others):\n' +
               threads.map((t, i) =>
-                `${i + 1}. From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 500) : t.snippet}`
+                `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 500) : t.snippet}`
               ).join('\n\n');
           } else {
             gmailBlock = '\n\nINBOX: No unread emails in the last 48 hours.';
@@ -235,15 +238,22 @@ export async function POST(req: Request) {
       ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it.`
       : '';
 
-    // Connector status — injected so MODUS knows what's connected and can offer connect cards
+    // Connector status + live data from Notion, Slack, GitHub
     let connectorBlock = '';
+    let notionBlock = '';
+    let slackBlock = '';
+    let githubBlock = '';
     if (uid) {
       try {
-        const [notionAccounts, slackAccounts, githubAccounts] = await Promise.all([
+        const [notionAccounts, slackAccounts, githubAccounts, notionToken, slackToken, githubToken] = await Promise.all([
           getNotionAccounts(uid),
           getSlackAccounts(uid),
           getGitHubAccounts(uid),
+          getFirstNotionToken(uid),
+          getFirstSlackToken(uid),
+          getFirstGitHubToken(uid),
         ]);
+
         const connected: string[] = ['Google (Gmail · Calendar · Drive)'];
         if (notionAccounts.length > 0) connected.push(`Notion (${notionAccounts.map(a => a.workspaceName).join(', ')})`);
         if (slackAccounts.length > 0) connected.push(`Slack (${slackAccounts.map(a => a.teamName).join(', ')})`);
@@ -254,10 +264,35 @@ export async function POST(req: Request) {
         if (githubAccounts.length === 0) notConnected.push('GitHub');
         connectorBlock = `\n\nCONNECTED INTEGRATIONS: ${connected.join(', ')}`;
         if (notConnected.length > 0) connectorBlock += `\nNOT YET CONNECTED: ${notConnected.join(', ')} — generate a connect card if the user asks about these services`;
+
+        // Fetch live data from connected services in parallel
+        const [notionPages, slackMessages, githubItems] = await Promise.all([
+          notionToken ? getRecentNotionPages(notionToken.token, 5) : Promise.resolve([]),
+          slackToken ? getRecentSlackActivity(slackToken.token, 8) : Promise.resolve([]),
+          githubToken ? getGitHubWorkItems(githubToken.token, githubToken.login, 8) : Promise.resolve([]),
+        ]);
+
+        if (notionPages.length > 0) {
+          notionBlock = '\n\nNOTION (recently edited pages — only reference these, never invent others):\n' +
+            notionPages.map(p => `- [${p.type === 'database' ? 'DB' : 'Page'}] ${p.title} (edited ${p.lastEdited})${p.url ? ' — ' + p.url : ''}`).join('\n');
+        }
+
+        if (slackMessages.length > 0) {
+          slackBlock = '\n\nSLACK (recent messages from your channels):\n' +
+            slackMessages.map(m => `#${m.channel} [${m.ts}]: ${m.text}`).join('\n');
+        }
+
+        if (githubItems.length > 0) {
+          const prs = githubItems.filter(i => i.kind === 'pr');
+          const issues = githubItems.filter(i => i.kind === 'issue');
+          githubBlock = '\n\nGITHUB:';
+          if (prs.length) githubBlock += `\nOpen PRs: ${prs.map(p => `${p.title} (${p.repo})`).join(' · ')}`;
+          if (issues.length) githubBlock += `\nAssigned issues: ${issues.map(i => `${i.title} (${i.repo})`).join(' · ')}`;
+        }
       } catch { /* non-fatal */ }
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + googleDataBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
     const result = streamText({
       model: chatModel,

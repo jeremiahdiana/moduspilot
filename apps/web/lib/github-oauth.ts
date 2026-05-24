@@ -89,6 +89,13 @@ export async function getGitHubAccessToken(uid: string, login: string): Promise<
   return doc.exists ? (doc.data()!.accessToken as string) : null;
 }
 
+export async function getFirstGitHubToken(uid: string): Promise<{ token: string; login: string } | null> {
+  const snap = await accountsCol(uid).limit(1).get();
+  if (snap.empty) return null;
+  const d = snap.docs[0].data();
+  return { token: d.accessToken as string, login: d.login as string };
+}
+
 export async function disconnectGitHubAccount(uid: string, login: string) {
   await accountsCol(uid).doc(login).delete();
 }
