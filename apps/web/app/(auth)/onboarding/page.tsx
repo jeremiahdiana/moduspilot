@@ -614,11 +614,6 @@ export default function OnboardingPage() {
   async function handleConnectGoogle() {
     if (!user) return;
     setGoogleConnecting(true);
-    sessionStorage.setItem('onboarding_state', JSON.stringify({
-      name, employment, employmentOther, industry, industryOther,
-      goals, goalsOther, challenge, challengeOther, thirtyDayGoal,
-      taskSystem, taskSystemOther,
-    }));
     try {
       const token = await user.getIdToken();
       const res = await fetch('/api/auth/google/connect', {
@@ -629,15 +624,51 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error('connect_failed');
       const data = await res.json();
       if (!data.url) throw new Error('no_url');
-      // Flag survives the OAuth redirect so auth guard doesn't kick to /login
-      // while Firebase is restoring the session on return
-      sessionStorage.setItem('oauth_return', '1');
-      window.location.href = data.url;
-      // Page navigates away; if for any reason it doesn't, reset after 5s
-      setTimeout(() => setGoogleConnecting(false), 5000);
+
+      // Open OAuth in a popup — the main page never navigates away so
+      // the Firebase session is preserved and no re-login is needed.
+      const popup = window.open(data.url, 'google_connect', 'width=520,height=660,scrollbars=yes');
+
+      if (popup) {
+        let handled = false;
+
+        const onMessage = (e: MessageEvent) => {
+          if (e.origin !== window.location.origin) return;
+          if (e.data?.type === 'google_connected') {
+            handled = true;
+            window.removeEventListener('message', onMessage);
+            clearInterval(pollClosed);
+            setGoogleEmail(e.data.email as string);
+            setGoogleConnecting(false);
+          } else if (e.data?.type === 'google_error') {
+            handled = true;
+            window.removeEventListener('message', onMessage);
+            clearInterval(pollClosed);
+            setGoogleConnecting(false);
+          }
+        };
+
+        window.addEventListener('message', onMessage);
+
+        // Detect if user closes the popup without completing
+        const pollClosed = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(pollClosed);
+            window.removeEventListener('message', onMessage);
+            if (!handled) setGoogleConnecting(false);
+          }
+        }, 600);
+      } else {
+        // Popup blocked — fall back to redirect with session-guard flag
+        sessionStorage.setItem('oauth_return', '1');
+        sessionStorage.setItem('onboarding_state', JSON.stringify({
+          name, employment, employmentOther, industry, industryOther,
+          goals, goalsOther, challenge, challengeOther, thirtyDayGoal,
+          taskSystem, taskSystemOther,
+        }));
+        window.location.href = data.url;
+      }
     } catch {
-      sessionStorage.removeItem('onboarding_state');
-      sessionStorage.removeItem('oauth_return');
       setGoogleConnecting(false);
     }
   }

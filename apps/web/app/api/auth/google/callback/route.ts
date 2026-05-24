@@ -9,6 +9,10 @@ export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (error || !code || !state) {
+    const origin = state ? (() => { try { return JSON.parse(Buffer.from(state, 'base64url').toString()).origin ?? 'settings'; } catch { return 'settings'; } })() : 'settings';
+    if (origin === 'onboarding') {
+      return Response.redirect(`${appUrl}/auth/google-done?error=google_denied&origin=onboarding`);
+    }
     return Response.redirect(`${appUrl}/settings?tab=connectors&error=google_denied`);
   }
 
@@ -34,14 +38,15 @@ export async function GET(req: Request) {
     await storeGoogleAccountTokens(uid, { ...tokens, email });
 
     if (origin === 'onboarding') {
-      return Response.redirect(`${appUrl}/onboarding?connected=${encodeURIComponent(email)}`);
+      // Bridge page: posts message to opener (popup) or falls back to redirect
+      return Response.redirect(`${appUrl}/auth/google-done?email=${encodeURIComponent(email)}&origin=onboarding`);
     }
     return Response.redirect(`${appUrl}/settings?tab=connectors&connected=${encodeURIComponent(email)}`);
   } catch (e) {
     console.error('[google/callback]', e);
     const origin = (() => { try { return JSON.parse(Buffer.from(state!, 'base64url').toString()).origin ?? 'settings'; } catch { return 'settings'; } })();
     if (origin === 'onboarding') {
-      return Response.redirect(`${appUrl}/onboarding?error=google_failed`);
+      return Response.redirect(`${appUrl}/auth/google-done?error=google_failed&origin=onboarding`);
     }
     return Response.redirect(`${appUrl}/settings?tab=connectors&error=google_failed`);
   }
