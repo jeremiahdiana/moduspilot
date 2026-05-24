@@ -531,6 +531,10 @@ export default function OnboardingPage() {
   const [taskSystemOther, setTaskSystemOther] = useState('');
   const [googleEmail,     setGoogleEmail]     = useState('');
   const [googleConnecting, setGoogleConnecting] = useState(false);
+  // Captured synchronously at mount so effects can't race against it
+  const [returnedFromOAuth] = useState<boolean>(() =>
+    typeof window !== 'undefined' && sessionStorage.getItem('oauth_return') === '1'
+  );
 
   // Handle return from Google OAuth
   useEffect(() => {
@@ -538,6 +542,9 @@ export default function OnboardingPage() {
     const connectedEmail = params.get('connected');
     const oauthError = params.get('error');
     if (!connectedEmail && !oauthError) return;
+
+    // Clear from storage so future page loads don't carry the flag
+    sessionStorage.removeItem('oauth_return');
 
     const saved = sessionStorage.getItem('onboarding_state');
     if (saved) {
@@ -566,7 +573,12 @@ export default function OnboardingPage() {
 
   // Auth guard
   useEffect(() => {
-    if (!loading && !user) { router.push('/login'); return; }
+    if (!loading && !user) {
+      // Don't redirect while returning from OAuth — Firebase session may still be restoring
+      if (returnedFromOAuth) return;
+      router.push('/login');
+      return;
+    }
     if (user) {
       const params = new URLSearchParams(window.location.search);
       if (!params.get('connected') && !params.get('error')) {
@@ -575,9 +587,9 @@ export default function OnboardingPage() {
         });
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, returnedFromOAuth]);
 
-  if (loading || !user) return null;
+  if (loading || (!user && !returnedFromOAuth)) return null;
 
   function go(next: 'welcome' | 'name' | number | 'done', dir = 1) {
     setDirection(dir);
@@ -603,9 +615,13 @@ export default function OnboardingPage() {
         body: JSON.stringify({ origin: 'onboarding' }),
       });
       const data = await res.json();
+      // Flag survives the OAuth redirect so auth guard doesn't kick to /login
+      // while Firebase is restoring the session on return
+      sessionStorage.setItem('oauth_return', '1');
       window.location.href = data.url;
     } catch {
       sessionStorage.removeItem('onboarding_state');
+      sessionStorage.removeItem('oauth_return');
       setGoogleConnecting(false);
     }
   }
