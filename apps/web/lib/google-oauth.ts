@@ -21,8 +21,9 @@ export function buildOAuthUrl(uid: string, origin: string = 'settings'): string 
     response_type: 'code',
     scope: GOOGLE_SCOPES,
     access_type: 'offline',
-    // select_account always shows account picker; consent only fires when truly needed
-    prompt: 'select_account',
+    // select_account shows account picker; consent forces re-auth so Google always
+    // issues a fresh refresh_token — required for reconnect after disconnect.
+    prompt: 'select_account consent',
     state: Buffer.from(JSON.stringify({ uid, origin })).toString('base64url'),
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
@@ -71,19 +72,20 @@ function accountsCol(uid: string) {
 
 export async function storeGoogleAccountTokens(uid: string, tokens: {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
   expires_in: number;
   email: string;
 }) {
-  // Use email as doc ID (Firestore allows all chars except /)
   const docId = tokens.email.replace(/\//g, '_');
-  await accountsCol(uid).doc(docId).set({
+  const update: Record<string, unknown> = {
     email: tokens.email,
     accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
     expiresAt: Date.now() + tokens.expires_in * 1000,
     connectedAt: FieldValue.serverTimestamp(),
-  });
+  };
+  if (tokens.refresh_token) update.refreshToken = tokens.refresh_token;
+  // merge: true preserves an existing refreshToken if Google didn't issue a new one
+  await accountsCol(uid).doc(docId).set(update, { merge: true });
 }
 
 export async function getAllGoogleAccounts(uid: string): Promise<{

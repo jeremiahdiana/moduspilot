@@ -145,6 +145,15 @@ export default function ConnectorsSettings({ user }: Props) {
         window.history.replaceState({}, '', window.location.pathname + '?tab=connectors');
       });
     }
+    if (connected && connected.includes('@')) {
+      // Google account connected — refresh the accounts list
+      user.getIdToken().then(async token => {
+        const res = await fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json();
+        setGoogleAccounts(data.accounts ?? []);
+        window.history.replaceState({}, '', window.location.pathname + '?tab=connectors');
+      });
+    }
   }, [user]);
 
   async function connectService(endpoint: string, key: string) {
