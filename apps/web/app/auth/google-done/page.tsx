@@ -9,16 +9,28 @@ export default function GoogleDonePage() {
     const error = params.get('error') ?? '';
     const origin = params.get('origin') ?? 'settings';
 
-    const msg = error
-      ? { type: 'google_error', error, origin }
-      : { type: 'google_connected', email, origin };
+    // BroadcastChannel works across same-origin windows even when
+    // window.opener is null (which happens after cross-origin navigation).
+    try {
+      const ch = new BroadcastChannel('google_oauth');
+      ch.postMessage(
+        error
+          ? { type: 'google_error', error, origin }
+          : { type: 'google_connected', email, origin }
+      );
+      ch.close();
+    } catch {
+      // BroadcastChannel not available — fall through to redirect
+    }
 
-    if (window.opener && !window.opener.closed) {
-      // Popup mode: send result to the parent window and close
-      window.opener.postMessage(msg, window.location.origin);
-      window.close();
-    } else {
-      // Fallback (redirect mode): navigate directly to destination
+    // Close if we're in a popup. If not (redirect mode), close() is a no-op
+    // and the setTimeout below will navigate us to the right destination.
+    window.close();
+
+    setTimeout(() => {
+      // Still here → we're in redirect mode (popup was blocked).
+      // Navigate the main window to the destination so the OAuth handler
+      // and Firestore-prefill can pick it up.
       if (origin === 'onboarding') {
         window.location.replace(
           error
@@ -32,7 +44,7 @@ export default function GoogleDonePage() {
             : `/settings?tab=connectors&connected=${encodeURIComponent(email)}`
         );
       }
-    }
+    }, 300);
   }, []);
 
   return (

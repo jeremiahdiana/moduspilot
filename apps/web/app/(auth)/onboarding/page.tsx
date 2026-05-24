@@ -627,34 +627,34 @@ export default function OnboardingPage() {
 
       // Open OAuth in a popup — the main page never navigates away so
       // the Firebase session is preserved and no re-login is needed.
+      // BroadcastChannel is used instead of window.opener.postMessage
+      // because opener becomes null after cross-origin popup navigation.
       const popup = window.open(data.url, 'google_connect', 'width=520,height=660,scrollbars=yes');
 
       if (popup) {
         let handled = false;
 
-        const onMessage = (e: MessageEvent) => {
-          if (e.origin !== window.location.origin) return;
+        const ch = new BroadcastChannel('google_oauth');
+        ch.onmessage = (e) => {
           if (e.data?.type === 'google_connected') {
             handled = true;
-            window.removeEventListener('message', onMessage);
+            ch.close();
             clearInterval(pollClosed);
             setGoogleEmail(e.data.email as string);
             setGoogleConnecting(false);
           } else if (e.data?.type === 'google_error') {
             handled = true;
-            window.removeEventListener('message', onMessage);
+            ch.close();
             clearInterval(pollClosed);
             setGoogleConnecting(false);
           }
         };
 
-        window.addEventListener('message', onMessage);
-
         // Detect if user closes the popup without completing
         const pollClosed = setInterval(() => {
           if (popup.closed) {
             clearInterval(pollClosed);
-            window.removeEventListener('message', onMessage);
+            ch.close();
             if (!handled) setGoogleConnecting(false);
           }
         }, 600);
