@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { auth } from '@/lib/firebase';
+
 interface Props {
   onClose: () => void;
 }
@@ -42,6 +45,30 @@ const PILOT_FEATURES = [
 ];
 
 export default function PaywallModal({ onClose }: Props) {
+  const [loading, setLoading] = useState<'modus' | 'pilot' | null>(null);
+  const [error, setError] = useState('');
+
+  const handleUpgrade = async (plan: 'modus' | 'pilot') => {
+    setLoading(plan);
+    setError('');
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) { setError('Please sign in to upgrade.'); return; }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return; }
+      window.location.href = data.url;
+    } catch {
+      setError('Failed to start checkout. Try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-panel border border-border rounded-2xl max-w-3xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
@@ -103,12 +130,11 @@ export default function PaywallModal({ onClose }: Props) {
               ))}
             </ul>
             <button
-              onClick={() => {
-                alert('Stripe checkout coming soon. Set up STRIPE_PUBLISHABLE_KEY in .env.local.');
-              }}
-              className="w-full bg-brand text-white font-bold py-3 rounded-xl hover:bg-brand/90 transition-colors text-sm"
+              onClick={() => handleUpgrade('modus')}
+              disabled={!!loading}
+              className="w-full bg-brand text-white font-bold py-3 rounded-xl hover:bg-brand/90 transition-colors text-sm disabled:opacity-50"
             >
-              Get MODUS — $24/mo
+              {loading === 'modus' ? 'Redirecting…' : 'Get MODUS — $24/mo'}
             </button>
           </div>
 
@@ -130,16 +156,16 @@ export default function PaywallModal({ onClose }: Props) {
               ))}
             </ul>
             <button
-              onClick={() => {
-                alert('Stripe checkout coming soon. Set up STRIPE_PUBLISHABLE_KEY in .env.local.');
-              }}
-              className="w-full border border-border text-text font-bold py-3 rounded-xl hover:bg-panel transition-colors text-sm"
+              onClick={() => handleUpgrade('pilot')}
+              disabled={!!loading}
+              className="w-full border border-border text-text font-bold py-3 rounded-xl hover:bg-panel transition-colors text-sm disabled:opacity-50"
             >
-              Get PILOT — $59/mo
+              {loading === 'pilot' ? 'Redirecting…' : 'Get PILOT — $59/mo'}
             </button>
           </div>
         </div>
 
+        {error && <p className="text-center text-xs text-red-400 mb-2">{error}</p>}
         <p className="text-center text-xs text-muted">Annual billing available (2 months free) · Cancel anytime</p>
 
         <button onClick={onClose} className="w-full text-center text-muted text-xs mt-4 hover:text-text transition-colors">
