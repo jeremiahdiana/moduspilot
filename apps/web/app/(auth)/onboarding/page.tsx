@@ -531,9 +531,12 @@ export default function OnboardingPage() {
   const [taskSystemOther, setTaskSystemOther] = useState('');
   const [googleEmail,     setGoogleEmail]     = useState('');
   const [googleConnecting, setGoogleConnecting] = useState(false);
-  // Captured synchronously at mount so effects can't race against it
-  const [returnedFromOAuth] = useState<boolean>(() =>
-    typeof window !== 'undefined' && sessionStorage.getItem('oauth_return') === '1'
+  // Capture ?connected= param synchronously at mount (before any effect clears it).
+  // This is more reliable than sessionStorage which can be cleared by the browser.
+  const [oauthConnectedEmail] = useState<string | null>(() =>
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('connected')
+      : null
   );
 
   // Handle return from Google OAuth
@@ -543,7 +546,6 @@ export default function OnboardingPage() {
     const oauthError = params.get('error');
     if (!connectedEmail && !oauthError) return;
 
-    // Clear from storage so future page loads don't carry the flag
     sessionStorage.removeItem('oauth_return');
 
     const saved = sessionStorage.getItem('onboarding_state');
@@ -585,22 +587,25 @@ export default function OnboardingPage() {
   // Auth guard
   useEffect(() => {
     if (!loading && !user) {
-      // Don't redirect while returning from OAuth — Firebase session may still be restoring
-      if (returnedFromOAuth) return;
+      // oauthConnectedEmail is set when we just returned from Google OAuth.
+      // Don't redirect to /login in that case — the session may still be
+      // initializing, and the Firestore prefill handles the connected state.
+      if (oauthConnectedEmail) return;
       router.push('/login');
       return;
     }
     if (user) {
-      const params = new URLSearchParams(window.location.search);
-      if (!params.get('connected') && !params.get('error')) {
+      // Only check onboardingComplete when NOT returning from OAuth
+      // (URL is already cleared by the OAuth handler effect anyway)
+      if (!oauthConnectedEmail) {
         getDoc(doc(db, 'users', user.uid)).then(snap => {
           if (snap.data()?.onboardingComplete) router.push('/dashboard');
         });
       }
     }
-  }, [user, loading, router, returnedFromOAuth]);
+  }, [user, loading, router, oauthConnectedEmail]);
 
-  if (loading || (!user && !returnedFromOAuth)) return null;
+  if (loading || (!user && !oauthConnectedEmail)) return null;
 
   function go(next: 'welcome' | 'name' | number | 'done', dir = 1) {
     setDirection(dir);
@@ -624,50 +629,7 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error('connect_failed');
       const data = await res.json();
       if (!data.url) throw new Error('no_url');
-
-      // Open OAuth in a popup — the main page never navigates away so
-      // the Firebase session is preserved and no re-login is needed.
-      // BroadcastChannel is used instead of window.opener.postMessage
-      // because opener becomes null after cross-origin popup navigation.
-      const popup = window.open(data.url, 'google_connect', 'width=520,height=660,scrollbars=yes');
-
-      if (popup) {
-        let handled = false;
-
-        const ch = new BroadcastChannel('google_oauth');
-        ch.onmessage = (e) => {
-          if (e.data?.type === 'google_connected') {
-            handled = true;
-            ch.close();
-            clearInterval(pollClosed);
-            setGoogleEmail(e.data.email as string);
-            setGoogleConnecting(false);
-          } else if (e.data?.type === 'google_error') {
-            handled = true;
-            ch.close();
-            clearInterval(pollClosed);
-            setGoogleConnecting(false);
-          }
-        };
-
-        // Detect if user closes the popup without completing
-        const pollClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(pollClosed);
-            ch.close();
-            if (!handled) setGoogleConnecting(false);
-          }
-        }, 600);
-      } else {
-        // Popup blocked — fall back to redirect with session-guard flag
-        sessionStorage.setItem('oauth_return', '1');
-        sessionStorage.setItem('onboarding_state', JSON.stringify({
-          name, employment, employmentOther, industry, industryOther,
-          goals, goalsOther, challenge, challengeOther, thirtyDayGoal,
-          taskSystem, taskSystemOther,
-        }));
-        window.location.href = data.url;
-      }
+      window.location.href = data.url;
     } catch {
       setGoogleConnecting(false);
     }
