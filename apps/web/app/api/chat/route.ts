@@ -116,7 +116,7 @@ export async function POST(req: Request) {
           if (threads.length > 0) {
             gmailBlock = '\n\nINBOX (unread, last 48h — these are the only emails you have access to, never invent others):\n' +
               threads.map((t, i) =>
-                `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 500) : t.snippet}`
+                `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 1500) : t.snippet}`
               ).join('\n\n');
           } else {
             gmailBlock = '\n\nINBOX: No unread emails in the last 48 hours.';
