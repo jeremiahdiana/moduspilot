@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
 import type { GmailThread } from '@/lib/google-gmail';
@@ -47,8 +49,24 @@ export default function GmailWidget() {
   const [notConnected, setNotConnected] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<'all' | string>('all');
   const [filter, setFilter] = useState<Filter>('primary');
+  const [filterLoaded, setFilterLoaded] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load saved filter preference on mount
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, 'users', user.uid)).then(snap => {
+      const saved = snap.data()?.settings?.gmailFilter as Filter | undefined;
+      if (saved === 'primary' || saved === 'all') setFilter(saved);
+    }).finally(() => setFilterLoaded(true));
+  }, [user]);
+
+  const handleSetFilter = useCallback(async (f: Filter) => {
+    setFilter(f);
+    if (!user) return;
+    setDoc(doc(db, 'users', user.uid), { settings: { gmailFilter: f } }, { merge: true }).catch(() => {});
+  }, [user]);
 
   const fetchThreads = useCallback(async (account: string, f: Filter) => {
     if (!user) return;
@@ -78,8 +96,9 @@ export default function GmailWidget() {
   }, [user]);
 
   useEffect(() => {
+    if (!filterLoaded) return;
     fetchThreads(selectedAccount, filter);
-  }, [fetchThreads, selectedAccount, filter]);
+  }, [fetchThreads, selectedAccount, filter, filterLoaded]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -151,7 +170,7 @@ export default function GmailWidget() {
         {(['primary', 'all'] as const).map(f => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => handleSetFilter(f)}
             className={`text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors capitalize ${
               filter === f
                 ? 'bg-brand text-white'
@@ -191,10 +210,10 @@ export default function GmailWidget() {
         {controls}
         <div className="flex flex-col items-center justify-center h-20 gap-1">
           <p className="text-xs text-muted">
-            {filter === 'primary' ? 'No unread primary emails in 48h.' : 'Inbox clear — no unread emails in 48h.'}
+            {filter === 'primary' ? 'No primary emails in the last 5 days.' : 'No emails in the last 5 days.'}
           </p>
           {filter === 'primary' && (
-            <button onClick={() => setFilter('all')} className="text-[11px] text-brand hover:underline">
+            <button onClick={() => handleSetFilter('all')} className="text-[11px] text-brand hover:underline">
               Show all categories
             </button>
           )}

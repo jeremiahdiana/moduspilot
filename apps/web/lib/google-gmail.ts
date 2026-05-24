@@ -146,21 +146,35 @@ export async function getActionableThreads(
 ): Promise<GmailThread[]> {
   try {
     const filter = options?.filter ?? 'all';
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const since = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000); // 5 days
     const dateStr = `${since.getFullYear()}/${String(since.getMonth() + 1).padStart(2, '0')}/${String(since.getDate()).padStart(2, '0')}`;
-    const query = filter === 'primary'
-      ? `in:inbox category:primary is:unread after:${dateStr}`
-      : `in:inbox is:unread after:${dateStr}`;
 
-    const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(query)}&maxResults=10`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    const buildQuery = (useCategory: boolean) =>
+      useCategory
+        ? `in:inbox category:primary after:${dateStr}`
+        : `in:inbox after:${dateStr}`;
 
-    if (!listRes.ok) return [];
+    const fetchThreads = async (q: string) => {
+      const res = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(q)}&maxResults=10`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.threads ?? []) as { id: string }[];
+    };
 
-    const listData = await listRes.json();
-    const threads: { id: string }[] = listData.threads ?? [];
+    let threads = filter === 'primary'
+      ? await fetchThreads(buildQuery(true))
+      : await fetchThreads(buildQuery(false));
+
+    // Fallback for .edu / Workspace accounts that don't have Gmail categories
+    if (threads.length === 0 && filter === 'primary') {
+      threads = await fetchThreads(buildQuery(false));
+    }
+
+    if (threads.length === 0) return [];
+
     const results: GmailThread[] = [];
 
     for (const t of threads.slice(0, 10)) {
