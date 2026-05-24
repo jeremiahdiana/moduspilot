@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { auth } from '@/lib/firebase';
 import type { UserSettings } from '@/hooks/useUserSettings';
 
 function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -56,9 +58,27 @@ interface Props {
 
 export default function CapabilitiesSettings({ settings, plan, saving, onSave }: Props) {
   const isPaid = plan === 'modus' || plan === 'pilot';
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   const handleToggle = (key: keyof UserSettings['capabilities'], val: boolean) => {
     onSave({ capabilities: { ...settings.capabilities, [key]: val } });
+  };
+
+  const handleUpgrade = async () => {
+    setUpgradeLoading(true);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return;
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: 'modus' }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } finally {
+      setUpgradeLoading(false);
+    }
   };
 
   return (
@@ -106,10 +126,11 @@ export default function CapabilitiesSettings({ settings, plan, saving, onSave }:
             <p className="text-xs text-muted">Daily briefings and vector memory require MODUS or PILOT plan.</p>
           </div>
           <button
-            onClick={() => alert('Stripe checkout coming soon.')}
-            className="shrink-0 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 transition-colors"
+            onClick={handleUpgrade}
+            disabled={upgradeLoading}
+            className="shrink-0 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50"
           >
-            Upgrade
+            {upgradeLoading ? 'Redirecting…' : 'Upgrade'}
           </button>
         </div>
       )}
