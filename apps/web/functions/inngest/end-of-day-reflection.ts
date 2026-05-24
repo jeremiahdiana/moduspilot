@@ -20,7 +20,7 @@ function localDateStr(timezone: string): string {
 
 function msgId() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 
-const REFLECTION_HOUR = 21; // 9pm local
+const DEFAULT_REFLECTION_HOUR = 21; // 9pm local — fallback if user hasn't set it
 
 export const endOfDayReflection = inngest.createFunction(
   { id: 'end-of-day-reflection' },
@@ -36,7 +36,7 @@ export const endOfDayReflection = inngest.createFunction(
         const tz = data.settings?.briefingTimezone ?? 'UTC';
         const today = localDateStr(tz);
 
-        if (localHour(tz) !== REFLECTION_HOUR) continue;
+        if (localHour(tz) !== (data.settings?.reflectionHour ?? DEFAULT_REFLECTION_HOUR)) continue;
         if (data.lastReflectionDate === today) continue;
 
         sends.push((async () => {

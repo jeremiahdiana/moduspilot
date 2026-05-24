@@ -59,6 +59,7 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
       return getLocalHourFromUTC(settings.briefingHour ?? 7, userTimezone);
     } catch { return 7; }
   });
+  const [localReflectionHour, setLocalReflectionHour] = useState(settings.reflectionHour ?? 21);
 
   const handleSave = async () => {
     await onSave({
@@ -123,6 +124,35 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
               briefingHour: getUTCHour(localBriefingHour),
               briefingTimezone: userTimezone,
             })}
+            disabled={saving}
+            className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      {/* Evening reflection time */}
+      <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-text mb-1">Evening Reflection Time</h3>
+          <p className="text-xs text-muted">MODUS will send you an end-of-day recap at this time — what you shipped, what slipped, frame for tomorrow.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <select
+            value={localReflectionHour}
+            onChange={e => setLocalReflectionHour(Number(e.target.value))}
+            className="bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-brand/50 transition-colors"
+          >
+            {HOURS.map(h => (
+              <option key={h.value} value={h.value}>{h.label}</option>
+            ))}
+          </select>
+          <span className="text-sm text-muted">{getTZAbbr(userTimezone)}</span>
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => onSave({ reflectionHour: localReflectionHour })}
             disabled={saving}
             className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
           >
