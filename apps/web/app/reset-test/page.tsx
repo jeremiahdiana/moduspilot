@@ -7,7 +7,7 @@ export default function ResetTestPage() {
   const [status, setStatus] = useState('');
 
   async function reset() {
-    setStatus('Resetting...');
+    setStatus('Wiping account data...');
     try {
       const token = await auth.currentUser?.getIdToken();
       if (!token) { setStatus('Not logged in — go log in first, then come back here.'); return; }
@@ -16,7 +16,12 @@ export default function ResetTestPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setStatus(data.ok ? 'Done! Account reset. Go test onboarding now.' : `Error: ${data.error}`);
+      if (data.ok) {
+        setStatus('Done! Redirecting to onboarding...');
+        setTimeout(() => { window.location.href = '/onboarding'; }, 800);
+      } else {
+        setStatus(`Error: ${data.error}`);
+      }
     } catch (e) {
       setStatus(`Error: ${e}`);
     }
@@ -25,9 +30,9 @@ export default function ResetTestPage() {
   return (
     <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
       <h1>Reset test account</h1>
-      <p>Clears stale Google tokens and resets onboardingComplete so you can test fresh.</p>
+      <p>Wipes all Firestore data (Google accounts, goals, habits, tasks, conversations, memories) and resets onboarding. You stay logged in.</p>
       <button onClick={reset} style={{ padding: '12px 24px', fontSize: 16, cursor: 'pointer' }}>
-        Reset my account
+        Reset &amp; go to onboarding
       </button>
       {status && <p style={{ marginTop: 20, fontWeight: 'bold' }}>{status}</p>}
     </div>

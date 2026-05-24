@@ -1,5 +1,11 @@
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
+async function deleteSubcollection(userRef: FirebaseFirestore.DocumentReference, name: string) {
+  const snap = await userRef.collection(name).get();
+  await Promise.all(snap.docs.map(d => d.ref.delete()));
+  return snap.size;
+}
+
 // Temporary dev endpoint — delete this file after use
 export async function POST(req: Request) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
@@ -10,12 +16,20 @@ export async function POST(req: Request) {
     const uid = decoded.uid;
     const userRef = adminDb.collection('users').doc(uid);
 
-    const googleSnap = await userRef.collection('google_accounts').get();
-    await Promise.all(googleSnap.docs.map(d => d.ref.delete()));
-    await userRef.collection('integrations').doc('google').delete().catch(() => {});
+    const [google, integrations, goals, habits, tasks, conversations, memories, contacts] = await Promise.all([
+      deleteSubcollection(userRef, 'google_accounts'),
+      deleteSubcollection(userRef, 'integrations'),
+      deleteSubcollection(userRef, 'goals'),
+      deleteSubcollection(userRef, 'habits'),
+      deleteSubcollection(userRef, 'tasks'),
+      deleteSubcollection(userRef, 'conversations'),
+      deleteSubcollection(userRef, 'memories'),
+      deleteSubcollection(userRef, 'contacts'),
+    ]);
+
     await userRef.set({ onboardingComplete: false }, { merge: true });
 
-    return Response.json({ ok: true, uid, cleared: { googleAccounts: googleSnap.size } });
+    return Response.json({ ok: true, uid, cleared: { google, integrations, goals, habits, tasks, conversations, memories, contacts } });
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 });
   }
