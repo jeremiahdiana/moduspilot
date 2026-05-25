@@ -127,6 +127,28 @@ export async function POST(req: Request) {
       return Response.json({ ok: true });
     }
     case 'draft_email': {
+      const googleToken = await getValidAccessToken(uid);
+      if (googleToken) {
+        try {
+          const to = payload.to as string | undefined;
+          const subject = payload.subject as string | undefined ?? title;
+          const body = payload.body as string | undefined ?? description;
+          const lines = [
+            to ? `To: ${to}` : '',
+            `Subject: ${subject}`,
+            'Content-Type: text/plain; charset=utf-8',
+            'MIME-Version: 1.0',
+            '',
+            body,
+          ].filter(Boolean);
+          const raw = Buffer.from(lines.join('\r\n')).toString('base64url');
+          await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: { raw } }),
+          });
+        } catch { /* non-fatal — draft saved to Firestore regardless */ }
+      }
       const ref = await userRef.collection('drafts').add(base);
       return Response.json({ id: ref.id });
     }

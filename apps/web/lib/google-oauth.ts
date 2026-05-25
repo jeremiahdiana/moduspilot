@@ -2,11 +2,10 @@ import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export const GOOGLE_SCOPES = [
-  // Calendar — full scope implies readonly, no need to list both
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.compose',
-  // Drive — readonly is all we need (we read docs, don't create them)
+  'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/drive.readonly',
   'openid',
   'email',
