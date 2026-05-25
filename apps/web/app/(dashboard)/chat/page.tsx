@@ -8,7 +8,7 @@ import { useConversations } from '@/hooks/useConversations';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import PaywallModal from '@/components/chat/PaywallModal';
-import { doc, getDoc, updateDoc, setDoc, increment } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Message } from 'ai';
 
@@ -72,25 +72,26 @@ export default function ChatPage() {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    // Use Firebase Auth creation time for trial calculation
-    const creationTime = user?.metadata?.creationTime;
-    if (creationTime) {
-      const created = new Date(creationTime);
-      const now = new Date();
-      const daysSinceCreation = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-      setTrialDaysLeft(Math.max(0, TRIAL_DAYS - daysSinceCreation));
-    }
-
     getDoc(doc(db, 'users', uid)).then(snap => {
       const data = snap.data() ?? {};
       const userPlan = data.plan as Plan | undefined;
       setPlan(userPlan === 'modus' || userPlan === 'pilot' ? userPlan : 'free');
 
+      // Use modusPilotSignupAt for trial (same as server-side logic)
+      const rawSignup = data.modusPilotSignupAt;
+      if (rawSignup) {
+        const signupDate: Date = typeof rawSignup.toDate === 'function' ? rawSignup.toDate() : new Date(rawSignup as string);
+        const daysSince = Math.floor((Date.now() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
+        setTrialDaysLeft(Math.max(0, TRIAL_DAYS - daysSince));
+      } else {
+        // Not yet set — server will set it on first chat; treat as full trial
+        setTrialDaysLeft(TRIAL_DAYS);
+      }
+
       const lastDay = data.usageDate ?? '';
       if (lastDay === today) {
         setMsgCount(data.dailyMessages ?? 0);
       } else {
-        setDoc(doc(db, 'users', uid), { usageDate: today, dailyMessages: 0 }, { merge: true });
         setMsgCount(0);
       }
     }).catch(() => {
@@ -148,19 +149,16 @@ export default function ChatPage() {
     await saveMessages(convId, messages, title);
   }, [isGuest, uid, activeId, createConversation, saveMessages]);
 
-  const handleUserMessage = useCallback(async () => {
-    if (isGuest || !uid) return;
-    const today = new Date().toISOString().slice(0, 10);
+  const handleUserMessage = useCallback(() => {
+    if (isGuest) return;
+    // Only update local UI state — the server increments the Firestore counter authoritatively.
+    // Writing here too would double-count every message.
     const newCount = msgCount + 1;
     setMsgCount(newCount);
-    await updateDoc(doc(db, 'users', uid), {
-      dailyMessages: increment(1),
-      usageDate: today,
-    });
     if (!isPaid && !trialActive && newCount >= FREE_DAILY_LIMIT) {
       setShowPaywall(true);
     }
-  }, [isGuest, isPaid, trialActive, msgCount, uid]);
+  }, [isGuest, isPaid, trialActive, msgCount]);
 
   return (
     <div className="flex h-full overflow-hidden relative">

@@ -45,8 +45,10 @@ export default function ChatWindow({
   const prevLoadingRef = useRef(false);
   const savedLengthRef = useRef(initialMessages.length);
 
+  // onIdTokenChanged fires on login AND whenever Firebase refreshes the token (~1h),
+  // so requests stay authenticated without a page reload.
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (user) => {
+    const unsub = auth.onIdTokenChanged(async (user) => {
       if (user) setAuthToken(await user.getIdToken());
       else setAuthToken(null);
     });
@@ -147,6 +149,7 @@ export default function ChatWindow({
 
     setAttachedImage(null);
     setInput('');
+    setChatError(null);
     onUserMessage?.();
     await append({ role: 'user', content } as Parameters<typeof append>[0]);
   }
@@ -174,7 +177,7 @@ export default function ChatWindow({
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
           />
         ))}
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
               <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75" />

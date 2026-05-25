@@ -16,6 +16,7 @@ interface Props {
 
 export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading, attachedImage, onClearImage, textareaRef }: Props) {
   const [recording, setRecording] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -34,7 +35,14 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
       setRecording(false);
       return;
     }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setVoiceError('Microphone access denied.');
+      setTimeout(() => setVoiceError(''), 3000);
+      return;
+    }
     const recorder = new MediaRecorder(stream);
     chunksRef.current = [];
     recorder.ondataavailable = e => chunksRef.current.push(e.data);
@@ -118,6 +126,7 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
           </svg>
         </button>
       </div>
+      {voiceError && <p className="text-center text-red-400 text-xs mt-1">{voiceError}</p>}
       <p className="text-center text-muted text-xs mt-2">Enter to send · Shift+Enter for new line</p>
     </form>
   );
