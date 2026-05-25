@@ -125,12 +125,24 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   }
 
   if (status === 'approved') {
+    const isEmailType = data.type === 'send_email' || data.type === 'draft_email';
+    const emailSubject = data.payload?.subject ? String(data.payload.subject) : null;
+    const confirmedLabel = data.type === 'send_email'
+      ? `Sent${emailSubject ? `: ${emailSubject}` : ''}`
+      : data.type === 'draft_email'
+      ? `Draft saved${emailSubject ? `: ${emailSubject}` : ''}`
+      : `${editedTitle || data.title} — done`;
     return (
-      <div className="border border-brand/30 bg-brand/5 rounded-xl px-4 py-3 flex items-center gap-2">
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-brand shrink-0">
-          <path d="M2 6l3 3 5-5" />
-        </svg>
-        <span className="text-sm text-brand">{editedTitle || data.title} — done</span>
+      <div className="border border-brand/30 bg-brand/5 rounded-xl px-4 py-3 space-y-1">
+        <div className="flex items-center gap-2">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-brand shrink-0">
+            <path d="M2 6l3 3 5-5" />
+          </svg>
+          <span className="text-sm text-brand">{confirmedLabel}</span>
+        </div>
+        {isEmailType && data.payload?.to && (
+          <p className="text-xs text-muted pl-5">To: {String(data.payload.to)}</p>
+        )}
       </div>
     );
   }
@@ -204,6 +216,20 @@ export default function ApprovalCard({ raw }: { raw: string }) {
               <div className="h-full bg-brand rounded-full transition-all" style={{ width: `${pendingProgress}%` }} />
             </div>
             <p className="text-xs text-muted">{pendingProgress}% complete</p>
+          </div>
+        ) : (data.type === 'send_email' || data.type === 'draft_email') ? (
+          <div className="mt-2 space-y-1 text-xs text-muted">
+            {data.payload?.to && (
+              <p><span className="text-text/60 font-medium">To:</span> {String(data.payload.to)}</p>
+            )}
+            {(data.payload?.subject || data.title) && (
+              <p><span className="text-text/60 font-medium">Subject:</span> {String(data.payload?.subject ?? data.title)}</p>
+            )}
+            {data.payload?.body && (
+              <div className="mt-2 bg-bg rounded-lg p-2.5 border border-border whitespace-pre-wrap text-[11px] text-text/80 max-h-36 overflow-y-auto">
+                {String(data.payload.body)}
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-xs text-muted mt-0.5">{data.description}</p>

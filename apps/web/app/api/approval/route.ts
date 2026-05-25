@@ -229,13 +229,27 @@ export async function POST(req: Request) {
       }
       if (!googleToken) googleToken = await getValidAccessToken(uid);
       if (!googleToken) return Response.json({ error: 'Google not connected — reconnect in Settings.' }, { status: 400 });
-      await sendGmailReply(
-        googleToken,
-        payload.to as string,
-        payload.subject as string,
-        payload.body as string,
-        payload.threadId as string | undefined,
-      );
+      if (!payload.to || !payload.body) {
+        return Response.json({ error: 'Missing required fields (to, body). Ask MODUS to regenerate the send card.' }, { status: 400 });
+      }
+      try {
+        await sendGmailReply(
+          googleToken,
+          payload.to as string,
+          (payload.subject as string | undefined) ?? title,
+          payload.body as string,
+          payload.threadId as string | undefined,
+        );
+      } catch (err) {
+        console.error('[approval/send_email]', err);
+        const msg = err instanceof Error ? err.message : String(err);
+        const isPermission = msg.includes('403') || msg.toLowerCase().includes('insufficient');
+        return Response.json({
+          error: isPermission
+            ? 'Gmail permission denied — reconnect Google in Settings → Connectors to grant send access.'
+            : `Failed to send email: ${msg.slice(0, 300)}`,
+        }, { status: 500 });
+      }
       return Response.json({ ok: true });
     }
     case 'enable_web_search': {
