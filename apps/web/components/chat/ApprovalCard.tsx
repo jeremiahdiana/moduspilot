@@ -218,21 +218,22 @@ export default function ApprovalCard({ raw }: { raw: string }) {
             </div>
             <p className="text-xs text-muted">{pendingProgress}% complete</p>
           </div>
-        ) : (data.type === 'send_email' || data.type === 'draft_email') ? (
-          <div className="mt-2 space-y-1 text-xs text-muted">
-            {data.payload?.to && (
-              <p><span className="text-text/60 font-medium">To:</span> {String(data.payload.to)}</p>
-            )}
-            {(data.payload?.subject || data.title) && (
-              <p><span className="text-text/60 font-medium">Subject:</span> {String(data.payload?.subject ?? data.title)}</p>
-            )}
-            {data.payload?.body && (
-              <div className="mt-2 bg-bg rounded-lg p-2.5 border border-border whitespace-pre-wrap text-[11px] text-text/80 max-h-36 overflow-y-auto">
-                {String(data.payload.body)}
-              </div>
-            )}
-          </div>
-        ) : (
+        ) : (data.type === 'send_email' || data.type === 'draft_email') ? (() => {
+          const eTo = data.payload?.to ? String(data.payload.to) : null;
+          const eSubject = data.payload?.subject ? String(data.payload.subject) : data.title;
+          const eBody = data.payload?.body ? String(data.payload.body) : null;
+          return (
+            <div className="mt-2 space-y-1 text-xs text-muted">
+              {eTo && <p><span className="text-text/60 font-medium">To:</span> {eTo}</p>}
+              {eSubject && <p><span className="text-text/60 font-medium">Subject:</span> {eSubject}</p>}
+              {eBody && (
+                <div className="mt-2 bg-bg rounded-lg p-2.5 border border-border whitespace-pre-wrap text-[11px] text-text/80 max-h-36 overflow-y-auto">
+                  {eBody}
+                </div>
+              )}
+            </div>
+          );
+        })() : (
           <p className="text-xs text-muted mt-0.5">{data.description}</p>
         )}
 
