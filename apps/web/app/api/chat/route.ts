@@ -4,6 +4,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import type { CoreMessage, LanguageModel } from 'ai';
 import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { queryMemory, upsertMemory } from '@/lib/pinecone';
 import { getValidAccessToken } from '@/lib/google-oauth';
 import { getActionableThreads } from '@/lib/google-gmail';
@@ -54,11 +55,23 @@ export async function POST(req: Request) {
       const plan = userData.plan as string | undefined;
       const isPaid = plan === 'modus' || plan === 'pilot';
       if (!isPaid) {
+        // Use modusPilotSignupAt for trial — more reliable than Firebase Auth creation time.
+        // If missing (existing users), set it now so their 30-day trial starts from today.
         let inTrial = false;
-        try {
-          const authUser = await adminAuth.getUser(uid);
-          inTrial = Date.now() - new Date(authUser.metadata.creationTime).getTime() < 30 * 24 * 60 * 60 * 1000;
-        } catch { /* treat as not in trial */ }
+        const rawSignup = userData.modusPilotSignupAt;
+        if (rawSignup) {
+          const signupMs = typeof rawSignup.toDate === 'function'
+            ? rawSignup.toDate().getTime()
+            : new Date(rawSignup as string).getTime();
+          inTrial = Date.now() - signupMs < 30 * 24 * 60 * 60 * 1000;
+        } else {
+          // First time — record signup date and grant full trial
+          adminDb.collection('users').doc(uid).set(
+            { modusPilotSignupAt: FieldValue.serverTimestamp() },
+            { merge: true }
+          ).catch(() => {});
+          inTrial = true;
+        }
 
         if (!inTrial) {
           const todayStr = new Date().toISOString().slice(0, 10);
@@ -68,11 +81,18 @@ export async function POST(req: Request) {
           if (count >= 20) {
             return Response.json({ error: 'daily_limit_reached' }, { status: 429 });
           }
-          // Increment counter (fire and forget)
-          adminDb.collection('users').doc(uid).set(
-            { dailyMessages: count + 1, usageDate: todayStr },
-            { merge: true }
-          ).catch(() => {});
+          // Atomic increment — avoids race condition from concurrent requests
+          if (usageDate === todayStr) {
+            adminDb.collection('users').doc(uid).set(
+              { dailyMessages: FieldValue.increment(1) },
+              { merge: true }
+            ).catch(() => {});
+          } else {
+            adminDb.collection('users').doc(uid).set(
+              { dailyMessages: 1, usageDate: todayStr },
+              { merge: true }
+            ).catch(() => {});
+          }
         }
       }
     }
