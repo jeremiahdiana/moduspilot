@@ -127,6 +127,7 @@ export default function ApprovalCard({ raw }: { raw: string }) {
   if (status === 'approved') {
     const isEmailType = data.type === 'send_email' || data.type === 'draft_email';
     const emailSubject = data.payload?.subject ? String(data.payload.subject) : null;
+    const emailTo = data.payload?.to ? String(data.payload.to) : null;
     const confirmedLabel = data.type === 'send_email'
       ? `Sent${emailSubject ? `: ${emailSubject}` : ''}`
       : data.type === 'draft_email'
@@ -140,8 +141,8 @@ export default function ApprovalCard({ raw }: { raw: string }) {
           </svg>
           <span className="text-sm text-brand">{confirmedLabel}</span>
         </div>
-        {isEmailType && data.payload?.to && (
-          <p className="text-xs text-muted pl-5">To: {String(data.payload.to)}</p>
+        {isEmailType && emailTo && (
+          <p className="text-xs text-muted pl-5">To: {emailTo}</p>
         )}
       </div>
     );
