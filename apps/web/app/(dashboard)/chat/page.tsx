@@ -193,6 +193,7 @@ export default function ChatPage() {
               onSelect={handleSelect}
               onNew={handleNew}
               onDelete={handleDelete}
+              user={user}
             />
           )}
 

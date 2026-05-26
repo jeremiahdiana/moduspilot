@@ -15,6 +15,7 @@ export interface Conversation {
   updatedAt: Date;
   deleted: boolean;
   messages: Message[];
+  shareId?: string;
 }
 
 export function useConversations(uid: string | null) {
@@ -39,6 +40,7 @@ export function useConversations(uid: string | null) {
             updatedAt: (d.data().updatedAt as Timestamp)?.toDate() ?? new Date(),
             deleted: d.data().deleted ?? false,
             messages: d.data().messages ?? [],
+            shareId: d.data().shareId as string | undefined,
           }))
           .filter(c => !c.deleted)
       );
