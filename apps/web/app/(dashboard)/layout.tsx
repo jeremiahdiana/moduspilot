@@ -10,7 +10,7 @@ import { useRef, useState, useEffect } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
 // Minimal inline SVG icons — stroke-based, 24x24 viewBox
 function Ico({ d, d2, className }: { d: string; d2?: string; className?: string }) {
@@ -69,14 +69,25 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
   return (
     <Link
       href="/briefing"
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-        active ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
+      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+        active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
       }`}
     >
-      <Ico d={ICONS.briefing} d2={ICONS.briefing2} />
-      <span className="flex-1">Briefing</span>
+      {active && (
+        <motion.div
+          layoutId="nav-active-pill"
+          className="absolute inset-0 rounded-xl bg-brand/10"
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        />
+      )}
+      <Ico d={ICONS.briefing} d2={ICONS.briefing2} className="relative" />
+      <span className="relative flex-1">Briefing</span>
       {unread && !active && (
-        <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+        <motion.span
+          className="relative w-1.5 h-1.5 rounded-full bg-brand shrink-0"
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        />
       )}
     </Link>
   );
@@ -120,8 +131,11 @@ function SidebarContent({
       </div>
 
       {/* Ask MODUS button */}
-      <button
+      <motion.button
         onClick={onCmdOpen}
+        whileHover={{ scale: 1.015, y: -1 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
@@ -132,39 +146,62 @@ function SidebarContent({
           <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
           <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>
         </div>
-      </button>
+      </motion.button>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-0.5 flex-1">
-        {NAV.slice(0, 1).map(item => (
-          <Link key={item.href} href={item.href} onClick={onNavClick}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-            }`}
-          >
-            <Ico d={ICONS[item.icon]} />{item.label}
-          </Link>
-        ))}
-        <BriefingNavLink pathname={pathname} />
-        {NAV.slice(1).map(item => (
-          <Link key={item.href} href={item.href} onClick={onNavClick}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              pathname === item.href ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-            }`}
-          >
-            <Ico d={ICONS[item.icon]} />{item.label}
-          </Link>
-        ))}
-        <div className="mt-2 pt-2 border-t border-border/50">
-          <Link href="/settings" onClick={onNavClick}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-              pathname === '/settings' ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text hover:bg-panel'
-            }`}
-          >
-            <Ico d={ICONS.settings} />Settings
-          </Link>
-        </div>
-      </nav>
+      <LayoutGroup>
+        <nav className="flex flex-col gap-0.5 flex-1">
+          {NAV.slice(0, 1).map(item => (
+            <Link key={item.href} href={item.href} onClick={onNavClick}
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === item.href ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
+              }`}
+            >
+              {pathname === item.href && (
+                <motion.div
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-xl bg-brand/10"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
+              <Ico d={ICONS[item.icon]} className="relative" /><span className="relative">{item.label}</span>
+            </Link>
+          ))}
+          <BriefingNavLink pathname={pathname} />
+          {NAV.slice(1).map(item => (
+            <Link key={item.href} href={item.href} onClick={onNavClick}
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === item.href ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
+              }`}
+            >
+              {pathname === item.href && (
+                <motion.div
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-xl bg-brand/10"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
+              <Ico d={ICONS[item.icon]} className="relative" /><span className="relative">{item.label}</span>
+            </Link>
+          ))}
+          <div className="mt-2 pt-2 border-t border-border/50">
+            <Link href="/settings" onClick={onNavClick}
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                pathname === '/settings' ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
+              }`}
+            >
+              {pathname === '/settings' && (
+                <motion.div
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-xl bg-brand/10"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
+              <Ico d={ICONS.settings} className="relative" /><span className="relative">Settings</span>
+            </Link>
+          </div>
+        </nav>
+      </LayoutGroup>
 
       {/* User menu */}
       <div className="mt-auto pt-3 border-t border-border" ref={menuRef}>
@@ -353,10 +390,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 32 }}
             className="flex-1 min-h-0 flex flex-col overflow-hidden overflow-x-hidden"
           >
             {children}

@@ -20,28 +20,42 @@ interface WidgetProps {
 
 function Widget({ title, icon, href, action, children, className = '' }: WidgetProps) {
   return (
-    <div className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden transition-all duration-200 hover:border-brand/20 hover:shadow-[0_4px_24px_rgba(124,58,237,0.07)] ${className}`} style={{ willChange: 'opacity, transform' }}>
+    <motion.div
+      className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden ${className}`}
+      whileHover={{
+        y: -4,
+        boxShadow: '0 16px 48px rgba(124,58,237,0.10)',
+        borderColor: 'rgba(124,58,237,0.22)',
+      }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+      style={{ willChange: 'transform' }}
+    >
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand">
+          <motion.div
+            className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand"
+            whileHover={{ scale: 1.18, rotate: 6, backgroundColor: 'rgba(124,58,237,0.18)' }}
+            transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+          >
             {icon}
-          </div>
+          </motion.div>
           <span className="text-sm font-semibold text-text">{title}</span>
         </div>
         {action ?? (href && (
-          <Link href={href} className="text-[11px] text-muted hover:text-brand transition-colors">
-            View all →
-          </Link>
+          <motion.div whileHover={{ x: 2 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
+            <Link href={href} className="text-[11px] text-muted hover:text-brand transition-colors">
+              View all →
+            </Link>
+          </motion.div>
         ))}
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// Inline SVG icons for widget headers
 const Icons = {
   briefing: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
@@ -80,14 +94,12 @@ const Icons = {
   ),
 };
 
-const ease = [0.16, 1, 0.3, 1] as const;
-
 function FadeUp({ delay, children }: { delay: number; children: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.38, delay, ease }}
+      transition={{ type: 'spring', stiffness: 190, damping: 22, delay }}
     >
       {children}
     </motion.div>
@@ -97,10 +109,9 @@ function FadeUp({ delay, children }: { delay: number; children: React.ReactNode 
 export default function DashboardGrid() {
   return (
     <div className="space-y-4">
-      {/* Main 2-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
 
-        {/* Left column: Briefing + Gmail */}
+        {/* Left column */}
         <div className="flex flex-col gap-4">
           <FadeUp delay={0}>
             <Widget title="Today's Briefing" icon={Icons.briefing} href="/briefing" className="min-h-[200px]">
@@ -108,28 +119,28 @@ export default function DashboardGrid() {
             </Widget>
           </FadeUp>
 
-          <FadeUp delay={0.14}>
+          <FadeUp delay={0.12}>
             <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
               <GmailWidget />
             </Widget>
           </FadeUp>
         </div>
 
-        {/* Right column: Goals + Tasks + Habits */}
+        {/* Right column */}
         <div className="flex flex-col gap-4">
-          <FadeUp delay={0.07}>
+          <FadeUp delay={0.06}>
             <Widget title="Goals" icon={Icons.goals} href="/goals" className="min-h-[180px]">
               <GoalCard />
             </Widget>
           </FadeUp>
 
-          <FadeUp delay={0.18}>
+          <FadeUp delay={0.16}>
             <Widget title="Tasks" icon={Icons.tasks} href="/tasks" className="min-h-[180px]">
               <TaskList />
             </Widget>
           </FadeUp>
 
-          <FadeUp delay={0.25}>
+          <FadeUp delay={0.24}>
             <Widget title="Habits" icon={Icons.habits} href="/habits" className="min-h-[140px]">
               <HabitTracker />
             </Widget>
@@ -137,7 +148,7 @@ export default function DashboardGrid() {
         </div>
       </div>
 
-      {/* Full-width Calendar row */}
+      {/* Full-width Calendar */}
       <FadeUp delay={0.3}>
         <Widget title="Today's Schedule" icon={Icons.calendar} className="min-h-[80px]">
           <CalendarWidget />

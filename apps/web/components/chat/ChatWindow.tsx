@@ -7,6 +7,7 @@ import { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
+import { motion } from 'framer-motion';
 
 interface Props {
   conversationId: string | null;
@@ -158,17 +159,38 @@ export default function ChatWindow({
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center mt-20 gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
-              <Image src="/logo.png" alt="MODUS" width={24} height={24} className="opacity-75" />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+            className="flex flex-col items-center justify-center mt-20 gap-5"
+          >
+            {/* Glowing avatar with float */}
+            <div className="relative">
+              <motion.div
+                className="absolute inset-0 rounded-2xl bg-brand/25 blur-xl"
+                animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.15, 1] }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="relative w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center float"
+              >
+                <Image src="/logo.png" alt="MODUS" width={28} height={28} className="opacity-80 dark:hidden" />
+                <Image src="/logo-dark.png" alt="MODUS" width={28} height={28} className="opacity-80 hidden dark:block" />
+              </motion.div>
             </div>
-            <div className="text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18, type: 'spring', stiffness: 220, damping: 24 }}
+              className="text-center"
+            >
               <p className="text-text text-base font-semibold mb-1">What&apos;s on your plate?</p>
               <p className="text-muted text-sm">
                 {isGuest ? 'Sign in to save your conversations.' : 'Your chief of staff. Ready when you are.'}
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
         {messages.map((m, idx) => (
           <MessageBubble
@@ -178,16 +200,27 @@ export default function ChatWindow({
           />
         ))}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-              <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75" />
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            className="flex items-center gap-2.5"
+          >
+            <motion.div
+              initial={{ scale: 0.6 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+              className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0"
+            >
+              <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75 dark:hidden" />
+              <Image src="/logo-dark.png" alt="MODUS" width={14} height={14} className="opacity-75 hidden dark:block" />
+            </motion.div>
+            <div className="flex gap-1 items-end">
+              <span className="typing-dot w-1.5 h-1.5 bg-brand/60 rounded-full" />
+              <span className="typing-dot w-1.5 h-1.5 bg-brand/60 rounded-full" />
+              <span className="typing-dot w-1.5 h-1.5 bg-brand/60 rounded-full" />
             </div>
-            <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-brand/50 rounded-full animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 bg-brand/50 rounded-full animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 bg-brand/50 rounded-full animate-bounce [animation-delay:300ms]" />
-            </div>
-          </div>
+          </motion.div>
         )}
         <div ref={bottomRef} />
       </div>

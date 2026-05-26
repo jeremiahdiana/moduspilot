@@ -33,7 +33,8 @@ function extractTextContent(content: Message['content']): string {
 function ModusAvatar() {
   return (
     <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
-      <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75" />
+      <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75 dark:hidden" />
+      <Image src="/logo-dark.png" alt="MODUS" width={14} height={14} className="opacity-75 hidden dark:block" />
     </div>
   );
 }
@@ -46,9 +47,9 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
     const hasImage = Array.isArray(message.content) && message.content.some(p => p.type === 'image');
     return (
       <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, x: 14, scale: 0.97 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
         className="flex justify-end"
       >
         <div className="max-w-[72%] space-y-1.5">
@@ -80,12 +81,18 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, x: -10, scale: 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       className="flex justify-start gap-2.5"
     >
-      <ModusAvatar />
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.04 }}
+      >
+        <ModusAvatar />
+      </motion.div>
       <div className="max-w-[72%] space-y-3">
         {parts.map((part, i) =>
           part.type === 'approval' ? (
