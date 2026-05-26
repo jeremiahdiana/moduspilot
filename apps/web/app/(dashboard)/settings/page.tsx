@@ -15,6 +15,7 @@ import CapabilitiesSettings from '@/components/settings/CapabilitiesSettings';
 import ConnectorsSettings from '@/components/settings/ConnectorsSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
 import ModelSettings from '@/components/settings/ModelSettings';
+import TipsSettings from '@/components/settings/TipsSettings';
 
 function TabIcon({ d, d2 }: { d: string; d2?: string }) {
   return (
@@ -35,6 +36,7 @@ const TABS = [
   { key: 'connectors',   label: 'Connectors',   icon: <TabIcon d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" d2="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /> },
   { key: 'memory',       label: 'Memory',       icon: <TabIcon d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4l3 3" /> },
   { key: 'model',        label: 'Model',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
+  { key: 'tips',         label: 'Tips & Tricks', icon: <TabIcon d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /> },
 ] as const;
 
 type Tab = typeof TABS[number]['key'];
@@ -166,6 +168,9 @@ function SettingsContent() {
           )}
           {activeTab === 'model' && (
             <ModelSettings settings={settings} saving={saving} onSave={saveSettings} />
+          )}
+          {activeTab === 'tips' && (
+            <TipsSettings />
           )}
         </div>
       </main>

@@ -241,7 +241,11 @@ export default function ConversationList({ conversations, activeId, onSelect, on
               className="flex-1 text-sm font-medium bg-transparent border-b border-brand text-text outline-none min-w-0 pb-0.5"
             />
           ) : (
-            <span className={`text-sm truncate flex-1 font-medium ${isActive ? 'text-brand' : 'text-text'}`}>
+            <span
+              onDoubleClick={e => startEdit(conv, e)}
+              title={`${conv.title} · double-click to rename`}
+              className={`text-sm truncate flex-1 font-medium ${isActive ? 'text-brand' : 'text-text'}`}
+            >
               {conv.title}
             </span>
           )}

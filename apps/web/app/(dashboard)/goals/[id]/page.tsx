@@ -1167,7 +1167,7 @@ export default function GoalDetailPage() {
                 Main
               </button>
               {extraChats.map(c => (
-                <div key={c.id} className={`shrink-0 group/chat flex items-center rounded-full border transition-colors ${
+                <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
                   activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
                 }`}>
                   {renamingChatId === c.id ? (
@@ -1184,33 +1184,21 @@ export default function GoalDetailPage() {
                       className="text-xs pl-2.5 py-1 w-28 bg-transparent outline-none border-b border-white text-white"
                     />
                   ) : (
-                    <>
-                      <button
-                        onClick={() => switchChat(c)}
-                        className={`text-xs pl-2.5 py-1 max-w-[80px] truncate ${
-                          activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
-                        }`}
-                      >
-                        {c.title.length > 14 ? c.title.slice(0, 11) + '…' : c.title}
-                      </button>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          setRenamingChatId(c.id);
-                          setRenamingTitle(c.title);
-                          setTimeout(() => { renameInputRef.current?.focus(); renameInputRef.current?.select(); }, 10);
-                        }}
-                        title="Rename"
-                        className={`p-1 opacity-0 group-hover/chat:opacity-100 transition-opacity ${
-                          activeChatId === c.id ? 'text-white/60 hover:text-white' : 'text-muted/50 hover:text-text'
-                        }`}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
-                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      </button>
-                    </>
+                    <button
+                      onClick={() => switchChat(c)}
+                      onDoubleClick={e => {
+                        e.stopPropagation();
+                        setRenamingChatId(c.id);
+                        setRenamingTitle(c.title);
+                        setTimeout(() => { renameInputRef.current?.focus(); renameInputRef.current?.select(); }, 10);
+                      }}
+                      title={`${c.title} · double-click to rename`}
+                      className={`text-xs pl-2.5 pr-1 py-1 max-w-[90px] truncate ${
+                        activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
+                      }`}
+                    >
+                      {c.title.length > 14 ? c.title.slice(0, 11) + '…' : c.title}
+                    </button>
                   )}
                   <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
                     className={`pr-2 py-1 text-sm leading-none ${
