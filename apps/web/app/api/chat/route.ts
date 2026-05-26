@@ -248,16 +248,8 @@ export async function POST(req: Request) {
     } else if (modelProvider === 'anthropic' && ms?.anthropicKey) {
       chatModel = createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-opus-4-7');
     } else {
-      // Platform default: OpenAI tiered by plan
-      const openaiKey = process.env.OPENAI_API_KEY;
-      if (openaiKey) {
-        const plan = userData.plan as string | undefined;
-        const platformModel = plan === 'pilot' ? 'gpt-5' : plan === 'modus' ? 'gpt-5' : 'gpt-5-mini';
-        chatModel = createOpenAI({ apiKey: openaiKey })(platformModel);
-      } else {
-        // Groq fallback if OpenAI key missing
-        chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })('llama-3.3-70b-versatile');
-      }
+      // Platform default: Groq (free, fast) — switch to OpenAI when credits added
+      chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })('llama-3.3-70b-versatile');
     }
 
     // Build system prompt with user context always included
