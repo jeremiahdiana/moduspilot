@@ -20,25 +20,11 @@ const PROVIDERS = [
   {
     id: 'platform' as const,
     name: 'MODUS AI',
-    description: 'Powered by GPT-5. No API key needed — included with your account.',
+    description: 'Powered by Llama 3.3 via Groq. No API key needed — free and included.',
     badge: 'Default',
     badgeColor: 'bg-brand/10 text-brand',
     models: [
-      { id: 'gpt-5-mini', label: 'GPT-5 Mini', sub: 'Fast · default' },
-      { id: 'gpt-5',      label: 'GPT-5',      sub: 'Most capable' },
-    ],
-    keyField: null,
-    keyPlaceholder: '',
-    docsUrl: '',
-  },
-  {
-    id: 'groq' as const,
-    name: 'Groq',
-    description: 'Free, fast inference using Llama 3.3. Great for high-volume usage.',
-    badge: 'Free',
-    badgeColor: 'bg-emerald-500/10 text-emerald-400',
-    models: [
-      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', sub: 'Best quality' },
+      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', sub: 'Best quality · default' },
       { id: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B',  sub: 'Fastest' },
     ],
     keyField: null,
@@ -52,8 +38,8 @@ const PROVIDERS = [
     badge: 'BYOK',
     badgeColor: 'bg-blue-500/10 text-blue-400',
     models: [
-      { id: 'gpt-5',      label: 'GPT-5',      sub: 'Most capable' },
-      { id: 'gpt-5-mini', label: 'GPT-5 Mini', sub: 'Faster & cheaper' },
+      { id: 'gpt-4o',      label: 'GPT-4o',      sub: 'Most capable' },
+      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', sub: 'Faster & cheaper' },
     ],
     keyField: 'openaiKey' as const,
     keyPlaceholder: 'sk-proj-...',
@@ -83,7 +69,7 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
     : (raw?.provider ?? 'platform');
 
   const [provider, setProvider] = useState<ModelConfig['provider']>(currentProvider);
-  const [model, setModel] = useState(raw?.model ?? 'gpt-5-mini');
+  const [model, setModel] = useState(raw?.model ?? 'llama-3.3-70b-versatile');
   const [openaiKey, setOpenaiKey] = useState(raw?.openaiKey ?? '');
   const [anthropicKey, setAnthropicKey] = useState(raw?.anthropicKey ?? '');
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});

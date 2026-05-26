@@ -237,28 +237,18 @@ export async function POST(req: Request) {
       }
     }
 
-    // Resolve model — BYOK → user-selected provider → platform default (OpenAI GPT-5)
+    // Resolve model — BYOK keys take priority, then platform default (Groq — free, reliable)
     let chatModel: LanguageModel;
     const ms = userData.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
     const modelProvider = ms?.provider ?? 'platform';
 
     if (modelProvider === 'openai' && ms?.openaiKey) {
-      chatModel = createOpenAI({ apiKey: ms.openaiKey })(ms.model ?? 'gpt-5-mini');
+      chatModel = createOpenAI({ apiKey: ms.openaiKey })(ms.model ?? 'gpt-4o-mini');
     } else if (modelProvider === 'anthropic' && ms?.anthropicKey) {
       chatModel = createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-sonnet-4-6');
-    } else if (modelProvider === 'groq') {
-      chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(ms?.model ?? 'llama-3.3-70b-versatile');
     } else {
-      // Platform default: OpenAI GPT-5, tiered by plan
-      const openaiKey = process.env.OPENAI_API_KEY ?? '';
-      const plan = userData.plan as string | undefined;
-      const platformModel = ms?.model ?? (plan === 'pilot' || plan === 'modus' ? 'gpt-5' : 'gpt-5-mini');
-      if (openaiKey) {
-        chatModel = createOpenAI({ apiKey: openaiKey })(platformModel);
-      } else {
-        // Fallback to Groq if no OpenAI key configured
-        chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })('llama-3.3-70b-versatile');
-      }
+      // Platform default (covers 'groq', 'platform', and anything else): Groq — free, no credits needed
+      chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(ms?.model ?? 'llama-3.3-70b-versatile');
     }
 
     // Build system prompt with user context always included
