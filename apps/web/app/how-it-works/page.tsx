@@ -1,15 +1,30 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/marketing/Navbar';
+import { MarketingBackground, ScrollProgress } from '@/components/marketing/MarketingBackground';
 
-// ── animation helpers ───────────────────────────────────────────────────────
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
-// ── modus avatar ────────────────────────────────────────────────────────────
+function RevealOnScroll({ children, delay = 0, direction = 'up' }: { children: React.ReactNode; delay?: number; direction?: 'up' | 'left' | 'right' | 'none' }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px 0px' });
+  const offsets = { up: { y: 32, x: 0 }, left: { y: 0, x: 32 }, right: { y: 0, x: -32 }, none: { y: 0, x: 0 } };
+  const { x, y } = offsets[direction];
+  return (
+    <motion.div ref={ref}
+      initial={{ opacity: 0, x, y, filter: 'blur(4px)' }}
+      animate={inView ? { opacity: 1, x: 0, y: 0, filter: 'blur(0px)' } : {}}
+      transition={{ duration: 0.65, delay, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function ModusAvatar() {
   return (
     <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -18,40 +33,31 @@ function ModusAvatar() {
   );
 }
 
-// ── thinking dots ───────────────────────────────────────────────────────────
 function ThinkingDots() {
   return (
     <div className="flex items-end gap-2.5">
       <ModusAvatar />
-      <div className="flex items-center gap-1 px-4 py-3 bg-panel border border-border rounded-2xl rounded-tl-sm w-fit">
+      <div className="flex items-center gap-1 px-4 py-3 bg-panel/80 backdrop-blur-sm border border-border rounded-2xl rounded-tl-sm w-fit">
         {[0, 1, 2].map(i => (
-          <motion.div
-            key={i}
-            animate={{ y: [0, -4, 0] }}
+          <motion.div key={i} animate={{ y: [0, -4, 0] }}
             transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-            className="w-1.5 h-1.5 rounded-full bg-brand"
-          />
+            className="w-1.5 h-1.5 rounded-full bg-brand" />
         ))}
       </div>
     </div>
   );
 }
 
-// ── chat message bubble ─────────────────────────────────────────────────────
 function ChatMsg({ role, text }: { role: 'modus' | 'user'; text: string }) {
   return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className={`flex items-end gap-2.5 ${role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
       {role === 'modus' && <ModusAvatar />}
       <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
         role === 'user'
           ? 'bg-brand text-white rounded-br-sm'
-          : 'bg-panel border border-border text-text rounded-tl-sm'
+          : 'bg-panel/90 backdrop-blur-sm border border-border text-text rounded-tl-sm'
       }`}>
         {text}
       </div>
@@ -59,16 +65,15 @@ function ChatMsg({ role, text }: { role: 'modus' | 'user'; text: string }) {
   );
 }
 
-// ── action card ─────────────────────────────────────────────────────────────
 function ActionCard({ actions, buttons }: { actions: { label: string; detail: string; badge?: string }[]; buttons?: string[] }) {
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-      className="bg-panel border border-brand/20 rounded-2xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-brand" />
+      className="bg-panel/90 backdrop-blur-sm border border-brand/25 rounded-2xl overflow-hidden shadow-lg shadow-brand/5">
+      <div className="px-4 py-3 border-b border-border/60 flex items-center gap-2 bg-brand/5">
+        <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
         <span className="text-xs font-semibold text-brand uppercase tracking-wider">Action set ready</span>
       </div>
-      <div className="divide-y divide-border/50">
+      <div className="divide-y divide-border/40">
         {actions.map((a, i) => (
           <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
             <div>
@@ -80,24 +85,22 @@ function ActionCard({ actions, buttons }: { actions: { label: string; detail: st
         ))}
       </div>
       {buttons && (
-        <div className="px-4 py-3 border-t border-border flex gap-2">
+        <div className="px-4 py-3 border-t border-border/40 flex gap-2">
           <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">{buttons[0]}</button>
-          {buttons[1] && <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">{buttons[1]}</button>}
+          {buttons[1] && <button className="flex-1 py-2 bg-bg/80 hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">{buttons[1]}</button>}
         </div>
       )}
     </motion.div>
   );
 }
 
-// ── tab scenarios ───────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'morning',  label: 'Morning briefing' },
-  { id: 'followup', label: 'Missed follow-up' },
-  { id: 'sales',    label: 'Sales goal' },
-  { id: 'recover',  label: 'Recover' },
-  { id: 'goal',     label: 'Set a goal' },
-  { id: 'inbox',    label: 'Inbox triage' },
-  { id: 'memory',   label: 'Memory' },
+  { id: 'morning',  label: '☀ Morning' },
+  { id: 'followup', label: '↩ Follow-up' },
+  { id: 'sales',    label: '◎ Sales goal' },
+  { id: 'goal',     label: '⊙ Set a goal' },
+  { id: 'inbox',    label: '✉ Inbox triage' },
+  { id: 'memory',   label: '◈ Memory' },
 ];
 
 type SceneItem =
@@ -113,7 +116,6 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'card', delay: 2800, component: <ActionCard actions={[
       { label: 'Reply to David re: investor update', detail: 'Draft ready for review' },
       { label: 'Follow up with Sarah on the contract', detail: 'Draft ready for review' },
-      { label: 'Acknowledge receipt to the accountant', detail: 'Short reply drafted' },
       { label: 'Block 8–11 AM as deep work', detail: 'Removed from booking availability' },
     ]} buttons={['Approve all', 'Review drafts']} /> },
   ],
@@ -122,37 +124,27 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'msg', role: 'user', text: "Send a follow-up. Keep it short.", delay: 1200 },
     { type: 'thinking', delay: 2000 },
     { type: 'card', delay: 2800, component: <ActionCard actions={[
-      { label: 'Follow-up email to Jordan', detail: '"Hey Jordan, just circling back — still think there\'s something worth exploring."' },
+      { label: 'Follow-up to Jordan', detail: '"Hey Jordan, just circling back — still think there\'s something worth exploring."' },
     ]} buttons={['Approve & send', 'Edit first']} /> },
   ],
   sales: [
-    { type: 'msg', role: 'modus', text: "It's been 6 days since you set your goal to close 3 new clients this month. You've had 2 sales calls — no closes yet. You're behind pace.", delay: 400 },
+    { type: 'msg', role: 'modus', text: "It's been 6 days since you set your goal to close 3 new clients this month. You've had 2 calls — no closes yet. You're behind pace.", delay: 400 },
     { type: 'msg', role: 'user', text: "What do I need to do today to get back on track?", delay: 1200 },
     { type: 'thinking', delay: 2000 },
     { type: 'card', delay: 2800, component: <ActionCard actions={[
       { label: 'Block 3–5 PM for outreach calls', detail: 'Added to calendar as focus time' },
-      { label: 'Reminder at 2:45 PM to prep your call list', detail: 'Push notification set' },
-      { label: 'Add "Send 5 follow-up DMs" to today\'s task list', detail: 'Task created with end-of-day deadline' },
+      { label: 'Reminder at 2:45 PM to prep call list', detail: 'Push notification set' },
+      { label: 'Add "Send 5 follow-up DMs" to today', detail: 'Task with end-of-day deadline' },
     ]} buttons={['Approve all', 'Adjust']} /> },
-  ],
-  recover: [
-    { type: 'msg', role: 'modus', text: "Your watch data shows 4.5 hrs of sleep and elevated resting heart rate. Recovery score is low. You have a packed schedule today.", delay: 400 },
-    { type: 'msg', role: 'user', text: "Can you lighten today up?", delay: 1200 },
-    { type: 'thinking', delay: 2000 },
-    { type: 'card', delay: 2800, component: <ActionCard actions={[
-      { label: 'Move 10 AM sync with team to tomorrow', detail: 'Reschedule request drafted' },
-      { label: 'Block 1–2 PM as no-meeting recovery', detail: 'Marked as unavailable' },
-      { label: 'Reminder at 9 PM to wind down', detail: '"You had a rough night — lights out by 10."' },
-    ]} buttons={['Approve all', 'Review']} /> },
   ],
   goal: [
     { type: 'msg', role: 'user', text: "I want to make $10k this month. Help me build a plan.", delay: 300 },
     { type: 'thinking', delay: 900 },
-    { type: 'msg', role: 'modus', text: "Got it. Based on your current workload and schedule, here's how I'd break that down — and I'll track it week by week so nothing falls behind.", delay: 1700 },
+    { type: 'msg', role: 'modus', text: "Got it. Based on your current workload and schedule, here's how I'd break that down — and I'll track it week by week.", delay: 1700 },
     { type: 'card', delay: 2600, component: (
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-        className="bg-panel border border-brand/20 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
+        className="bg-panel/90 backdrop-blur-sm border border-brand/25 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/60 bg-brand/5">
           <span className="text-xs font-semibold text-brand uppercase tracking-wider">Goal plan · $10k this month</span>
         </div>
         <div className="p-4 space-y-3">
@@ -160,32 +152,29 @@ const SCENES: Record<string, SceneItem[]> = {
             { week: 'Week 1', title: 'Identify and reach out to 20 prospects', note: 'Daily outreach reminder at 9 AM' },
             { week: 'Week 2', title: 'Book 5 discovery calls', note: 'Calendar blocks + prep briefs auto-generated' },
             { week: 'Week 3', title: 'Close 2 deals, follow up on the rest', note: 'MODUS tracks replies, flags cold leads' },
-            { week: 'Week 4', title: 'Invoice, collect, and review', note: 'MODUS drafts invoices + sends progress summary' },
+            { week: 'Week 4', title: 'Invoice, collect, and review', note: 'Invoices drafted + progress summary sent' },
           ].map((w, i) => (
             <div key={i} className="flex gap-3">
               <span className="text-[10px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded-full h-fit mt-0.5 shrink-0">{w.week}</span>
-              <div>
-                <p className="text-sm text-text">{w.title}</p>
-                <p className="text-xs text-muted">{w.note}</p>
-              </div>
+              <div><p className="text-sm text-text">{w.title}</p><p className="text-xs text-muted">{w.note}</p></div>
             </div>
           ))}
         </div>
-        <div className="px-4 py-3 border-t border-border flex gap-2">
+        <div className="px-4 py-3 border-t border-border/40 flex gap-2">
           <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Approve plan</button>
-          <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Adjust</button>
+          <button className="flex-1 py-2 bg-bg/80 hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Adjust</button>
         </div>
       </motion.div>
     )},
   ],
   inbox: [
-    { type: 'msg', role: 'modus', text: "You woke up to 47 emails. I've already gone through them. Only 3 actually need you — I've drafted replies for all of them.", delay: 400 },
+    { type: 'msg', role: 'modus', text: "You woke up to 47 emails. I've gone through them. Only 3 actually need you — I've drafted replies for all of them.", delay: 400 },
     { type: 'msg', role: 'user', text: "Show me what needs my attention.", delay: 1200 },
     { type: 'thinking', delay: 2000 },
     { type: 'card', delay: 2800, component: (
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-        className="bg-panel border border-brand/20 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
+        className="bg-panel/90 backdrop-blur-sm border border-brand/25 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/60 bg-brand/5">
           <p className="text-xs font-semibold text-brand uppercase tracking-wider">Needs your reply today (3)</p>
         </div>
         {[
@@ -193,21 +182,18 @@ const SCENES: Record<string, SceneItem[]> = {
           { from: 'Marcus', subject: '"Quick question on the deck"', badge: 'Reply drafted', urgent: false },
           { from: 'Your accountant', subject: '"Invoice overdue"', badge: 'Urgent', urgent: true },
         ].map((e, i) => (
-          <div key={i} className="px-4 py-3 border-b border-border/50 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm text-text font-medium">{e.from}</p>
-              <p className="text-xs text-muted">{e.subject}</p>
-            </div>
+          <div key={i} className="px-4 py-3 border-b border-border/40 flex items-center justify-between gap-3">
+            <div><p className="text-sm text-text font-medium">{e.from}</p><p className="text-xs text-muted">{e.subject}</p></div>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${e.urgent ? 'bg-red-500/20 text-red-400' : 'bg-brand/10 text-brand'}`}>{e.badge}</span>
           </div>
         ))}
-        <div className="px-4 py-3 border-b border-border/50">
-          <p className="text-xs font-semibold text-muted/60 uppercase tracking-wider mb-2">Noise — already buried (44)</p>
-          <p className="text-xs text-muted/60">Newsletters, promos, notifications · Archived. You won't see them unless you ask.</p>
+        <div className="px-4 py-3 border-b border-border/40">
+          <p className="text-xs text-muted/60 uppercase tracking-wider font-semibold mb-1">44 buried</p>
+          <p className="text-xs text-muted/60">Newsletters, promos, notifications — archived.</p>
         </div>
         <div className="px-4 py-3 flex gap-2">
-          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Approve all 3 replies</button>
-          <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Review drafts</button>
+          <button className="flex-1 py-2 bg-brand text-white text-xs font-semibold rounded-lg">Approve all 3</button>
+          <button className="flex-1 py-2 bg-bg/80 text-muted text-xs font-semibold rounded-lg">Review drafts</button>
         </div>
       </motion.div>
     )},
@@ -216,25 +202,24 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'msg', role: 'modus', text: "Something came up in your memory from 3 weeks ago that I think is worth revisiting.", delay: 400 },
     { type: 'card', delay: 1200, component: (
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
-        className="bg-brand/10 border border-brand/30 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-brand/20">
+        className="bg-brand/8 border border-brand/30 rounded-2xl overflow-hidden backdrop-blur-sm">
+        <div className="px-4 py-3 border-b border-brand/20 bg-brand/5">
           <span className="text-xs font-semibold text-brand uppercase tracking-wider">Memory · 3 weeks ago</span>
         </div>
         <div className="px-4 py-4 space-y-3">
           <p className="text-sm text-text italic">"I think I want to pivot my offer and go more premium by Q3."</p>
           <p className="text-xs text-muted">You said this 3 weeks ago — it hasn't come up since.</p>
-          <p className="text-sm text-brand font-medium">It's week 6 of Q2. Do you want to start building that out now so you're ready?</p>
+          <p className="text-sm text-brand font-medium">It's week 6 of Q2. Want to start building that out now?</p>
         </div>
         <div className="px-4 py-3 border-t border-brand/20 flex gap-2">
-          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Yes, let's plan it</button>
-          <button className="flex-1 py-2 bg-bg hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Not yet</button>
+          <button className="flex-1 py-2 bg-brand text-white text-xs font-semibold rounded-lg">Yes, let's plan it</button>
+          <button className="flex-1 py-2 bg-bg/80 text-muted text-xs font-semibold rounded-lg">Not yet</button>
         </div>
       </motion.div>
     )},
   ],
 };
 
-// ── scenario player ─────────────────────────────────────────────────────────
 function ScenarioPlayer({ tabId }: { tabId: string }) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [showThinking, setShowThinking] = useState(false);
@@ -245,32 +230,19 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
   useEffect(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
-    setVisibleCount(0);
-    setShowThinking(false);
-    setDone(false);
-
+    setVisibleCount(0); setShowThinking(false); setDone(false);
     const scene = SCENES[tabId] ?? [];
-    let msgIdx = 0;
-    let maxDelay = 0;
-
+    let msgIdx = 0, maxDelay = 0;
     scene.forEach(item => {
       if (item.delay > maxDelay) maxDelay = item.delay;
       if (item.type === 'thinking') {
-        const t = setTimeout(() => setShowThinking(true), item.delay);
-        timeoutsRef.current.push(t);
+        timeoutsRef.current.push(setTimeout(() => setShowThinking(true), item.delay));
       } else {
-        const capturedIdx = msgIdx++;
-        const t = setTimeout(() => {
-          setShowThinking(false);
-          setVisibleCount(capturedIdx + 1);
-        }, item.delay);
-        timeoutsRef.current.push(t);
+        const idx = msgIdx++;
+        timeoutsRef.current.push(setTimeout(() => { setShowThinking(false); setVisibleCount(idx + 1); }, item.delay));
       }
     });
-
-    const tDone = setTimeout(() => setDone(true), maxDelay + 1000);
-    timeoutsRef.current.push(tDone);
-
+    timeoutsRef.current.push(setTimeout(() => setDone(true), maxDelay + 1000));
     return () => timeoutsRef.current.forEach(clearTimeout);
   }, [tabId, replayKey]);
 
@@ -279,7 +251,7 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
 
   return (
     <div className="relative">
-      <div className="space-y-3 p-5 h-[480px] overflow-y-auto flex flex-col justify-end">
+      <div className="space-y-3 p-5 h-[460px] overflow-y-auto flex flex-col justify-end">
         <AnimatePresence>
           {renderItems.slice(0, visibleCount).map((item, i) => (
             <div key={`${tabId}-${replayKey}-${i}`}>
@@ -296,20 +268,11 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
       </div>
       <AnimatePresence>
         {done && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute bottom-4 right-4"
-          >
-            <button
-              onClick={() => { setReplayKey(k => k + 1); setDone(false); }}
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-brand border border-border hover:border-brand/30 bg-bg/80 backdrop-blur-sm px-3 py-1.5 rounded-full transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
-              </svg>
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="absolute bottom-4 right-4">
+            <button onClick={() => { setReplayKey(k => k + 1); setDone(false); }}
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-brand border border-border hover:border-brand/30 bg-panel/80 backdrop-blur-sm px-3 py-1.5 rounded-full transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               Replay
             </button>
           </motion.div>
@@ -319,263 +282,189 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
   );
 }
 
-// ── section wrapper ─────────────────────────────────────────────────────────
-function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <section className={`px-6 py-20 max-w-5xl mx-auto ${className}`}>{children}</section>;
-}
+const STEPS = [
+  { n: '01', icon: '⊕', title: 'Connect your life', desc: 'Calendar, email, health data, apps — MODUS reads across all of it. The more context it has, the less you have to explain.', tags: ['Gmail', 'Calendar', 'Drive', 'Notion', 'Slack', 'GitHub'] },
+  { n: '02', icon: '◈', title: 'MODUS learns your style', desc: 'Through onboarding and ongoing usage, MODUS understands your goals, schedule, priorities, and how you like to work.', tags: ['Goals', 'Habits', 'Preferences', 'Memory'] },
+  { n: '03', icon: '◎', title: 'It acts — or asks first', desc: 'Reminders set. Emails drafted. Blocks on your calendar. For anything that touches the outside world, MODUS surfaces an approval card.', tags: ['Approval cards', 'Edit', 'Skip'] },
+  { n: '04', icon: '✓', title: 'You approve in one tap', desc: "You're not managing software. You're the executive. MODUS brings decisions to you — you say yes, edit, or redirect.", tags: ['One tap', 'Full control', 'Audit trail'] },
+];
 
-function Eyebrow({ text }: { text: string }) {
-  return <p className="text-xs font-semibold text-brand uppercase tracking-widest mb-3">{text}</p>;
-}
-
-// ── main page ───────────────────────────────────────────────────────────────
 export default function HowItWorksPage() {
   const [activeTab, setActiveTab] = useState('morning');
 
   return (
-    <div className="bg-bg text-text min-h-screen">
+    <div className="bg-bg text-text min-h-screen relative overflow-x-hidden">
+      <ScrollProgress />
+      <MarketingBackground />
       <Navbar solid />
-      <div className="pt-16">
 
-      {/* Section 1 — Hero */}
-      <Section>
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <Eyebrow text="How it works" />
-          <h1 className="text-4xl md:text-5xl font-black text-text leading-tight mb-6">
-            An AI that runs your day.<br />Not one you have to run.
-          </h1>
-          <div className="max-w-2xl space-y-4">
-            <p className="text-muted text-lg leading-relaxed">
-              ChatGPT and Claude are tools. Powerful ones — but tools. You go to them, ask a question, get an answer, and then you go do the work yourself. MODUS is built on a different premise: your AI should be the one taking action, not just giving advice.
-            </p>
-            <p className="text-muted text-lg leading-relaxed">
-              MODUS is your executive assistant. It manages your schedule, sends your emails, sets your reminders, texts you when something needs your attention, and surfaces decisions for your approval — all from a single conversation.
-            </p>
-          </div>
-        </motion.div>
-      </Section>
+      <div className="relative pt-24" style={{ zIndex: 2 }}>
 
-      {/* Divider */}
-      <div className="border-t border-border/40" />
-
-      {/* Section 2 — 4 steps */}
-      <Section>
-        <Eyebrow text="The flow" />
-        <h2 className="text-3xl font-black text-text mb-3">One message. Everything handled.</h2>
-        <p className="text-muted mb-12 max-w-xl">You don't navigate menus or open different apps. You tell MODUS what you need and it moves.</p>
-        <div className="grid md:grid-cols-2 gap-6">
-          {[
-            { n: '01', title: 'You connect your life', desc: 'Calendar, email, health data, apps — MODUS reads across all of it. The more context it has, the less you have to explain.' },
-            { n: '02', title: 'MODUS learns your operating style', desc: 'Through onboarding and ongoing usage, MODUS understands your goals, your schedule, your priorities, and how you like to work.' },
-            { n: '03', title: 'It acts — or tells you it\'s about to', desc: 'Reminders get set. Emails get drafted. Blocks go on your calendar. For anything that touches the outside world, MODUS surfaces an approval card first.' },
-            { n: '04', title: 'You approve in one tap', desc: "You're not managing software. You're the executive. MODUS brings decisions to you — you say yes, edit, or redirect." },
-          ].map(step => (
-            <motion.div
-              key={step.n}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4 }}
-              className="bg-panel border border-border rounded-2xl p-6"
-            >
-              <p className="text-4xl font-black text-brand/20 mb-3">{step.n}</p>
-              <h3 className="text-base font-bold text-text mb-2">{step.title}</h3>
-              <p className="text-sm text-muted leading-relaxed">{step.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Divider */}
-      <div className="border-t border-border/40" />
-
-      {/* Section 3 — Animated scenarios */}
-      <Section>
-        <Eyebrow text="One message. Everything handled." />
-        <h2 className="text-3xl font-black text-text mb-2">See it in action.</h2>
-        <p className="text-muted mb-10">Real scenarios. One conversation each.</p>
-
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-brand text-white'
-                  : 'bg-panel border border-border text-muted hover:text-text hover:border-brand/30'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Chat window */}
-        <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-xl shadow-black/10">
-          {/* Window bar */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg/50">
-            <div className="flex gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-400/50" />
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/50" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-400/50" />
+        {/* Hero */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16,1,0.3,1] }}>
+            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">How it works</p>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-text leading-[1.02] mb-8 tracking-tight">
+              An AI that runs<br />
+              <span className="text-brand">your day.</span><br />
+              Not one you run.
+            </h1>
+            <div className="max-w-2xl space-y-4">
+              <p className="text-muted text-lg leading-relaxed">
+                ChatGPT and Claude are tools — you go to them. MODUS is built differently: it comes to you. Manages your schedule, sends your emails, surfaces decisions for approval, and checks in when something needs a human call.
+              </p>
             </div>
-            <div className="flex-1 flex items-center justify-center gap-2">
-              <Image src="/logo.png" alt="" width={14} height={14} className="opacity-50" />
-              <span className="text-xs font-semibold text-muted/50 tracking-wide">MODUS</span>
-            </div>
-            <div className="w-[52px]" />
-          </div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ScenarioPlayer tabId={activeTab} />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </Section>
-
-      {/* Divider */}
-      <div className="border-t border-border/40" />
-
-      {/* Section 4 — Differentiation table */}
-      <Section>
-        <Eyebrow text="The difference" />
-        <h2 className="text-3xl font-black text-text mb-10">Other AI answers. MODUS acts.</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 pr-6 text-muted font-medium w-1/4" />
-                <th className="text-left py-3 px-4 text-muted font-semibold">ChatGPT / Claude</th>
-                <th className="text-left py-3 px-4 text-brand font-semibold bg-brand/5 rounded-t-xl">MODUS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {[
-                {
-                  dim: 'What it is',
-                  them: 'A chat interface. You ask, it replies. The work is still yours.',
-                  us: 'A command. MODUS takes the action on your behalf.',
-                },
-                {
-                  dim: 'Who initiates',
-                  them: 'You open the app, type a prompt, get a response.',
-                  us: 'MODUS reaches out to you. Texts, reminders, alerts — without being asked.',
-                },
-                {
-                  dim: 'Connected to',
-                  them: 'Lives in a tab. No access to your real calendar, email, or phone.',
-                  us: 'Email, calendar, SMS, watch, health data, and more.',
-                },
-                {
-                  dim: 'After the chat',
-                  them: 'Closes the tab, the conversation ends. No follow-through.',
-                  us: 'MODUS keeps going. Tracks, follows up, and checks in until it\'s done.',
-                },
-              ].map((row, i) => (
-                <motion.tr
-                  key={i}
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                >
-                  <td className="py-4 pr-6 text-muted font-medium align-top">{row.dim}</td>
-                  <td className="py-4 px-4 text-muted align-top leading-relaxed">{row.them}</td>
-                  <td className="py-4 px-4 text-text align-top leading-relaxed bg-brand/5">{row.us}</td>
-                </motion.tr>
+            <div className="flex flex-wrap gap-3 mt-8">
+              {['Approval-based', 'Memory that persists', 'Proactive — not reactive', 'Connected to your tools'].map(tag => (
+                <span key={tag} className="text-xs font-medium text-brand bg-brand/8 border border-brand/20 px-3 py-1.5 rounded-full">
+                  {tag}
+                </span>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+            </div>
+          </motion.div>
+        </section>
 
-      {/* Divider */}
-      <div className="border-t border-border/40" />
+        {/* 4 steps */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <RevealOnScroll>
+            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The flow</p>
+            <h2 className="text-4xl font-black text-text mb-12">Four steps. Zero micromanagement.</h2>
+          </RevealOnScroll>
+          <div className="grid md:grid-cols-2 gap-5">
+            {STEPS.map((step, i) => (
+              <RevealOnScroll key={step.n} delay={i * 0.1}>
+                <motion.div
+                  whileHover={{ y: -4, boxShadow: '0 20px 60px rgba(124,58,237,0.12)' }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-panel/80 backdrop-blur-sm border border-border rounded-2xl p-7 hover:border-brand/30 transition-colors group"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <span className="text-4xl font-black text-brand/15 group-hover:text-brand/25 transition-colors leading-none">{step.n}</span>
+                    <span className="text-2xl text-brand mt-1">{step.icon}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-text mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted leading-relaxed mb-4">{step.desc}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {step.tags.map(t => (
+                      <span key={t} className="text-[10px] text-brand/70 bg-brand/6 border border-brand/15 px-2 py-0.5 rounded-full">{t}</span>
+                    ))}
+                  </div>
+                </motion.div>
+              </RevealOnScroll>
+            ))}
+          </div>
+        </section>
 
-      {/* Section 5 — Integrations */}
-      <Section>
-        <Eyebrow text="Integrations" />
-        <h2 className="text-3xl font-black text-text mb-2">Connected to your whole life.</h2>
-        <p className="text-muted mb-10">MODUS doesn't live in one app. It lives across all of them.</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {[
-            {
-              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
-              name: 'Email', desc: 'Draft, send, follow up',
-            },
-            {
-              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-              name: 'Calendar', desc: 'Schedule, block, reschedule',
-            },
-            {
-              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-              name: 'SMS', desc: 'Texts & check-ins',
-            },
-            {
-              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-              name: 'Watch & health', desc: 'Activity & recovery data',
-            },
-            {
-              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-              name: 'Reminders', desc: 'Push, alarm, or call',
-            },
-            {
-              icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-brand"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-              name: 'Whop', desc: 'Commerce & subscriptions',
-            },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.07 }}
-              className="bg-panel border border-border rounded-2xl p-5"
-            >
-              <div className="mb-3 w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center">{item.icon}</div>
-              <p className="text-sm font-semibold text-text">{item.name}</p>
-              <p className="text-xs text-muted mt-1">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </Section>
+        {/* Scenarios */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <RevealOnScroll>
+            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Live scenarios</p>
+            <h2 className="text-4xl font-black text-text mb-2">See it in action.</h2>
+            <p className="text-muted mb-10 text-base">Real situations. One message each. Watch how MODUS handles it.</p>
+          </RevealOnScroll>
 
-      {/* Divider */}
-      <div className="border-t border-border/40" />
+          <RevealOnScroll delay={0.1}>
+            {/* Tab bar */}
+            <div className="flex flex-wrap gap-2 mb-5">
+              {TABS.map(tab => (
+                <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-brand text-white shadow-lg shadow-brand/30'
+                      : 'bg-panel/80 backdrop-blur-sm border border-border text-muted hover:text-text hover:border-brand/30'
+                  }`}
+                >
+                  {tab.label}
+                </motion.button>
+              ))}
+            </div>
 
-      {/* Section 6 — Closing */}
-      <Section className="text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="max-w-2xl mx-auto space-y-6"
-        >
-          <Eyebrow text="The bigger idea" />
-          <h2 className="text-3xl md:text-4xl font-black text-text">
-            You're the executive.<br />MODUS handles the rest.
-          </h2>
-          <p className="text-muted text-lg leading-relaxed">
-            The goal isn't to make you better at using software. It's to get you out of the software entirely. Tell MODUS what matters. It figures out how to make it happen — and brings you in only when a human decision is needed.
-          </p>
-          <Link
-            href="/login"
-            className="btn-primary inline-block px-8 py-4 bg-brand hover:bg-brand/90 text-white font-bold rounded-xl transition-all hover:scale-105 active:scale-100"
-          >
-            Start your free trial →
-          </Link>
-          <p className="text-xs text-muted">30 days free. No credit card needed.</p>
-        </motion.div>
-      </Section>
+            {/* Chat window */}
+            <div className="bg-panel/80 backdrop-blur-xl border border-border/80 rounded-2xl overflow-hidden shadow-2xl shadow-brand/10">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60 bg-bg/40">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+                </div>
+                <div className="flex-1 flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+                  <span className="text-xs font-semibold text-muted/60 tracking-widest">MODUS</span>
+                </div>
+                <div className="w-[52px]" />
+              </div>
+              <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <ScenarioPlayer tabId={activeTab} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </RevealOnScroll>
+        </section>
+
+        {/* MODUS vs others */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <RevealOnScroll>
+            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The difference</p>
+            <h2 className="text-4xl font-black text-text mb-10">Other AI answers. MODUS acts.</h2>
+          </RevealOnScroll>
+          <RevealOnScroll delay={0.1}>
+            <div className="bg-panel/80 backdrop-blur-sm border border-border rounded-2xl overflow-hidden">
+              <div className="grid grid-cols-3 border-b border-border text-xs font-semibold uppercase tracking-wider">
+                <div className="py-4 px-6 text-muted" />
+                <div className="py-4 px-6 text-muted border-l border-border">ChatGPT / Claude</div>
+                <div className="py-4 px-6 text-brand border-l border-border bg-brand/5">MODUS</div>
+              </div>
+              {[
+                { dim: 'Mode', them: 'You go to it. Open a tab, type a prompt.', us: 'It comes to you. Briefings, alerts, check-ins.' },
+                { dim: 'Connected', them: 'Lives in a tab. No access to your real life.', us: 'Email, calendar, Notion, Slack, GitHub — live.' },
+                { dim: 'After chat', them: 'Conversation ends. No follow-through.', us: 'Tracks, follows up, checks in until done.' },
+                { dim: 'Actions', them: 'Gives you advice. You do the work.', us: 'Approval card. One tap. It\'s done.' },
+              ].map((row, i) => (
+                <motion.div key={i} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+                  transition={{ delay: i * 0.06 }} className="grid grid-cols-3 border-b border-border/60 last:border-0">
+                  <div className="py-5 px-6 text-sm font-semibold text-muted">{row.dim}</div>
+                  <div className="py-5 px-6 text-sm text-muted leading-relaxed border-l border-border/60">{row.them}</div>
+                  <div className="py-5 px-6 text-sm text-text leading-relaxed border-l border-border/60 bg-brand/5">{row.us}</div>
+                </motion.div>
+              ))}
+            </div>
+          </RevealOnScroll>
+        </section>
+
+        {/* CTA */}
+        <section className="px-6 py-24 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,rgba(124,58,237,0.12),transparent)]" />
+          <RevealOnScroll direction="none">
+            <div className="relative max-w-2xl mx-auto space-y-6">
+              <p className="text-xs font-bold text-brand uppercase tracking-widest">Ready?</p>
+              <h2 className="text-4xl md:text-5xl font-black text-text leading-tight">
+                You&apos;re the executive.<br />
+                <span className="text-brand">MODUS handles the rest.</span>
+              </h2>
+              <p className="text-muted text-lg leading-relaxed">
+                Tell MODUS what matters. It figures out how to make it happen.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                  <Link href="/login"
+                    className="inline-block px-10 py-4 bg-brand text-white font-bold rounded-xl hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all text-base">
+                    Start free — 30 days full access →
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                  <Link href="/pricing"
+                    className="inline-block px-10 py-4 border border-border text-muted hover:text-text hover:border-brand/40 rounded-xl transition-all text-base">
+                    See pricing
+                  </Link>
+                </motion.div>
+              </div>
+              <p className="text-xs text-muted/50">No credit card · Cancel anytime</p>
+            </div>
+          </RevealOnScroll>
+        </section>
+
       </div>
     </div>
   );
