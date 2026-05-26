@@ -326,7 +326,7 @@ export default function HeroSection() {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.5 }}
           className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted/60"
         >
-          {['Gmail & Calendar', 'GPT-4o or Claude', 'Privacy-first', 'Cancel anytime'].map(t => (
+          {['Gmail & Calendar', 'GPT-5 powered', 'Privacy-first', 'Cancel anytime'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <span className="text-brand/60">✓</span> {t}
             </span>

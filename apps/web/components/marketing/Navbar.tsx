@@ -47,11 +47,34 @@ export default function Navbar({ solid = false }: Props) {
       initial={{ opacity: 0, y: -16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 overflow-hidden transition-all duration-300 ${
-        showBg ? 'bg-bg/95 backdrop-blur-xl border-b border-border/60' : 'bg-transparent'
+      className={`fixed top-0 left-0 right-0 z-50 overflow-hidden transition-all duration-500 ${
+        showBg ? 'backdrop-blur-2xl shadow-[0_4px_32px_rgba(0,0,0,0.14)]' : 'bg-transparent'
       }`}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+      {/* Glass gradient background */}
+      <AnimatePresence>
+        {showBg && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="absolute inset-0 pointer-events-none overflow-hidden"
+          >
+            {/* Base glass fill */}
+            <div className="absolute inset-0 bg-bg/80" />
+            {/* Directional brand tint — left edge warmer */}
+            <div className="absolute inset-0 bg-gradient-to-r from-brand/10 via-transparent to-violet-600/6" />
+            {/* Subtle top-to-bottom depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent dark:from-black/20" />
+            {/* Top highlight line */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+            {/* Bottom brand accent line */}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/45 to-transparent" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-1.5 shrink-0">
           <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain block dark:hidden" />
           <Image src="/logo-dark.png" alt="MODUS" width={52} height={40} className="object-contain hidden dark:block" />
@@ -130,7 +153,7 @@ export default function Navbar({ solid = false }: Props) {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="md:hidden border-t border-border/60 overflow-hidden"
+            className="relative md:hidden border-t border-brand/15 overflow-hidden bg-bg/80"
           >
             <div className="px-4 py-4 flex flex-col gap-1">
               {navLinks.map(link => (
