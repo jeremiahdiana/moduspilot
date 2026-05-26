@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { streamText, experimental_createMCPClient } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import type { CoreMessage, LanguageModel } from 'ai';
@@ -17,6 +17,7 @@ import { getGitHubAccounts, getFirstGitHubToken } from '@/lib/github-oauth';
 import { getRecentNotionPages } from '@/lib/notion-data';
 import { getRecentSlackActivity } from '@/lib/slack-data';
 import { getGitHubWorkItems } from '@/lib/github-data';
+import { getMcpServers } from '@/lib/mcp-servers';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -315,12 +316,70 @@ export async function POST(req: Request) {
 
     const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
+    // Load MCP tools from user's connected servers
+    type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
+    const mcpClients: McpClient[] = [];
+    let mcpTools: Record<string, unknown> = {};
+    let mcpBlock = '';
+    if (uid) {
+      try {
+        const mcpServers = await getMcpServers(uid);
+        if (mcpServers.length > 0) {
+          const results = await Promise.allSettled(
+            mcpServers.map(server =>
+              Promise.race([
+                experimental_createMCPClient({
+                  transport: {
+                    type: 'sse',
+                    url: server.url,
+                    headers: server.authHeader ? { Authorization: server.authHeader } : undefined,
+                  },
+                }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error('timeout')), 4000)
+                ),
+              ])
+            )
+          );
+          const toolNamesByServer: string[] = [];
+          for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            if (result.status === 'fulfilled') {
+              const client = result.value as McpClient;
+              try {
+                const tools = await client.tools();
+                const names = Object.keys(tools);
+                if (names.length > 0) {
+                  mcpTools = { ...mcpTools, ...tools };
+                  toolNamesByServer.push(`${mcpServers[i].name}: ${names.join(', ')}`);
+                  mcpClients.push(client);
+                }
+              } catch {
+                try { await client.close(); } catch {}
+              }
+            }
+          }
+          if (toolNamesByServer.length > 0) {
+            mcpBlock = '\n\nMCP TOOLS AVAILABLE (use these when the user asks for actions your connected servers can perform):\n' +
+              toolNamesByServer.join('\n');
+          }
+        }
+      } catch (e) {
+        console.error('[chat] MCP setup failed:', e);
+      }
+    }
+
     const result = streamText({
       model: chatModel,
-      system: fullSystemPrompt,
+      system: fullSystemPrompt + mcpBlock,
       messages: body.messages,
       maxTokens: 2048,
+      ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onFinish: async ({ text }) => {
+        // Close MCP clients
+        for (const client of mcpClients) {
+          try { await client.close(); } catch {}
+        }
         if (!uid || !queryText || !process.env.PINECONE_API_KEY) return;
         const isSubstantive = (s: string) => s.trim().length >= 40 && s.trim().split(/\s+/).length >= 6;
         try {

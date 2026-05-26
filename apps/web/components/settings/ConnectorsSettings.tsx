@@ -8,6 +8,7 @@ interface GoogleAccount { email: string; connectedAt: string | null; }
 interface NotionAccount { workspaceId: string; workspaceName: string; workspaceIcon: string | null; ownerEmail: string; connectedAt: string | null; }
 interface SlackAccount { teamId: string; teamName: string; connectedAt: string | null; }
 interface GitHubAccount { login: string; name: string | null; avatarUrl: string; connectedAt: string | null; }
+interface McpServerEntry { id: string; name: string; url: string; authHeader?: string; createdAt: string; }
 
 interface Props { user: User }
 
@@ -103,23 +104,36 @@ export default function ConnectorsSettings({ user }: Props) {
   const [notionAccounts, setNotionAccounts] = useState<NotionAccount[]>([]);
   const [slackAccounts, setSlackAccounts] = useState<SlackAccount[]>([]);
   const [githubAccounts, setGithubAccounts] = useState<GitHubAccount[]>([]);
+  const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [error, setError] = useState('');
 
+  // MCP form state
+  const [mcpFormOpen, setMcpFormOpen] = useState(false);
+  const [mcpName, setMcpName] = useState('');
+  const [mcpUrl, setMcpUrl] = useState('');
+  const [mcpAuth, setMcpAuth] = useState('');
+  const [mcpTesting, setMcpTesting] = useState(false);
+  const [mcpTestResult, setMcpTestResult] = useState<{ ok: boolean; tools?: string[]; error?: string } | null>(null);
+  const [mcpSaving, setMcpSaving] = useState(false);
+  const [mcpRemoving, setMcpRemoving] = useState<string | null>(null);
+
   useEffect(() => {
     user.getIdToken().then(async token => {
       try {
-        const [googleRes, connRes] = await Promise.all([
+        const [googleRes, connRes, mcpRes] = await Promise.all([
           fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/mcp/list', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        const [googleData, connData] = await Promise.all([googleRes.json(), connRes.json()]);
+        const [googleData, connData, mcpData] = await Promise.all([googleRes.json(), connRes.json(), mcpRes.json()]);
         setGoogleAccounts(googleData.accounts ?? []);
         setNotionAccounts(connData.notion ?? []);
         setSlackAccounts(connData.slack ?? []);
         setGithubAccounts(connData.github ?? []);
+        setMcpServers(mcpData.servers ?? []);
       } catch { /* non-fatal */ }
       finally { setLoading(false); }
     });
@@ -213,6 +227,61 @@ export default function ConnectorsSettings({ user }: Props) {
       setSlackAccounts(prev => prev.filter(a => a.teamId !== teamId));
     } catch { setError('Failed to disconnect. Try again.'); }
     finally { setDisconnecting(null); }
+  }
+
+  async function testMcpConnection() {
+    setMcpTesting(true);
+    setMcpTestResult(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/mcp/test', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined }),
+      });
+      const data = await res.json();
+      setMcpTestResult(data);
+    } catch {
+      setMcpTestResult({ ok: false, error: 'Request failed' });
+    } finally {
+      setMcpTesting(false);
+    }
+  }
+
+  async function saveMcpServer() {
+    if (!mcpName.trim() || !mcpUrl.trim()) return;
+    setMcpSaving(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/mcp/add', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: mcpName.trim(), url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Failed to save server'); return; }
+      setMcpServers(prev => [...prev, { id: data.id, name: mcpName.trim(), url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined, createdAt: new Date().toISOString() }]);
+      setMcpFormOpen(false);
+      setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTestResult(null);
+    } catch {
+      setError('Failed to save server');
+    } finally {
+      setMcpSaving(false);
+    }
+  }
+
+  async function removeMcpServer(serverId: string) {
+    setMcpRemoving(serverId);
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/mcp/remove', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serverId }),
+      });
+      setMcpServers(prev => prev.filter(s => s.id !== serverId));
+    } catch { setError('Failed to remove server'); }
+    finally { setMcpRemoving(null); }
   }
 
   async function disconnectGitHub(login: string) {
@@ -398,13 +467,147 @@ export default function ConnectorsSettings({ user }: Props) {
       </ConnectorCard>
 
       {/* Custom MCP */}
-      <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
-        <h3 className="text-sm font-semibold text-text">Custom Connector</h3>
-        <p className="text-xs text-muted">Connect any API, database, or service to MODUS via MCP (Model Context Protocol).</p>
-        <button disabled className="px-4 py-2 border border-border text-muted text-sm rounded-lg opacity-50 cursor-not-allowed">
-          Add Custom Connector
-        </button>
-        <p className="text-[11px] text-muted/50 italic">Coming soon — MCP server support.</p>
+      <div className="bg-panel border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-bg border border-border flex items-center justify-center shrink-0 text-text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8M12 17v4"/>
+                <path d="M7 8l3 3-3 3M13 14h4"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-text">Custom MCP Server</p>
+              <p className="text-xs text-muted">Model Context Protocol — connect any tool or data source</p>
+            </div>
+          </div>
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          ) : mcpServers.length > 0 ? (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              {mcpServers.length} server{mcpServers.length !== 1 ? 's' : ''} connected
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-muted bg-bg border border-border px-2.5 py-1 rounded-full">
+              Not connected
+            </span>
+          )}
+        </div>
+
+        {/* Existing servers */}
+        <AnimatePresence>
+          {mcpServers.map(server => (
+            <motion.div
+              key={server.id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="border-b border-border/50"
+            >
+              <div className="flex items-center gap-3 px-6 py-4">
+                <div className="w-8 h-8 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-brand">
+                    <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text truncate">{server.name}</p>
+                  <p className="text-[11px] text-muted truncate">{server.url}</p>
+                </div>
+                <DisconnectBtn
+                  loading={mcpRemoving === server.id}
+                  onClick={() => removeMcpServer(server.id)}
+                />
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-xs text-muted">
+            {mcpServers.length > 0
+              ? 'MODUS will use tools from all connected MCP servers during chat.'
+              : 'Connect an MCP server to give MODUS access to custom tools and data sources.'}
+          </p>
+
+          {!mcpFormOpen ? (
+            <button
+              onClick={() => setMcpFormOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand/90 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add MCP Server
+            </button>
+          ) : (
+            <div className="space-y-3 bg-bg border border-border rounded-xl p-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted">Server name</label>
+                <input
+                  value={mcpName}
+                  onChange={e => setMcpName(e.target.value)}
+                  placeholder="e.g. My Database"
+                  className="w-full bg-panel border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted">SSE endpoint URL</label>
+                <input
+                  value={mcpUrl}
+                  onChange={e => { setMcpUrl(e.target.value); setMcpTestResult(null); }}
+                  placeholder="https://your-mcp-server.com/sse"
+                  className="w-full bg-panel border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted">Authorization header <span className="text-muted/60">(optional)</span></label>
+                <input
+                  value={mcpAuth}
+                  onChange={e => setMcpAuth(e.target.value)}
+                  placeholder="Bearer your-token"
+                  className="w-full bg-panel border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors font-mono text-xs"
+                />
+              </div>
+
+              {mcpTestResult && (
+                <div className={`rounded-lg px-3 py-2.5 text-xs ${mcpTestResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+                  {mcpTestResult.ok
+                    ? `✓ Connected — ${mcpTestResult.tools?.length ?? 0} tool${(mcpTestResult.tools?.length ?? 0) !== 1 ? 's' : ''} found${mcpTestResult.tools?.length ? ': ' + mcpTestResult.tools.slice(0, 4).join(', ') + (mcpTestResult.tools.length > 4 ? ` +${mcpTestResult.tools.length - 4} more` : '') : ''}`
+                    : `✕ ${mcpTestResult.error}`}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={testMcpConnection}
+                  disabled={mcpTesting || !mcpUrl.trim()}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-border text-sm text-muted hover:text-text hover:border-brand/40 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  {mcpTesting ? <span className="w-3 h-3 border border-muted border-t-transparent rounded-full animate-spin" /> : null}
+                  {mcpTesting ? 'Testing…' : 'Test connection'}
+                </button>
+                <button
+                  onClick={saveMcpServer}
+                  disabled={mcpSaving || !mcpName.trim() || !mcpUrl.trim()}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 disabled:opacity-40 transition-colors"
+                >
+                  {mcpSaving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                  {mcpSaving ? 'Saving…' : 'Save server'}
+                </button>
+                <button
+                  onClick={() => { setMcpFormOpen(false); setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTestResult(null); }}
+                  className="px-3 py-2 border border-border text-sm text-muted hover:text-text rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
