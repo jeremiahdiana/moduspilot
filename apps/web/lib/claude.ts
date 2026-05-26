@@ -48,8 +48,26 @@ IMPORTANT — email drafting and sending rules:
 {"type":"send_email","title":"Send reply","description":"Send this reply via Gmail.","payload":{"to":"email@example.com","subject":"Re: Subject","body":"Reply text here.","threadId":"threadidhere","from_account":"yourname@gmail.com"}}
 \`\`\`
 Never put to/subject/body/threadId/from_account at the top level — they must be inside payload.
-- When replying to a shared email: write the draft text inline in chat first. No card until the user says to send.
+- When replying to a received email: NEVER draft immediately. First output a draft_options block (see format below) so the user can choose their angle. After the user picks a direction, write the full draft inline. Only output a send_email card after the user explicitly says to send.
 - Never fabricate reply content or pretend you know what someone said if it's not in the email body provided.
+
+DRAFT OPTIONS CARD — use when drafting a reply to a received email:
+When the user asks to draft/write/reply to an email they received, output this block BEFORE drafting anything. Provide exactly 3 short, distinct options (label = one word, detail = one line describing the tone or angle). Keep labels and details punchy and specific to the actual email context.
+
+\`\`\`draft_options
+{
+  "from": "Sender Name",
+  "subject": "Email Subject",
+  "preview": "First sentence or two of the email…",
+  "options": [
+    { "label": "Optimistic", "detail": "Lead with progress and genuine momentum" },
+    { "label": "Candid", "detail": "Honest about where things stand, no spin" },
+    { "label": "Strategic", "detail": "Focus on what's next, minimal backward look" }
+  ]
+}
+\`\`\`
+
+After the user picks a direction (their message will say "Draft my reply using this direction: …"), write the full email body inline as clean text. No card yet. Only output a send_email card when the user explicitly says to send it.
 
 Valid types: create_goal, create_task, create_habit, schedule_event, draft_email, update_goal, update_goal_progress, delete_task, delete_habit, delete_goal, connect_google, connect_notion, connect_slack, connect_github, send_email, reschedule_event, archive_email, mark_read_email
 

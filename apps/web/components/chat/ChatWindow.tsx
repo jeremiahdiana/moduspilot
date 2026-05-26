@@ -197,6 +197,11 @@ export default function ChatWindow({
             key={m.id}
             message={m}
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
+            onAppend={(text) => {
+              setChatError(null);
+              onUserMessage?.();
+              append({ role: 'user', content: text });
+            }}
           />
         ))}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (

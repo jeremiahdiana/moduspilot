@@ -2,15 +2,21 @@ import type { Message } from 'ai';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import ApprovalCard from './ApprovalCard';
+import DraftOptionsCard from './DraftOptionsCard';
 
-function parseApprovalBlocks(content: string): Array<{ type: 'text'; value: string } | { type: 'approval'; value: string }> {
-  const parts: Array<{ type: 'text'; value: string } | { type: 'approval'; value: string }> = [];
-  const regex = /```approval\n([\s\S]*?)```/g;
+type Part =
+  | { type: 'text'; value: string }
+  | { type: 'approval'; value: string }
+  | { type: 'draft_options'; value: string };
+
+function parseBlocks(content: string): Part[] {
+  const parts: Part[] = [];
+  const regex = /```(approval|draft_options)\n([\s\S]*?)```/g;
   let last = 0;
   let match;
   while ((match = regex.exec(content)) !== null) {
     if (match.index > last) parts.push({ type: 'text', value: content.slice(last, match.index) });
-    parts.push({ type: 'approval', value: match[1].trim() });
+    parts.push({ type: match[1] as 'approval' | 'draft_options', value: match[2].trim() });
     last = match.index + match[0].length;
   }
   if (last < content.length) parts.push({ type: 'text', value: content.slice(last) });
@@ -39,7 +45,15 @@ function ModusAvatar() {
   );
 }
 
-export default function MessageBubble({ message, isStreaming = false }: { message: Message; isStreaming?: boolean }) {
+export default function MessageBubble({
+  message,
+  isStreaming = false,
+  onAppend,
+}: {
+  message: Message;
+  isStreaming?: boolean;
+  onAppend?: (text: string) => void;
+}) {
   const isUser = message.role === 'user';
 
   if (isUser) {
@@ -70,14 +84,17 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
 
   const rawText = extractTextContent(message.content);
 
-  const hasApprovalBlock = rawText.includes('```approval');
-  const streamingText = hasApprovalBlock
-    ? rawText.replace(/```approval[\s\S]*?```/g, '').replace(/```approval[\s\S]*$/g, '').trimEnd()
+  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options');
+  const streamingText = hasSpecialBlock
+    ? rawText
+        .replace(/```(approval|draft_options)[\s\S]*?```/g, '')
+        .replace(/```(approval|draft_options)[\s\S]*$/g, '')
+        .trimEnd()
     : rawText;
 
   const parts = isStreaming
     ? [{ type: 'text' as const, value: streamingText }]
-    : parseApprovalBlocks(rawText);
+    : parseBlocks(rawText);
 
   return (
     <motion.div
@@ -97,11 +114,13 @@ export default function MessageBubble({ message, isStreaming = false }: { messag
         {parts.map((part, i) =>
           part.type === 'approval' ? (
             <ApprovalCard key={i} raw={part.value} />
+          ) : part.type === 'draft_options' ? (
+            <DraftOptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
           ) : part.value.trim() ? (
             <p key={i} className="text-sm leading-relaxed text-text whitespace-pre-wrap">{part.value}</p>
           ) : null
         )}
-        {isStreaming && hasApprovalBlock && (
+        {isStreaming && hasSpecialBlock && (
           <div className="flex items-center gap-2 px-4 py-3 border border-border bg-panel rounded-xl">
             <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
             <span className="text-xs text-muted">Preparing action…</span>
