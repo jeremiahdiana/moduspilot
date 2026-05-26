@@ -5,6 +5,7 @@ import Navbar from '@/components/marketing/Navbar';
 export const metadata: Metadata = {
   title: 'Privacy Policy — MODUS',
   description: 'How MODUS collects, uses, and protects your data.',
+  alternates: { canonical: 'https://moduspilot.com/privacy' },
 };
 
 const LAST_UPDATED = 'May 23, 2025';

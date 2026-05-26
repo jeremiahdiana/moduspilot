@@ -195,7 +195,11 @@ export default function ChatWindow({
       {chatError && (
         <div className="mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
           <p className="text-sm text-red-400">{chatError}</p>
-          <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300 text-xs shrink-0">✕</button>
+          <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300 shrink-0" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
       )}
 

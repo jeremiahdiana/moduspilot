@@ -74,9 +74,12 @@ export default function PaywallModal({ onClose }: Props) {
       <div className="bg-panel border border-border rounded-2xl max-w-3xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-muted hover:text-text transition-colors text-lg"
+          className="absolute top-4 right-4 text-muted hover:text-text transition-colors"
+          aria-label="Close"
         >
-          ✕
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
 
         <div className="text-center mb-6">

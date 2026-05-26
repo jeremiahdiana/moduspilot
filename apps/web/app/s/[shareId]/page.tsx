@@ -21,6 +21,9 @@ export async function generateMetadata({ params }: { params: { shareId: string }
   return {
     title: `${data.title} — MODUS`,
     description: 'Shared MODUS conversation',
+    alternates: {
+      canonical: `https://moduspilot.com/s/${params.shareId}`,
+    },
   };
 }
 

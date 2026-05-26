@@ -200,7 +200,12 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
           disabled={saving || !canSave}
           className="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-40"
         >
-          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Model Settings'}
+          {saving ? 'Saving…' : saved ? (
+            <span className="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Saved
+            </span>
+          ) : 'Save Model Settings'}
         </button>
         {needsKey && !keyValue && (
           <p className="text-xs text-muted">Add your API key to save.</p>

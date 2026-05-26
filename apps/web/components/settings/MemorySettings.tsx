@@ -360,7 +360,12 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
                 disabled={clearing}
                 className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
               >
-                {clearing ? 'Clearing…' : clearDone ? '✓ Cleared' : 'Clear all'}
+                {clearing ? 'Clearing…' : clearDone ? (
+                  <span className="flex items-center gap-1">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>
+                    Cleared
+                  </span>
+                ) : 'Clear all'}
               </button>
             )}
           </div>

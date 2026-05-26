@@ -5,6 +5,7 @@ import Navbar from '@/components/marketing/Navbar';
 export const metadata: Metadata = {
   title: 'Terms of Service — MODUS',
   description: 'Terms and conditions for using MODUS Pilot.',
+  alternates: { canonical: 'https://moduspilot.com/terms' },
 };
 
 const LAST_UPDATED = 'May 23, 2025';
