@@ -75,6 +75,11 @@ export function useConversations(uid: string | null) {
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), update);
   }, [uid]);
 
+  const renameConversation = useCallback(async (convId: string, title: string) => {
+    if (!uid || !convId) return;
+    await updateDoc(doc(db, 'users', uid, 'conversations', convId), { title: title.trim() || 'New chat' });
+  }, [uid]);
+
   const deleteConversation = useCallback(async (convId: string) => {
     if (!uid) return;
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), { deleted: true });
@@ -85,5 +90,5 @@ export function useConversations(uid: string | null) {
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), { deleted: false });
   }, [uid]);
 
-  return { conversations, loading, createConversation, saveMessages, deleteConversation, restoreConversation };
+  return { conversations, loading, createConversation, saveMessages, renameConversation, deleteConversation, restoreConversation };
 }

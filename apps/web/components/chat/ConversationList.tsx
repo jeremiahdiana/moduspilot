@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { User } from 'firebase/auth';
 import type { Conversation } from '@/hooks/useConversations';
 
@@ -10,6 +10,7 @@ interface Props {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
   user: User | null;
 }
 
@@ -186,12 +187,26 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
   );
 }
 
-export default function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, user }: Props) {
+export default function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onRename, user }: Props) {
   const todayConvs   = conversations.filter(c => isToday(c.updatedAt));
   const earlierConvs = conversations.filter(c => !isToday(c.updatedAt));
   const [shareModalId, setShareModalId] = useState<string | null>(null);
-  // Local overrides for shareId so UI updates without waiting for Firestore snapshot
   const [shareOverrides, setShareOverrides] = useState<Record<string, string | undefined>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = useCallback((conv: Conversation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(conv.id);
+    setEditingTitle(conv.title);
+    setTimeout(() => { editInputRef.current?.focus(); editInputRef.current?.select(); }, 10);
+  }, []);
+
+  const saveEdit = useCallback(() => {
+    if (editingId) onRename(editingId, editingTitle.trim() || 'New chat');
+    setEditingId(null);
+  }, [editingId, editingTitle, onRename]);
 
   function handleShareIdChange(convId: string, sid: string | undefined) {
     setShareOverrides(prev => ({ ...prev, [convId]: sid }));
@@ -204,45 +219,73 @@ export default function ConversationList({ conversations, activeId, onSelect, on
     const isSharedConv = !!effectiveShareId;
     const isShareOpen = shareModalId === conv.id;
 
+    const isEditing = editingId === conv.id;
+
     return (
       <div
         key={conv.id}
         className={`group relative flex flex-col px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
           isActive ? 'bg-brand/10' : 'hover:bg-panel'
         }`}
-        onClick={() => onSelect(conv.id)}
+        onClick={() => { if (!isEditing) onSelect(conv.id); }}
       >
         <div className="flex items-start justify-between gap-1.5">
-          <span className={`text-sm truncate flex-1 font-medium ${isActive ? 'text-brand' : 'text-text'}`}>
-            {conv.title}
-          </span>
-          <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap">
-            {relativeTime(conv.updatedAt)}
-          </span>
+          {isEditing ? (
+            <input
+              ref={editInputRef}
+              value={editingTitle}
+              onChange={e => setEditingTitle(e.target.value)}
+              onBlur={saveEdit}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
+              onClick={e => e.stopPropagation()}
+              className="flex-1 text-sm font-medium bg-transparent border-b border-brand text-text outline-none min-w-0 pb-0.5"
+            />
+          ) : (
+            <span className={`text-sm truncate flex-1 font-medium ${isActive ? 'text-brand' : 'text-text'}`}>
+              {conv.title}
+            </span>
+          )}
+          {!isEditing && (
+            <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap">
+              {relativeTime(conv.updatedAt)}
+            </span>
+          )}
         </div>
-        {preview && (
+        {preview && !isEditing && (
           <p className="text-[11px] text-muted truncate mt-0.5 pr-12">{preview}</p>
         )}
 
         {/* Hover actions */}
-        <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-          <button
-            onClick={(e) => { e.stopPropagation(); setShareModalId(isShareOpen ? null : conv.id); }}
-            className={`p-1 rounded transition-colors ${isSharedConv ? 'text-brand' : 'text-muted hover:text-brand'}`}
-            title="Share"
-          >
-            <ShareIcon />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-            className="p-1 rounded text-muted hover:text-red-400 transition-colors text-xs"
-            title="Delete"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
+        {!isEditing && (
+          <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+            <button
+              onClick={(e) => startEdit(conv, e)}
+              className="p-1 rounded text-muted hover:text-brand transition-colors"
+              title="Rename"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShareModalId(isShareOpen ? null : conv.id); }}
+              className={`p-1 rounded transition-colors ${isSharedConv ? 'text-brand' : 'text-muted hover:text-brand'}`}
+              title="Share"
+            >
+              <ShareIcon />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+              className="p-1 rounded text-muted hover:text-red-400 transition-colors text-xs"
+              title="Delete"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
         {isShareOpen && (
           <ShareModal

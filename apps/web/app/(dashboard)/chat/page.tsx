@@ -24,10 +24,12 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? undefined;
 
-  const { conversations, loading, createConversation, saveMessages, deleteConversation, restoreConversation } = useConversations(uid);
+  const { conversations, loading, createConversation, saveMessages, renameConversation, deleteConversation, restoreConversation } = useConversations(uid);
   const { settings, loading: settingsLoading } = useUserSettings(user);
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [headerTitle, setHeaderTitle] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [msgCount, setMsgCount] = useState(0);
@@ -193,6 +195,7 @@ export default function ChatPage() {
               onSelect={handleSelect}
               onNew={handleNew}
               onDelete={handleDelete}
+              onRename={renameConversation}
               user={user}
             />
           )}
@@ -246,9 +249,32 @@ export default function ChatPage() {
               + New chat
             </button>
           )}
-          <h1 className="text-sm font-semibold text-text truncate">
-            {activeConversation?.title ?? 'Modus Pilot'}
-          </h1>
+          {!isGuest && activeConversation && editingHeader ? (
+            <input
+              autoFocus
+              value={headerTitle}
+              onChange={e => setHeaderTitle(e.target.value)}
+              onBlur={() => { renameConversation(activeConversation.id, headerTitle); setEditingHeader(false); }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { renameConversation(activeConversation.id, headerTitle); setEditingHeader(false); }
+                if (e.key === 'Escape') setEditingHeader(false);
+              }}
+              className="flex-1 text-sm font-semibold text-text bg-transparent border-b border-brand outline-none min-w-0"
+            />
+          ) : (
+            <h1
+              className={`text-sm font-semibold text-text truncate ${!isGuest && activeConversation ? 'cursor-pointer hover:text-brand transition-colors' : ''}`}
+              title={!isGuest && activeConversation ? 'Click to rename' : undefined}
+              onClick={() => {
+                if (!isGuest && activeConversation) {
+                  setHeaderTitle(activeConversation.title);
+                  setEditingHeader(true);
+                }
+              }}
+            >
+              {activeConversation?.title ?? 'Modus Pilot'}
+            </h1>
+          )}
           {isGuest && (
             <span className="ml-auto text-xs text-muted shrink-0">
               <a href="/login" className="text-brand hover:underline">Sign in</a> to save

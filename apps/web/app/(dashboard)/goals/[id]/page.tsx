@@ -188,6 +188,15 @@ export default function GoalDetailPage() {
   const activeChatIdRef = useRef(`goal-${id}`);
   const [activeChatId, _setActiveChatId] = useState(`goal-${id}`);
   const setActiveChatId = (newId: string) => { activeChatIdRef.current = newId; _setActiveChatId(newId); };
+  const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
+  const [renamingTitle, setRenamingTitle] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  async function saveRenameChat(chatId: string, title: string) {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.uid, 'conversations', chatId), { title: title.trim() || 'New chat' });
+    setRenamingChatId(null);
+  }
 
   const pendingMsgRef   = useRef<string | null>(null);
   const savedLengthRef  = useRef(0);
@@ -1125,12 +1134,36 @@ export default function GoalDetailPage() {
                 <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
                   activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
                 }`}>
-                  <button onClick={() => switchChat(c)} title={c.title}
-                    className={`text-xs pl-2.5 pr-1 py-1 max-w-[90px] truncate ${
-                      activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
-                    }`}>
-                    {c.title.length > 14 ? c.title.slice(0, 11) + '…' : c.title}
-                  </button>
+                  {renamingChatId === c.id ? (
+                    <input
+                      ref={renameInputRef}
+                      value={renamingTitle}
+                      onChange={e => setRenamingTitle(e.target.value)}
+                      onBlur={() => saveRenameChat(c.id, renamingTitle)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') saveRenameChat(c.id, renamingTitle);
+                        if (e.key === 'Escape') setRenamingChatId(null);
+                      }}
+                      onClick={e => e.stopPropagation()}
+                      className="text-xs pl-2.5 py-1 w-24 bg-transparent outline-none border-b border-white text-white"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => switchChat(c)}
+                      onDoubleClick={e => {
+                        e.stopPropagation();
+                        setRenamingChatId(c.id);
+                        setRenamingTitle(c.title);
+                        setTimeout(() => { renameInputRef.current?.focus(); renameInputRef.current?.select(); }, 10);
+                      }}
+                      title={`${c.title} (double-click to rename)`}
+                      className={`text-xs pl-2.5 pr-1 py-1 max-w-[90px] truncate ${
+                        activeChatId === c.id ? 'text-white' : 'text-muted hover:text-text'
+                      }`}
+                    >
+                      {c.title.length > 14 ? c.title.slice(0, 11) + '…' : c.title}
+                    </button>
+                  )}
                   <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }}
                     className={`pr-2 py-1 text-sm leading-none ${
                       activeChatId === c.id ? 'text-white/60 hover:text-white' : 'text-muted/50 hover:text-muted'

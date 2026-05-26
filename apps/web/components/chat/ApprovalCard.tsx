@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth } from '@/lib/firebase';
 
@@ -48,7 +48,27 @@ const spring = { type: 'spring', stiffness: 300, damping: 26 } as const;
 const springFast = { type: 'spring', stiffness: 420, damping: 28 } as const;
 
 export default function ApprovalCard({ raw }: { raw: string }) {
-  const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>('pending');
+  // Persist approved state so remounts (navigation, conversation switch) don't reset to pending
+  const cardKey = useMemo(() => {
+    try {
+      const sig = raw.slice(0, 100);
+      return 'mc-' + btoa(unescape(encodeURIComponent(sig))).slice(0, 28).replace(/[+/=]/g, '_');
+    } catch { return ''; }
+  }, [raw]);
+
+  const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>(() => {
+    try {
+      if (typeof window !== 'undefined' && cardKey && sessionStorage.getItem(cardKey) === 'approved') return 'approved';
+    } catch {}
+    return 'pending';
+  });
+
+  useEffect(() => {
+    if (status === 'approved' && cardKey) {
+      try { sessionStorage.setItem(cardKey, 'approved'); } catch {}
+    }
+  }, [status, cardKey]);
+
   const [loading, setLoading] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedProgress, setEditedProgress] = useState(0);
