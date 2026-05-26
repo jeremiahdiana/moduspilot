@@ -30,7 +30,9 @@ async function fuzzyFind(colRef: FirebaseFirestore.CollectionReference, searchTi
   let bestScore = 0;
   for (const doc of snap.docs) {
     const score = fuzzyScore(doc.data().title as string ?? '', searchTitle);
-    if (score > bestScore) { bestScore = score; best = doc; }
+    // Use >= so that among ties (e.g. duplicate habits) we pick the last-ordered doc,
+    // giving consistent, distinct results across sequential deletes.
+    if (score >= bestScore) { bestScore = score; best = doc; }
   }
   return bestScore >= 0.35 ? best : null;
 }
@@ -189,8 +191,13 @@ export async function POST(req: Request) {
     case 'delete_habit': {
       const searchTitle = (payload.habitTitle as string | undefined) || title;
       const match = await fuzzyFind(userRef.collection('habits'), searchTitle);
-      if (!match) return Response.json({ error: 'Habit not found' }, { status: 404 });
-      await match.ref.delete();
+      if (!match) return Response.json({ error: 'Habit not found — it may have already been deleted.' }, { status: 404 });
+      try {
+        await match.ref.delete();
+      } catch (err) {
+        console.error('[approval/delete_habit]', err);
+        return Response.json({ error: 'Failed to delete habit. Try again.' }, { status: 500 });
+      }
       return Response.json({ id: match.id });
     }
     case 'delete_goal': {

@@ -47,14 +47,19 @@ const REDIRECT_TYPES = new Set(Object.keys(CONNECT_ENDPOINTS));
 const spring = { type: 'spring', stiffness: 300, damping: 26 } as const;
 const springFast = { type: 'spring', stiffness: 420, damping: 28 } as const;
 
+// Module-level counter gives each card instance a unique index within the page session,
+// preventing duplicate cards (e.g. two habits with the same name) from sharing a storage key.
+let _cardCount = 0;
+
 export default function ApprovalCard({ raw }: { raw: string }) {
   // Persist approved state so remounts (navigation, conversation switch) don't reset to pending
+  const instanceId = useMemo(() => ++_cardCount, []);
   const cardKey = useMemo(() => {
     try {
-      const sig = raw.slice(0, 100);
-      return 'mc-' + btoa(unescape(encodeURIComponent(sig))).slice(0, 28).replace(/[+/=]/g, '_');
+      const sig = raw.slice(0, 120) + '|' + instanceId;
+      return 'mc-' + btoa(unescape(encodeURIComponent(sig))).slice(0, 32).replace(/[+/=]/g, '_');
     } catch { return ''; }
-  }, [raw]);
+  }, [raw, instanceId]);
 
   const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>(() => {
     try {
