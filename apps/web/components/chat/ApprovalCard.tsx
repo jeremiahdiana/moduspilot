@@ -24,6 +24,8 @@ const TYPE_LABELS: Record<string, string> = {
   delete_goal: 'Delete Goal',
   create_goal_chat: 'New Goal Chat',
   delete_goal_chat: 'Delete Chat',
+  create_project_chat: 'New Project Chat',
+  delete_project_chat: 'Delete Chat',
   connect_google: 'Connect Google',
   connect_notion: 'Connect Notion',
   connect_slack: 'Connect Slack',

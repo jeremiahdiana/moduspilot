@@ -11,7 +11,7 @@ interface SearchResult {
   id: string;
   label: string;
   sub?: string;
-  type: 'goal' | 'task' | 'habit' | 'conversation';
+  type: 'goal' | 'project' | 'task' | 'habit' | 'conversation';
   href: string;
 }
 
@@ -25,6 +25,7 @@ interface Action {
 
 const TYPE_LABEL: Record<SearchResult['type'], string> = {
   goal: 'Goal',
+  project: 'Project',
   task: 'Task',
   habit: 'Habit',
   conversation: 'Chat',
@@ -32,6 +33,7 @@ const TYPE_LABEL: Record<SearchResult['type'], string> = {
 
 const TYPE_COLOR: Record<SearchResult['type'], string> = {
   goal: 'text-violet-400',
+  project: 'text-orange-400',
   task: 'text-blue-400',
   habit: 'text-emerald-400',
   conversation: 'text-brand',
@@ -120,8 +122,9 @@ const QUICK_ACTIONS: Action[] = [
 async function loadAllResults(uid: string): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
 
-  const [goalsSnap, tasksSnap, habitsSnap, convsSnap] = await Promise.all([
+  const [goalsSnap, projectsSnap, tasksSnap, habitsSnap, convsSnap] = await Promise.all([
     getDocs(collection(db, 'users', uid, 'goals')),
+    getDocs(collection(db, 'users', uid, 'projects')),
     getDocs(collection(db, 'users', uid, 'tasks')),
     getDocs(collection(db, 'users', uid, 'habits')),
     getDocs(collection(db, 'users', uid, 'conversations')),
@@ -134,16 +137,23 @@ async function loadAllResults(uid: string): Promise<SearchResult[]> {
     }
   });
 
+  projectsSnap.forEach(doc => {
+    const d = doc.data();
+    if (d.status !== 'archived') {
+      results.push({ id: doc.id, label: d.title, sub: d.description || 'Project', type: 'project', href: `/projects/${doc.id}` });
+    }
+  });
+
   tasksSnap.forEach(doc => {
     const d = doc.data();
     if (!d.deleted) {
-      results.push({ id: doc.id, label: d.title, sub: d.done ? 'Done' : (d.priority || 'medium'), type: 'task', href: '/tasks' });
+      results.push({ id: doc.id, label: d.title, sub: d.done ? 'Done' : (d.priority || 'medium'), type: 'task', href: '/reminders' });
     }
   });
 
   habitsSnap.forEach(doc => {
     const d = doc.data();
-    results.push({ id: doc.id, label: d.title, sub: `${d.streak || 0}-day streak`, type: 'habit', href: '/habits' });
+    results.push({ id: doc.id, label: d.title, sub: `${d.streak || 0}-day streak`, type: 'habit', href: '/reminders' });
   });
 
   convsSnap.forEach(doc => {
@@ -356,7 +366,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
 
             <div className="border-t border-border/40 px-4 py-2.5 flex items-center justify-between">
               <p className="text-[11px] text-muted">
-                {showSearch ? '↑↓ navigate · Enter to open · Tab for chat' : 'Type to search goals, tasks, habits, chats'}
+                {showSearch ? '↑↓ navigate · Enter to open · Tab for chat' : 'Type to search goals, projects, reminders, chats'}
               </p>
               <div className="flex items-center gap-1.5">
                 <kbd className="text-[10px] text-muted bg-bg border border-border/50 rounded px-1.5 py-0.5 font-mono">⌘</kbd>

@@ -11,7 +11,7 @@ import { getValidAccessToken } from '@/lib/google-oauth';
 import { getActionableThreads } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
-import { searchDriveFiles, shouldSearchDrive, mimeLabel } from '@/lib/google-drive';
+import { searchDriveFiles, shouldSearchDrive, mimeLabel, getRecentFiles } from '@/lib/google-drive';
 import { getNotionAccounts, getFirstNotionToken } from '@/lib/notion-oauth';
 import { getSlackAccounts, getFirstSlackToken } from '@/lib/slack-oauth';
 import { getGitHubAccounts, getFirstGitHubToken } from '@/lib/github-oauth';
@@ -127,6 +127,7 @@ export async function POST(req: Request) {
       briefingHour?: number;
       briefingTimezone?: string;
       goalContext?: { id: string; title: string; description?: string; progress: number; timeframe?: string; activeChatId?: string };
+      projectContext?: { id: string; title: string; description?: string; resources: Array<{ type: string; name: string; url?: string; repo?: string; pageId?: string; channelId?: string; fileId?: string }>; activeChatId?: string };
     };
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
@@ -285,6 +286,134 @@ export async function POST(req: Request) {
       ? `\n\nGOAL FOCUS: This conversation is dedicated to one specific goal: "${gc.title}" (goalId: "${gc.id}"). Current progress: ${gc.progress}%. Timeframe: ${gc.timeframe ?? 'not set'}. ${gc.description ? `Description: ${gc.description}.` : ''}\n\nThe user is currently in chat "${gc.activeChatId ?? `goal-${gc.id}`}".\n\nStay laser-focused on this goal. Ask targeted check-in questions about progress, blockers, and next moves. Only propose an update_goal approval card when the user explicitly states a new progress percentage or says they've finished a major milestone — include goalId: "${gc.id}" in the payload.\n\nIf the user asks to "add a new chat", "open a new chat", or "start a new conversation" on this goal, output a create_goal_chat approval card: title = a short descriptive name for the new chat, payload = { goalId: "${gc.id}" }.\n\n${!isMainChat ? `If the user asks to "delete this chat", "remove this chat", or similar, output a delete_goal_chat approval card: title = a short description, payload = { goalId: "${gc.id}", conversationId: "${gc.activeChatId}" }. Do NOT offer or generate delete_goal_chat for the main chat.` : 'The user is in the main chat — do NOT generate a delete_goal_chat card here.'}\n\nCRITICAL: Do NOT generate create_task, create_habit, create_goal, or any other approval card in this chat unless the user explicitly and clearly says they want to create something new. Casual messages or questions must NEVER be interpreted as requests to create items. Respond to those conversationally.`
       : '';
 
+    // Project context + scoped resource data
+    const pc = body.projectContext;
+    let projectContextBlock = '';
+    let projectResourcesBlock = '';
+    if (pc) {
+      const isMainProjectChat = !pc.activeChatId || pc.activeChatId === `project-${pc.id}`;
+      projectContextBlock = `\n\nPROJECT FOCUS: This conversation is scoped to the project "${pc.title}" (projectId: "${pc.id}"). ${pc.description ? `Description: ${pc.description}.` : ''} ${pc.resources.length > 0 ? `This project has ${pc.resources.length} pinned resource${pc.resources.length !== 1 ? 's' : ''}. Treat the PROJECT RESOURCES block below as primary context — prioritize it over global GITHUB/NOTION/SLACK/DRIVE blocks when answering project questions. Never reference repos, pages, or channels not in the pinned list when answering about this project.` : 'No resources are pinned yet — encourage the user to pin resources from the Resources tab.'}\n\nDo NOT generate update_goal_progress, create_habit, or goal-tracking cards in project chats. If the user asks to create a new chat for this project, output a create_project_chat approval card with payload.projectId = "${pc.id}". ${!isMainProjectChat ? `If asked to delete this chat, output a delete_project_chat card with payload.conversationId = "${pc.activeChatId}".` : 'This is the main project chat — do NOT generate a delete_project_chat card here.'}`;
+
+      if (pc.resources.length > 0 && uid) {
+        // Fetch live scoped data for each pinned resource type
+        const githubResources = pc.resources.filter(r => r.type === 'github');
+        const notionResources  = pc.resources.filter(r => r.type === 'notion');
+        const slackResources   = pc.resources.filter(r => r.type === 'slack');
+        const driveResources   = pc.resources.filter(r => r.type === 'drive');
+        const urlResources     = pc.resources.filter(r => r.type === 'url');
+
+        const lines: string[] = [];
+
+        try {
+          // GitHub: open PRs + issues per pinned repo
+          if (githubResources.length > 0) {
+            const gh = await getFirstGitHubToken(uid);
+            if (gh) {
+              const headers = { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' };
+              for (const r of githubResources.slice(0, 3)) {
+                if (!r.repo) continue;
+                try {
+                  const [prRes, issueRes] = await Promise.all([
+                    fetch(`https://api.github.com/search/issues?q=is:open+is:pr+repo:${r.repo}&sort=updated&per_page=5`, { headers }),
+                    fetch(`https://api.github.com/search/issues?q=is:open+is:issue+repo:${r.repo}&sort=updated&per_page=5`, { headers }),
+                  ]);
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const prItems: any[] = prRes.ok ? ((await prRes.json()).items ?? []) : [];
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const issueItems: any[] = issueRes.ok ? ((await issueRes.json()).items ?? []) : [];
+                  lines.push(`\nGitHub repo: ${r.repo}`);
+                  if (prItems.length > 0) lines.push(`  Open PRs: ${prItems.map((p: { title: string; html_url: string }) => `${p.title} — ${p.html_url}`).join('; ')}`);
+                  else lines.push('  Open PRs: none');
+                  if (issueItems.length > 0) lines.push(`  Open issues: ${issueItems.map((i: { title: string; html_url: string }) => `${i.title} — ${i.html_url}`).join('; ')}`);
+                  else lines.push('  Open issues: none');
+                } catch { /* skip this repo */ }
+              }
+            }
+          }
+
+          // Notion: first ~600 chars of block content for each pinned page
+          if (notionResources.length > 0) {
+            const notionToken = await getFirstNotionToken(uid);
+            if (notionToken) {
+              for (const r of notionResources.slice(0, 3)) {
+                const pageId = r.pageId ?? r.url?.split('/').pop();
+                if (!pageId) continue;
+                try {
+                  const blocksRes = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=10`, {
+                    headers: { Authorization: `Bearer ${notionToken.token}`, 'Notion-Version': '2022-06-28' },
+                  });
+                  if (!blocksRes.ok) { lines.push(`\nNotion page: ${r.name} — (content unavailable)`); continue; }
+                  const blocksData = await blocksRes.json();
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const text = (blocksData.results ?? []).map((b: any) => {
+                    const rt = b[b.type]?.rich_text ?? [];
+                    return rt.map((t: { plain_text: string }) => t.plain_text).join('');
+                  }).join(' ').slice(0, 600);
+                  lines.push(`\nNotion page: ${r.name}${r.url ? ` — ${r.url}` : ''}\n  Content: ${text || '(empty or no text blocks)'}`);
+                } catch { lines.push(`\nNotion page: ${r.name} — (error fetching content)`); }
+              }
+            }
+          }
+
+          // Slack: recent messages from each pinned channel
+          if (slackResources.length > 0) {
+            const sl = await getFirstSlackToken(uid);
+            if (sl) {
+              for (const r of slackResources.slice(0, 3)) {
+                if (!r.channelId) continue;
+                try {
+                  const msgRes = await fetch(`https://slack.com/api/conversations.history?channel=${r.channelId}&limit=8`, {
+                    headers: { Authorization: `Bearer ${sl.token}` },
+                  });
+                  if (!msgRes.ok) { lines.push(`\nSlack ${r.name}: (unavailable)`); continue; }
+                  const msgData = await msgRes.json() as { ok: boolean; messages?: { text?: string; ts?: string; subtype?: string }[] };
+                  if (!msgData.ok) { lines.push(`\nSlack ${r.name}: (unavailable)`); continue; }
+                  const msgs = (msgData.messages ?? []).filter(m => !m.subtype && m.text).slice(0, 8);
+                  lines.push(`\nSlack ${r.name} (recent messages):\n${msgs.map(m => `  [${m.ts}] ${(m.text ?? '').slice(0, 200)}`).join('\n')}`);
+                } catch { lines.push(`\nSlack ${r.name}: (error)`); }
+              }
+            }
+          }
+
+          // Drive: file name + link (text content for Docs/Sheets via export)
+          if (driveResources.length > 0) {
+            const driveToken = await getValidAccessToken(uid);
+            if (driveToken) {
+              for (const r of driveResources.slice(0, 3)) {
+                if (!r.fileId) continue;
+                try {
+                  const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}?fields=id,name,mimeType,webViewLink`, {
+                    headers: { Authorization: `Bearer ${driveToken}` },
+                  });
+                  if (!metaRes.ok) { lines.push(`\nDrive file: ${r.name} — (unavailable)`); continue; }
+                  const meta = await metaRes.json() as { name: string; mimeType: string; webViewLink: string };
+                  const isTextual = meta.mimeType.includes('document') || meta.mimeType.includes('spreadsheet') || meta.mimeType.includes('presentation');
+                  if (isTextual) {
+                    const exportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}/export?mimeType=text/plain`, {
+                      headers: { Authorization: `Bearer ${driveToken}` },
+                    });
+                    const text = exportRes.ok ? (await exportRes.text()).slice(0, 1500) : '';
+                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content: ${text || '(empty)'}`);
+                  } else {
+                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink} (${mimeLabel(meta.mimeType)})`);
+                  }
+                } catch { lines.push(`\nDrive file: ${r.name} — (error)`); }
+              }
+            }
+          }
+
+          // URLs: just list them
+          for (const r of urlResources) {
+            lines.push(`\nURL: ${r.name}${r.url ? ` — ${r.url}` : ''}`);
+          }
+        } catch { /* non-fatal */ }
+
+        if (lines.length > 0) {
+          projectResourcesBlock = '\n\nPROJECT RESOURCES (live data scoped to pinned resources — treat as primary context for this project):' + lines.join('');
+        }
+      }
+    }
+
     const googleDataBlock = gmailBlock || calendarBlock
       ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it.`
       : '';
@@ -343,7 +472,7 @@ export async function POST(req: Request) {
       } catch { /* non-fatal */ }
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + projectContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;

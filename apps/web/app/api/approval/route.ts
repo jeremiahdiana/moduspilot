@@ -284,6 +284,26 @@ export async function POST(req: Request) {
       }
       return Response.json({ ok: true });
     }
+    case 'create_project_chat': {
+      const projectId = payload.projectId as string | undefined;
+      if (!projectId) return Response.json({ error: 'projectId required' }, { status: 400 });
+      const ref = await userRef.collection('conversations').add({
+        projectId,
+        title: title || 'New chat',
+        messages: [],
+        deleted: false,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return Response.json({ id: ref.id });
+    }
+    case 'delete_project_chat': {
+      const conversationId = payload.conversationId as string | undefined;
+      if (!conversationId) return Response.json({ error: 'conversationId required' }, { status: 400 });
+      if (conversationId.startsWith('project-')) return Response.json({ error: 'Cannot delete main chat' }, { status: 400 });
+      await userRef.collection('conversations').doc(conversationId).update({ deleted: true, deletedAt: FieldValue.serverTimestamp() });
+      return Response.json({ id: conversationId });
+    }
     case 'connect_google':
     case 'connect_notion':
     case 'connect_slack':
