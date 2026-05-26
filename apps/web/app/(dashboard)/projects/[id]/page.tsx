@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   doc, onSnapshot, updateDoc, collection, query, where,
-  addDoc, serverTimestamp, setDoc,
+  addDoc, serverTimestamp, setDoc, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -360,15 +360,22 @@ export default function ProjectDetailPage() {
   // ── Resources ─────────────────────────────────────────────────────────────────
   async function loadPickerResources(type: ResourceType) {
     if (type === 'url') { setAvailableResources([]); return; }
+    const token = authToken ?? await auth.currentUser?.getIdToken();
+    if (!token) { setAvailableResources([]); return; }
     setLoadingResources(true);
     try {
-      const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`/api/projects/resources?type=${type}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        console.error('[picker] API error', res.status, await res.text());
+        setAvailableResources([]);
+        return;
+      }
       const data = await res.json();
       setAvailableResources(data.items ?? []);
-    } catch {
+    } catch (err) {
+      console.error('[picker] fetch error', err);
       setAvailableResources([]);
     } finally {
       setLoadingResources(false);
@@ -376,10 +383,9 @@ export default function ProjectDetailPage() {
   }
 
   async function pinResource(resource: PinnedResource) {
-    if (!user || !project) return;
-    const already = project.resources.some(r => r.name === resource.name && r.type === resource.type);
-    if (already) return;
-    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { resources: [...project.resources, resource] });
+    if (!user) return;
+    // arrayUnion is atomic — safe even if project state is stale
+    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { resources: arrayUnion(resource) });
     setShowPicker(false);
     setPickerType(null);
     setAvailableResources([]);
@@ -387,8 +393,9 @@ export default function ProjectDetailPage() {
 
   async function unpinResource(index: number) {
     if (!user || !project) return;
-    const updated = project.resources.filter((_, i) => i !== index);
-    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { resources: updated });
+    const resource = project.resources[index];
+    if (!resource) return;
+    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { resources: arrayRemove(resource) });
   }
 
   async function pinUrl() {
@@ -587,7 +594,18 @@ export default function ProjectDetailPage() {
                             Loading…
                           </div>
                         ) : availableResources.length === 0 ? (
-                          <p className="text-sm text-muted py-3">No {pickerType} resources found. Make sure you&apos;ve connected {pickerType === 'drive' || pickerType === 'notion' ? 'the integration' : pickerType} in Settings → Connectors.</p>
+                          <div className="py-3">
+                            <p className="text-sm text-muted mb-2">
+                              {pickerType === 'github' ? 'No repositories found.' : pickerType === 'notion' ? 'No pages found.' : pickerType === 'slack' ? 'No channels found.' : 'No files found.'}
+                            </p>
+                            <p className="text-xs text-muted/70">
+                              {pickerType === 'drive' || pickerType === 'notion'
+                                ? `Connect ${pickerType === 'drive' ? 'Google' : 'Notion'} in `
+                                : `Connect ${pickerType === 'github' ? 'GitHub' : 'Slack'} in `}
+                              <a href="/settings?tab=connectors" className="text-brand underline">Settings → Connectors</a>
+                              {pickerType === 'slack' ? '. Make sure MODUS is added to the channels you want to pin.' : '.'}
+                            </p>
+                          </div>
                         ) : (
                           <div className="space-y-1 max-h-48 overflow-y-auto">
                             {availableResources.map(r => {
@@ -597,8 +615,15 @@ export default function ProjectDetailPage() {
                                   key={r.id}
                                   disabled={alreadyPinned}
                                   onClick={() => {
-                                    const res: PinnedResource = { type: pickerType, name: r.name, url: r.url, repo: r.repo, pageId: r.pageId, channelId: r.channelId, fileId: r.fileId };
-                                    Object.keys(res).forEach(k => res[k as keyof PinnedResource] === undefined && delete res[k as keyof PinnedResource]);
+                                    const res: PinnedResource = {
+                                      type: pickerType,
+                                      name: r.name,
+                                      ...(r.url       ? { url:       r.url }       : {}),
+                                      ...(r.repo      ? { repo:      r.repo }      : {}),
+                                      ...(r.pageId    ? { pageId:    r.pageId }    : {}),
+                                      ...(r.channelId ? { channelId: r.channelId } : {}),
+                                      ...(r.fileId    ? { fileId:    r.fileId }    : {}),
+                                    };
                                     pinResource(res);
                                   }}
                                   className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${

@@ -11,6 +11,7 @@ function extractTitle(page: any): string {
 }
 
 export interface NotionPage {
+  id: string;
   title: string;
   url: string;
   lastEdited: string;
@@ -35,6 +36,7 @@ export async function getRecentNotionPages(accessToken: string, limit = 5): Prom
     const data = await res.json();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (data.results ?? []).slice(0, limit).map((item: any) => ({
+      id: item.id as string,
       title: item.object === 'database'
         ? (item.title?.[0]?.plain_text ?? 'Untitled database')
         : extractTitle(item),
