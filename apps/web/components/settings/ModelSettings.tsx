@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 
 interface ModelConfig {
-  provider: 'platform' | 'groq' | 'openai' | 'anthropic';
+  provider: 'platform' | 'openai' | 'anthropic';
   model: string;
   openaiKey?: string;
   anthropicKey?: string;
@@ -63,19 +63,20 @@ const PROVIDERS = [
 
 export default function ModelSettings({ settings, saving, onSave }: Props) {
   const raw = (settings as unknown as { modelSettings?: ModelConfig }).modelSettings;
-  // Migrate legacy 'groq' default → 'platform'
-  const currentProvider: ModelConfig['provider'] = raw?.provider === 'groq' && !raw?.model?.startsWith('llama')
-    ? 'platform'
-    : (raw?.provider ?? 'platform');
+  // Always migrate legacy 'groq' provider → 'platform' (platform now runs on Groq under the hood)
+  const rawProvider = raw?.provider ?? 'platform';
+  const validProviders = PROVIDERS.map(p => p.id);
+  const currentProvider: ModelConfig['provider'] =
+    validProviders.includes(rawProvider as ModelConfig['provider']) ? (rawProvider as ModelConfig['provider']) : 'platform';
 
   const [provider, setProvider] = useState<ModelConfig['provider']>(currentProvider);
   const [model, setModel] = useState(raw?.model ?? 'llama-3.3-70b-versatile');
+  // Safety: if stored provider disappeared from the list, fall back to platform
+  const selectedProvider = PROVIDERS.find(p => p.id === provider) ?? PROVIDERS[0];
   const [openaiKey, setOpenaiKey] = useState(raw?.openaiKey ?? '');
   const [anthropicKey, setAnthropicKey] = useState(raw?.anthropicKey ?? '');
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
-
-  const selectedProvider = PROVIDERS.find(p => p.id === provider)!;
 
   function handleProviderSwitch(p: ModelConfig['provider']) {
     setProvider(p);
@@ -103,7 +104,7 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">AI Model</h2>
-        <p className="text-sm text-muted">Choose which AI powers your MODUS. Groq is always free. Bring your own key for full control.</p>
+        <p className="text-sm text-muted">Choose which AI powers your MODUS. Platform default is free. Bring your own key for full control.</p>
       </div>
 
       {/* Provider cards */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateProfile, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
@@ -24,9 +24,14 @@ export default function AccountSettings({ user }: Props) {
   const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState('');
   const [msgCount, setMsgCount] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot'>('free');
   const [trialDaysLeft, setTrialDaysLeft] = useState(TRIAL_DAYS);
   const router = useRouter();
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -47,7 +52,7 @@ export default function AccountSettings({ user }: Props) {
     try {
       await updateProfile(user, { displayName });
       setNameSaved(true);
-      setTimeout(() => setNameSaved(false), 2000);
+      timerRef.current = setTimeout(() => setNameSaved(false), 2000);
     } catch {
       setError('Failed to update name.');
     } finally {
@@ -68,7 +73,7 @@ export default function AccountSettings({ user }: Props) {
       await deleteDoc(doc(db, 'users', user.uid));
       await deleteUser(user);
       setDeleted(true);
-      setTimeout(() => router.push('/login'), 2500);
+      timerRef.current = setTimeout(() => router.push('/login'), 2500);
     } catch (e: unknown) {
       if (e instanceof Error && e.message.includes('requires-recent-login')) {
         setError('Please sign out and sign back in, then try again.');

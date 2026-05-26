@@ -59,7 +59,11 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
       return getLocalHourFromUTC(settings.briefingHour ?? 7, userTimezone);
     } catch { return 7; }
   });
-  const [localReflectionHour, setLocalReflectionHour] = useState(settings.reflectionHour ?? 21);
+  const [localReflectionHour, setLocalReflectionHour] = useState(() => {
+    try {
+      return getLocalHourFromUTC(settings.reflectionHour ?? 21, userTimezone);
+    } catch { return 21; }
+  });
 
   const handleSave = async () => {
     await onSave({
@@ -152,7 +156,7 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
         </div>
         <div className="flex justify-end">
           <button
-            onClick={() => onSave({ reflectionHour: localReflectionHour })}
+            onClick={() => onSave({ reflectionHour: getUTCHour(localReflectionHour), briefingTimezone: userTimezone })}
             disabled={saving}
             className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
           >

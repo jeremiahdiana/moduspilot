@@ -108,6 +108,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
     setImporting(true);
     try {
       const token = await auth.currentUser?.getIdToken();
+      if (!token) { setImportError('Not signed in.'); setImportState('error'); return; }
       const res = await fetch('/api/memory/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -140,6 +141,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
     setClearDone(false);
     try {
       const token = await auth.currentUser?.getIdToken();
+      if (!token) { alert('Not signed in.'); return; }
       await fetch('/api/memory/clear', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -354,7 +356,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
           <h3 className="text-sm font-semibold text-text">Stored Memories</h3>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted">{memories.length} total</span>
-            {(memories.length > 0 || true) && (
+            {memories.length > 0 && (
               <button
                 onClick={handleClearAll}
                 disabled={clearing}

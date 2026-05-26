@@ -101,7 +101,7 @@ export default function BillingSettings({ plan }: Props) {
 
       const res = await fetch('/api/stripe/portal', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
@@ -153,7 +153,7 @@ export default function BillingSettings({ plan }: Props) {
       </div>
 
       {/* Plan cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {PLANS.map(p => {
           const isCurrent = p.key === plan;
           const isUpgrade = p.key !== 'free' && !isCurrent;
