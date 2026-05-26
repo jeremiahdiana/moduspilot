@@ -30,9 +30,9 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const key = process.env.GROQ_API_KEY;
-    if (!key) {
-      console.error('[chat] GROQ_API_KEY missing');
+    const key = process.env.GROQ_API_KEY ?? '';
+    if (!process.env.OPENAI_API_KEY && !key) {
+      console.error('[chat] no AI API key configured');
       return Response.json({ error: 'API key not configured' }, { status: 500 });
     }
 
@@ -237,18 +237,27 @@ export async function POST(req: Request) {
       }
     }
 
-    // Resolve model — user's BYOK preference or fall back to Groq
+    // Resolve model — BYOK preference → platform OpenAI (tiered by plan) → Groq fallback
     let chatModel: LanguageModel;
     const ms = userData.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
-    const modelProvider = ms?.provider ?? 'groq';
-    const modelId = ms?.model ?? 'llama-3.3-70b-versatile';
+    const modelProvider = ms?.provider ?? 'platform';
 
     if (modelProvider === 'openai' && ms?.openaiKey) {
-      chatModel = createOpenAI({ apiKey: ms.openaiKey })(modelId);
+      // User's own OpenAI key
+      chatModel = createOpenAI({ apiKey: ms.openaiKey })(ms.model ?? 'gpt-5-mini');
     } else if (modelProvider === 'anthropic' && ms?.anthropicKey) {
-      chatModel = createAnthropic({ apiKey: ms.anthropicKey })(modelId);
+      chatModel = createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-opus-4-7');
     } else {
-      chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(modelId === 'llama-3.3-70b-versatile' || !ms?.model ? 'llama-3.3-70b-versatile' : modelId);
+      // Platform default: OpenAI tiered by plan
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey) {
+        const plan = userData.plan as string | undefined;
+        const platformModel = plan === 'pilot' ? 'gpt-5' : plan === 'modus' ? 'gpt-5' : 'gpt-5-mini';
+        chatModel = createOpenAI({ apiKey: openaiKey })(platformModel);
+      } else {
+        // Groq fallback if OpenAI key missing
+        chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })('llama-3.3-70b-versatile');
+      }
     }
 
     // Build system prompt with user context always included
