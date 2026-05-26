@@ -8,11 +8,11 @@
 /* Light mode (default — dark class added by JS if preference is dark) */
 :root {
   --font-sans: 'Bricolage Grotesque', system-ui, sans-serif;
-  --color-bg: 242 238 255;
-  --color-panel: 252 250 255;
-  --color-border: 214 206 235;
+  --color-bg: 250 249 255;
+  --color-panel: 255 255 255;
+  --color-border: 226 220 244;
   --color-text: 13 13 20;
-  --color-muted: 98 88 118;
+  --color-muted: 100 90 122;
 }
 
 .dark {
