@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 
 interface ModelConfig {
-  provider: 'groq' | 'openai' | 'anthropic';
+  provider: 'platform' | 'groq' | 'openai' | 'anthropic';
   model: string;
   openaiKey?: string;
   anthropicKey?: string;
@@ -18,10 +18,24 @@ interface Props {
 
 const PROVIDERS = [
   {
+    id: 'platform' as const,
+    name: 'MODUS AI',
+    description: 'Powered by GPT-5. No API key needed — included with your account.',
+    badge: 'Default',
+    badgeColor: 'bg-brand/10 text-brand',
+    models: [
+      { id: 'gpt-5-mini', label: 'GPT-5 Mini', sub: 'Fast · default' },
+      { id: 'gpt-5',      label: 'GPT-5',      sub: 'Most capable' },
+    ],
+    keyField: null,
+    keyPlaceholder: '',
+    docsUrl: '',
+  },
+  {
     id: 'groq' as const,
-    name: 'Modus',
-    description: 'Included. Fast, free, always on.',
-    badge: 'Included',
+    name: 'Groq',
+    description: 'Free, fast inference using Llama 3.3. Great for high-volume usage.',
+    badge: 'Free',
     badgeColor: 'bg-emerald-500/10 text-emerald-400',
     models: [
       { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', sub: 'Best quality' },
@@ -34,26 +48,26 @@ const PROVIDERS = [
   {
     id: 'openai' as const,
     name: 'OpenAI',
-    description: 'Use your own API key to power MODUS with GPT-4o.',
+    description: 'Use your own OpenAI API key for full control over usage and billing.',
     badge: 'BYOK',
     badgeColor: 'bg-blue-500/10 text-blue-400',
     models: [
-      { id: 'gpt-4o',      label: 'GPT-4o',      sub: 'Most capable' },
-      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', sub: 'Faster & cheaper' },
+      { id: 'gpt-5',      label: 'GPT-5',      sub: 'Most capable' },
+      { id: 'gpt-5-mini', label: 'GPT-5 Mini', sub: 'Faster & cheaper' },
     ],
     keyField: 'openaiKey' as const,
-    keyPlaceholder: 'sk-...',
+    keyPlaceholder: 'sk-proj-...',
     docsUrl: 'https://platform.openai.com/api-keys',
   },
   {
     id: 'anthropic' as const,
     name: 'Anthropic',
-    description: 'Use your own API key to power MODUS with Claude.',
+    description: 'Use your own Anthropic API key to power MODUS with Claude.',
     badge: 'BYOK',
     badgeColor: 'bg-violet-500/10 text-violet-400',
     models: [
-      { id: 'claude-sonnet-4-6',          label: 'Claude Sonnet 4.6', sub: 'Best quality' },
-      { id: 'claude-haiku-4-5-20251001',  label: 'Claude Haiku 4.5',  sub: 'Fastest' },
+      { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6', sub: 'Best quality' },
+      { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',  sub: 'Fastest' },
     ],
     keyField: 'anthropicKey' as const,
     keyPlaceholder: 'sk-ant-...',
@@ -62,15 +76,16 @@ const PROVIDERS = [
 ];
 
 export default function ModelSettings({ settings, saving, onSave }: Props) {
-  const current: ModelConfig = (settings as unknown as { modelSettings?: ModelConfig }).modelSettings ?? {
-    provider: 'groq',
-    model: 'llama-3.3-70b-versatile',
-  };
+  const raw = (settings as unknown as { modelSettings?: ModelConfig }).modelSettings;
+  // Migrate legacy 'groq' default → 'platform'
+  const currentProvider: ModelConfig['provider'] = raw?.provider === 'groq' && !raw?.model?.startsWith('llama')
+    ? 'platform'
+    : (raw?.provider ?? 'platform');
 
-  const [provider, setProvider] = useState<ModelConfig['provider']>(current.provider ?? 'groq');
-  const [model, setModel] = useState(current.model ?? 'llama-3.3-70b-versatile');
-  const [openaiKey, setOpenaiKey] = useState(current.openaiKey ?? '');
-  const [anthropicKey, setAnthropicKey] = useState(current.anthropicKey ?? '');
+  const [provider, setProvider] = useState<ModelConfig['provider']>(currentProvider);
+  const [model, setModel] = useState(raw?.model ?? 'gpt-5-mini');
+  const [openaiKey, setOpenaiKey] = useState(raw?.openaiKey ?? '');
+  const [anthropicKey, setAnthropicKey] = useState(raw?.anthropicKey ?? '');
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
 
@@ -93,7 +108,7 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
     setTimeout(() => setSaved(false), 2500);
   }
 
-  const needsKey = provider !== 'groq';
+  const needsKey = provider === 'openai' || provider === 'anthropic';
   const keyValue = provider === 'openai' ? openaiKey : anthropicKey;
   const setKeyValue = provider === 'openai' ? setOpenaiKey : setAnthropicKey;
   const canSave = !needsKey || keyValue.trim().length > 10;
@@ -102,7 +117,7 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">AI Model</h2>
-        <p className="text-sm text-muted">Choose which AI model powers MODUS. Bring your own API key to use GPT-4o or Claude.</p>
+        <p className="text-sm text-muted">Choose which AI powers your MODUS. Groq is always free. Bring your own key for full control.</p>
       </div>
 
       {/* Provider cards */}
@@ -122,7 +137,7 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-semibold text-text">{p.name}</span>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.badgeColor}`}>{p.badge}</span>
-                  {current.provider === p.id && (
+                  {currentProvider === p.id && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">Active</span>
                   )}
                 </div>
@@ -187,9 +202,6 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
               {showKey[provider] ? 'Hide' : 'Show'}
             </button>
           </div>
-          {keyValue && !keyValue.startsWith(selectedProvider.keyPlaceholder.slice(0, 3)) && (
-            <p className="text-xs text-amber-400">Key format looks unexpected — double-check it's the right key.</p>
-          )}
         </div>
       )}
 
