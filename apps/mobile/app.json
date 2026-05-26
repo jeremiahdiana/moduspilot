@@ -4,6 +4,21 @@
     "slug": "modus-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "platforms": ["ios", "android"]
+    "scheme": "modus",
+    "platforms": ["ios"],
+    "ios": {
+      "bundleIdentifier": "com.moduspilot.app",
+      "supportsTablet": false,
+      "usesAppleSignIn": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      ["expo-apple-authentication"],
+      ["expo-splash-screen", { "backgroundColor": "#0a0a0f" }]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

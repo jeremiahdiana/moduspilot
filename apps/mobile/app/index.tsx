@@ -1,10 +1,17 @@
-import { View, Text } from 'react-native';
+import { Redirect } from 'expo-router';
+import { View, ActivityIndicator } from 'react-native';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Index() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0f' }}>
-      <Text style={{ color: '#7C3AED', fontSize: 32, fontWeight: '900', letterSpacing: 6 }}>MODUS</Text>
-      <Text style={{ color: '#6b6b80', fontSize: 13, marginTop: 8 }}>Mobile coming soon</Text>
-    </View>
-  );
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg">
+        <ActivityIndicator size="large" color="#7C3AED" />
+      </View>
+    );
+  }
+
+  return user ? <Redirect href="/(app)/chat" /> : <Redirect href="/(auth)/login" />;
 }
