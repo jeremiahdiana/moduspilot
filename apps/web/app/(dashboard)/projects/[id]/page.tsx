@@ -14,7 +14,7 @@ import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type ProjectTab = 'resources' | 'tasks' | 'notes';
+type ProjectTab = 'overview' | 'resources' | 'tasks' | 'notes';
 type NoteType = 'win' | 'blocker' | 'idea' | 'reflection';
 type ResourceType = 'github' | 'notion' | 'slack' | 'drive' | 'url';
 
@@ -38,7 +38,10 @@ interface Project {
   status: 'active' | 'archived';
   resources: PinnedResource[];
   notes: Note[];
+  emoji?: string;
 }
+
+const EMOJIS = ['🗂️','🚀','💡','🔧','📐','🎯','⚡','🌐','🔬','🎨','📦','🧪'];
 
 interface ProjectChat { id: string; title: string; messages: Message[]; createdAt: Date; }
 
@@ -85,7 +88,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [authToken, setAuthToken] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ProjectTab>('resources');
+  const [activeTab, setActiveTab] = useState<ProjectTab>('overview');
 
   // Tasks
   const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
@@ -101,6 +104,18 @@ export default function ProjectDetailPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
   const editNoteRef = useRef<HTMLTextAreaElement>(null);
+
+  // Inline title/desc editing
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState('');
+
+  // Resizable chat
+  const [chatWidth, setChatWidth] = useState(360);
+  const chatDragStartX = useRef(0);
+  const chatDragStartW = useRef(360);
+  const chatCurrentW = useRef(360);
 
   // Resource picker
   const [showPicker, setShowPicker] = useState(false);
@@ -146,6 +161,7 @@ export default function ProjectDetailPage() {
         status: d.status ?? 'active',
         resources: (d.resources as PinnedResource[]) ?? [],
         notes: (d.notes as Note[]) ?? [],
+        emoji: d.emoji as string | undefined,
       });
       setLoading(false);
     }, () => setLoading(false));
@@ -189,6 +205,15 @@ export default function ProjectDetailPage() {
     );
     return unsub;
   }, [user, id]);
+
+  // ── Chat width from localStorage ──────────────────────────────────────────────
+  useEffect(() => {
+    const saved = localStorage.getItem('project-chat-width');
+    if (saved) {
+      const w = Math.min(520, Math.max(260, Number(saved)));
+      setChatWidth(w); chatCurrentW.current = w;
+    }
+  }, []);
 
   // ── Auto-focus ────────────────────────────────────────────────────────────────
   useEffect(() => { if (addingTask) taskInputRef.current?.focus(); }, [addingTask]);
@@ -404,6 +429,50 @@ export default function ProjectDetailPage() {
     setUrlDraft({ name: '', url: '' });
   }
 
+  // ── Emoji cycle ───────────────────────────────────────────────────────────────
+  async function cycleEmoji() {
+    if (!user || !project) return;
+    const cur = project.emoji ?? EMOJIS[0];
+    const idx = EMOJIS.indexOf(cur);
+    const next = EMOJIS[(idx + 1) % EMOJIS.length];
+    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { emoji: next });
+  }
+
+  // ── Inline title / desc ───────────────────────────────────────────────────────
+  async function saveTitle() {
+    if (!user || !titleDraft.trim()) { setEditingTitle(false); return; }
+    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { title: titleDraft.trim() });
+    setEditingTitle(false);
+  }
+
+  async function saveDesc() {
+    if (!user) { setEditingDesc(false); return; }
+    await updateDoc(doc(db, 'users', user.uid, 'projects', id), { description: descDraft.trim() });
+    setEditingDesc(false);
+  }
+
+  // ── Chat resize drag ──────────────────────────────────────────────────────────
+  function startChatDrag(e: React.MouseEvent) {
+    chatDragStartX.current = e.clientX;
+    chatDragStartW.current = chatWidth;
+    chatCurrentW.current = chatWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    function onMove(ev: MouseEvent) {
+      const w = Math.min(520, Math.max(260, chatDragStartW.current - (ev.clientX - chatDragStartX.current)));
+      setChatWidth(w); chatCurrentW.current = w;
+    }
+    function onUp() {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('project-chat-width', String(chatCurrentW.current));
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   // ── Loading / not found ───────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -437,21 +506,77 @@ export default function ProjectDetailPage() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="mb-6"
           >
-            <div className="flex items-start gap-3 mb-1">
+            <div className="flex items-start gap-3 mb-2">
               <button onClick={() => router.push('/projects')} className="mt-1 text-muted hover:text-text transition-colors shrink-0">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
               </button>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold text-text">{project.title}</h1>
+
+              {/* Emoji */}
+              <button
+                onClick={cycleEmoji}
+                title="Click to change emoji"
+                className="text-2xl leading-none mt-0.5 hover:scale-110 transition-transform shrink-0"
+              >
+                {project.emoji ?? '🗂️'}
+              </button>
+
+              <div className="flex-1 min-w-0">
+                {/* Title */}
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  {editingTitle ? (
+                    <input
+                      autoFocus
+                      value={titleDraft}
+                      onChange={e => setTitleDraft(e.target.value)}
+                      onBlur={saveTitle}
+                      onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
+                      className="text-xl font-bold bg-transparent border-b border-brand text-text outline-none w-full"
+                    />
+                  ) : (
+                    <h1
+                      className="text-xl font-bold text-text cursor-pointer hover:text-brand transition-colors"
+                      onClick={() => { setTitleDraft(project.title); setEditingTitle(true); }}
+                      title="Click to edit"
+                    >
+                      {project.title}
+                    </h1>
+                  )}
                   {project.status === 'archived' && (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-border text-muted">Archived</span>
                   )}
                 </div>
-                {project.description && <p className="text-sm text-muted mt-0.5">{project.description}</p>}
-                <p className="text-[11px] text-muted mt-1">{project.resources.length} resource{project.resources.length !== 1 ? 's' : ''} pinned</p>
+
+                {/* Description */}
+                {editingDesc ? (
+                  <input
+                    autoFocus
+                    value={descDraft}
+                    onChange={e => setDescDraft(e.target.value)}
+                    onBlur={saveDesc}
+                    onKeyDown={e => { if (e.key === 'Enter') saveDesc(); if (e.key === 'Escape') setEditingDesc(false); }}
+                    placeholder="Add a description…"
+                    className="text-sm bg-transparent border-b border-brand text-text outline-none w-full placeholder:text-muted"
+                  />
+                ) : (
+                  <p
+                    className={`text-sm cursor-pointer hover:text-text transition-colors ${project.description ? 'text-muted' : 'text-muted/40 italic'}`}
+                    onClick={() => { setDescDraft(project.description ?? ''); setEditingDesc(true); }}
+                    title="Click to edit"
+                  >
+                    {project.description || 'Add a description…'}
+                  </p>
+                )}
+
+                {/* Stats strip */}
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-muted flex-wrap">
+                  <span>{activeTasks.length} open task{activeTasks.length !== 1 ? 's' : ''}</span>
+                  <span className="text-border">·</span>
+                  <span>{project.resources.length} resource{project.resources.length !== 1 ? 's' : ''}</span>
+                  <span className="text-border">·</span>
+                  <span>{project.notes.length} note{project.notes.length !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -459,9 +584,10 @@ export default function ProjectDetailPage() {
           {/* Tabs */}
           <div className="flex gap-1 mb-6 bg-panel border border-border rounded-lg p-1 w-fit">
             {([
-              { key: 'resources', label: 'Resources' },
-              { key: 'tasks',     label: 'Tasks' },
-              { key: 'notes',     label: 'Notes' },
+              { key: 'overview',   label: 'Overview' },
+              { key: 'resources',  label: 'Resources' },
+              { key: 'tasks',      label: 'Tasks' },
+              { key: 'notes',      label: 'Notes' },
             ] as const).map(t => (
               <button
                 key={t.key}
@@ -472,11 +598,177 @@ export default function ProjectDetailPage() {
               >
                 {t.label}
                 {t.key === 'tasks' && activeTasks.length > 0 && (
-                  <span className="ml-1.5 text-[10px] font-semibold bg-white/20 px-1.5 py-0.5 rounded-full">{activeTasks.length}</span>
+                  <span className={`ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${activeTab === 'tasks' ? 'bg-white/20' : 'bg-brand/15 text-brand'}`}>{activeTasks.length}</span>
                 )}
               </button>
             ))}
           </div>
+
+          {/* ── Overview Tab ───────────────────────────────────────────────────── */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-3">
+                {/* Tasks card */}
+                <button
+                  onClick={() => setActiveTab('tasks')}
+                  className="bg-panel border border-border rounded-xl p-4 text-left hover:border-brand/40 transition-colors group"
+                >
+                  <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Tasks</p>
+                  <p className="text-2xl font-bold text-text">{activeTasks.length}</p>
+                  <p className="text-[11px] text-muted mt-0.5">{doneTasks.length} done</p>
+                  {projectTasks.length > 0 && (
+                    <div className="mt-3 h-1 bg-border rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-brand rounded-full transition-all"
+                        style={{ width: `${Math.round((doneTasks.length / projectTasks.length) * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </button>
+
+                {/* Resources card */}
+                <button
+                  onClick={() => setActiveTab('resources')}
+                  className="bg-panel border border-border rounded-xl p-4 text-left hover:border-brand/40 transition-colors"
+                >
+                  <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Resources</p>
+                  <p className="text-2xl font-bold text-text">{project.resources.length}</p>
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {Array.from(new Set(project.resources.map(r => r.type))).map(type => {
+                      const rt = RESOURCE_TYPES.find(t => t.type === type);
+                      return rt ? (
+                        <span key={type} className="text-[10px] text-muted capitalize border border-border rounded px-1.5 py-0.5">{rt.label}</span>
+                      ) : null;
+                    })}
+                  </div>
+                </button>
+
+                {/* Notes card */}
+                <button
+                  onClick={() => setActiveTab('notes')}
+                  className="bg-panel border border-border rounded-xl p-4 text-left hover:border-brand/40 transition-colors"
+                >
+                  <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Notes</p>
+                  <p className="text-2xl font-bold text-text">{project.notes.length}</p>
+                  <div className="flex gap-1 mt-2 flex-wrap">
+                    {(Object.keys(NOTE_TYPES) as NoteType[]).map(type => {
+                      const count = project.notes.filter(n => n.type === type).length;
+                      return count > 0 ? (
+                        <span key={type} className={`text-[10px] px-1.5 py-0.5 rounded border ${NOTE_TYPES[type].border} ${NOTE_TYPES[type].color}`}>{count} {NOTE_TYPES[type].label.toLowerCase()}</span>
+                      ) : null;
+                    })}
+                  </div>
+                </button>
+              </div>
+
+              {/* Open tasks preview */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-text">Open Tasks</h3>
+                  <button
+                    onClick={() => { setActiveTab('tasks'); setAddingTask(true); }}
+                    className="text-xs text-muted hover:text-brand transition-colors"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {activeTasks.length === 0 ? (
+                  <p className="text-sm text-muted/60 py-3">No open tasks. Add one or ask MODUS to help plan.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {activeTasks.slice(0, 5).map(t => (
+                      <div key={t.id} className="flex items-center gap-3 group px-2 py-1.5 rounded-lg hover:bg-panel transition-colors">
+                        <button
+                          onClick={() => toggleTask(t.id, t.done)}
+                          className="w-4 h-4 rounded border border-border hover:border-brand flex items-center justify-center shrink-0 transition-colors"
+                        />
+                        <span className="flex-1 text-sm text-text">{t.title}</span>
+                      </div>
+                    ))}
+                    {activeTasks.length > 5 && (
+                      <button
+                        onClick={() => setActiveTab('tasks')}
+                        className="text-xs text-muted hover:text-brand transition-colors px-2 py-1"
+                      >
+                        View all {activeTasks.length} →
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Pinned resources */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-text">Resources</h3>
+                  <button
+                    onClick={() => { setActiveTab('resources'); setShowPicker(true); }}
+                    className="text-xs text-muted hover:text-brand transition-colors"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {project.resources.length === 0 ? (
+                  <p className="text-sm text-muted/60 py-3">No resources pinned. Pin repos, docs, and channels to scope MODUS's context.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {project.resources.map((r, i) => {
+                      const rt = RESOURCE_TYPES.find(t => t.type === r.type);
+                      const inner = (
+                        <div className="flex items-center gap-2 bg-bg border border-border rounded-lg px-3 py-2 hover:border-brand/40 transition-colors">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-muted shrink-0">
+                            <path d={rt?.d ?? ''} />
+                          </svg>
+                          <span className="text-xs font-medium text-text truncate max-w-[120px]">{r.name}</span>
+                        </div>
+                      );
+                      return r.url ? (
+                        <a key={i} href={r.url} target="_blank" rel="noopener noreferrer">{inner}</a>
+                      ) : (
+                        <div key={i}>{inner}</div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent notes */}
+              {project.notes.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-text">Recent Notes</h3>
+                    <button onClick={() => setActiveTab('notes')} className="text-xs text-muted hover:text-brand transition-colors">+ Add</button>
+                  </div>
+                  <div className="space-y-2">
+                    {[...project.notes].reverse().slice(0, 3).map(note => (
+                      <div
+                        key={note.id}
+                        className={`bg-panel border rounded-xl px-4 py-3 ${note.type ? NOTE_TYPES[note.type].border : 'border-border'}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {note.type && (
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${NOTE_TYPES[note.type].bg} ${NOTE_TYPES[note.type].color}`}>
+                              {NOTE_TYPES[note.type].label}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-muted">{note.date}</span>
+                        </div>
+                        <p className="text-sm text-text line-clamp-2">{note.content}</p>
+                      </div>
+                    ))}
+                    {project.notes.length > 3 && (
+                      <button onClick={() => setActiveTab('notes')} className="text-xs text-muted hover:text-brand transition-colors px-1">
+                        View all {project.notes.length} →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
 
           {/* ── Resources Tab ──────────────────────────────────────────────────── */}
           {activeTab === 'resources' && (
@@ -877,7 +1169,15 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* ── Right column: chat panel ──────────────────────────────────────────── */}
-      <div className="hidden md:flex w-[360px] shrink-0 border-l border-border flex-col">
+      <div
+        className="hidden md:flex shrink-0 border-l border-border flex-col relative"
+        style={{ width: chatWidth }}
+      >
+        {/* Drag handle — left edge */}
+        <div
+          className="absolute inset-y-0 left-0 w-1 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-10"
+          onMouseDown={startChatDrag}
+        />
 
         {/* Chat tabs */}
         <div className="flex items-center gap-1 px-3 pt-3 pb-0 border-b border-border overflow-x-auto shrink-0">
@@ -962,6 +1262,19 @@ export default function ProjectDetailPage() {
             </div>
           )}
           <div ref={bottomRef} />
+        </div>
+
+        {/* Quick chips */}
+        <div className="shrink-0 border-t border-border px-3 py-2 flex gap-1.5 flex-wrap">
+          {["What's blocking?", "Next steps", "Summarize resources", "Daily standup"].map(chip => (
+            <button
+              key={chip}
+              onClick={() => append({ role: 'user', content: chip })}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-border text-muted hover:text-brand hover:border-brand/40 transition-colors"
+            >
+              {chip}
+            </button>
+          ))}
         </div>
 
         {/* Input */}
