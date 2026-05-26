@@ -130,12 +130,12 @@ export async function POST(req: Request) {
     };
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
-    const cappedMessages: CoreMessage[] = body.messages
+    const cappedMessages = body.messages
       .slice(-20)
       .map(msg => ({
         ...msg,
         content: typeof msg.content === 'string' ? msg.content.slice(0, 8000) : msg.content,
-      }));
+      })) as CoreMessage[];
 
     let personalContext = (body.personalContext ?? '').slice(0, 2000);
     let responseStyle = body.responseStyle ?? '';

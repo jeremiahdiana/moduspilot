@@ -1,6 +1,6 @@
 import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, type Transaction } from 'firebase-admin/firestore';
 
 function getAdminApp() {
   if (getApps().length) return getApp();
@@ -18,4 +18,8 @@ export const adminAuth = {
   getUser: (uid: string) => getAuth(getAdminApp()).getUser(uid),
   createCustomToken: (uid: string) => getAuth(getAdminApp()).createCustomToken(uid),
 };
-export const adminDb = { collection: (name: string) => getFirestore(getAdminApp()).collection(name) };
+export const adminDb = {
+  collection: (name: string) => getFirestore(getAdminApp()).collection(name),
+  runTransaction: <T>(fn: (txn: Transaction) => Promise<T>) => getFirestore(getAdminApp()).runTransaction(fn),
+  doc: (path: string) => getFirestore(getAdminApp()).doc(path),
+};
