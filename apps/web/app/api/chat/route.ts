@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { streamText, experimental_createMCPClient } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
@@ -51,7 +52,27 @@ export async function POST(req: Request) {
       }
     }
 
-    // Daily message limit for free users (20 msg/day after 30-day trial)
+    // Guest rate limit — 5 messages per day per IP (unauthenticated users)
+    if (!uid) {
+      const ip = (req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown')
+        .split(',')[0].trim();
+      const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 32);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const guestRef = adminDb.collection('guestRateLimits').doc(ipHash);
+      let guestBlocked = false;
+      await adminDb.runTransaction(async (txn) => {
+        const snap = await txn.get(guestRef);
+        const data = snap.data() ?? {};
+        const count = (data.date as string) === todayStr ? ((data.count as number) ?? 0) : 0;
+        if (count >= 5) { guestBlocked = true; return; }
+        txn.set(guestRef, { count: count + 1, date: todayStr });
+      });
+      if (guestBlocked) {
+        return Response.json({ error: 'guest_limit_reached' }, { status: 429 });
+      }
+    }
+
+    // Authenticated user rate limit — atomic transaction prevents race-condition bypass
     if (uid) {
       const plan = userData.plan as string | undefined;
       const isPaid = plan === 'modus' || plan === 'pilot';
@@ -76,23 +97,23 @@ export async function POST(req: Request) {
 
         if (!inTrial) {
           const todayStr = new Date().toISOString().slice(0, 10);
-          const usageDate = (userData.usageDate as string) ?? '';
-          const dailyMessages = (userData.dailyMessages as number) ?? 0;
-          const count = usageDate === todayStr ? dailyMessages : 0;
-          if (count >= 20) {
+          const userRef = adminDb.collection('users').doc(uid);
+          let limitReached = false;
+          await adminDb.runTransaction(async (txn) => {
+            const snap = await txn.get(userRef);
+            const data = snap.data() ?? {};
+            const usageDate = (data.usageDate as string) ?? '';
+            const dailyMessages = (data.dailyMessages as number) ?? 0;
+            const count = usageDate === todayStr ? dailyMessages : 0;
+            if (count >= 20) { limitReached = true; return; }
+            if (usageDate === todayStr) {
+              txn.set(userRef, { dailyMessages: FieldValue.increment(1) }, { merge: true });
+            } else {
+              txn.set(userRef, { dailyMessages: 1, usageDate: todayStr }, { merge: true });
+            }
+          });
+          if (limitReached) {
             return Response.json({ error: 'daily_limit_reached' }, { status: 429 });
-          }
-          // Atomic increment — avoids race condition from concurrent requests
-          if (usageDate === todayStr) {
-            adminDb.collection('users').doc(uid).set(
-              { dailyMessages: FieldValue.increment(1) },
-              { merge: true }
-            ).catch(() => {});
-          } else {
-            adminDb.collection('users').doc(uid).set(
-              { dailyMessages: 1, usageDate: todayStr },
-              { merge: true }
-            ).catch(() => {});
           }
         }
       }
@@ -108,9 +129,17 @@ export async function POST(req: Request) {
       goalContext?: { id: string; title: string; description?: string; progress: number; timeframe?: string; activeChatId?: string };
     };
 
-    let personalContext = body.personalContext ?? '';
+    // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
+    const cappedMessages: CoreMessage[] = body.messages
+      .slice(-20)
+      .map(msg => ({
+        ...msg,
+        content: typeof msg.content === 'string' ? msg.content.slice(0, 8000) : msg.content,
+      }));
+
+    let personalContext = (body.personalContext ?? '').slice(0, 2000);
     let responseStyle = body.responseStyle ?? '';
-    let customStyle = body.customStyle ?? '';
+    let customStyle = (body.customStyle ?? '').slice(0, 500);
     let briefingHour = body.briefingHour ?? 7;
     let briefingTimezone = body.briefingTimezone ?? 'UTC';
 
@@ -155,7 +184,7 @@ export async function POST(req: Request) {
     }
 
     // Find last user message for memory retrieval
-    const lastUserMsg = [...body.messages].reverse().find(m => m.role === 'user');
+    const lastUserMsg = [...cappedMessages].reverse().find(m => m.role === 'user');
     const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
 
     // Fetch user capabilities (stored under settings.capabilities)
@@ -372,7 +401,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: chatModel,
       system: fullSystemPrompt + mcpBlock,
-      messages: body.messages,
+      messages: cappedMessages,
       maxTokens: 2048,
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onFinish: async ({ text }) => {

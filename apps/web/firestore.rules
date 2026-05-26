@@ -9,10 +9,23 @@ service cloud.firestore {
     }
 
     // ── User data ─────────────────────────────────────────────────────────────
-    // A signed-in user can only read and write their own document and
-    // subcollections. No user can touch another user's data.
+    // A signed-in user can read/write their own document and subcollections,
+    // but cannot touch billing or rate-limit fields — those are server-only.
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Clients may create their own profile but cannot set billing fields.
+      allow create: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.keys()
+            .hasAny(['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt']);
+
+      // Clients may update their own profile but cannot touch billing fields.
+      allow update: if request.auth != null && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt']);
+
+      // Deletion is server-only (account deletion flow uses Admin SDK).
+      allow delete: if false;
 
       // Covers: conversations, goals, tasks, habits, memories, fcmTokens,
       //         google_accounts, mcpServers, events, drafts — all one level deep.
