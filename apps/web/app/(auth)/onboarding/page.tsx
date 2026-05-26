@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { doc, setDoc, addDoc, collection, getDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -70,6 +71,15 @@ const cardItemVariants = {
   hidden: { opacity: 0, y: 16, scale: 0.97 },
   show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
 };
+
+// ── theme toggle (fixed top-right on all screens) ────────────────────────────
+function ThemeToggle() {
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      <AnimatedThemeToggler />
+    </div>
+  );
+}
 
 // ── background (matches login page) ──────────────────────────────────────────
 function PageBackground() {
@@ -858,6 +868,7 @@ export default function OnboardingPage() {
   if (screen === 'welcome') {
     return (
       <div className="relative min-h-screen flex flex-col items-center overflow-y-auto">
+        <ThemeToggle />
         <PageBackground />
         <div className="relative z-10">
           <WelcomeScreen onStart={() => go('name')} />
@@ -869,6 +880,7 @@ export default function OnboardingPage() {
   if (screen === 'name') {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
+        <ThemeToggle />
         <PageBackground />
         <div className="relative z-10 w-full">
           <NameScreen name={name} setName={setName} onNext={() => name.trim() && go(1)} />
@@ -880,6 +892,7 @@ export default function OnboardingPage() {
   if (screen === 'done') {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
+        <ThemeToggle />
         <PageBackground />
         <div className="relative z-10">
           <CompletionScreen name={name} />
@@ -897,6 +910,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center">
+      <ThemeToggle />
       <PageBackground />
 
       {/* Top bar */}

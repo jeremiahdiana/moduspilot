@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import type { User } from 'firebase/auth';
 
 /* ── Particle canvas (same system as hero) ── */
@@ -148,6 +149,11 @@ export default function LoginPage() {
 
   return (
     <>
+      {/* Theme toggle — top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <AnimatedThemeToggler />
+      </div>
+
       {/* Full-screen animated background */}
       <div className="fixed inset-0 -z-10 bg-bg">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-bg to-bg dark:from-violet-950/40" />
