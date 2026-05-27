@@ -288,13 +288,16 @@ export async function POST(req: Request) {
     } else if (modelProvider === 'anthropic' && ms?.anthropicKey) {
       chatModel = createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-sonnet-4-6');
     } else {
-      // Platform default: paid users get gpt-5-mini via OpenAI; free/trial stay on Groq
+      // Platform default: route by model name — gpt-* goes to OpenAI (paid only), llama-* goes to Groq
       const platformPlan = userData.plan as string | undefined;
-      const isPlatformPaid = (platformPlan === 'modus' || platformPlan === 'pilot') && process.env.OPENAI_API_KEY;
-      if (isPlatformPaid) {
-        chatModel = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(ms?.model ?? 'gpt-5-mini');
+      const isPaid = platformPlan === 'modus' || platformPlan === 'pilot';
+      const selectedModel = ms?.model ?? (isPaid ? 'gpt-5-mini' : 'llama-3.3-70b-versatile');
+      const wantsOpenAI = selectedModel.startsWith('gpt') && isPaid && process.env.OPENAI_API_KEY;
+      if (wantsOpenAI) {
+        chatModel = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(selectedModel);
       } else {
-        chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(ms?.model ?? 'llama-3.3-70b-versatile');
+        const groqModel = selectedModel.startsWith('gpt') ? 'llama-3.3-70b-versatile' : selectedModel;
+        chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(groqModel);
       }
     }
 

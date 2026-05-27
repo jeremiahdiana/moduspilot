@@ -12,25 +12,31 @@ interface ModelConfig {
 
 interface Props {
   settings: UserSettings;
+  plan: 'free' | 'modus' | 'pilot';
   saving: boolean;
   onSave: (updates: Partial<UserSettings>) => Promise<void>;
 }
 
-const PROVIDERS = [
+const PLATFORM_MODELS = [
   {
-    id: 'platform' as const,
-    name: 'MODUS AI',
-    description: 'Powered by Llama 3.3 via Groq. No API key needed — free and included.',
+    id: 'llama-3.3-70b-versatile',
+    name: 'MODUS',
+    tagline: 'Fast & Creative',
+    description: 'Great for brainstorming, writing, and everyday tasks. Instant responses.',
     badge: 'Default',
     badgeColor: 'bg-brand/10 text-brand',
-    models: [
-      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', sub: 'Best quality · default' },
-      { id: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B',  sub: 'Fastest' },
-    ],
-    keyField: null,
-    keyPlaceholder: '',
-    docsUrl: '',
   },
+  {
+    id: 'gpt-5-mini',
+    name: 'MODUS 2.0',
+    tagline: 'Smarter & More Capable',
+    description: 'Deeper reasoning, sharper analysis, and more nuanced responses for complex work.',
+    badge: 'Pro',
+    badgeColor: 'bg-violet-500/10 text-violet-400',
+  },
+];
+
+const BYOK_PROVIDERS = [
   {
     id: 'openai' as const,
     name: 'OpenAI',
@@ -61,132 +67,205 @@ const PROVIDERS = [
   },
 ];
 
-export default function ModelSettings({ settings, saving, onSave }: Props) {
+export default function ModelSettings({ settings, plan, saving, onSave }: Props) {
   const raw = (settings as unknown as { modelSettings?: ModelConfig }).modelSettings;
-  // Always migrate legacy 'groq' provider → 'platform' (platform now runs on Groq under the hood)
   const rawProvider = raw?.provider ?? 'platform';
-  const validProviders = PROVIDERS.map(p => p.id);
-  const currentProvider: ModelConfig['provider'] =
-    validProviders.includes(rawProvider as ModelConfig['provider']) ? (rawProvider as ModelConfig['provider']) : 'platform';
+  const isPaid = plan === 'modus' || plan === 'pilot';
 
-  const [provider, setProvider] = useState<ModelConfig['provider']>(currentProvider);
-  const [model, setModel] = useState(raw?.model ?? 'llama-3.3-70b-versatile');
-  // Safety: if stored provider disappeared from the list, fall back to platform
-  const selectedProvider = PROVIDERS.find(p => p.id === provider) ?? PROVIDERS[0];
+  // Platform model selection (only applies when provider === 'platform')
+  const [platformModel, setPlatformModel] = useState(
+    raw?.model && !raw.model.startsWith('gpt') && !raw.model.startsWith('claude')
+      ? raw.model
+      : raw?.model === 'gpt-5-mini' ? 'gpt-5-mini' : 'llama-3.3-70b-versatile'
+  );
+
+  // BYOK state
+  const byokProviders = BYOK_PROVIDERS.map(p => p.id) as string[];
+  const isByok = byokProviders.includes(rawProvider);
+  const [byokProvider, setByokProvider] = useState<'openai' | 'anthropic' | null>(
+    isByok ? (rawProvider as 'openai' | 'anthropic') : null
+  );
+  const [byokModel, setByokModel] = useState(raw?.model ?? '');
   const [openaiKey, setOpenaiKey] = useState(raw?.openaiKey ?? '');
   const [anthropicKey, setAnthropicKey] = useState(raw?.anthropicKey ?? '');
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
 
-  function handleProviderSwitch(p: ModelConfig['provider']) {
-    setProvider(p);
-    const prov = PROVIDERS.find(x => x.id === p)!;
-    setModel(prov.models[0].id);
+  const selectedByok = BYOK_PROVIDERS.find(p => p.id === byokProvider) ?? null;
+
+  function handlePlatformModelSelect(modelId: string) {
+    if (!isPaid) return;
+    setPlatformModel(modelId);
+    setByokProvider(null);
+    setSaved(false);
+  }
+
+  function handleByokSelect(p: 'openai' | 'anthropic') {
+    setByokProvider(prev => prev === p ? null : p);
+    const prov = BYOK_PROVIDERS.find(x => x.id === p)!;
+    setByokModel(prov.models[0].id);
     setSaved(false);
   }
 
   async function handleSave() {
-    const modelSettings: ModelConfig = { provider, model };
-    if (provider === 'openai' && openaiKey.trim()) modelSettings.openaiKey = openaiKey.trim();
-    if (provider === 'anthropic' && anthropicKey.trim()) modelSettings.anthropicKey = anthropicKey.trim();
+    let modelSettings: ModelConfig;
+    if (byokProvider && selectedByok) {
+      modelSettings = { provider: byokProvider, model: byokModel };
+      if (byokProvider === 'openai' && openaiKey.trim()) modelSettings.openaiKey = openaiKey.trim();
+      if (byokProvider === 'anthropic' && anthropicKey.trim()) modelSettings.anthropicKey = anthropicKey.trim();
+    } else {
+      modelSettings = { provider: 'platform', model: platformModel };
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await onSave({ modelSettings } as any);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
 
-  const needsKey = provider === 'openai' || provider === 'anthropic';
-  const keyValue = provider === 'openai' ? openaiKey : anthropicKey;
-  const setKeyValue = provider === 'openai' ? setOpenaiKey : setAnthropicKey;
+  const needsKey = !!byokProvider;
+  const keyValue = byokProvider === 'openai' ? openaiKey : anthropicKey;
+  const setKeyValue = byokProvider === 'openai' ? setOpenaiKey : setAnthropicKey;
   const canSave = !needsKey || keyValue.trim().length > 10;
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">AI Model</h2>
-        <p className="text-sm text-muted">Choose which AI powers your MODUS. Platform default is free. Bring your own key for full control.</p>
+        <p className="text-sm text-muted">Choose which AI powers your MODUS.</p>
       </div>
 
-      {/* Provider cards */}
-      <div className="grid gap-3">
-        {PROVIDERS.map(p => (
-          <button
-            key={p.id}
-            onClick={() => handleProviderSwitch(p.id)}
-            className={`text-left p-5 rounded-xl border transition-all ${
-              provider === p.id
-                ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
-                : 'border-border bg-panel hover:border-brand/20'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-text">{p.name}</span>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.badgeColor}`}>{p.badge}</span>
-                  {currentProvider === p.id && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">Active</span>
+      {/* Platform model selector */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-text">MODUS Models</p>
+        <div className="grid gap-3">
+          {PLATFORM_MODELS.map(m => {
+            const isSelected = !byokProvider && platformModel === m.id;
+            const locked = !isPaid;
+            return (
+              <button
+                key={m.id}
+                onClick={() => handlePlatformModelSelect(m.id)}
+                disabled={locked}
+                className={`text-left p-5 rounded-xl border transition-all ${
+                  locked
+                    ? 'border-border bg-panel opacity-60 cursor-not-allowed'
+                    : isSelected
+                    ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
+                    : 'border-border bg-panel hover:border-brand/20'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-text">{m.name}</span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${m.badgeColor}`}>{m.badge}</span>
+                      {locked && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted/10 text-muted">
+                          🔒 Locked
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-medium text-text/70 mb-0.5">{m.tagline}</p>
+                    <p className="text-xs text-muted">{m.description}</p>
+                  </div>
+                  {!locked && (
+                    <div className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 transition-colors ${
+                      isSelected ? 'border-brand bg-brand' : 'border-border'
+                    }`} />
                   )}
                 </div>
-                <p className="text-xs text-muted">{p.description}</p>
-              </div>
-              <div className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 transition-colors ${
-                provider === p.id ? 'border-brand bg-brand' : 'border-border'
-              }`} />
-            </div>
-          </button>
-        ))}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Free user upgrade CTA */}
+        {!isPaid && (
+          <p className="text-xs text-muted text-center pt-1">
+            Best for productivity —{' '}
+            <span className="text-brand font-medium">upgrade to MODUS</span>
+            {' '}to unlock model selection.
+          </p>
+        )}
       </div>
 
-      {/* Model picker */}
-      <div className="bg-panel border border-border rounded-xl p-5 space-y-3">
-        <p className="text-sm font-semibold text-text">Model</p>
-        <div className="grid grid-cols-2 gap-2">
-          {selectedProvider.models.map(m => (
+      {/* BYOK section */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-text">Bring Your Own Key</p>
+        <div className="grid gap-3">
+          {BYOK_PROVIDERS.map(p => (
             <button
-              key={m.id}
-              onClick={() => { setModel(m.id); setSaved(false); }}
-              className={`text-left p-3 rounded-lg border transition-all ${
-                model === m.id ? 'border-brand/50 bg-brand/5' : 'border-border hover:border-brand/20'
+              key={p.id}
+              onClick={() => handleByokSelect(p.id)}
+              className={`text-left p-5 rounded-xl border transition-all ${
+                byokProvider === p.id
+                  ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
+                  : 'border-border bg-panel hover:border-brand/20'
               }`}
             >
-              <p className="text-sm font-medium text-text">{m.label}</p>
-              <p className="text-xs text-muted">{m.sub}</p>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-text">{p.name}</span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.badgeColor}`}>{p.badge}</span>
+                  </div>
+                  <p className="text-xs text-muted">{p.description}</p>
+                </div>
+                <div className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 transition-colors ${
+                  byokProvider === p.id ? 'border-brand bg-brand' : 'border-border'
+                }`} />
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* API key input */}
-      {needsKey && (
+      {/* BYOK model picker */}
+      {byokProvider && selectedByok && (
+        <div className="bg-panel border border-border rounded-xl p-5 space-y-3">
+          <p className="text-sm font-semibold text-text">Model</p>
+          <div className="grid grid-cols-2 gap-2">
+            {selectedByok.models.map(m => (
+              <button
+                key={m.id}
+                onClick={() => { setByokModel(m.id); setSaved(false); }}
+                className={`text-left p-3 rounded-lg border transition-all ${
+                  byokModel === m.id ? 'border-brand/50 bg-brand/5' : 'border-border hover:border-brand/20'
+                }`}
+              >
+                <p className="text-sm font-medium text-text">{m.label}</p>
+                <p className="text-xs text-muted">{m.sub}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* BYOK API key input */}
+      {needsKey && selectedByok && (
         <div className="bg-panel border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-text">{selectedProvider.name} API Key</p>
-            {selectedProvider.docsUrl && (
-              <a
-                href={selectedProvider.docsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-brand hover:underline"
-              >
+            <p className="text-sm font-semibold text-text">{selectedByok.name} API Key</p>
+            {selectedByok.docsUrl && (
+              <a href={selectedByok.docsUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline">
                 Get key →
               </a>
             )}
           </div>
-          <p className="text-xs text-muted">Your key is stored privately in your account and only used to make requests on your behalf.</p>
+          <p className="text-xs text-muted">Stored privately in your account, only used to make requests on your behalf.</p>
           <div className="flex gap-2">
             <input
-              type={showKey[provider] ? 'text' : 'password'}
+              type={showKey[byokProvider] ? 'text' : 'password'}
               value={keyValue}
               onChange={e => { setKeyValue(e.target.value); setSaved(false); }}
-              placeholder={selectedProvider.keyPlaceholder}
+              placeholder={selectedByok.keyPlaceholder}
               className="flex-1 bg-bg border border-border rounded-lg px-3 py-2.5 text-sm text-text font-mono placeholder:text-muted/40 focus:outline-none focus:border-brand/50 transition-colors"
             />
             <button
-              onClick={() => setShowKey(prev => ({ ...prev, [provider]: !prev[provider] }))}
+              onClick={() => setShowKey(prev => ({ ...prev, [byokProvider]: !prev[byokProvider] }))}
               className="px-3 text-xs text-muted border border-border rounded-lg hover:text-text transition-colors"
             >
-              {showKey[provider] ? 'Hide' : 'Show'}
+              {showKey[byokProvider] ? 'Hide' : 'Show'}
             </button>
           </div>
         </div>
@@ -196,7 +275,7 @@ export default function ModelSettings({ settings, saving, onSave }: Props) {
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          disabled={saving || !canSave}
+          disabled={saving || !canSave || !isPaid}
           className="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-40"
         >
           {saving ? 'Saving…' : saved ? (

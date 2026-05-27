@@ -167,7 +167,7 @@ function SettingsContent() {
             />
           )}
           {activeTab === 'model' && (
-            <ModelSettings settings={settings} saving={saving} onSave={saveSettings} />
+            <ModelSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
           )}
           {activeTab === 'tips' && (
             <TipsSettings />
