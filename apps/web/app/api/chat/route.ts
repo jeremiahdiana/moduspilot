@@ -28,6 +28,9 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
   explanatory: 'RESPONSE STYLE: Be warm and encouraging but stay honest. Supportive, not sycophantic.',
 };
 
+const MODUS_TOKEN_LIMIT = 500_000;
+const PILOT_TOKEN_LIMIT = 1_500_000;
+
 function needsEmailCtx(q: string): boolean {
   return /\b(email|mail|inbox|reply|draft|send|unread|thread|gmail|message from|wrote)\b/i.test(q);
 }
@@ -136,6 +139,19 @@ export async function POST(req: Request) {
           if (limitReached) {
             return Response.json({ error: 'daily_limit_reached' }, { status: 429 });
           }
+        }
+      }
+    }
+
+    // Paid user daily token limit (MODUS: 500k, PILOT: 1.5M)
+    if (uid) {
+      const plan = userData.plan as string | undefined;
+      if (plan === 'modus' || plan === 'pilot') {
+        const tokenLimit = plan === 'pilot' ? PILOT_TOKEN_LIMIT : MODUS_TOKEN_LIMIT;
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const tokensToday = (userData.tokenDate as string) === todayStr ? ((userData.dailyTokens as number) ?? 0) : 0;
+        if (tokensToday >= tokenLimit) {
+          return Response.json({ error: 'token_limit_reached' }, { status: 429 });
         }
       }
     }
@@ -272,8 +288,14 @@ export async function POST(req: Request) {
     } else if (modelProvider === 'anthropic' && ms?.anthropicKey) {
       chatModel = createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-sonnet-4-6');
     } else {
-      // Platform default (covers 'groq', 'platform', and anything else): Groq — free, no credits needed
-      chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(ms?.model ?? 'llama-3.3-70b-versatile');
+      // Platform default: paid users get gpt-5-mini via OpenAI; free/trial stay on Groq
+      const platformPlan = userData.plan as string | undefined;
+      const isPlatformPaid = (platformPlan === 'modus' || platformPlan === 'pilot') && process.env.OPENAI_API_KEY;
+      if (isPlatformPaid) {
+        chatModel = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(ms?.model ?? 'gpt-5-mini');
+      } else {
+        chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(ms?.model ?? 'llama-3.3-70b-versatile');
+      }
     }
 
     // Build system prompt with user context always included
@@ -565,10 +587,27 @@ export async function POST(req: Request) {
       messages: cappedMessages,
       maxTokens: 2048,
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
-      onFinish: async ({ text }) => {
+      onFinish: async ({ text, usage }) => {
         // Close MCP clients
         for (const client of mcpClients) {
           try { await client.close(); } catch {}
+        }
+        // Track tokens for paid users (fire-and-forget)
+        if (uid && usage?.totalTokens) {
+          const plan = userData.plan as string | undefined;
+          if (plan === 'modus' || plan === 'pilot') {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const userRef = adminDb.collection('users').doc(uid);
+            adminDb.runTransaction(async (txn) => {
+              const snap = await txn.get(userRef);
+              const data = snap.data() ?? {};
+              if ((data.tokenDate as string) === todayStr) {
+                txn.set(userRef, { dailyTokens: FieldValue.increment(usage.totalTokens) }, { merge: true });
+              } else {
+                txn.set(userRef, { dailyTokens: usage.totalTokens, tokenDate: todayStr }, { merge: true });
+              }
+            }).catch(e => console.error('[chat] token increment failed:', e));
+          }
         }
         if (!uid || !queryText || !process.env.PINECONE_API_KEY) return;
         const isSubstantive = (s: string) => s.trim().length >= 40 && s.trim().split(/\s+/).length >= 6;

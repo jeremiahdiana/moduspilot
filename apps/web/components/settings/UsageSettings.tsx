@@ -1,10 +1,12 @@
 'use client';
 
 const FREE_DAILY_LIMIT = 20;
+const MODUS_TOKEN_LIMIT = 500_000;
+const PILOT_TOKEN_LIMIT = 1_500_000;
 
 interface Props {
   plan: 'free' | 'modus' | 'pilot';
-  usage: { dailyMessages: number; usageDate: string };
+  usage: { dailyMessages: number; usageDate: string; dailyTokens: number; tokenDate: string };
 }
 
 function UsageBar({ value, max }: { value: number; max: number }) {
@@ -42,19 +44,30 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
         <p className="text-sm text-muted">Track your message usage and plan limits.</p>
       </div>
 
-      {/* Daily messages */}
+      {/* Daily usage */}
       <div className="bg-panel border border-border rounded-xl p-6 space-y-5">
-        <h3 className="text-sm font-semibold text-text">Daily Messages</h3>
+        <h3 className="text-sm font-semibold text-text">{isPaid ? 'Daily AI Tokens' : 'Daily Messages'}</h3>
 
-        {isPaid ? (
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <p className="text-3xl font-bold text-brand">{dailyCount}</p>
-              <p className="text-xs text-muted">Unlimited on {plan.toUpperCase()}</p>
+        {isPaid ? (() => {
+          const tokenLimit = plan === 'pilot' ? PILOT_TOKEN_LIMIT : MODUS_TOKEN_LIMIT;
+          const isTokenToday = usage.tokenDate === today;
+          const tokenCount = isTokenToday ? usage.dailyTokens : 0;
+          const tokenPct = Math.min(100, (tokenCount / tokenLimit) * 100);
+          const tokensRemaining = Math.max(0, tokenLimit - tokenCount);
+          return (
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <p className="text-3xl font-bold text-brand">{tokenCount.toLocaleString()}</p>
+                <p className="text-xs text-muted">/ {tokenLimit.toLocaleString()} tokens</p>
+              </div>
+              <UsageBar value={tokenCount} max={tokenLimit} />
+              <div className="flex justify-between text-xs text-muted">
+                <span>{tokensRemaining.toLocaleString()} remaining ({tokenPct.toFixed(1)}% used)</span>
+                <span>Resets in {resetTime}</span>
+              </div>
             </div>
-            <p className="text-xs text-muted">Messages sent today. No cap on your current plan.</p>
-          </div>
-        ) : (
+          );
+        })() : (
           <div className="space-y-3">
             <div className="flex items-baseline justify-between">
               <p className="text-3xl font-bold text-text">{dailyCount}</p>
@@ -74,8 +87,9 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
         <h3 className="text-sm font-semibold text-text">Plan Limits</h3>
         <div className="space-y-3">
           {[
+            { label: 'Daily AI tokens', value: isPaid ? `${plan === 'pilot' ? '1,500,000' : '500,000'}/day` : 'N/A' },
             { label: 'Daily messages', value: isPaid ? 'Unlimited' : `${FREE_DAILY_LIMIT}/day (after trial)` },
-            { label: 'Conversations', value: isPaid ? 'Unlimited' : 'Unlimited' },
+            { label: 'Conversations', value: 'Unlimited' },
             { label: 'Goals / Tasks / Habits', value: 'Unlimited' },
             { label: 'Memory storage', value: isPaid ? 'Unlimited' : '50 memories' },
             { label: 'Data retention', value: isPaid ? '2 years' : '90 days' },

@@ -74,6 +74,8 @@ export default function ChatWindow({
       const msg = err?.message ?? '';
       if (msg.includes('daily_limit_reached')) {
         setChatError("You've used your 20 free messages for today. Upgrade to MODUS for unlimited.");
+      } else if (msg.includes('token_limit_reached')) {
+        setChatError("You've hit your daily AI token limit. Resets at midnight.");
       } else if (msg.includes('Rate limit') || msg.includes('TPD') || msg.includes('tokens per day')) {
         setChatError('AI service is temporarily busy. Try again in a moment.');
       } else if (msg.includes('rate limit') || msg.includes('429')) {
