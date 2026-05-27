@@ -7,7 +7,7 @@ import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { queryMemory, upsertMemory } from '@/lib/pinecone';
-import { getValidAccessToken } from '@/lib/google-oauth';
+import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getActionableThreads } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
@@ -42,7 +42,7 @@ function getWeekKey(): string {
 }
 
 function needsEmailCtx(q: string): boolean {
-  return /\b(email|mail|inbox|reply|draft|send|unread|thread|gmail|message from|wrote)\b/i.test(q);
+  return /\b(emails?|mails?|inbox|reply|draft|send|unread|threads?|gmail|message from|wrote|missed)\b/i.test(q);
 }
 function needsCalendarCtx(q: string): boolean {
   return /\b(calendar|schedule|meeting|event|appointment|today|tomorrow|this week|next week|when am i|busy|free time)\b/i.test(q);
@@ -224,16 +224,24 @@ export async function POST(req: Request) {
     let calendarBlock = '';
     if (uid && (wantsEmail || wantsCalendar)) {
       try {
-        const googleToken = await getValidAccessToken(uid);
-        if (!googleToken && wantsEmail) {
+        const allAccounts = await getAllValidAccessTokens(uid);
+        const googleToken = allAccounts[0]?.token ?? null; // first account for calendar/drive
+        if (allAccounts.length === 0 && wantsEmail) {
           gmailBlock = '\n\nINBOX: Gmail is connected but the access token could not be refreshed. Do NOT invent or fabricate any emails — tell the user their Gmail token may need to be reconnected.';
         }
-        if (googleToken) {
+        if (allAccounts.length > 0) {
           const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';
-          const [threads, events] = await Promise.all([
-            wantsEmail    ? getActionableThreads(googleToken, { filter: gmailFilter }) : Promise.resolve([]),
-            wantsCalendar ? getTodayEvents(googleToken) : Promise.resolve([]),
+          // Fetch threads from ALL connected accounts in parallel, merge + dedupe
+          const [allThreadResults, events] = await Promise.all([
+            wantsEmail
+              ? Promise.all(allAccounts.map(a => getActionableThreads(a.token, { filter: gmailFilter }).catch(() => [])))
+              : Promise.resolve([]),
+            wantsCalendar && googleToken ? getTodayEvents(googleToken) : Promise.resolve([]),
           ]);
+          const seenIds = new Set<string>();
+          const threads = (allThreadResults as Awaited<ReturnType<typeof getActionableThreads>>[])
+            .flat()
+            .filter(t => { if (seenIds.has(t.id)) return false; seenIds.add(t.id); return true; });
           if (threads.length > 0) {
             gmailBlock = '\n\nINBOX (last 10 days — Gmail IS connected; this is the complete list available. Do NOT suggest connecting Gmail or checking inbox — you already have it. Never invent emails not listed here):\n' +
               threads.slice(0, 10).map((t, i) =>
@@ -242,7 +250,7 @@ export async function POST(req: Request) {
           } else if (wantsEmail) {
             gmailBlock = '\n\nINBOX: Gmail IS connected but no emails found in the last 10 days. Do NOT suggest connecting Gmail — it is already connected.';
           }
-          const todayEvents = events.filter(e => !e.allDay);
+          const todayEvents = (events as Awaited<ReturnType<typeof getTodayEvents>>).filter(e => !e.allDay);
           if (todayEvents.length > 0) {
             calendarBlock = "\n\nTODAY'S CALENDAR:\n" +
               todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
