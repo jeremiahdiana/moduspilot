@@ -18,13 +18,13 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.keys()
             .hasAny(['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt',
-                     'dailyTokens', 'tokenDate']);
+                     'dailyTokens', 'tokenDate', 'weeklyTokens', 'tokenWeek']);
 
       // Clients may update their own profile but cannot touch billing fields.
       allow update: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
             .hasAny(['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt',
-                     'dailyTokens', 'tokenDate']);
+                     'dailyTokens', 'tokenDate', 'weeklyTokens', 'tokenWeek']);
 
       // Deletion is server-only (account deletion flow uses Admin SDK).
       allow delete: if false;

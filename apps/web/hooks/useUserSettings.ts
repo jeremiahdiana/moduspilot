@@ -52,7 +52,7 @@ export function useUserSettings(user: User | null) {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot'>('free');
-  const [usage, setUsage] = useState({ dailyMessages: 0, usageDate: '', dailyTokens: 0, tokenDate: '' });
+  const [usage, setUsage] = useState({ dailyMessages: 0, usageDate: '', dailyTokens: 0, tokenDate: '', weeklyTokens: 0, tokenWeek: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -73,7 +73,7 @@ export function useUserSettings(user: User | null) {
             });
           }
           if (data.plan === 'modus' || data.plan === 'pilot') setPlan(data.plan);
-          setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', dailyTokens: (data.dailyTokens as number) ?? 0, tokenDate: (data.tokenDate as string) ?? '' });
+          setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', dailyTokens: (data.dailyTokens as number) ?? 0, tokenDate: (data.tokenDate as string) ?? '', weeklyTokens: (data.weeklyTokens as number) ?? 0, tokenWeek: (data.tokenWeek as string) ?? '' });
         }
 
         const memSnap = await getDocs(collection(db, 'users', user.uid, 'memories'));

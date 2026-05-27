@@ -28,8 +28,18 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
   explanatory: 'RESPONSE STYLE: Be warm and encouraging but stay honest. Supportive, not sycophantic.',
 };
 
-const MODUS_TOKEN_LIMIT = 500_000;
-const PILOT_TOKEN_LIMIT = 1_500_000;
+const MODUS_TOKEN_LIMIT  = 500_000;
+const PILOT_TOKEN_LIMIT  = 1_500_000;
+const MODUS_WEEKLY_LIMIT = MODUS_TOKEN_LIMIT * 7;
+const PILOT_WEEKLY_LIMIT = PILOT_TOKEN_LIMIT * 7;
+
+function getWeekKey(): string {
+  const now = new Date();
+  const day = now.getUTCDay();
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return monday.toISOString().slice(0, 10);
+}
 
 function needsEmailCtx(q: string): boolean {
   return /\b(email|mail|inbox|reply|draft|send|unread|thread|gmail|message from|wrote)\b/i.test(q);
@@ -143,14 +153,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // Paid user daily token limit (MODUS: 500k, PILOT: 1.5M)
+    // Paid user daily + weekly token limits
     if (uid) {
       const plan = userData.plan as string | undefined;
       if (plan === 'modus' || plan === 'pilot') {
-        const tokenLimit = plan === 'pilot' ? PILOT_TOKEN_LIMIT : MODUS_TOKEN_LIMIT;
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const tokensToday = (userData.tokenDate as string) === todayStr ? ((userData.dailyTokens as number) ?? 0) : 0;
-        if (tokensToday >= tokenLimit) {
+        const todayStr  = new Date().toISOString().slice(0, 10);
+        const weekKey   = getWeekKey();
+        const dailyLimit  = plan === 'pilot' ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
+        const weeklyLimit = plan === 'pilot' ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+        const tokensToday  = (userData.tokenDate  as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
+        const tokensWeek   = (userData.tokenWeek  as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
+        if (tokensToday >= dailyLimit || tokensWeek >= weeklyLimit) {
           return Response.json({ error: 'token_limit_reached' }, { status: 429 });
         }
       }
@@ -599,16 +612,20 @@ export async function POST(req: Request) {
         if (uid && usage?.totalTokens) {
           const plan = userData.plan as string | undefined;
           if (plan === 'modus' || plan === 'pilot') {
-            const todayStr = new Date().toISOString().slice(0, 10);
             const userRef = adminDb.collection('users').doc(uid);
             adminDb.runTransaction(async (txn) => {
               const snap = await txn.get(userRef);
               const data = snap.data() ?? {};
-              if ((data.tokenDate as string) === todayStr) {
-                txn.set(userRef, { dailyTokens: FieldValue.increment(usage.totalTokens) }, { merge: true });
-              } else {
-                txn.set(userRef, { dailyTokens: usage.totalTokens, tokenDate: todayStr }, { merge: true });
-              }
+              const todayStr   = new Date().toISOString().slice(0, 10);
+              const weekKey    = getWeekKey();
+              const isToday    = (data.tokenDate  as string) === todayStr;
+              const isThisWeek = (data.tokenWeek  as string) === weekKey;
+              txn.set(userRef, {
+                dailyTokens:  isToday    ? FieldValue.increment(usage.totalTokens) : usage.totalTokens,
+                tokenDate:    todayStr,
+                weeklyTokens: isThisWeek ? FieldValue.increment(usage.totalTokens) : usage.totalTokens,
+                tokenWeek:    weekKey,
+              }, { merge: true });
             }).catch(e => console.error('[chat] token increment failed:', e));
           }
         }
