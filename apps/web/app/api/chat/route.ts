@@ -8,8 +8,8 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { queryMemory, upsertMemory } from '@/lib/pinecone';
 import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
-import { getActionableThreads } from '@/lib/google-gmail';
-import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
+import { getActionableThreads, type GmailThread } from '@/lib/google-gmail';
+import { getTodayEvents, fmtEventTime, type CalendarEvent } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
 import { searchDriveFiles, shouldSearchDrive, mimeLabel, getRecentFiles } from '@/lib/google-drive';
 import { getNotionAccounts, getFirstNotionToken } from '@/lib/notion-oauth';
@@ -220,44 +220,48 @@ export async function POST(req: Request) {
         : Promise.resolve([]);
 
     // Fetch live Google data only when relevant to the query
+    // Hard 5s timeout so a slow Gmail API can never kill the whole response
     let gmailBlock = '';
     let calendarBlock = '';
     if (uid && (wantsEmail || wantsCalendar)) {
       try {
-        const allAccounts = await getAllValidAccessTokens(uid);
-        const googleToken = allAccounts[0]?.token ?? null; // first account for calendar/drive
-        if (allAccounts.length === 0 && wantsEmail) {
-          gmailBlock = '\n\nINBOX: Gmail is connected but the access token could not be refreshed. Do NOT invent or fabricate any emails — tell the user their Gmail token may need to be reconnected.';
-        }
-        if (allAccounts.length > 0) {
-          const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';
-          // Fetch threads from ALL connected accounts in parallel, merge + dedupe
-          const [allThreadResults, events] = await Promise.all([
-            wantsEmail
-              ? Promise.all(allAccounts.map(a => getActionableThreads(a.token, { filter: gmailFilter }).catch(() => [])))
-              : Promise.resolve([]),
-            wantsCalendar && googleToken ? getTodayEvents(googleToken) : Promise.resolve([]),
-          ]);
-          const seenIds = new Set<string>();
-          const threads = (allThreadResults as Awaited<ReturnType<typeof getActionableThreads>>[])
-            .flat()
-            .filter(t => { if (seenIds.has(t.id)) return false; seenIds.add(t.id); return true; });
-          if (threads.length > 0) {
-            gmailBlock = '\n\nINBOX (last 10 days — Gmail IS connected; this is the complete list available. Do NOT suggest connecting Gmail or checking inbox — you already have it. Never invent emails not listed here):\n' +
-              threads.slice(0, 10).map((t, i) =>
-                `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
-              ).join('\n\n');
-          } else if (wantsEmail) {
-            gmailBlock = '\n\nINBOX: Gmail IS connected but no emails found in the last 10 days. Do NOT suggest connecting Gmail — it is already connected.';
-          }
-          const todayEvents = (events as Awaited<ReturnType<typeof getTodayEvents>>).filter(e => !e.allDay);
-          if (todayEvents.length > 0) {
-            calendarBlock = "\n\nTODAY'S CALENDAR:\n" +
-              todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
-          } else if (wantsCalendar) {
-            calendarBlock = "\n\nTODAY'S CALENDAR: No events today.";
-          }
-        }
+        await Promise.race([
+          (async () => {
+            const allAccounts = await getAllValidAccessTokens(uid);
+            const googleToken = allAccounts[0]?.token ?? null;
+            if (allAccounts.length === 0 && wantsEmail) {
+              gmailBlock = '\n\nINBOX: Gmail is connected but the access token could not be refreshed. Do NOT invent or fabricate any emails — tell the user their Gmail token may need to be reconnected.';
+              return;
+            }
+            const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';
+            // Fetch from ALL connected accounts in parallel, then merge + dedupe
+            const [allThreadResults, events] = await Promise.all([
+              wantsEmail
+                ? Promise.all(allAccounts.map(a => getActionableThreads(a.token, { filter: gmailFilter }).catch(() => [] as GmailThread[])))
+                : Promise.resolve([] as GmailThread[][]),
+              wantsCalendar && googleToken ? getTodayEvents(googleToken) : Promise.resolve([] as CalendarEvent[]),
+            ]);
+            const seenIds = new Set<string>();
+            const threads = (allThreadResults as GmailThread[][]).flat()
+              .filter(t => { if (seenIds.has(t.id)) return false; seenIds.add(t.id); return true; });
+            if (threads.length > 0) {
+              gmailBlock = '\n\nINBOX (last 10 days — Gmail IS connected; this is the complete list available. Do NOT suggest connecting Gmail or checking inbox — you already have it. Never invent emails not listed here):\n' +
+                threads.slice(0, 10).map((t, i) =>
+                  `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
+                ).join('\n\n');
+            } else if (wantsEmail) {
+              gmailBlock = '\n\nINBOX: Gmail IS connected but no emails found in the last 10 days. Do NOT suggest connecting Gmail — it is already connected.';
+            }
+            const todayEvents = (events as CalendarEvent[]).filter(e => !e.allDay);
+            if (todayEvents.length > 0) {
+              calendarBlock = "\n\nTODAY'S CALENDAR:\n" +
+                todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
+            } else if (wantsCalendar) {
+              calendarBlock = "\n\nTODAY'S CALENDAR: No events today.";
+            }
+          })(),
+          new Promise<void>(resolve => setTimeout(resolve, 5000)), // hard cap — never block streaming
+        ]);
       } catch { /* non-fatal */ }
     }
 
@@ -506,56 +510,60 @@ export async function POST(req: Request) {
       : '';
 
     // Connector status + live data from Notion, Slack, GitHub
+    // 4s hard cap — these external APIs must never kill the response
     let connectorBlock = '';
     let notionBlock = '';
     let slackBlock = '';
     let githubBlock = '';
     if (uid) {
       try {
-        const [notionAccounts, slackAccounts, githubAccounts, notionToken, slackToken, githubToken] = await Promise.all([
-          getNotionAccounts(uid),
-          getSlackAccounts(uid),
-          getGitHubAccounts(uid),
-          getFirstNotionToken(uid),
-          getFirstSlackToken(uid),
-          getFirstGitHubToken(uid),
+        await Promise.race([
+          (async () => {
+            const [notionAccounts, slackAccounts, githubAccounts, notionToken, slackToken, githubToken] = await Promise.all([
+              getNotionAccounts(uid),
+              getSlackAccounts(uid),
+              getGitHubAccounts(uid),
+              getFirstNotionToken(uid),
+              getFirstSlackToken(uid),
+              getFirstGitHubToken(uid),
+            ]);
+
+            const connected: string[] = ['Google (Gmail · Calendar · Drive)'];
+            if (notionAccounts.length > 0) connected.push(`Notion (${notionAccounts.map(a => a.workspaceName).join(', ')})`);
+            if (slackAccounts.length > 0) connected.push(`Slack (${slackAccounts.map(a => a.teamName).join(', ')})`);
+            if (githubAccounts.length > 0) connected.push(`GitHub (@${githubAccounts.map(a => a.login).join(', @')})`);
+            const notConnected: string[] = [];
+            if (notionAccounts.length === 0) notConnected.push('Notion');
+            if (slackAccounts.length === 0) notConnected.push('Slack');
+            if (githubAccounts.length === 0) notConnected.push('GitHub');
+            connectorBlock = `\n\nCONNECTED INTEGRATIONS: ${connected.join(', ')}`;
+            if (notConnected.length > 0) connectorBlock += `\nNOT YET CONNECTED: ${notConnected.join(', ')} — generate a connect card if the user asks about these services`;
+
+            // Fetch live data only when the query is about that service
+            const [notionPages, slackMessages, githubItems] = await Promise.all([
+              notionToken  && needsNotionCtx(queryText)  ? getRecentNotionPages(notionToken.token, 5)                  : Promise.resolve([]),
+              slackToken   && needsSlackCtx(queryText)   ? getRecentSlackActivity(slackToken.token, 8)                 : Promise.resolve([]),
+              githubToken  && needsGithubCtx(queryText)  ? getGitHubWorkItems(githubToken.token, githubToken.login, 8) : Promise.resolve([]),
+            ]);
+
+            if (notionPages.length > 0) {
+              notionBlock = '\n\nNOTION (recently edited pages — only reference these, never invent others):\n' +
+                notionPages.map(p => `- [${p.type === 'database' ? 'DB' : 'Page'}] ${p.title} (edited ${p.lastEdited})${p.url ? ' — ' + p.url : ''}`).join('\n');
+            }
+            if (slackMessages.length > 0) {
+              slackBlock = '\n\nSLACK (recent messages from your channels):\n' +
+                slackMessages.map(m => `#${m.channel} [${m.ts}]: ${m.text}`).join('\n');
+            }
+            if (githubItems.length > 0) {
+              const prs = githubItems.filter(i => i.kind === 'pr');
+              const issues = githubItems.filter(i => i.kind === 'issue');
+              githubBlock = '\n\nGITHUB:';
+              if (prs.length) githubBlock += `\nOpen PRs: ${prs.map(p => `${p.title} (${p.repo})`).join(' · ')}`;
+              if (issues.length) githubBlock += `\nAssigned issues: ${issues.map(i => `${i.title} (${i.repo})`).join(' · ')}`;
+            }
+          })(),
+          new Promise<void>(resolve => setTimeout(resolve, 4000)),
         ]);
-
-        const connected: string[] = ['Google (Gmail · Calendar · Drive)'];
-        if (notionAccounts.length > 0) connected.push(`Notion (${notionAccounts.map(a => a.workspaceName).join(', ')})`);
-        if (slackAccounts.length > 0) connected.push(`Slack (${slackAccounts.map(a => a.teamName).join(', ')})`);
-        if (githubAccounts.length > 0) connected.push(`GitHub (@${githubAccounts.map(a => a.login).join(', @')})`);
-        const notConnected: string[] = [];
-        if (notionAccounts.length === 0) notConnected.push('Notion');
-        if (slackAccounts.length === 0) notConnected.push('Slack');
-        if (githubAccounts.length === 0) notConnected.push('GitHub');
-        connectorBlock = `\n\nCONNECTED INTEGRATIONS: ${connected.join(', ')}`;
-        if (notConnected.length > 0) connectorBlock += `\nNOT YET CONNECTED: ${notConnected.join(', ')} — generate a connect card if the user asks about these services`;
-
-        // Fetch live data only when the query is about that service
-        const [notionPages, slackMessages, githubItems] = await Promise.all([
-          notionToken  && needsNotionCtx(queryText)  ? getRecentNotionPages(notionToken.token, 5)                        : Promise.resolve([]),
-          slackToken   && needsSlackCtx(queryText)   ? getRecentSlackActivity(slackToken.token, 8)                       : Promise.resolve([]),
-          githubToken  && needsGithubCtx(queryText)  ? getGitHubWorkItems(githubToken.token, githubToken.login, 8)       : Promise.resolve([]),
-        ]);
-
-        if (notionPages.length > 0) {
-          notionBlock = '\n\nNOTION (recently edited pages — only reference these, never invent others):\n' +
-            notionPages.map(p => `- [${p.type === 'database' ? 'DB' : 'Page'}] ${p.title} (edited ${p.lastEdited})${p.url ? ' — ' + p.url : ''}`).join('\n');
-        }
-
-        if (slackMessages.length > 0) {
-          slackBlock = '\n\nSLACK (recent messages from your channels):\n' +
-            slackMessages.map(m => `#${m.channel} [${m.ts}]: ${m.text}`).join('\n');
-        }
-
-        if (githubItems.length > 0) {
-          const prs = githubItems.filter(i => i.kind === 'pr');
-          const issues = githubItems.filter(i => i.kind === 'issue');
-          githubBlock = '\n\nGITHUB:';
-          if (prs.length) githubBlock += `\nOpen PRs: ${prs.map(p => `${p.title} (${p.repo})`).join(' · ')}`;
-          if (issues.length) githubBlock += `\nAssigned issues: ${issues.map(i => `${i.title} (${i.repo})`).join(' · ')}`;
-        }
       } catch { /* non-fatal */ }
     }
 

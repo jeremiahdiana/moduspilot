@@ -154,9 +154,9 @@ export async function getActionableThreads(
         ? `in:inbox category:primary after:${dateStr}`
         : `in:inbox after:${dateStr}`;
 
-    const fetchThreads = async (q: string) => {
+    const fetchThreadIds = async (q: string) => {
       const res = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(q)}&maxResults=10`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(q)}&maxResults=5`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       if (!res.ok) return [];
@@ -165,28 +165,31 @@ export async function getActionableThreads(
     };
 
     let threads = filter === 'primary'
-      ? await fetchThreads(buildQuery(true))
-      : await fetchThreads(buildQuery(false));
+      ? await fetchThreadIds(buildQuery(true))
+      : await fetchThreadIds(buildQuery(false));
 
     // Fallback for .edu / Workspace accounts that don't have Gmail categories
     if (threads.length === 0 && filter === 'primary') {
-      threads = await fetchThreads(buildQuery(false));
+      threads = await fetchThreadIds(buildQuery(false));
     }
 
     if (threads.length === 0) return [];
 
-    const results: GmailThread[] = [];
-
-    for (const t of threads.slice(0, 10)) {
-      try {
-        const threadRes = await fetch(
+    // Fetch all thread details in parallel (not sequentially)
+    const settled = await Promise.allSettled(
+      threads.slice(0, 5).map(t =>
+        fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=full`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        if (!threadRes.ok) continue;
+        ).then(r => r.ok ? r.json() : null)
+      )
+    );
 
-        const threadData = await threadRes.json();
-        // Use latest message for headers, first for subject
+    const results: GmailThread[] = [];
+    for (const s of settled) {
+      if (s.status !== 'fulfilled' || !s.value) continue;
+      try {
+        const threadData = s.value;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const msgs: any[] = threadData.messages ?? [];
         if (!msgs.length) continue;
@@ -206,19 +209,8 @@ export async function getActionableThreads(
         const unread = (latestMsg.labelIds ?? []).includes('UNREAD');
         const body = extractTextBody(latestMsg.payload);
 
-        results.push({
-          id: t.id,
-          subject,
-          from,
-          fromAddress,
-          snippet: threadData.snippet ?? '',
-          body,
-          date,
-          unread,
-        });
-      } catch {
-        // skip individual thread failures
-      }
+        results.push({ id: threadData.id ?? '', subject, from, fromAddress, snippet: threadData.snippet ?? '', body, date, unread });
+      } catch { /* skip */ }
     }
 
     return results;
