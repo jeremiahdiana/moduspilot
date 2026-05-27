@@ -81,7 +81,7 @@ export default function ChatWindow({
       } else if (msg.includes('rate limit') || msg.includes('429')) {
         setChatError('Too many messages right now. Wait a minute and try again.');
       } else {
-        setChatError('Something went wrong. Please try again.');
+        setChatError(`Error: ${msg || 'unknown — check Vercel logs'}`);
       }
     },
   });
