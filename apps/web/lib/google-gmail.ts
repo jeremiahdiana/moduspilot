@@ -146,7 +146,7 @@ export async function getActionableThreads(
 ): Promise<GmailThread[]> {
   try {
     const filter = options?.filter ?? 'all';
-    const since = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000); // 5 days
+    const since = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000); // 10 days
     const dateStr = `${since.getFullYear()}/${String(since.getMonth() + 1).padStart(2, '0')}/${String(since.getDate()).padStart(2, '0')}`;
 
     const buildQuery = (useCategory: boolean) =>

@@ -232,12 +232,12 @@ export async function POST(req: Request) {
             wantsCalendar ? getTodayEvents(googleToken) : Promise.resolve([]),
           ]);
           if (threads.length > 0) {
-            gmailBlock = '\n\nINBOX (last 5 days — these are the only emails you have access to, never invent others):\n' +
-              threads.slice(0, 5).map((t, i) =>
+            gmailBlock = '\n\nINBOX (last 10 days — Gmail IS connected; this is the complete list available. Do NOT suggest connecting Gmail or checking inbox — you already have it. Never invent emails not listed here):\n' +
+              threads.slice(0, 10).map((t, i) =>
                 `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
               ).join('\n\n');
           } else if (wantsEmail) {
-            gmailBlock = '\n\nINBOX: No emails in the last 5 days.';
+            gmailBlock = '\n\nINBOX: Gmail IS connected but no emails found in the last 10 days. Do NOT suggest connecting Gmail — it is already connected.';
           }
           const todayEvents = events.filter(e => !e.allDay);
           if (todayEvents.length > 0) {
@@ -491,7 +491,7 @@ export async function POST(req: Request) {
     }
 
     const googleDataBlock = gmailBlock || calendarBlock
-      ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it.`
+      ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it in the last 10 days. NEVER suggest the user connect Gmail or Google — it is already connected.`
       : '';
 
     // Connector status + live data from Notion, Slack, GitHub
