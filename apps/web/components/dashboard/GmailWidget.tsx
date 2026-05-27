@@ -47,6 +47,7 @@ export default function GmailWidget() {
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [notConnected, setNotConnected] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<'all' | string>('all');
   const [filter, setFilter] = useState<Filter>('primary');
   const [filterLoaded, setFilterLoaded] = useState(false);
@@ -71,6 +72,7 @@ export default function GmailWidget() {
   const fetchThreads = useCallback(async (account: string, f: Filter) => {
     if (!user) return;
     setLoading(true);
+    setFetchError(false);
     try {
       const token = await user.getIdToken();
       const params = new URLSearchParams({ filter: f });
@@ -78,6 +80,7 @@ export default function GmailWidget() {
       const res = await fetch(`/api/google/inbox?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) { setFetchError(true); return; }
       const data = await res.json();
       if (data.notConnected) {
         setNotConnected(true);
@@ -85,11 +88,12 @@ export default function GmailWidget() {
         setAccounts([]);
       } else {
         setNotConnected(false);
+        setFetchError(false);
         setThreads(data.threads ?? []);
         setAccounts(data.accounts ?? []);
       }
     } catch {
-      // non-fatal
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -189,6 +193,17 @@ export default function GmailWidget() {
       <div className="flex flex-col items-center justify-center h-32 gap-2 text-center">
         <p className="text-xs text-muted">Gmail not connected.</p>
         <p className="text-xs text-muted">Ask MODUS to connect Google in chat.</p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-24 gap-2 text-center">
+        <p className="text-xs text-muted">Couldn&apos;t load inbox.</p>
+        <button onClick={() => fetchThreads(selectedAccount, filter)} className="text-[11px] text-brand hover:underline">
+          Retry
+        </button>
       </div>
     );
   }

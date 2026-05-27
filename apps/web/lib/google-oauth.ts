@@ -111,10 +111,12 @@ export async function getAllValidAccessTokens(uid: string): Promise<{
     snap.docs.map(async docSnap => {
       const data = docSnap.data();
       try {
-        if (data.expiresAt > Date.now() + buffer) {
+        const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : 0;
+        if (expiresAt > Date.now() + buffer) {
           return { email: data.email as string, token: data.accessToken as string };
         }
-        const refreshed = await refreshAccessToken(data.refreshToken);
+        if (!data.refreshToken) return null; // no refresh token — account needs reconnect
+        const refreshed = await refreshAccessToken(data.refreshToken as string);
         await docSnap.ref.update({
           accessToken: refreshed.access_token,
           expiresAt: Date.now() + refreshed.expires_in * 1000,

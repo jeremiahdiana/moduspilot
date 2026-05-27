@@ -278,7 +278,7 @@ export async function POST(req: Request) {
         const results = await webSearch(queryText, 5);
         if (results.length > 0) {
           webSearchBlock = '\n\nWEB SEARCH RESULTS (for this query — use these to answer, cite sources naturally):\n' +
-            results.map((r, i) => `${i + 1}. ${r.title}\n   Source: ${r.url}\n   ${r.content.slice(0, 350)}`).join('\n\n');
+            results.map((r, i) => `${i + 1}. ${r.title ?? ''}\n   Source: ${r.url ?? ''}\n   ${(r.content ?? '').slice(0, 350)}`).join('\n\n');
         }
       } catch (e) {
         console.error('[chat] web search failed:', e);
@@ -378,129 +378,112 @@ export async function POST(req: Request) {
       projectContextBlock = `\n\nPROJECT FOCUS: This conversation is scoped to the project "${pc.title}" (projectId: "${pc.id}"). ${pc.description ? `Description: ${pc.description}.` : ''} ${pc.resources.length > 0 ? `This project has ${pc.resources.length} pinned resource${pc.resources.length !== 1 ? 's' : ''}. Treat the PROJECT RESOURCES block below as primary context — prioritize it over global GITHUB/NOTION/SLACK/DRIVE blocks when answering project questions. Never reference repos, pages, or channels not in the pinned list when answering about this project.` : 'No resources are pinned yet — encourage the user to pin resources from the Resources tab.'}\n\nDo NOT generate update_goal_progress, create_habit, or goal-tracking cards in project chats. If the user asks to create a new chat for this project, output a create_project_chat approval card with payload.projectId = "${pc.id}". ${!isMainProjectChat ? `If asked to delete this chat, output a delete_project_chat card with payload.conversationId = "${pc.activeChatId}".` : 'This is the main project chat — do NOT generate a delete_project_chat card here.'}`;
 
       if (pc.resources.length > 0 && uid) {
-        // Fetch live scoped data for each pinned resource type
         const githubResources = pc.resources.filter(r => r.type === 'github');
         const notionResources  = pc.resources.filter(r => r.type === 'notion');
         const slackResources   = pc.resources.filter(r => r.type === 'slack');
         const driveResources   = pc.resources.filter(r => r.type === 'drive');
         const urlResources     = pc.resources.filter(r => r.type === 'url');
 
-        const lines: string[] = [];
+        const allLines: string[] = [];
 
-        try {
-          // GitHub: open PRs + issues per pinned repo
-          if (githubResources.length > 0) {
-            const gh = await getFirstGitHubToken(uid);
-            if (gh) {
-              const headers = { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' };
-              for (const r of githubResources.slice(0, 3)) {
-                if (!r.repo) continue;
-                try {
-                  const [prRes, issueRes] = await Promise.all([
-                    fetch(`https://api.github.com/search/issues?q=is:open+is:pr+repo:${r.repo}&sort=updated&per_page=5`, { headers }),
-                    fetch(`https://api.github.com/search/issues?q=is:open+is:issue+repo:${r.repo}&sort=updated&per_page=5`, { headers }),
-                  ]);
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const prItems: any[] = prRes.ok ? ((await prRes.json()).items ?? []) : [];
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const issueItems: any[] = issueRes.ok ? ((await issueRes.json()).items ?? []) : [];
-                  lines.push(`\nGitHub repo: ${r.repo}`);
-                  if (prItems.length > 0) lines.push(`  Open PRs: ${prItems.map((p: { title: string; html_url: string }) => `${p.title} — ${p.html_url}`).join('; ')}`);
-                  else lines.push('  Open PRs: none');
-                  if (issueItems.length > 0) lines.push(`  Open issues: ${issueItems.map((i: { title: string; html_url: string }) => `${i.title} — ${i.html_url}`).join('; ')}`);
-                  else lines.push('  Open issues: none');
-                } catch { /* skip this repo */ }
-              }
-            }
-          }
+        // 5s hard cap — project resource fetches must never kill the response
+        await Promise.race([
+          (async () => {
+            // Fetch all token types + all resources in parallel
+            const [gh, notionToken, sl, driveToken] = await Promise.all([
+              githubResources.length > 0 ? getFirstGitHubToken(uid) : Promise.resolve(null),
+              notionResources.length  > 0 ? getFirstNotionToken(uid)  : Promise.resolve(null),
+              slackResources.length   > 0 ? getFirstSlackToken(uid)   : Promise.resolve(null),
+              driveResources.length   > 0 ? getValidAccessToken(uid)  : Promise.resolve(null),
+            ]);
 
-          // Notion: first ~600 chars of block content for each pinned page
-          if (notionResources.length > 0) {
-            const notionToken = await getFirstNotionToken(uid);
-            if (notionToken) {
-              for (const r of notionResources.slice(0, 3)) {
+            // Fetch all resources across all types in parallel
+            const resourceFetches = await Promise.allSettled([
+              // GitHub repos — all in parallel
+              ...githubResources.slice(0, 3).map(async r => {
+                if (!r.repo || !gh) return '';
+                const headers = { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' };
+                const [prRes, issueRes] = await Promise.all([
+                  fetch(`https://api.github.com/search/issues?q=is:open+is:pr+repo:${r.repo}&sort=updated&per_page=5`, { headers }),
+                  fetch(`https://api.github.com/search/issues?q=is:open+is:issue+repo:${r.repo}&sort=updated&per_page=5`, { headers }),
+                ]);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const prItems: any[] = prRes.ok ? ((await prRes.json()).items ?? []) : [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const issueItems: any[] = issueRes.ok ? ((await issueRes.json()).items ?? []) : [];
+                const parts = [`\nGitHub repo: ${r.repo}`];
+                parts.push(prItems.length > 0 ? `  Open PRs: ${prItems.map((p: { title: string; html_url: string }) => `${p.title} — ${p.html_url}`).join('; ')}` : '  Open PRs: none');
+                parts.push(issueItems.length > 0 ? `  Open issues: ${issueItems.map((i: { title: string; html_url: string }) => `${i.title} — ${i.html_url}`).join('; ')}` : '  Open issues: none');
+                return parts.join('\n');
+              }),
+              // Notion pages — all in parallel
+              ...notionResources.slice(0, 3).map(async r => {
+                if (!notionToken) return '';
                 const pageId = r.pageId ?? r.url?.split('/').pop();
-                if (!pageId) continue;
-                try {
-                  const blocksRes = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=10`, {
-                    headers: { Authorization: `Bearer ${notionToken.token}`, 'Notion-Version': '2022-06-28' },
-                  });
-                  if (!blocksRes.ok) { lines.push(`\nNotion page: ${r.name} — (content unavailable)`); continue; }
-                  const blocksData = await blocksRes.json();
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const text = (blocksData.results ?? []).map((b: any) => {
-                    const rt = b[b.type]?.rich_text ?? [];
-                    return rt.map((t: { plain_text: string }) => t.plain_text).join('');
-                  }).join(' ').slice(0, 600);
-                  lines.push(`\nNotion page: ${r.name}${r.url ? ` — ${r.url}` : ''}\n  Content: ${text || '(empty or no text blocks)'}`);
-                } catch { lines.push(`\nNotion page: ${r.name} — (error fetching content)`); }
-              }
-            }
-          }
-
-          // Slack: recent messages from each pinned channel
-          if (slackResources.length > 0) {
-            const sl = await getFirstSlackToken(uid);
-            if (sl) {
-              for (const r of slackResources.slice(0, 3)) {
-                if (!r.channelId) continue;
-                try {
-                  const msgRes = await fetch(`https://slack.com/api/conversations.history?channel=${r.channelId}&limit=8`, {
-                    headers: { Authorization: `Bearer ${sl.token}` },
-                  });
-                  if (!msgRes.ok) { lines.push(`\nSlack ${r.name}: (unavailable)`); continue; }
-                  const msgData = await msgRes.json() as { ok: boolean; messages?: { text?: string; ts?: string; subtype?: string }[] };
-                  if (!msgData.ok) { lines.push(`\nSlack ${r.name}: (unavailable)`); continue; }
-                  const msgs = (msgData.messages ?? []).filter(m => !m.subtype && m.text).slice(0, 8);
-                  lines.push(`\nSlack ${r.name} (recent messages):\n${msgs.map(m => `  [${m.ts}] ${(m.text ?? '').slice(0, 200)}`).join('\n')}`);
-                } catch { lines.push(`\nSlack ${r.name}: (error)`); }
-              }
-            }
-          }
-
-          // Drive: file name + link (text content for Docs/Sheets via export)
-          if (driveResources.length > 0) {
-            const driveToken = await getValidAccessToken(uid);
-            if (driveToken) {
-              for (const r of driveResources.slice(0, 3)) {
-                if (!r.fileId) continue;
-                try {
-                  const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}?fields=id,name,mimeType,webViewLink`, {
+                if (!pageId) return '';
+                const blocksRes = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=10`, {
+                  headers: { Authorization: `Bearer ${notionToken.token}`, 'Notion-Version': '2022-06-28' },
+                });
+                if (!blocksRes.ok) return `\nNotion page: ${r.name} — (content unavailable)`;
+                const blocksData = await blocksRes.json();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const text = (blocksData.results ?? []).map((b: any) => {
+                  const rt = b[b.type]?.rich_text ?? [];
+                  return rt.map((t: { plain_text: string }) => t.plain_text).join('');
+                }).join(' ').slice(0, 600);
+                return `\nNotion page: ${r.name}${r.url ? ` — ${r.url}` : ''}\n  Content: ${text || '(empty or no text blocks)'}`;
+              }),
+              // Slack channels — all in parallel
+              ...slackResources.slice(0, 3).map(async r => {
+                if (!r.channelId || !sl) return '';
+                const msgRes = await fetch(`https://slack.com/api/conversations.history?channel=${r.channelId}&limit=8`, {
+                  headers: { Authorization: `Bearer ${sl.token}` },
+                });
+                if (!msgRes.ok) return `\nSlack ${r.name}: (unavailable)`;
+                const msgData = await msgRes.json() as { ok: boolean; messages?: { text?: string; ts?: string; subtype?: string }[] };
+                if (!msgData.ok) return `\nSlack ${r.name}: (unavailable)`;
+                const msgs = (msgData.messages ?? []).filter(m => !m.subtype && m.text).slice(0, 8);
+                return `\nSlack ${r.name} (recent messages):\n${msgs.map(m => `  [${m.ts}] ${(m.text ?? '').slice(0, 200)}`).join('\n')}`;
+              }),
+              // Drive files — all in parallel
+              ...driveResources.slice(0, 3).map(async r => {
+                if (!r.fileId || !driveToken) return '';
+                const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}?fields=id,name,mimeType,webViewLink`, {
+                  headers: { Authorization: `Bearer ${driveToken}` },
+                });
+                if (!metaRes.ok) return `\nDrive file: ${r.name} — (unavailable)`;
+                const meta = await metaRes.json() as { name: string; mimeType: string; webViewLink: string };
+                const isGoogleDoc = meta.mimeType.includes('google-apps.document') || meta.mimeType.includes('google-apps.spreadsheet') || meta.mimeType.includes('google-apps.presentation');
+                const isPlainText = meta.mimeType.startsWith('text/');
+                if (isGoogleDoc) {
+                  const exportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}/export?mimeType=text/plain`, {
                     headers: { Authorization: `Bearer ${driveToken}` },
                   });
-                  if (!metaRes.ok) { lines.push(`\nDrive file: ${r.name} — (unavailable)`); continue; }
-                  const meta = await metaRes.json() as { name: string; mimeType: string; webViewLink: string };
-                  const isGoogleDoc = meta.mimeType.includes('google-apps.document') || meta.mimeType.includes('google-apps.spreadsheet') || meta.mimeType.includes('google-apps.presentation');
-                  const isPlainText = meta.mimeType.startsWith('text/');
-                  if (isGoogleDoc) {
-                    const exportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}/export?mimeType=text/plain`, {
-                      headers: { Authorization: `Bearer ${driveToken}` },
-                    });
-                    const text = exportRes.ok ? (await exportRes.text()).slice(0, 2000) : '';
-                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content:\n${text || '(empty)'}`);
-                  } else if (isPlainText) {
-                    // .md, .txt, .csv etc — download directly
-                    const dlRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}?alt=media`, {
-                      headers: { Authorization: `Bearer ${driveToken}` },
-                    });
-                    const text = dlRes.ok ? (await dlRes.text()).slice(0, 2000) : '';
-                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content:\n${text || '(empty)'}`);
-                  } else {
-                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink} (${mimeLabel(meta.mimeType)})`);
-                  }
-                } catch { lines.push(`\nDrive file: ${r.name} — (error)`); }
-              }
+                  const text = exportRes.ok ? (await exportRes.text()).slice(0, 2000) : '';
+                  return `\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content:\n${text || '(empty)'}`;
+                } else if (isPlainText) {
+                  const dlRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}?alt=media`, {
+                    headers: { Authorization: `Bearer ${driveToken}` },
+                  });
+                  const text = dlRes.ok ? (await dlRes.text()).slice(0, 2000) : '';
+                  return `\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content:\n${text || '(empty)'}`;
+                }
+                return `\nDrive file: ${meta.name} — ${meta.webViewLink} (${mimeLabel(meta.mimeType)})`;
+              }),
+            ]);
+
+            for (const s of resourceFetches) {
+              if (s.status === 'fulfilled' && s.value) allLines.push(s.value);
             }
-          }
+            for (const r of urlResources) {
+              allLines.push(`\nURL: ${r.name}${r.url ? ` — ${r.url}` : ''}`);
+            }
+          })(),
+          new Promise<void>(resolve => setTimeout(resolve, 5000)),
+        ]).catch(() => {});
 
-          // URLs: just list them
-          for (const r of urlResources) {
-            lines.push(`\nURL: ${r.name}${r.url ? ` — ${r.url}` : ''}`);
-          }
-        } catch { /* non-fatal */ }
-
-        if (lines.length > 0) {
-          projectResourcesBlock = '\n\nPROJECT RESOURCES (live data scoped to pinned resources — treat as primary context for this project):' + lines.join('');
+        if (allLines.length > 0) {
+          projectResourcesBlock = '\n\nPROJECT RESOURCES (live data scoped to pinned resources — treat as primary context for this project):' + allLines.join('');
         }
       }
     }

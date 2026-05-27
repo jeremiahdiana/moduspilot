@@ -96,40 +96,37 @@ export async function getRecentSenders(accessToken: string, days = 30): Promise<
     const threads = listData.threads ?? [];
     const senderMap = new Map<string, RecentSender>();
 
-    for (const t of threads.slice(0, 50)) {
-      try {
-        const res = await fetch(
+    // Fetch all thread metadata in parallel
+    const settled = await Promise.allSettled(
+      threads.slice(0, 50).map(t =>
+        fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=metadata&metadataHeaders=From&metadataHeaders=Date`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        if (!res.ok) continue;
+        ).then(r => r.ok ? r.json() as Promise<{ messages?: { payload?: { headers?: { name: string; value: string }[] } }[] }> : null)
+      )
+    );
 
-        const thread = await res.json() as { messages?: { payload?: { headers?: { name: string; value: string }[] } }[] };
-        const msgs = thread.messages ?? [];
+    for (const s of settled) {
+      if (s.status !== 'fulfilled' || !s.value) continue;
+      try {
+        const msgs = s.value.messages ?? [];
         if (!msgs.length) continue;
-
         const headers = msgs[0].payload?.headers ?? [];
         const fromRaw = headers.find(h => h.name === 'From')?.value ?? '';
         const dateHeader = headers.find(h => h.name === 'Date')?.value ?? '';
-
         const emailMatch = fromRaw.match(/<([^>]+)>/);
         const emailRaw = emailMatch?.[1] ?? fromRaw.trim();
         if (!emailRaw || !emailRaw.includes('@')) continue;
         const email = emailRaw.toLowerCase();
         if (email.includes('noreply') || email.includes('no-reply') || email.includes('donotreply') || email.includes('mailer-daemon')) continue;
-
         const name = fromRaw.replace(/<[^>]*>/g, '').replace(/^["']|["']$/g, '').trim() || email;
         const lastEmailDate = dateHeader ? (() => { try { return new Date(dateHeader).toISOString().slice(0, 10); } catch { return ''; } })() : '';
-
         const existing = senderMap.get(email);
         if (!existing) {
           senderMap.set(email, { name, email, lastEmailDate, threadCount: 1 });
         } else {
           existing.threadCount++;
-          if (lastEmailDate && lastEmailDate > existing.lastEmailDate) {
-            existing.lastEmailDate = lastEmailDate;
-            existing.name = name;
-          }
+          if (lastEmailDate && lastEmailDate > existing.lastEmailDate) { existing.lastEmailDate = lastEmailDate; existing.name = name; }
         }
       } catch { /* skip */ }
     }
