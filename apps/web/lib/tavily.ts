@@ -33,9 +33,9 @@ export function shouldWebSearch(query: string): boolean {
   if (query.length < 8) return false;
   const lower = query.toLowerCase();
   // Skip clearly personal/internal queries
-  const personal = ['my goal', 'my task', 'my habit', 'my email', 'my calendar', 'my schedule', 'briefing', 'how am i', 'my progress', 'add task', 'add goal', 'add habit'];
+  const personal = ['my goal', 'my task', 'my habit', 'my email', 'my calendar', 'my schedule', 'briefing', 'how am i', 'my progress', 'add task', 'add goal', 'add habit', 'did i miss', 'have i missed', 'i missed', 'anything important', 'what did i', 'catch me up', 'update me', 'remind me', 'what should i'];
   if (personal.some(p => lower.includes(p))) return false;
-  // Search for external info
+  // Search for external info — require an explicit external keyword, never trigger on ? alone
   const external = ['search', 'look up', 'find out', 'what is', 'what are', 'who is', 'how to', 'how do', 'latest', 'current', 'news', 'price', 'weather', 'when is', 'where is', 'tell me about', 'explain', 'definition', 'vs ', 'compare', 'best ', 'cost of', 'how much'];
-  return external.some(p => lower.includes(p)) || lower.trimEnd().endsWith('?');
+  return external.some(p => lower.includes(p));
 }
