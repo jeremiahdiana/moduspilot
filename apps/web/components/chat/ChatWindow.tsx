@@ -75,7 +75,7 @@ export default function ChatWindow({
       if (msg.includes('daily_limit_reached')) {
         setChatError("You've used your 20 free messages for today. Upgrade to MODUS for unlimited.");
       } else if (msg.includes('Rate limit') || msg.includes('TPD') || msg.includes('tokens per day')) {
-        setChatError('Daily message limit reached. Try again in a few hours.');
+        setChatError('AI service is temporarily busy. Try again in a moment.');
       } else if (msg.includes('rate limit') || msg.includes('429')) {
         setChatError('Too many messages right now. Wait a minute and try again.');
       } else {
