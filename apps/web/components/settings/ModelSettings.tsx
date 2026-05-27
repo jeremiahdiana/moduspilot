@@ -27,7 +27,7 @@ const PLATFORM_MODELS = [
     badgeColor: 'bg-brand/10 text-brand',
   },
   {
-    id: 'gpt-5-mini',
+    id: 'gpt-4o-mini',
     name: 'MODUS 2.0',
     tagline: 'Smarter & More Capable',
     description: 'Deeper reasoning, sharper analysis, and more nuanced responses for complex work.',
@@ -76,7 +76,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
   const [platformModel, setPlatformModel] = useState(
     raw?.model && !raw.model.startsWith('gpt') && !raw.model.startsWith('claude')
       ? raw.model
-      : raw?.model === 'gpt-5-mini' ? 'gpt-5-mini' : 'llama-3.3-70b-versatile'
+      : raw?.model === 'gpt-4o-mini' ? 'gpt-4o-mini' : 'llama-3.3-70b-versatile'
   );
 
   // BYOK state
