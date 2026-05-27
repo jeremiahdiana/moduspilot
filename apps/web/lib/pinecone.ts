@@ -13,7 +13,7 @@ async function embedText(text: string, inputType: 'passage' | 'query'): Promise<
   const result = await pc().inference.embed(
     'llama-text-embed-v2',
     [text],
-    { input_type: inputType, truncate: 'END' }
+    { inputType, truncate: 'END' }
   );
   const values = result.data?.[0]?.values;
   if (!values?.length) throw new Error('Pinecone embed returned no values');
