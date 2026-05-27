@@ -644,12 +644,14 @@ export async function POST(req: Request) {
 
     return result.toDataStreamResponse({
       getErrorMessage: (error) => {
-        console.error('[chat] stream error:', error);
-        return String(error);
+        const s = String(error);
+        console.error('[chat] stream error:', s);
+        return s;
       },
     });
   } catch (e) {
-    console.error('[chat] route error:', e);
-    return Response.json({ error: String(e) }, { status: 500 });
+    const s = String(e);
+    console.error('[chat] route error:', s);
+    return Response.json({ error: s }, { status: 500 });
   }
 }

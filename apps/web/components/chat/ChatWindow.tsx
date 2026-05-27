@@ -71,17 +71,19 @@ export default function ChatWindow({
       briefingTimezone: briefingTimezone ?? 'UTC',
     },
     onError: (err) => {
-      const msg = err?.message ?? '';
+      const msg = (err?.message ?? '').toLowerCase();
       if (msg.includes('daily_limit_reached')) {
         setChatError("You've used your 20 free messages for today. Upgrade to MODUS for unlimited.");
       } else if (msg.includes('token_limit_reached')) {
         setChatError("You've hit your daily AI token limit. Resets at midnight.");
-      } else if (msg.includes('Rate limit') || msg.includes('TPD') || msg.includes('tokens per day')) {
+      } else if (msg.includes('rate limit') || msg.includes('429') || msg.includes('tpd') || msg.includes('tokens per day') || msg.includes('too many')) {
         setChatError('AI service is temporarily busy. Try again in a moment.');
-      } else if (msg.includes('rate limit') || msg.includes('429')) {
-        setChatError('Too many messages right now. Wait a minute and try again.');
+      } else if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('api key') || msg.includes('invalid key')) {
+        setChatError('AI service configuration error. Contact support.');
+      } else if (msg.includes('503') || msg.includes('502') || msg.includes('unavailable') || msg.includes('overloaded')) {
+        setChatError('AI service is down. Try again in a moment.');
       } else {
-        setChatError(`Error: ${msg || 'unknown — check Vercel logs'}`);
+        setChatError('Something went wrong. Please try again.');
       }
     },
   });
