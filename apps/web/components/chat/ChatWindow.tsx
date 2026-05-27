@@ -76,11 +76,13 @@ export default function ChatWindow({
         setChatError("You've used your 20 free messages for today. Upgrade to MODUS for unlimited.");
       } else if (msg.includes('token_limit_reached')) {
         setChatError("You've hit your daily AI token limit. Resets at midnight.");
-      } else if (msg.includes('rate limit') || msg.includes('429') || msg.includes('tpd') || msg.includes('tokens per day') || msg.includes('too many')) {
-        setChatError('AI service is temporarily busy. Try again in a moment.');
-      } else if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('api key') || msg.includes('invalid key')) {
+      } else if (msg.includes('groq_daily_limit')) {
+        setChatError('AI daily limit reached — go to Settings → Model and switch to a different model, or try again tomorrow.');
+      } else if (msg.includes('rate_limit_reached') || msg.includes('rate limit') || msg.includes('429') || msg.includes('tpd') || msg.includes('tokens per day') || msg.includes('too many')) {
+        setChatError('AI service is busy. Wait a moment and try again.');
+      } else if (msg.includes('api_key_error') || msg.includes('401') || msg.includes('unauthorized') || msg.includes('api key') || msg.includes('invalid key')) {
         setChatError('AI service configuration error. Contact support.');
-      } else if (msg.includes('503') || msg.includes('502') || msg.includes('unavailable') || msg.includes('overloaded')) {
+      } else if (msg.includes('provider_down') || msg.includes('503') || msg.includes('502') || msg.includes('unavailable') || msg.includes('overloaded')) {
         setChatError('AI service is down. Try again in a moment.');
       } else {
         setChatError('Something went wrong. Please try again.');

@@ -330,7 +330,8 @@ export async function POST(req: Request) {
       if (wantsOpenAI) {
         chatModel = createOpenAI({ apiKey: openAIKey })(selectedModel);
       } else {
-        const groqModel = selectedModel.startsWith('gpt') ? 'llama-3.3-70b-versatile' : selectedModel;
+        // gpt-* without BYOK falls back to llama-3.1-8b-instant (500k TPD, separate quota bucket)
+        const groqModel = selectedModel.startsWith('gpt') ? 'llama-3.1-8b-instant' : selectedModel;
         chatModel = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key })(groqModel);
       }
     }
@@ -654,6 +655,12 @@ export async function POST(req: Request) {
       getErrorMessage: (error) => {
         const s = String(error);
         console.error('[chat] stream error:', s);
+        const sl = s.toLowerCase();
+        // Normalize Groq/OpenAI rate limit errors → recognizable tokens for the client
+        if (sl.includes('tokens per day') || sl.includes('tpd') || sl.includes('daily')) return 'groq_daily_limit';
+        if (sl.includes('rate limit') || sl.includes('429') || sl.includes('too many')) return 'rate_limit_reached';
+        if (sl.includes('401') || sl.includes('api key') || sl.includes('unauthorized')) return 'api_key_error';
+        if (sl.includes('503') || sl.includes('502') || sl.includes('overloaded')) return 'provider_down';
         return s;
       },
     });
