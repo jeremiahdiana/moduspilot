@@ -280,7 +280,10 @@ export async function POST(req: Request) {
     let memoryContext = '';
     if (uid && queryText && process.env.PINECONE_API_KEY) {
       try {
-        const matches = await queryMemory(uid, queryText, 6);
+        const matches = await Promise.race([
+          queryMemory(uid, queryText, 4),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
+        ]);
         const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
         if (relevant.length > 0) {
           memoryContext = '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +
