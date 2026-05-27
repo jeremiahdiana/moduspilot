@@ -387,13 +387,21 @@ export async function POST(req: Request) {
                   });
                   if (!metaRes.ok) { lines.push(`\nDrive file: ${r.name} — (unavailable)`); continue; }
                   const meta = await metaRes.json() as { name: string; mimeType: string; webViewLink: string };
-                  const isTextual = meta.mimeType.includes('document') || meta.mimeType.includes('spreadsheet') || meta.mimeType.includes('presentation');
-                  if (isTextual) {
+                  const isGoogleDoc = meta.mimeType.includes('google-apps.document') || meta.mimeType.includes('google-apps.spreadsheet') || meta.mimeType.includes('google-apps.presentation');
+                  const isPlainText = meta.mimeType.startsWith('text/');
+                  if (isGoogleDoc) {
                     const exportRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}/export?mimeType=text/plain`, {
                       headers: { Authorization: `Bearer ${driveToken}` },
                     });
-                    const text = exportRes.ok ? (await exportRes.text()).slice(0, 1500) : '';
-                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content: ${text || '(empty)'}`);
+                    const text = exportRes.ok ? (await exportRes.text()).slice(0, 2000) : '';
+                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content:\n${text || '(empty)'}`);
+                  } else if (isPlainText) {
+                    // .md, .txt, .csv etc — download directly
+                    const dlRes = await fetch(`https://www.googleapis.com/drive/v3/files/${r.fileId}?alt=media`, {
+                      headers: { Authorization: `Bearer ${driveToken}` },
+                    });
+                    const text = dlRes.ok ? (await dlRes.text()).slice(0, 2000) : '';
+                    lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink}\n  Content:\n${text || '(empty)'}`);
                   } else {
                     lines.push(`\nDrive file: ${meta.name} — ${meta.webViewLink} (${mimeLabel(meta.mimeType)})`);
                   }

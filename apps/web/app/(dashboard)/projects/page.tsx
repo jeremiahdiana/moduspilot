@@ -129,46 +129,62 @@ export default function ProjectsPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : shown.length === 0 ? (
-        <div className="text-center py-20">
-          {tab === 'active' ? (
-            <>
-              <div className="w-16 h-16 rounded-2xl bg-panel border border-border flex items-center justify-center mx-auto mb-4">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-muted">
-                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-                </svg>
-              </div>
-              <p className="text-muted text-sm mb-1">No projects yet.</p>
-              <p className="text-muted/60 text-xs mb-4">Create a workspace and pin resources so MODUS can focus on exactly what matters.</p>
-              <button
-                onClick={() => { setForm({ title: '', description: '' }); setModalOpen(true); }}
-                className="text-sm text-brand hover:underline"
-              >
-                Create your first project
-              </button>
-            </>
-          ) : (
-            <p className="text-muted text-sm">No archived projects.</p>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl">
-          {shown.map((p, i) => (
-            <ProjectCard
-              key={p.id}
-              project={p}
-              index={i}
-              onClick={() => router.push(`/projects/${p.id}`)}
-              onArchive={() => archiveProject(p.id)}
-              onRestore={() => restoreProject(p.id)}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatePresence mode="wait" initial={false}>
+        {loading ? (
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center py-20">
+            <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          </motion.div>
+        ) : shown.length === 0 ? (
+          <motion.div
+            key={`empty-${tab}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center py-20"
+          >
+            {tab === 'active' ? (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-panel border border-border flex items-center justify-center mx-auto mb-4">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-muted">
+                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                  </svg>
+                </div>
+                <p className="text-muted text-sm mb-1">No projects yet.</p>
+                <p className="text-muted/60 text-xs mb-4">Create a workspace and pin resources so MODUS can focus on exactly what matters.</p>
+                <button
+                  onClick={() => { setForm({ title: '', description: '' }); setModalOpen(true); }}
+                  className="text-sm text-brand hover:underline"
+                >
+                  Create your first project
+                </button>
+              </>
+            ) : (
+              <p className="text-muted text-sm">No archived projects.</p>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`grid-${tab}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl"
+          >
+            {shown.map((p, i) => (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                index={i}
+                onClick={() => router.push(`/projects/${p.id}`)}
+                onArchive={() => archiveProject(p.id)}
+                onRestore={() => restoreProject(p.id)}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* New project modal */}
       <AnimatePresence>
@@ -258,6 +274,8 @@ function ProjectCard({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, transition: { type: 'spring', stiffness: 400, damping: 28 } }}
+      whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.35, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
       onClick={onClick}
       className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover:border-brand/30 transition-colors group relative flex flex-col gap-3"

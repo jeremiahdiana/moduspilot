@@ -16,6 +16,7 @@ export interface Conversation {
   deleted: boolean;
   messages: Message[];
   shareId?: string;
+  projectId?: string;
 }
 
 export function useConversations(uid: string | null) {
@@ -41,8 +42,9 @@ export function useConversations(uid: string | null) {
             deleted: d.data().deleted ?? false,
             messages: d.data().messages ?? [],
             shareId: d.data().shareId as string | undefined,
+            projectId: d.data().projectId as string | undefined,
           }))
-          .filter(c => !c.deleted)
+          .filter(c => !c.deleted && !c.projectId)
       );
       setLoading(false);
     }, (err) => {
