@@ -236,7 +236,10 @@ function ActionQueueCard({ items, onDoneTask, onLogHabit }: {
       </div>
       {visible.length === 0 ? (
         <div className="px-5 py-4">
-          <p className="text-xs text-emerald-500 font-medium">✓ All clear — nothing urgent right now.</p>
+          <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+            All clear — nothing urgent right now.
+          </div>
         </div>
       ) : (
         <div>
@@ -257,9 +260,9 @@ function ActionQueueCard({ items, onDoneTask, onLogHabit }: {
                 {item.type === 'task' ? (
                   <button
                     onClick={() => handleTask(item.id)}
-                    className="text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-emerald-500 hover:bg-emerald-500/15 transition-colors shrink-0 cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-emerald-500 hover:bg-emerald-500/15 transition-colors shrink-0 cursor-pointer"
                   >
-                    Done ✓
+                    Done <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><polyline points="20 6 9 17 4 12"/></svg>
                   </button>
                 ) : (
                   <button

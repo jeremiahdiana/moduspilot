@@ -1008,7 +1008,7 @@ export default function ProjectDetailPage() {
                     className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted outline-none focus:border-brand transition-colors"
                   />
                   <button onClick={addTask} disabled={!newTaskTitle.trim()} className="px-3 py-2 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand/90 disabled:opacity-50 transition-colors">Add</button>
-                  <button onClick={() => { setAddingTask(false); setNewTaskTitle(''); }} className="text-muted hover:text-text transition-colors text-xs">✕</button>
+                  <button onClick={() => { setAddingTask(false); setNewTaskTitle(''); }} className="text-muted hover:text-text transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
               )}
 
@@ -1021,7 +1021,7 @@ export default function ProjectDetailPage() {
                   <div key={t.id} className="flex items-center gap-3 group px-2 py-1.5 rounded-lg hover:bg-panel transition-colors">
                     <button onClick={() => toggleTask(t.id, t.done)} className="w-4 h-4 rounded border border-border hover:border-brand flex items-center justify-center shrink-0 transition-colors" />
                     <span className="flex-1 text-sm text-text">{t.title}</span>
-                    <button onClick={() => deleteTask(t.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400 text-xs p-1">✕</button>
+                    <button onClick={() => deleteTask(t.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400 p-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                   </div>
                 ))}
               </div>
@@ -1047,7 +1047,7 @@ export default function ProjectDetailPage() {
                             </svg>
                           </button>
                           <span className="flex-1 text-sm text-muted line-through">{t.title}</span>
-                          <button onClick={() => deleteTask(t.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400 text-xs p-1">✕</button>
+                          <button onClick={() => deleteTask(t.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400 p-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
                       ))}
                     </div>
@@ -1244,7 +1244,7 @@ export default function ProjectDetailPage() {
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400 text-xs px-0.5 py-2"
                   title="Close"
                 >
-                  ×
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             );

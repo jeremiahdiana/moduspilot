@@ -127,7 +127,7 @@ export default function PaywallModal({ onClose }: Props) {
             <ul className="space-y-1.5 mb-5">
               {MODUS_FEATURES.map(f => (
                 <li key={f} className="flex items-start gap-2 text-xs text-text">
-                  <span className="text-brand mt-0.5 shrink-0">✓</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-brand mt-0.5 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
                   {f}
                 </li>
               ))}
@@ -153,7 +153,7 @@ export default function PaywallModal({ onClose }: Props) {
             <ul className="space-y-1.5 mb-5">
               {PILOT_FEATURES.map(f => (
                 <li key={f} className="flex items-start gap-2 text-xs text-text">
-                  <span className="text-muted mt-0.5 shrink-0">✓</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-muted mt-0.5 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
                   {f}
                 </li>
               ))}

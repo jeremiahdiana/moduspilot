@@ -282,7 +282,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                 className="flex-1 bg-transparent text-text text-sm placeholder-muted outline-none"
               />
               {q && (
-                <button type="button" onClick={() => setQ('')} className="text-muted hover:text-text transition-colors text-xs">✕</button>
+                <button type="button" onClick={() => setQ('')} className="text-muted hover:text-text transition-colors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
               )}
               <kbd className="hidden sm:block text-[10px] text-muted bg-bg border border-border/50 rounded px-1.5 py-0.5 font-mono">ESC</kbd>
             </form>

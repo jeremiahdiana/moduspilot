@@ -574,10 +574,18 @@ export default function ConnectorsSettings({ user }: Props) {
               </div>
 
               {mcpTestResult && (
-                <div className={`rounded-lg px-3 py-2.5 text-xs ${mcpTestResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
-                  {mcpTestResult.ok
-                    ? `✓ Connected — ${mcpTestResult.tools?.length ?? 0} tool${(mcpTestResult.tools?.length ?? 0) !== 1 ? 's' : ''} found${mcpTestResult.tools?.length ? ': ' + mcpTestResult.tools.slice(0, 4).join(', ') + (mcpTestResult.tools.length > 4 ? ` +${mcpTestResult.tools.length - 4} more` : '') : ''}`
-                    : `✕ ${mcpTestResult.error}`}
+                <div className={`flex items-start gap-1.5 rounded-lg px-3 py-2.5 text-xs ${mcpTestResult.ok ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+                  {mcpTestResult.ok ? (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {`Connected — ${mcpTestResult.tools?.length ?? 0} tool${(mcpTestResult.tools?.length ?? 0) !== 1 ? 's' : ''} found${mcpTestResult.tools?.length ? ': ' + mcpTestResult.tools.slice(0, 4).join(', ') + (mcpTestResult.tools.length > 4 ? ` +${mcpTestResult.tools.length - 4} more` : '') : ''}`}
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mt-0.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      {mcpTestResult.error}
+                    </>
+                  )}
                 </div>
               )}
 
