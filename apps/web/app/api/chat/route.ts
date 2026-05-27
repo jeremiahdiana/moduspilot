@@ -304,7 +304,7 @@ export async function POST(req: Request) {
       // Platform default: route by model name — gpt-* goes to OpenAI (paid only), llama-* goes to Groq
       const platformPlan = userData.plan as string | undefined;
       const isPaid = platformPlan === 'modus' || platformPlan === 'pilot';
-      const selectedModel = ms?.model ?? (isPaid ? 'gpt-4o-mini' : 'llama-3.3-70b-versatile');
+      const selectedModel = ms?.model ?? 'llama-3.3-70b-versatile';
       const openAIKey = process.env.OPENAI_API_KEY?.trim().replace(/\s/g, '');
       const wantsOpenAI = selectedModel.startsWith('gpt') && isPaid && openAIKey;
       if (wantsOpenAI) {
