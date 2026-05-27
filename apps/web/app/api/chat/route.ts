@@ -28,6 +28,27 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
   explanatory: 'RESPONSE STYLE: Be warm and encouraging but stay honest. Supportive, not sycophantic.',
 };
 
+function needsEmailCtx(q: string): boolean {
+  return /\b(email|mail|inbox|reply|draft|send|unread|thread|gmail|message from|wrote)\b/i.test(q);
+}
+function needsCalendarCtx(q: string): boolean {
+  return /\b(calendar|schedule|meeting|event|appointment|today|tomorrow|this week|next week|when am i|busy|free time)\b/i.test(q);
+}
+function needsNotionCtx(q: string): boolean {
+  return /\bnotion\b/i.test(q);
+}
+function needsSlackCtx(q: string): boolean {
+  return /\bslack\b/i.test(q);
+}
+function needsGithubCtx(q: string): boolean {
+  return /\b(github|pull request|\bpr\b|issue|repo|commit|branch|merge|code review)\b/i.test(q);
+}
+// Short or open-ended queries get Gmail + Calendar by default (most commonly useful)
+function isVagueQuery(q: string): boolean {
+  return q.trim().split(/\s+/).length < 6 ||
+    /\b(focus|priorit|what('s| is) (next|up|happening|going on)|catch me up|status|brief|overview|update me|check in|morning|today)\b/i.test(q);
+}
+
 export async function POST(req: Request) {
   try {
     const key = process.env.GROQ_API_KEY ?? '';
@@ -153,40 +174,43 @@ export async function POST(req: Request) {
       briefingTimezone = settings.briefingTimezone ?? 'UTC';
     }
 
-    // Fetch live Google data if connected
+    // Derive query text early so context detection can use it
+    const lastUserMsg = [...cappedMessages].reverse().find(m => m.role === 'user');
+    const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
+
+    const wantsEmail    = needsEmailCtx(queryText)    || isVagueQuery(queryText);
+    const wantsCalendar = needsCalendarCtx(queryText) || isVagueQuery(queryText);
+
+    // Fetch live Google data only when relevant to the query
     let gmailBlock = '';
     let calendarBlock = '';
-    if (uid) {
+    if (uid && (wantsEmail || wantsCalendar)) {
       try {
         const googleToken = await getValidAccessToken(uid);
         if (googleToken) {
           const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';
           const [threads, events] = await Promise.all([
-            getActionableThreads(googleToken, { filter: gmailFilter }),
-            getTodayEvents(googleToken),
+            wantsEmail    ? getActionableThreads(googleToken, { filter: gmailFilter }) : Promise.resolve([]),
+            wantsCalendar ? getTodayEvents(googleToken) : Promise.resolve([]),
           ]);
           if (threads.length > 0) {
             gmailBlock = '\n\nINBOX (last 5 days — these are the only emails you have access to, never invent others):\n' +
               threads.slice(0, 5).map((t, i) =>
                 `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
               ).join('\n\n');
-          } else {
+          } else if (wantsEmail) {
             gmailBlock = '\n\nINBOX: No emails in the last 5 days.';
           }
           const todayEvents = events.filter(e => !e.allDay);
           if (todayEvents.length > 0) {
             calendarBlock = "\n\nTODAY'S CALENDAR:\n" +
               todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
-          } else {
+          } else if (wantsCalendar) {
             calendarBlock = "\n\nTODAY'S CALENDAR: No events today.";
           }
         }
       } catch { /* non-fatal */ }
     }
-
-    // Find last user message for memory retrieval
-    const lastUserMsg = [...cappedMessages].reverse().find(m => m.role === 'user');
-    const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
 
     // Fetch user capabilities (stored under settings.capabilities)
     const capabilities: Record<string, boolean> = uid ? {
@@ -453,11 +477,11 @@ export async function POST(req: Request) {
         connectorBlock = `\n\nCONNECTED INTEGRATIONS: ${connected.join(', ')}`;
         if (notConnected.length > 0) connectorBlock += `\nNOT YET CONNECTED: ${notConnected.join(', ')} — generate a connect card if the user asks about these services`;
 
-        // Fetch live data from connected services in parallel
+        // Fetch live data only when the query is about that service
         const [notionPages, slackMessages, githubItems] = await Promise.all([
-          notionToken ? getRecentNotionPages(notionToken.token, 5) : Promise.resolve([]),
-          slackToken ? getRecentSlackActivity(slackToken.token, 8) : Promise.resolve([]),
-          githubToken ? getGitHubWorkItems(githubToken.token, githubToken.login, 8) : Promise.resolve([]),
+          notionToken  && needsNotionCtx(queryText)  ? getRecentNotionPages(notionToken.token, 5)                        : Promise.resolve([]),
+          slackToken   && needsSlackCtx(queryText)   ? getRecentSlackActivity(slackToken.token, 8)                       : Promise.resolve([]),
+          githubToken  && needsGithubCtx(queryText)  ? getGitHubWorkItems(githubToken.token, githubToken.login, 8)       : Promise.resolve([]),
         ]);
 
         if (notionPages.length > 0) {
