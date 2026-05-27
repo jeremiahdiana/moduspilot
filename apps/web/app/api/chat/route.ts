@@ -225,6 +225,9 @@ export async function POST(req: Request) {
     if (uid && (wantsEmail || wantsCalendar)) {
       try {
         const googleToken = await getValidAccessToken(uid);
+        if (!googleToken && wantsEmail) {
+          gmailBlock = '\n\nINBOX: Gmail is connected but the access token could not be refreshed. Do NOT invent or fabricate any emails — tell the user their Gmail token may need to be reconnected.';
+        }
         if (googleToken) {
           const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';
           const [threads, events] = await Promise.all([
