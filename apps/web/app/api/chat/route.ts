@@ -210,6 +210,15 @@ export async function POST(req: Request) {
     const wantsEmail    = needsEmailCtx(queryText)    || isVagueQuery(queryText);
     const wantsCalendar = needsCalendarCtx(queryText) || isVagueQuery(queryText);
 
+    // Start Pinecone early — runs in parallel with all other context fetches below
+    const memoryPromise: Promise<Awaited<ReturnType<typeof queryMemory>>> =
+      (uid && queryText && process.env.PINECONE_API_KEY)
+        ? Promise.race([
+            queryMemory(uid, queryText, 4),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 800)),
+          ]).catch(e => { console.error('[chat] memory query failed:', e); return []; })
+        : Promise.resolve([]);
+
     // Fetch live Google data only when relevant to the query
     let gmailBlock = '';
     let calendarBlock = '';
@@ -276,21 +285,14 @@ export async function POST(req: Request) {
       } catch { /* non-fatal */ }
     }
 
-    // Query Pinecone for relevant memories
+    // Collect Pinecone result (started in parallel above)
     let memoryContext = '';
-    if (uid && queryText && process.env.PINECONE_API_KEY) {
-      try {
-        const matches = await Promise.race([
-          queryMemory(uid, queryText, 4),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
-        ]);
-        const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
-        if (relevant.length > 0) {
-          memoryContext = '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +
-            relevant.map(m => `- ${String(m.metadata?.text ?? '')}`).join('\n');
-        }
-      } catch (e) {
-        console.error('[chat] memory query failed:', e);
+    {
+      const matches = await memoryPromise;
+      const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
+      if (relevant.length > 0) {
+        memoryContext = '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +
+          relevant.map(m => `- ${String(m.metadata?.text ?? '')}`).join('\n');
       }
     }
 
