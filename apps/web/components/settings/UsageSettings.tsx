@@ -135,13 +135,11 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
           {(isPaid ? [
             { label: 'Daily AI tokens',   value: `${dailyLimit.toLocaleString()}/day` },
             { label: 'Weekly AI tokens',  value: `${weeklyLimit.toLocaleString()}/week` },
-            { label: 'Conversations',     value: 'Unlimited' },
             { label: 'Goals / Tasks / Habits', value: 'Unlimited' },
             { label: 'Memory storage',    value: 'Unlimited' },
             { label: 'Data retention',    value: '2 years' },
           ] : [
             { label: 'Daily messages',    value: `${FREE_DAILY_LIMIT}/day (after trial)` },
-            { label: 'Conversations',     value: 'Unlimited' },
             { label: 'Goals / Tasks / Habits', value: 'Unlimited' },
             { label: 'Memory storage',    value: '50 memories' },
             { label: 'Data retention',    value: '90 days' },
