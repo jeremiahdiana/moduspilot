@@ -56,13 +56,15 @@ export function useUserSettings(user: User | null) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const uid = user?.uid ?? null;
+
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (!uid) { setLoading(false); return; }
     let cancelled = false;
 
     const load = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDoc = await getDoc(doc(db, 'users', uid));
         if (!cancelled && userDoc.exists()) {
           const data = userDoc.data();
           if (data.settings) {
@@ -76,7 +78,7 @@ export function useUserSettings(user: User | null) {
           setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', dailyTokens: (data.dailyTokens as number) ?? 0, tokenDate: (data.tokenDate as string) ?? '', weeklyTokens: (data.weeklyTokens as number) ?? 0, tokenWeek: (data.tokenWeek as string) ?? '' });
         }
 
-        const memSnap = await getDocs(collection(db, 'users', user.uid, 'memories'));
+        const memSnap = await getDocs(collection(db, 'users', uid, 'memories'));
         if (!cancelled) {
           const mems: Memory[] = memSnap.docs.map(d => ({
             id: d.id,
@@ -95,7 +97,7 @@ export function useUserSettings(user: User | null) {
 
     load();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [uid]);
 
   const saveSettings = useCallback(async (updates: Partial<UserSettings>) => {
     if (!user) return;
