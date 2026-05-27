@@ -167,8 +167,8 @@ export async function POST(req: Request) {
           ]);
           if (threads.length > 0) {
             gmailBlock = '\n\nINBOX (last 5 days — these are the only emails you have access to, never invent others):\n' +
-              threads.map((t, i) =>
-                `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 1500) : t.snippet}`
+              threads.slice(0, 5).map((t, i) =>
+                `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
               ).join('\n\n');
           } else {
             gmailBlock = '\n\nINBOX: No emails in the last 5 days.';
