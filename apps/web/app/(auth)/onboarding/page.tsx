@@ -407,6 +407,12 @@ function GoogleStep({ googleEmail, onConnect, connecting, error }: {
           {error && (
             <p className="text-xs text-red-400 text-center mt-1">{error}</p>
           )}
+          <div className="flex items-start gap-2.5 bg-panel/60 border border-border/60 rounded-xl px-4 py-3">
+            <span className="text-base shrink-0 mt-0.5">🔒</span>
+            <p className="text-xs text-muted leading-relaxed">
+              You may see an &quot;unverified app&quot; warning from Google — our verification is currently in progress. To continue, click <span className="text-text font-medium">Advanced</span> then <span className="text-text font-medium">Go to Modus Pilot</span>. Your data is fully secure.
+            </p>
+          </div>
         </>
       )}
     </div>
