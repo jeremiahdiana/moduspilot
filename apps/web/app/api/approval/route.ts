@@ -177,6 +177,30 @@ export async function POST(req: Request) {
       await match.ref.update({ title, ...payload, updatedAt: FieldValue.serverTimestamp() });
       return Response.json({ id: match.id });
     }
+    case 'update_task': {
+      const taskId = payload.taskId as string | undefined;
+      const { taskId: _tid, ...taskFields } = payload;
+      if (taskId) {
+        await userRef.collection('tasks').doc(taskId).update({ ...taskFields, updatedAt: FieldValue.serverTimestamp() });
+        return Response.json({ id: taskId });
+      }
+      const match = await fuzzyFind(userRef.collection('tasks'), title);
+      if (!match) return Response.json({ error: 'Task not found' }, { status: 404 });
+      await match.ref.update({ ...taskFields, updatedAt: FieldValue.serverTimestamp() });
+      return Response.json({ id: match.id });
+    }
+    case 'update_habit': {
+      const habitId = payload.habitId as string | undefined;
+      const { habitId: _hid, ...habitFields } = payload;
+      if (habitId) {
+        await userRef.collection('habits').doc(habitId).update({ ...habitFields, updatedAt: FieldValue.serverTimestamp() });
+        return Response.json({ id: habitId });
+      }
+      const match = await fuzzyFind(userRef.collection('habits'), title);
+      if (!match) return Response.json({ error: 'Habit not found' }, { status: 404 });
+      await match.ref.update({ ...habitFields, updatedAt: FieldValue.serverTimestamp() });
+      return Response.json({ id: match.id });
+    }
     case 'delete_task': {
       const taskId = payload.taskId as string | undefined;
       if (taskId) {

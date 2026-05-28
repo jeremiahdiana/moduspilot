@@ -19,6 +19,8 @@ const TYPE_LABELS: Record<string, string> = {
   draft_email: 'Draft Email',
   update_goal: 'Update Goal',
   update_goal_progress: 'Goal Progress',
+  update_task: 'Update Task',
+  update_habit: 'Update Habit',
   delete_task: 'Delete Task',
   delete_habit: 'Delete Habit',
   delete_goal: 'Delete Goal',

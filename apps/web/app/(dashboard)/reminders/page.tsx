@@ -49,8 +49,11 @@ const PRIORITY_LABEL: Record<string, string> = {
 const PRIORITY_FILTER_OPTS = ['all', 'high', 'medium', 'low'] as const;
 type PriorityFilter = typeof PRIORITY_FILTER_OPTS[number];
 
-const todayStr = new Date().toISOString().slice(0, 10);
-function isOverdue(d?: string) { return d && d < todayStr; }
+function localDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function isOverdue(d?: string) { return d && d < localDateStr(); }
 
 // ── Heatmap helpers ────────────────────────────────────────────────────────────
 
@@ -158,6 +161,7 @@ function Heatmap({ completedDates, onToggle }: { completedDates: string[]; onTog
 
 export default function RemindersPage() {
   const { user } = useAuth();
+  const todayStr = localDateStr();
 
   // Habits state
   const [habits, setHabits] = useState<Habit[]>([]);
