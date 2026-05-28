@@ -17,11 +17,13 @@ export default function Navbar({ solid = false }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [authedUser, setAuthedUser] = useState<{ name: string | null; email: string | null } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setAuthedUser(u ? { name: u.displayName, email: u.email } : null);
+      setAuthLoading(false);
     });
     return unsub;
   }, []);
@@ -102,46 +104,74 @@ export default function Navbar({ solid = false }: Props) {
 
         <div className="flex items-center gap-3">
           <AnimatedThemeToggler />
-          {authedUser ? (
-            <>
-              <div className="flex items-center gap-2 text-sm text-muted">
-                <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-xs font-bold text-brand">
-                  {(authedUser.name || authedUser.email || '?')[0].toUpperCase()}
+          <AnimatePresence mode="wait">
+            {authLoading ? (
+              <motion.div
+                key="auth-skeleton"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-2"
+              >
+                <div className="w-7 h-7 rounded-full bg-border/60 animate-pulse" />
+                <div className="hidden sm:block w-16 h-4 rounded bg-border/60 animate-pulse" />
+              </motion.div>
+            ) : authedUser ? (
+              <motion.div
+                key="auth-user"
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex items-center gap-2"
+              >
+                <div className="flex items-center gap-2 text-sm text-muted">
+                  <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-xs font-bold text-brand">
+                    {(authedUser.name || authedUser.email || '?')[0].toUpperCase()}
+                  </div>
+                  <span className="hidden sm:block text-text font-medium">
+                    {authedUser.name?.split(' ')[0] ?? 'You'}
+                  </span>
                 </div>
-                <span className="hidden sm:block text-text font-medium">
-                  {authedUser.name?.split(' ')[0] ?? 'You'}
-                </span>
-              </div>
-              <Link
-                href="/dashboard"
-                className="btn-primary group flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
+                <Link
+                  href="/dashboard"
+                  className="btn-primary group flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
+                >
+                  <span className="hidden sm:inline">Go to </span>Dashboard
+                  <span className="group-hover:translate-x-0.5 transition-transform duration-200 hidden sm:inline">→</span>
+                </Link>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="auth-guest"
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="flex items-center gap-2"
               >
-                <span className="hidden sm:inline">Go to </span>Dashboard
-                <span className="group-hover:translate-x-0.5 transition-transform duration-200 hidden sm:inline">→</span>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="hidden sm:block text-sm text-muted hover:text-text transition-colors shrink-0">
-                Sign In
-              </Link>
-              <Link
-                href="/login"
-                className="hidden md:block btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
-              >
-                Get Started
-              </Link>
-              <button
-                onClick={() => setMenuOpen(o => !o)}
-                className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5"
-                aria-label="Toggle menu"
-              >
-                <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-                <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-                <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
-              </button>
-            </>
-          )}
+                <Link href="/login" className="hidden sm:block text-sm text-muted hover:text-text transition-colors shrink-0">
+                  Sign In
+                </Link>
+                <Link
+                  href="/login"
+                  className="hidden md:block btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
+                >
+                  Get Started
+                </Link>
+                <button
+                  onClick={() => setMenuOpen(o => !o)}
+                  className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5"
+                  aria-label="Toggle menu"
+                >
+                  <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                  <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+                  <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

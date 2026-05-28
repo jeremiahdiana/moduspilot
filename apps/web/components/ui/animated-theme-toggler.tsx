@@ -62,7 +62,7 @@ export function AnimatedThemeToggler({
   const maskId = `att${rawId.replace(/:/g, "")}`;
   const lastSnd = useRef(0);
   const isFirst = useRef(true);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
