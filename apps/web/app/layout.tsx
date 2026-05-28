@@ -1,13 +1,6 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
-
-const bricolage = Bricolage_Grotesque({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-sans',
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://moduspilot.com'),
@@ -34,9 +27,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={bricolage.variable}>
+    <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700,900&display=swap" />
         {/* Inject theme before first paint to avoid flash. Defaults to dark. */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){

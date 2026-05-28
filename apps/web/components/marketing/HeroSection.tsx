@@ -276,7 +276,7 @@ export default function HeroSection() {
       </div>
 
       {/* Text block — w-full forces it to fill the flex container so text-center works correctly on mobile */}
-      <div className="relative w-full max-w-3xl mx-auto text-center z-10 mb-12">
+      <div className="relative w-full max-w-3xl mx-auto text-center z-10 mb-12 pt-14">
         <motion.h1
           initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}

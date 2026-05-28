@@ -7,6 +7,8 @@
 
 /* Light mode (default — dark class added by JS if preference is dark) */
 :root {
+  --font-display: 'Clash Display', system-ui, sans-serif;
+  --font-sans: 'Satoshi', system-ui, sans-serif;
   --color-bg: 250 249 255;
   --color-panel: 255 255 255;
   --color-border: 226 220 244;
@@ -38,6 +40,10 @@ body {
   color: rgb(var(--color-text));
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
 }
 
 /* Light mode: rich gradient background + dot grid */
