@@ -134,6 +134,7 @@ export default function LoginPage() {
       router.push(await getDestination(result.user));
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
+      console.error('[Apple sign-in error]', code, e);
       if (code === 'auth/popup-blocked') {
         await signInWithRedirect(auth, appleProvider);
       } else if (code !== 'auth/cancelled-popup-request' && code !== 'auth/popup-closed-by-user') {
