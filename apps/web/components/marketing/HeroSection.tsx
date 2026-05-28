@@ -280,7 +280,7 @@ export default function HeroSection() {
         <motion.h1
           initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
-          className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[1.08] tracking-tight mb-6"
+          className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.08] tracking-tight mb-6"
         >
           <span className="text-text">The AI That</span><br />
           <span className="hero-gradient-text">Runs Your Life.</span>

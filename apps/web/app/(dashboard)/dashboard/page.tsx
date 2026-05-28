@@ -336,7 +336,7 @@ export default function DashboardPage() {
           {/* Top row: greeting + MODUS live badge */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-text">
+              <h1 className="text-2xl font-medium text-text">
                 {greeting()}{firstName ? (
                   <>, <span className="gradient-text-animated">{firstName}</span></>
                 ) : ''}.

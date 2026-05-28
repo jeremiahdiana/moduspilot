@@ -1221,7 +1221,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted mb-3">Morning Briefing</p>
-              <h1 className="text-3xl font-bold text-text leading-tight mb-4">{fmtHeader(briefing.createdAt)}</h1>
+              <h1 className="text-3xl font-medium text-text leading-tight mb-4">{fmtHeader(briefing.createdAt)}</h1>
               {/* Narrative paragraph or opening line headline */}
               {data?.narrative ? (
                 <p className="text-[15px] text-text/80 leading-relaxed mb-1">{data.narrative}</p>

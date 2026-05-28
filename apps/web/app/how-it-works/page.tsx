@@ -304,7 +304,7 @@ export default function HowItWorksPage() {
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16,1,0.3,1] }}>
             <p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">How it works</p>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-text leading-[1.02] mb-8 tracking-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-text leading-[1.02] mb-8 tracking-tight">
               An AI that runs<br />
               <span className="text-brand">your day.</span><br />
               Not one you run.
@@ -328,7 +328,7 @@ export default function HowItWorksPage() {
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
             <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Live scenarios</p>
-            <h2 className="text-4xl font-black text-text mb-2">See it in action.</h2>
+            <h2 className="text-4xl font-semibold text-text mb-2">See it in action.</h2>
             <p className="text-muted mb-10 text-base">Real situations. One message each. Watch how MODUS handles it.</p>
           </RevealOnScroll>
 
@@ -376,7 +376,7 @@ export default function HowItWorksPage() {
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
             <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The flow</p>
-            <h2 className="text-4xl font-black text-text mb-12">Four steps. Zero micromanagement.</h2>
+            <h2 className="text-4xl font-semibold text-text mb-12">Four steps. Zero micromanagement.</h2>
           </RevealOnScroll>
           <div className="grid md:grid-cols-2 gap-5">
             {STEPS.map((step, i) => (
@@ -387,7 +387,7 @@ export default function HowItWorksPage() {
                   className="bg-panel/80 backdrop-blur-sm border border-border rounded-2xl p-7 hover:border-brand/30 transition-colors group"
                 >
                   <div className="flex items-start gap-4 mb-4">
-                    <span className="text-4xl font-black text-brand/15 group-hover:text-brand/25 transition-colors leading-none">{step.n}</span>
+                    <span className="text-4xl font-semibold text-brand/15 group-hover:text-brand/25 transition-colors leading-none">{step.n}</span>
                     <span className="text-2xl text-brand mt-1">{step.icon}</span>
                   </div>
                   <h3 className="text-lg font-bold text-text mb-2">{step.title}</h3>
@@ -407,7 +407,7 @@ export default function HowItWorksPage() {
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
             <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The difference</p>
-            <h2 className="text-4xl font-black text-text mb-10">Other AI answers. MODUS acts.</h2>
+            <h2 className="text-4xl font-semibold text-text mb-10">Other AI answers. MODUS acts.</h2>
           </RevealOnScroll>
           <RevealOnScroll delay={0.1}>
             <div className="bg-panel/80 backdrop-blur-sm border border-border rounded-2xl overflow-hidden">
@@ -439,7 +439,7 @@ export default function HowItWorksPage() {
           <RevealOnScroll direction="none">
             <div className="relative max-w-2xl mx-auto space-y-6">
               <p className="text-xs font-bold text-brand uppercase tracking-widest">Ready?</p>
-              <h2 className="text-4xl md:text-5xl font-black text-text leading-tight">
+              <h2 className="text-4xl md:text-5xl font-semibold text-text leading-tight">
                 You&apos;re the executive.<br />
                 <span className="text-brand">MODUS handles the rest.</span>
               </h2>
