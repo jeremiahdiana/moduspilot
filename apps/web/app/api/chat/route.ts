@@ -235,7 +235,7 @@ export async function POST(req: Request) {
               wantsEmail
                 ? Promise.all(allAccounts.map(a => getActionableThreads(a.token, { filter: gmailFilter }).catch(() => [] as GmailThread[])))
                 : Promise.resolve([] as GmailThread[][]),
-              wantsCalendar && googleToken ? getTodayEvents(googleToken) : Promise.resolve([] as CalendarEvent[]),
+              wantsCalendar && googleToken ? getTodayEvents(googleToken, briefingTimezone) : Promise.resolve([] as CalendarEvent[]),
             ]);
             const seenIds = new Set<string>();
             const threads = (allThreadResults as GmailThread[][]).flat()
@@ -251,7 +251,7 @@ export async function POST(req: Request) {
             const todayEvents = (events as CalendarEvent[]).filter(e => !e.allDay);
             if (todayEvents.length > 0) {
               calendarBlock = "\n\nTODAY'S CALENDAR:\n" +
-                todayEvents.map(e => `- ${fmtEventTime(e.start)}: ${e.title}`).join('\n');
+                todayEvents.map(e => `- ${fmtEventTime(e.start, briefingTimezone)}: ${e.title}`).join('\n');
             } else if (wantsCalendar) {
               calendarBlock = "\n\nTODAY'S CALENDAR: No events today.";
             }
@@ -486,7 +486,7 @@ export async function POST(req: Request) {
     }
 
     const googleDataBlock = gmailBlock || calendarBlock
-      ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it in the last 10 days. NEVER suggest the user connect Gmail or Google — it is already connected.`
+      ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it in the last 10 days. NEVER suggest the user connect Gmail or Google — it is already connected. NEVER say you "can't see" or "don't have real-time access to" the calendar — you DO have it. The calendar data above is live and real-time. If no events are listed, that means there are genuinely no events scheduled for today.`
       : '';
 
     // Connector status + live data from Notion, Slack, GitHub

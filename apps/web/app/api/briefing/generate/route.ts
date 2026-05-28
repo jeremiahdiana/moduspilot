@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       adminDb.collection('users').doc(uid).collection('contacts').get(),
     ]);
 
-    const userTimezone: string = userDoc.data()?.settings?.briefingTimezone ?? 'America/Los_Angeles';
+    const userTimezone: string = userDoc.data()?.settings?.briefingTimezone ?? 'UTC';
 
     const goals = goalsSnap.docs
       .filter(d => !d.data().deleted)
