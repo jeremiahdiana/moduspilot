@@ -277,14 +277,6 @@ export default function HeroSection() {
 
       {/* Text block — w-full forces it to fill the flex container so text-center works correctly on mobile */}
       <div className="relative w-full max-w-3xl mx-auto text-center z-10 mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand/30 bg-brand/5 backdrop-blur-sm text-brand text-[11px] font-semibold mb-8 max-w-full"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
-          <span className="truncate">Early Access — 30 days free, no card needed</span>
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
@@ -326,7 +318,7 @@ export default function HeroSection() {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.5 }}
           className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted/60"
         >
-          {['Gmail & Calendar', 'GPT-5 powered', 'Privacy-first', 'Cancel anytime'].map(t => (
+          {['Gmail & Calendar', 'Privacy-first', 'Cancel anytime'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
               <span className="text-brand/60">✓</span> {t}
             </span>

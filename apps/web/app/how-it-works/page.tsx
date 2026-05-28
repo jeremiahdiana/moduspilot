@@ -324,37 +324,6 @@ export default function HowItWorksPage() {
           </motion.div>
         </section>
 
-        {/* 4 steps */}
-        <section className="px-6 py-20 max-w-5xl mx-auto">
-          <RevealOnScroll>
-            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The flow</p>
-            <h2 className="text-4xl font-black text-text mb-12">Four steps. Zero micromanagement.</h2>
-          </RevealOnScroll>
-          <div className="grid md:grid-cols-2 gap-5">
-            {STEPS.map((step, i) => (
-              <RevealOnScroll key={step.n} delay={i * 0.1}>
-                <motion.div
-                  whileHover={{ y: -4, boxShadow: '0 20px 60px rgba(124,58,237,0.12)' }}
-                  transition={{ duration: 0.2 }}
-                  className="bg-panel/80 backdrop-blur-sm border border-border rounded-2xl p-7 hover:border-brand/30 transition-colors group"
-                >
-                  <div className="flex items-start gap-4 mb-4">
-                    <span className="text-4xl font-black text-brand/15 group-hover:text-brand/25 transition-colors leading-none">{step.n}</span>
-                    <span className="text-2xl text-brand mt-1">{step.icon}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-text mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted leading-relaxed mb-4">{step.desc}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {step.tags.map(t => (
-                      <span key={t} className="text-[10px] text-brand/70 bg-brand/6 border border-brand/15 px-2 py-0.5 rounded-full">{t}</span>
-                    ))}
-                  </div>
-                </motion.div>
-              </RevealOnScroll>
-            ))}
-          </div>
-        </section>
-
         {/* Scenarios */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
@@ -401,6 +370,37 @@ export default function HowItWorksPage() {
               </AnimatePresence>
             </div>
           </RevealOnScroll>
+        </section>
+
+        {/* 4 steps */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <RevealOnScroll>
+            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The flow</p>
+            <h2 className="text-4xl font-black text-text mb-12">Four steps. Zero micromanagement.</h2>
+          </RevealOnScroll>
+          <div className="grid md:grid-cols-2 gap-5">
+            {STEPS.map((step, i) => (
+              <RevealOnScroll key={step.n} delay={i * 0.1}>
+                <motion.div
+                  whileHover={{ y: -4, boxShadow: '0 20px 60px rgba(124,58,237,0.12)' }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-panel/80 backdrop-blur-sm border border-border rounded-2xl p-7 hover:border-brand/30 transition-colors group"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <span className="text-4xl font-black text-brand/15 group-hover:text-brand/25 transition-colors leading-none">{step.n}</span>
+                    <span className="text-2xl text-brand mt-1">{step.icon}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-text mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted leading-relaxed mb-4">{step.desc}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {step.tags.map(t => (
+                      <span key={t} className="text-[10px] text-brand/70 bg-brand/6 border border-brand/15 px-2 py-0.5 rounded-full">{t}</span>
+                    ))}
+                  </div>
+                </motion.div>
+              </RevealOnScroll>
+            ))}
+          </div>
         </section>
 
         {/* MODUS vs others */}
