@@ -1,6 +1,6 @@
 'use client';
 
-import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithRedirect, onAuthStateChanged } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithRedirect, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -92,8 +92,12 @@ const appleProvider = new OAuthProvider('apple.com');
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
+  const [loading, setLoading] = useState<'google' | 'apple' | 'email' | null>(null);
   const [checking, setChecking] = useState(true);
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   // If already signed in, skip straight to the app
   useEffect(() => {
@@ -134,6 +138,44 @@ export default function LoginPage() {
         await signInWithRedirect(auth, appleProvider);
       } else if (code !== 'auth/cancelled-popup-request' && code !== 'auth/popup-closed-by-user') {
         setError('Sign in failed. Please try again.');
+      }
+      setLoading(null);
+    }
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (emailMode === 'reset') {
+      setLoading('email');
+      try {
+        await sendPasswordResetEmail(auth, email);
+        setResetSent(true);
+      } catch {
+        setError('Could not send reset email. Check the address and try again.');
+      } finally {
+        setLoading(null);
+      }
+      return;
+    }
+    setLoading('email');
+    try {
+      const result = emailMode === 'signup'
+        ? await createUserWithEmailAndPassword(auth, email, password)
+        : await signInWithEmailAndPassword(auth, email, password);
+      router.push(await getDestination(result.user));
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setError('Incorrect email or password.');
+      } else if (code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Sign in instead.');
+      } else if (code === 'auth/weak-password') {
+        setError('Password must be at least 6 characters.');
+      } else if (code === 'auth/invalid-email') {
+        setError('Enter a valid email address.');
+      } else {
+        setError('Something went wrong. Please try again.');
       }
       setLoading(null);
     }
@@ -245,12 +287,81 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-border/60" />
           </div>
 
-          <button
-            onClick={() => router.push('/')}
-            className="w-full text-center text-muted/50 text-xs hover:text-muted transition-colors"
-          >
-            Back to moduspilot.com
-          </button>
+          {/* Email / password form */}
+          {emailMode === 'reset' ? (
+            <form onSubmit={handleEmailSubmit} className="space-y-3">
+              {resetSent ? (
+                <p className="text-xs text-emerald-400 text-center py-2">Reset link sent — check your inbox.</p>
+              ) : (
+                <>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Email address"
+                    required
+                    className="w-full bg-bg/60 border border-border rounded-xl px-4 py-3 text-sm text-text placeholder:text-muted/40 focus:outline-none focus:border-brand/50 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading === 'email'}
+                    className="w-full py-3 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-60"
+                  >
+                    {loading === 'email' ? 'Sending…' : 'Send reset link'}
+                  </button>
+                </>
+              )}
+              <button type="button" onClick={() => { setEmailMode('signin'); setResetSent(false); setError(''); }} className="w-full text-center text-muted/50 text-xs hover:text-muted transition-colors">
+                ← Back to sign in
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleEmailSubmit} className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Email address"
+                required
+                className="w-full bg-bg/60 border border-border rounded-xl px-4 py-3 text-sm text-text placeholder:text-muted/40 focus:outline-none focus:border-brand/50 transition-colors"
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+                minLength={6}
+                className="w-full bg-bg/60 border border-border rounded-xl px-4 py-3 text-sm text-text placeholder:text-muted/40 focus:outline-none focus:border-brand/50 transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={loading === 'email'}
+                className="w-full py-3 bg-brand text-white text-sm font-medium rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-60"
+              >
+                {loading === 'email' ? 'Please wait…' : emailMode === 'signup' ? 'Create account' : 'Sign in'}
+              </button>
+              <div className="flex items-center justify-between pt-1">
+                <button type="button" onClick={() => { setEmailMode(emailMode === 'signin' ? 'signup' : 'signin'); setError(''); }} className="text-xs text-muted/60 hover:text-muted transition-colors">
+                  {emailMode === 'signin' ? 'Create an account' : 'Already have an account?'}
+                </button>
+                {emailMode === 'signin' && (
+                  <button type="button" onClick={() => { setEmailMode('reset'); setError(''); }} className="text-xs text-muted/60 hover:text-muted transition-colors">
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+
+          <div className="mt-5 text-center">
+            <button
+              onClick={() => router.push('/')}
+              className="text-muted/50 text-xs hover:text-muted transition-colors"
+            >
+              Back to moduspilot.com
+            </button>
+          </div>
         </div>
 
         {/* Trust line below card */}
