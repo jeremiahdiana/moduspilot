@@ -1,11 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import DeckViewer from './DeckViewer';
 
 function Stat({ value, label, source }: { value: string; label: string; source?: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-4xl sm:text-5xl font-black text-[#7c3aed] font-display">{value}</span>
+      <span className="text-5xl sm:text-6xl font-black text-[#7c3aed] font-display">{value}</span>
       <span className="text-white/70 text-sm text-center leading-snug">{label}</span>
       {source && <span className="text-white/25 text-[10px] text-center">{source}</span>}
     </div>
@@ -21,7 +22,7 @@ function Tag({ children }: { children: React.ReactNode }) {
 }
 
 function SlideHeading({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-display text-3xl sm:text-5xl font-black text-white leading-tight">{children}</h2>;
+  return <h2 className="font-display text-4xl sm:text-6xl font-black text-white leading-tight">{children}</h2>;
 }
 
 function Source({ children }: { children: React.ReactNode }) {
@@ -235,27 +236,47 @@ function ProductApproval() {
 
 /* ─── SLIDE 9 — INTEGRATIONS ─────────────────────────────────── */
 function Integrations() {
-  const tools = [
-    'Gmail', 'Google Calendar', 'Google Drive',
-    'Notion', 'Slack', 'GitHub', 'Custom MCP Tools',
-  ];
+  const tools = ['Gmail', 'Google Calendar', 'Google Drive', 'Notion', 'Slack', 'GitHub', 'Custom MCP Tools'];
   return (
-    <div className="flex flex-col gap-8 w-full max-w-3xl mx-auto items-center text-center">
-      <div className="flex flex-col gap-2 items-center">
-        <Tag>Integrations</Tag>
-        <SlideHeading>Connected to your entire life.</SlideHeading>
+    <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+      <div className="flex flex-col gap-2">
+        <Tag>Integrations & Devices</Tag>
+        <SlideHeading>Connected to your tools.<br />Connected to your devices.</SlideHeading>
       </div>
-      <div className="flex flex-wrap gap-3 justify-center">
-        {tools.map(t => (
-          <div key={t} className="px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] text-white/60 text-sm font-medium">
-            {t}
+      <div className="grid grid-cols-2 gap-5">
+        <div className="flex flex-col gap-3">
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Your tools</p>
+          <div className="flex flex-wrap gap-2">
+            {tools.map(t => (
+              <div key={t} className="px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03] text-white/60 text-sm font-medium">
+                {t}
+              </div>
+            ))}
           </div>
-        ))}
+          <p className="text-white/25 text-xs mt-1">Coming next: wearables, CRM, financial data</p>
+        </div>
+        <div className="flex flex-col gap-3">
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Your devices</p>
+          <div className="flex flex-col gap-2">
+            {[
+              { label: 'Web', sub: 'Live now — moduspilot.com', live: true },
+              { label: 'iPhone & iPad', sub: 'iOS app in development', live: false },
+              { label: 'Mac', sub: 'Native app — coming soon', live: false },
+            ].map(({ label, sub, live }) => (
+              <div key={label} className="flex items-center gap-3 p-3 rounded-xl border border-white/6 bg-white/[0.02]">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${live ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                <div>
+                  <p className="text-white/70 text-sm font-medium">{label}</p>
+                  <p className="text-white/30 text-xs">{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <p className="text-white/30 text-sm">Coming next: wearables, CRM, financial data, calendar + email providers beyond Google</p>
       <div className="flex items-center gap-2 p-3 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5">
-        <span className="text-[#7c3aed] text-sm">MCP Protocol Support</span>
-        <span className="text-white/30 text-xs">— connect any tool via custom MCP server. MODUS talks to everything.</span>
+        <span className="text-[#7c3aed] text-sm font-medium">MCP Protocol</span>
+        <span className="text-white/30 text-xs">— connect any custom tool. MODUS talks to everything you use.</span>
       </div>
     </div>
   );
@@ -317,8 +338,8 @@ function Traction() {
           <span className="text-white/50 text-sm">Early users</span>
         </div>
         <div className="flex flex-col items-center gap-1 p-4 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 text-center">
-          <span className="font-display font-black text-4xl text-[#7c3aed]">YC</span>
-          <span className="text-white/50 text-sm">Applied</span>
+          <span className="font-display font-black text-2xl text-[#7c3aed] leading-tight">Multiple</span>
+          <span className="text-white/50 text-sm">Investor programs applied</span>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
@@ -423,7 +444,9 @@ function Team() {
         <SlideHeading>Technical founder.<br />Knows distribution, product, and code.</SlideHeading>
       </div>
       <div className="flex gap-6 items-start">
-        <div className="w-16 h-16 rounded-2xl bg-[#7c3aed]/20 border border-[#7c3aed]/30 flex items-center justify-center text-2xl font-black text-[#7c3aed] font-display shrink-0">J</div>
+        <div className="w-20 h-20 rounded-2xl overflow-hidden border border-[#7c3aed]/30 shrink-0">
+          <Image src="/founder.png" alt="Jeremiah" width={80} height={80} className="w-full h-full object-cover" />
+        </div>
         <div className="flex flex-col gap-4 flex-1">
           <div>
             <p className="text-white font-semibold">Jeremiah</p>

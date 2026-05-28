@@ -44,13 +44,16 @@ export async function POST(req: Request) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    const [goalsSnap, tasksSnap, habitsSnap, allTasksSnap, contactsSnap] = await Promise.all([
+    const [userDoc, goalsSnap, tasksSnap, habitsSnap, allTasksSnap, contactsSnap] = await Promise.all([
+      adminDb.collection('users').doc(uid).get(),
       adminDb.collection('users').doc(uid).collection('goals').where('status', '==', 'active').get(),
       adminDb.collection('users').doc(uid).collection('tasks').where('done', '==', false).get(),
       adminDb.collection('users').doc(uid).collection('habits').get(),
       adminDb.collection('users').doc(uid).collection('tasks').get(),
       adminDb.collection('users').doc(uid).collection('contacts').get(),
     ]);
+
+    const userTimezone: string = userDoc.data()?.settings?.briefingTimezone ?? 'America/Los_Angeles';
 
     const goals = goalsSnap.docs
       .filter(d => !d.data().deleted)
@@ -100,10 +103,16 @@ export async function POST(req: Request) {
     try {
       const googleToken = await getValidAccessToken(uid);
       if (googleToken) {
-        const events = await getTodayEvents(googleToken);
+        const events = await getTodayEvents(googleToken, userTimezone);
+        const seen = new Set<string>();
         schedule = events
           .filter(e => !e.allDay)
-          .map(e => ({ time: fmtEventTime(e.start), title: e.title }));
+          .filter(e => {
+            if (seen.has(e.id)) return false;
+            seen.add(e.id);
+            return true;
+          })
+          .map(e => ({ time: fmtEventTime(e.start, userTimezone), title: e.title }));
       }
     } catch {}
 

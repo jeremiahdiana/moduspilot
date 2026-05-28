@@ -86,7 +86,7 @@ function Proof() {
         {[
           { v: '7', l: 'Days to build a full AI OS' },
           { v: '10+', l: 'Early users' },
-          { v: 'YC', l: 'Applied' },
+          { v: '✓', l: 'Applied to multiple investor programs' },
         ].map(({ v, l }) => (
           <div key={l} className="flex flex-col items-center gap-2 p-5 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 text-center">
             <span className="font-display font-black text-4xl text-[#7c3aed]">{v}</span>

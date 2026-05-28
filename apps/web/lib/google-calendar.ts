@@ -86,13 +86,14 @@ export async function getRecentlyEndedEvents(accessToken: string, windowMinutes 
   } catch { return []; }
 }
 
-export function fmtEventTime(iso: string): string {
+export function fmtEventTime(iso: string, timezone?: string): string {
   if (!iso) return '';
   try {
     return new Date(iso).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      ...(timezone ? { timeZone: timezone } : {}),
     });
   } catch {
     return '';
