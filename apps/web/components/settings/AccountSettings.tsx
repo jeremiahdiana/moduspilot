@@ -6,9 +6,7 @@ import { updateProfile, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
-
-const FREE_DAILY_LIMIT = 20;
-const TRIAL_DAYS = 30;
+import { FREE_DAILY_LIMIT, TRIAL_DAYS } from '@/lib/constants';
 
 interface Props {
   user: User;

@@ -19,6 +19,7 @@ import { getRecentNotionPages } from '@/lib/notion-data';
 import { getRecentSlackActivity } from '@/lib/slack-data';
 import { getGitHubWorkItems } from '@/lib/github-data';
 import { getMcpServers } from '@/lib/mcp-servers';
+import { MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -27,11 +28,6 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
   learning:    'RESPONSE STYLE: Act as a sharp coach. Push the user, hold them accountable, challenge assumptions. Don\'t let them off the hook.',
   explanatory: 'RESPONSE STYLE: Be warm and encouraging but stay honest. Supportive, not sycophantic.',
 };
-
-const MODUS_TOKEN_LIMIT  = 500_000;
-const PILOT_TOKEN_LIMIT  = 1_500_000;
-const MODUS_WEEKLY_LIMIT = MODUS_TOKEN_LIMIT * 7;
-const PILOT_WEEKLY_LIMIT = PILOT_TOKEN_LIMIT * 7;
 
 function getWeekKey(): string {
   const now = new Date();

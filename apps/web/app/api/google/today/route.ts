@@ -18,9 +18,10 @@ export async function GET(req: Request) {
       googleToken = await getValidAccessToken(uid);
     }
 
-    if (!googleToken) return Response.json({ events: [], notConnected: true });
-    const events = await getTodayEvents(googleToken);
-    return Response.json({ events: events.filter(e => !e.allDay) });
+    if (!googleToken) return Response.json({ events: [], connected: false });
+    const tz = new URL(req.url).searchParams.get('tz') ?? 'UTC';
+    const events = await getTodayEvents(googleToken, tz);
+    return Response.json({ events: events.filter(e => !e.allDay), connected: true });
   } catch (e) {
     console.error('[api/google/today]', e);
     return Response.json({ events: [] });

@@ -1,10 +1,6 @@
 'use client';
 
-const FREE_DAILY_LIMIT   = 20;
-const MODUS_TOKEN_LIMIT  = 500_000;
-const PILOT_TOKEN_LIMIT  = 1_500_000;
-const MODUS_WEEKLY_LIMIT = MODUS_TOKEN_LIMIT * 7;
-const PILOT_WEEKLY_LIMIT = PILOT_TOKEN_LIMIT * 7;
+import { FREE_DAILY_LIMIT, MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
 
 interface Props {
   plan: 'free' | 'modus' | 'pilot';

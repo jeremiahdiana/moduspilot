@@ -1038,7 +1038,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   useEffect(() => {
     if (!authToken) return;
     setGmailLoading(true);
-    fetch(`/api/integrations/gmail?filter=${emailFilter}`, { headers: { Authorization: `Bearer ${authToken}` } })
+    fetch(`/api/google/inbox?filter=${emailFilter}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json()).then(d => { setGmailThreads(d.threads ?? []); setGmailConnected(d.connected ?? false); })
       .catch(() => {}).finally(() => setGmailLoading(false));
   }, [authToken, emailFilter]);
@@ -1046,7 +1046,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   useEffect(() => {
     if (!authToken) return;
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    fetch(`/api/integrations/calendar?tz=${encodeURIComponent(tz)}`, { headers: { Authorization: `Bearer ${authToken}` } })
+    fetch(`/api/google/today?tz=${encodeURIComponent(tz)}`, { headers: { Authorization: `Bearer ${authToken}` } })
       .then(r => r.json()).then(d => { setCalendarEvents(d.events ?? []); setCalendarConnected(d.connected ?? false); })
       .catch(() => {});
   }, [authToken]);
