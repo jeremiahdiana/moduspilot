@@ -68,7 +68,7 @@ export default function ChatWindow({
       responseStyle: responseStyle ?? 'normal',
       customStyle: customStyle ?? '',
       briefingHour: briefingHour ?? 7,
-      briefingTimezone: briefingTimezone ?? 'UTC',
+      briefingTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || briefingTimezone || 'UTC',
     },
     onError: (err) => {
       const msg = (err?.message ?? '').toLowerCase();

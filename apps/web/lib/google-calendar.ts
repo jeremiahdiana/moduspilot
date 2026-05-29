@@ -11,8 +11,13 @@ export interface CalendarEvent {
 export async function getTodayEvents(accessToken: string, timezone = 'UTC'): Promise<CalendarEvent[]> {
   try {
     const dateStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
-    const timeMin = new Date(`${dateStr}T00:00:00`).toISOString();
-    const timeMax = new Date(`${dateStr}T23:59:59`).toISOString();
+    // Build timezone-aware start/end of day by extracting the UTC offset for the user's timezone
+    const tzParts = new Intl.DateTimeFormat('en', { timeZone: timezone, timeZoneName: 'shortOffset' }).formatToParts(new Date());
+    const tzLabel = tzParts.find(p => p.type === 'timeZoneName')?.value ?? 'GMT+0';
+    const tzMatch = tzLabel.match(/GMT([+-])(\d+)(?::(\d+))?/);
+    const offsetStr = tzMatch ? `${tzMatch[1]}${tzMatch[2].padStart(2, '0')}:${(tzMatch[3] ?? '0').padStart(2, '0')}` : '+00:00';
+    const timeMin = new Date(`${dateStr}T00:00:00${offsetStr}`).toISOString();
+    const timeMax = new Date(`${dateStr}T23:59:59${offsetStr}`).toISOString();
 
     const params = new URLSearchParams({
       timeMin,
