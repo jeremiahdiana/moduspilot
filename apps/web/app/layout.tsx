@@ -23,6 +23,25 @@ export const metadata: Metadata = {
     ],
     apple: '/logo.png',
   },
+  openGraph: {
+    type: 'website',
+    url: 'https://moduspilot.com',
+    title: 'Modus — AI Life OS',
+    description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
+    siteName: 'Modus',
+    images: [
+      {
+        url: '/logo-with-text.png',
+        alt: 'Modus',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Modus — AI Life OS',
+    description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
+    images: ['/logo-with-text.png'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
