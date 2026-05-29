@@ -19,8 +19,21 @@ export const metadata: Metadata = {
 };
 
 export default function MarketingPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Modus',
+    url: 'https://moduspilot.com',
+    logo: 'https://moduspilot.com/logo-with-text.png',
+    sameAs: ['https://moduspilot.com'],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
       <HomepageShell />
     </>
