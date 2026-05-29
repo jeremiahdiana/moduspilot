@@ -125,7 +125,7 @@ function Ask() {
       <div className="flex flex-col gap-4 items-center text-center">
         <Tag>Pre-seed Round</Tag>
         <h2 className="font-display text-4xl sm:text-6xl font-black text-white">$500K</h2>
-        <p className="text-white/40 text-base">$5M valuation cap · 20% discount · SAFE note</p>
+        <p className="text-white/40 text-base">$7M valuation cap · 20% discount · SAFE note</p>
       </div>
       <div className="w-full h-px bg-gradient-to-r from-transparent via-[#7c3aed]/30 to-transparent" />
       <div className="flex flex-col gap-3 items-center text-center">

@@ -43,7 +43,7 @@ function Cover() {
       <div className="w-px h-12 bg-gradient-to-b from-transparent via-[#7c3aed]/50 to-transparent" />
       <div className="flex flex-col items-center gap-2 text-sm text-white/40">
         <span className="text-white/60 font-medium">Jeremiah · Founder & CEO</span>
-        <span>Pre-seed · Raising $500K · $5M cap SAFE</span>
+        <span>Pre-seed · Raising $500K · $7M cap SAFE</span>
         <span className="text-[#7c3aed]/80 mt-1">jeremiah@moduspilot.com</span>
       </div>
     </div>
@@ -475,7 +475,7 @@ function TheAsk() {
       <div className="grid grid-cols-3 gap-4 w-full">
         {[
           { label: 'Raise', value: '$500K' },
-          { label: 'Valuation Cap', value: '$5M' },
+          { label: 'Valuation Cap', value: '$7M' },
           { label: 'Discount', value: '20%' },
         ].map(({ label, value }) => (
           <div key={label} className="flex flex-col gap-1 p-4 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5">
