@@ -32,11 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700,900&display=swap" />
-        {/* Inject theme before first paint to avoid flash. Defaults to dark. */}
+        {/* Always start dark. Light mode is in-session only and never persisted. */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
-            var t = localStorage.getItem('modus-theme');
-            if (t === 'light') return;
+            localStorage.removeItem('modus-theme');
             document.documentElement.classList.add('dark');
           })();
         ` }} />
