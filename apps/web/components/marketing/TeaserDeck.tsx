@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import Image from 'next/image';
 import DeckViewer from './DeckViewer';
 
 function Tag({ children }: { children: React.ReactNode }) {
@@ -76,31 +79,56 @@ function ProblemSolution() {
 
 /* ─── SLIDE 3 — PROOF ───────────────────────────────────────── */
 function Proof() {
+  const [zooming, setZooming] = useState(false);
+
   return (
-    <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
-      <div className="flex flex-col gap-2 items-center text-center">
+    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
+      <motion.div
+        className="flex flex-col gap-4 items-center text-center"
+        animate={{ opacity: zooming ? 0 : 1 }}
+        transition={{ duration: 0.2 }}
+      >
         <Tag>Proof</Tag>
         <h2 className="font-display text-3xl sm:text-4xl font-black text-white">Built in 1 week. Real product.</h2>
-      </div>
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { v: '7', l: 'Days to build a full AI OS' },
-          { v: '10+', l: 'Early users' },
-          { v: '✓', l: 'Applied to multiple investor programs' },
-        ].map(({ v, l }) => (
-          <div key={l} className="flex flex-col items-center gap-2 p-5 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 text-center">
-            <span className="font-display font-black text-4xl text-[#7c3aed]">{v}</span>
-            <span className="text-white/50 text-sm">{l}</span>
-          </div>
-        ))}
-      </div>
-      <div className="w-full rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden aspect-video flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2 text-white/20">
-          <span className="text-4xl">🖥️</span>
-          <span className="text-sm">app.moduspilot.com</span>
-          <span className="text-xs">Replace with product screenshot</span>
+        <div className="grid grid-cols-3 gap-4 w-full">
+          {[
+            { v: '7', l: 'Days to build a full AI OS' },
+            { v: '10+', l: 'Early users' },
+            { v: '✓', l: 'Applied to multiple investor programs' },
+          ].map(({ v, l }) => (
+            <div key={l} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 text-center">
+              <span className="font-display font-black text-3xl text-[#7c3aed]">{v}</span>
+              <span className="text-white/50 text-xs">{l}</span>
+            </div>
+          ))}
         </div>
-      </div>
+      </motion.div>
+
+      {/* Homepage preview — click to zoom in and visit */}
+      <motion.div
+        className="relative w-full rounded-2xl overflow-hidden cursor-pointer group border border-white/10"
+        style={{ transformOrigin: 'center center' }}
+        animate={zooming ? { scale: 9, opacity: 0 } : { scale: 1, opacity: 1 }}
+        transition={{ duration: 0.55, ease: [0.4, 0, 0.8, 1] }}
+        onAnimationComplete={() => { if (zooming) window.location.href = '/'; }}
+        onClick={e => { e.stopPropagation(); setZooming(true); }}
+      >
+        <Image
+          src="/screenshot-home.png"
+          alt="MODUS — moduspilot.com"
+          width={3416}
+          height={1982}
+          className="w-full h-auto"
+          priority
+        />
+        {/* hover overlay */}
+        <div className="absolute inset-0 bg-[#7c3aed]/0 group-hover:bg-[#7c3aed]/10 transition-colors duration-200 flex items-center justify-center">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white text-sm font-semibold bg-[#7c3aed] px-5 py-2 rounded-full shadow-lg">
+            Visit moduspilot.com →
+          </span>
+        </div>
+      </motion.div>
+      <p className="text-white/20 text-xs text-center">click to visit · use → to continue</p>
     </div>
   );
 }

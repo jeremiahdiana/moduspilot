@@ -201,13 +201,8 @@ function ProductBriefing() {
         <Tag>The Product</Tag>
         <SlideHeading>Every morning.<br />Here&apos;s what matters. Here&apos;s what you&apos;re missing.</SlideHeading>
       </div>
-      {/* Screenshot placeholder */}
-      <div className="w-full rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden aspect-video flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2 text-white/20">
-          <span className="text-4xl">📋</span>
-          <span className="text-sm">Morning Briefing — app.moduspilot.com/briefing</span>
-          <span className="text-xs">Replace with screenshot</span>
-        </div>
+      <div className="w-full rounded-2xl border border-white/8 overflow-hidden">
+        <Image src="/screenshot-briefing.png" alt="MODUS Briefing" width={2756} height={1956} className="w-full h-auto" />
       </div>
       <p className="text-white/40 text-sm text-center">Daily briefing: top priorities, inbox triage, calendar, habit check-ins, AI-generated focus plan</p>
     </div>
@@ -222,12 +217,8 @@ function ProductApproval() {
         <Tag>The Product</Tag>
         <SlideHeading>MODUS acts.<br />You approve. Nothing runs without you.</SlideHeading>
       </div>
-      <div className="w-full rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden aspect-video flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2 text-white/20">
-          <span className="text-4xl">✅</span>
-          <span className="text-sm">Chat + Approval Card — app.moduspilot.com/chat</span>
-          <span className="text-xs">Replace with screenshot</span>
-        </div>
+      <div className="w-full rounded-2xl border border-white/8 overflow-hidden">
+        <Image src="/screenshot-chat.png" alt="MODUS Chat" width={2736} height={1958} className="w-full h-auto" />
       </div>
       <p className="text-white/40 text-sm text-center">MODUS drafts emails, schedules events, creates tasks, tracks goals — all surfaced as approval cards. You approve or edit. Every time.</p>
     </div>
