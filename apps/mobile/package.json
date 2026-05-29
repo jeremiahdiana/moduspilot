@@ -8,31 +8,32 @@
     "android": "expo run:android"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "3.1.0",
     "expo": "~56.0.4",
-    "expo-router": "~56.2.6",
-    "expo-constants": "~56.0.15",
-    "expo-linking": "~56.0.11",
-    "expo-status-bar": "~56.0.4",
-    "expo-splash-screen": "~56.0.10",
-    "expo-web-browser": "~56.0.5",
-    "expo-auth-session": "~56.0.11",
-    "expo-crypto": "~56.0.3",
     "expo-apple-authentication": "~56.0.4",
+    "expo-auth-session": "~56.0.11",
+    "expo-constants": "~56.0.15",
+    "expo-crypto": "~56.0.3",
+    "expo-linking": "~56.0.11",
+    "expo-router": "~56.2.6",
     "expo-secure-store": "~56.0.4",
+    "expo-splash-screen": "~56.0.10",
+    "expo-status-bar": "~56.0.4",
+    "expo-web-browser": "~56.0.5",
+    "firebase": "^10.14.1",
+    "nativewind": "^4.1.23",
     "react": "^19.2.3",
     "react-native": "0.85.3",
-    "react-native-safe-area-context": "5.8.0",
-    "react-native-screens": "4.25.2",
     "react-native-gesture-handler": "2.31.2",
     "react-native-reanimated": "4.3.1",
-    "nativewind": "^4.1.23",
-    "tailwindcss": "3.4.17",
-    "firebase": "^10.14.1",
-    "@react-native-async-storage/async-storage": "3.1.0"
+    "react-native-safe-area-context": "5.8.0",
+    "react-native-screens": "4.25.2",
+    "react-native-worklets-core": "^1.6.3",
+    "tailwindcss": "3.4.17"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
-    "typescript": "^5.4.0",
-    "@types/react": "^19.1.1"
+    "@types/react": "^19.1.1",
+    "typescript": "^5.4.0"
   }
 }
