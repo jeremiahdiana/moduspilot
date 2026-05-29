@@ -208,6 +208,9 @@ export default function ChatWindow({
               onUserMessage?.();
               append({ role: 'user', content: text });
             }}
+            onApproved={(text) => {
+              append({ role: 'assistant', content: text } as Parameters<typeof append>[0]);
+            }}
           />
         ))}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (

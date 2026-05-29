@@ -49,10 +49,12 @@ export default function MessageBubble({
   message,
   isStreaming = false,
   onAppend,
+  onApproved,
 }: {
   message: Message;
   isStreaming?: boolean;
   onAppend?: (text: string) => void;
+  onApproved?: (text: string) => void;
 }) {
   const isUser = message.role === 'user';
 
@@ -113,7 +115,7 @@ export default function MessageBubble({
       <div className="max-w-[72%] space-y-3">
         {parts.map((part, i) =>
           part.type === 'approval' ? (
-            <ApprovalCard key={i} raw={part.value} />
+            <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />
           ) : part.type === 'draft_options' ? (
             <DraftOptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
           ) : part.value.trim() ? (

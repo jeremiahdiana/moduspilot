@@ -56,7 +56,63 @@ const springFast = { type: 'spring', stiffness: 420, damping: 28 } as const;
 // preventing duplicate cards (e.g. two habits with the same name) from sharing a storage key.
 let _cardCount = 0;
 
-export default function ApprovalCard({ raw }: { raw: string }) {
+function buildFollowUpMessage(type: string, title: string, payload: Record<string, unknown>): string | null {
+  switch (type) {
+    case 'create_project': {
+      const notes = (payload.notes as Array<{ content: string }> | undefined) ?? [];
+      if (notes.length === 0) return `Created the project "${title}".`;
+      const noteLines = notes.slice(0, 3).map(n => `• ${n.content}`).join('\n');
+      return `Created the project "${title}". Added ${notes.length} note${notes.length > 1 ? 's' : ''} to get you started:\n${noteLines}`;
+    }
+    case 'create_task': {
+      const dueDate = payload.dueDate as string | undefined;
+      const priority = payload.priority as string | undefined;
+      let msg = `Added "${title}" to your tasks.`;
+      if (dueDate) msg += ` Due ${dueDate}.`;
+      if (priority) msg += ` Marked as ${priority} priority.`;
+      return msg;
+    }
+    case 'create_goal': {
+      const dueDate = payload.dueDate as string | undefined;
+      let msg = `Goal set: "${title}".`;
+      if (dueDate) msg += ` Targeting ${dueDate}.`;
+      msg += ` Progress starts at 0% — I'll track it as you move forward.`;
+      return msg;
+    }
+    case 'create_habit': {
+      const freq = (payload.frequency as string | undefined) ?? 'daily';
+      return `"${title}" is now a ${freq} habit. Day 1 starts today — let's build the streak.`;
+    }
+    case 'schedule_event': {
+      const date = payload.date as string | undefined;
+      const startTime = payload.startTime as string | undefined;
+      let msg = `Scheduled "${title}"`;
+      if (date) msg += ` on ${date}`;
+      if (startTime) msg += ` at ${startTime}`;
+      return msg + '.';
+    }
+    case 'send_email': {
+      const to = payload.to as string | undefined;
+      return `Email sent${to ? ` to ${to}` : ''}.`;
+    }
+    case 'update_goal_progress': {
+      const progress = payload.progress as number | undefined;
+      return progress !== undefined ? `Updated "${title}" to ${progress}% complete.` : `Updated "${title}".`;
+    }
+    case 'update_task':
+    case 'update_goal':
+    case 'update_habit':
+      return `Updated "${title}".`;
+    case 'delete_task':
+    case 'delete_goal':
+    case 'delete_habit':
+      return `Removed "${title}".`;
+    default:
+      return null;
+  }
+}
+
+export default function ApprovalCard({ raw, onApproved }: { raw: string; onApproved?: (text: string) => void }) {
   // Persist approved state so remounts (navigation, conversation switch) don't reset to pending
   const instanceId = useMemo(() => ++_cardCount, []);
   const cardKey = useMemo(() => {
@@ -146,6 +202,8 @@ export default function ApprovalCard({ raw }: { raw: string }) {
         return;
       }
       setStatus('approved');
+      const followUp = buildFollowUpMessage(data.type, title, payload);
+      if (followUp) onApproved?.(followUp);
     } catch {
       setError('Network error. Try again.');
     } finally {
