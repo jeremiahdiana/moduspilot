@@ -358,7 +358,7 @@ export async function POST(req: Request) {
       });
     } catch { /* use default */ }
 
-    const settingsBlock = `\n\nUSER SETTINGS:\n- Daily briefing: ${briefingTimeDisplay} (change via Settings → General or ask me to update it)`;
+    const settingsBlock = `\n\nUSER SETTINGS:\n- Daily briefing: ${briefingTimeDisplay}. Only mention this if the user asks about their briefing time — never volunteer it.`;
 
     const gc = body.goalContext;
     const isMainChat = !gc?.activeChatId || gc.activeChatId === `goal-${gc?.id}`;
