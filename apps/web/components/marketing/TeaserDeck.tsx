@@ -79,71 +79,56 @@ function ProblemSolution() {
 
 /* ─── SLIDE 3 — PROOF ───────────────────────────────────────── */
 function Proof() {
-  const [zooming, setZooming] = useState(false);
-
   return (
-    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
-      <motion.div
-        className="flex flex-col gap-4 items-center text-center"
-        animate={{ opacity: zooming ? 0 : 1 }}
-        transition={{ duration: 0.2 }}
-      >
+    <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+      <div className="flex flex-col gap-2 items-center text-center">
         <Tag>Proof</Tag>
         <h2 className="font-display text-3xl sm:text-4xl font-black text-white">Built in 1 week. Real product.</h2>
-        <div className="grid grid-cols-3 gap-4 w-full">
-          {[
-            { v: '7', l: 'Days to build a full AI OS' },
-            { v: '10+', l: 'Early users' },
-            { v: '✓', l: 'Applied to multiple investor programs' },
-          ].map(({ v, l }) => (
-            <div key={l} className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 text-center">
-              <span className="font-display font-black text-3xl text-[#7c3aed]">{v}</span>
-              <span className="text-white/50 text-xs">{l}</span>
-            </div>
-          ))}
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { v: '7', l: 'Days to build a full AI OS' },
+          { v: '10+', l: 'Early users' },
+          { v: '✓', l: 'Applied to multiple investor programs' },
+        ].map(({ v, l }) => (
+          <div key={l} className="flex flex-col items-center gap-1.5 p-4 rounded-xl border border-[#7c3aed]/20 bg-[#7c3aed]/5 text-center">
+            <span className="font-display font-black text-3xl text-[#7c3aed]">{v}</span>
+            <span className="text-white/50 text-xs leading-snug">{l}</span>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          <div className="rounded-xl overflow-hidden border border-white/8">
+            <Image src="/screenshot-briefing.jpg" alt="MODUS Briefing" width={2756} height={1956} className="w-full h-auto" priority />
+          </div>
+          <p className="text-white/30 text-xs text-center">Morning Briefing</p>
         </div>
-      </motion.div>
-
-      {/* Homepage preview — click to zoom in and visit */}
-      <motion.div
-        className="relative w-full rounded-2xl overflow-hidden cursor-pointer group border border-white/10"
-        style={{ transformOrigin: 'center center' }}
-        animate={zooming ? { scale: 9, opacity: 0 } : { scale: 1, opacity: 1 }}
-        transition={{ duration: 0.55, ease: [0.4, 0, 0.8, 1] }}
-        onAnimationComplete={() => { if (zooming) window.location.href = '/'; }}
-        onClick={e => { e.stopPropagation(); setZooming(true); }}
-      >
-        <Image
-          src="/screenshot-home.png"
-          alt="MODUS — moduspilot.com"
-          width={3416}
-          height={1982}
-          className="w-full h-auto"
-          priority
-        />
-        {/* hover overlay */}
-        <div className="absolute inset-0 bg-[#7c3aed]/0 group-hover:bg-[#7c3aed]/10 transition-colors duration-200 flex items-center justify-center">
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white text-sm font-semibold bg-[#7c3aed] px-5 py-2 rounded-full shadow-lg">
-            Visit moduspilot.com →
-          </span>
+        <div className="flex flex-col gap-2">
+          <div className="rounded-xl overflow-hidden border border-white/8">
+            <Image src="/screenshot-chat.jpg" alt="MODUS Chat" width={2736} height={1958} className="w-full h-auto" />
+          </div>
+          <p className="text-white/30 text-xs text-center">AI Chat + Approvals</p>
         </div>
-      </motion.div>
-      <p className="text-white/20 text-xs text-center">click to visit · use → to continue</p>
+      </div>
     </div>
   );
 }
 
 /* ─── SLIDE 4 — THE ASK ─────────────────────────────────────── */
 function Ask() {
+  const [zooming, setZooming] = useState(false);
+
   return (
-    <div className="flex flex-col gap-10 w-full max-w-2xl mx-auto items-center text-center">
-      <div className="flex flex-col gap-4 items-center">
+    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto items-center">
+      {/* Ask content */}
+      <div className="flex flex-col gap-4 items-center text-center">
         <Tag>Pre-seed Round</Tag>
         <h2 className="font-display text-4xl sm:text-6xl font-black text-white">$500K</h2>
         <p className="text-white/40 text-base">$5M valuation cap · 20% discount · SAFE note</p>
       </div>
       <div className="w-full h-px bg-gradient-to-r from-transparent via-[#7c3aed]/30 to-transparent" />
-      <div className="flex flex-col gap-4 items-center">
+      <div className="flex flex-col gap-3 items-center text-center">
         <p className="text-white/60 text-xl font-semibold">Worth 20 minutes?</p>
         <a
           href="mailto:jeremiah@moduspilot.com"
@@ -152,16 +137,36 @@ function Ask() {
         >
           jeremiah@moduspilot.com
         </a>
-        <a
-          href="https://moduspilot.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          className="text-white/30 text-sm hover:text-white/50 transition-colors"
-        >
-          moduspilot.com →
-        </a>
       </div>
+
+      {/* Homepage preview — zooms in, opens site in new tab */}
+      <motion.div
+        className="relative w-full rounded-2xl overflow-hidden cursor-pointer group border border-white/8"
+        style={{ transformOrigin: 'center center' }}
+        animate={zooming ? { scale: 8, opacity: 0 } : { scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.8, 1] }}
+        onAnimationComplete={() => {
+          if (zooming) {
+            window.open('/', '_blank');
+            setZooming(false);
+          }
+        }}
+        onClick={e => { e.stopPropagation(); setZooming(true); }}
+      >
+        <Image
+          src="/screenshot-home.jpg"
+          alt="moduspilot.com"
+          width={3416}
+          height={1982}
+          className="w-full h-auto"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-[#7c3aed]/15 transition-colors duration-200 flex items-center justify-center">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white text-sm font-semibold bg-[#7c3aed] px-5 py-2 rounded-full shadow-lg">
+            See it live →
+          </span>
+        </div>
+      </motion.div>
     </div>
   );
 }
