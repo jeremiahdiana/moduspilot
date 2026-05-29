@@ -67,6 +67,31 @@ export async function POST(req: Request) {
   const userRef = adminDb.collection('users').doc(uid);
 
   switch (type) {
+    case 'create_project': {
+      // Normalize notes: generate IDs for any notes that don't have one
+      const rawNotes = (payload.notes as Array<{ id?: string; content: string; date?: string; type?: string; pinned?: boolean }> | undefined) ?? [];
+      const notes = rawNotes.map(n => ({
+        id: n.id ?? crypto.randomUUID(),
+        content: n.content,
+        date: n.date ?? new Date().toISOString().slice(0, 10),
+        type: n.type ?? undefined,
+        pinned: n.pinned ?? false,
+      }));
+      const { notes: _n, ...restPayload } = payload;
+      void _n;
+      const ref = await userRef.collection('projects').add({
+        title,
+        description: description || null,
+        ...restPayload,
+        notes,
+        resources: [],
+        status: 'active',
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        source: 'modus_ai',
+      });
+      return Response.json({ id: ref.id });
+    }
     case 'create_goal': {
       const ref = await userRef.collection('goals').add({ ...base, status: 'active', progress: 0 });
       return Response.json({ id: ref.id });

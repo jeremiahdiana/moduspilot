@@ -12,6 +12,7 @@ interface ApprovalPayload {
 }
 
 const TYPE_LABELS: Record<string, string> = {
+  create_project: 'New Project',
   create_goal: 'New Goal',
   create_task: 'New Task',
   create_habit: 'New Habit',
