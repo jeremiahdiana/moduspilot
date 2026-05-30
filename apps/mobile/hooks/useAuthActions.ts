@@ -91,18 +91,21 @@ export function useAuthActions(opts?: {
     accessToken: string | null | undefined,
   ) {
     if (!idToken && !accessToken) return;
+    let signedIn = false;
     try {
       setLoading(true);
       const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken ?? null);
       const result = await signInWithCredential(auth, credential);
+      signedIn = true;
       await finishSignIn(result.user.uid, result.user.displayName, result.user.email);
-    } catch {
-      Alert.alert('Sign in failed', 'Please try again.');
+    } catch (e: unknown) {
       setLoading(false);
+      handleSignInError(e, signedIn);
     }
   }
 
   async function signInWithApple() {
+    let signedIn = false;
     try {
       setLoading(true);
       const nonce = Math.random().toString(36).substring(2, 18);
@@ -128,17 +131,30 @@ export function useAuthActions(opts?: {
       });
 
       const result = await signInWithCredential(auth, firebaseCredential);
+      signedIn = true;
       const displayName = credential.fullName?.givenName
         ? `${credential.fullName.givenName} ${credential.fullName.familyName ?? ''}`.trim()
         : result.user.displayName;
       await finishSignIn(result.user.uid, displayName ?? null, result.user.email);
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
-      if (code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('Sign in failed', 'Please try again.');
-      }
+      if (code === 'ERR_REQUEST_CANCELED') { setLoading(false); return; }
       setLoading(false);
+      handleSignInError(e, signedIn);
     }
+  }
+
+  // If Firebase auth already succeeded but a later step (Firestore write,
+  // routing, seeding) threw, the user *is* signed in — just enter the app
+  // instead of showing a misleading failure. Otherwise surface the real error.
+  function handleSignInError(e: unknown, signedIn: boolean) {
+    if (signedIn) {
+      router.replace('/(app)/briefing');
+      return;
+    }
+    const code = (e as { code?: string })?.code;
+    const message = (e as { message?: string })?.message;
+    Alert.alert('Sign in failed', [code, message].filter(Boolean).join('\n') || 'Please try again.');
   }
 
   return {
