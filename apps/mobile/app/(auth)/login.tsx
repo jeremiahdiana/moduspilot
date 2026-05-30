@@ -24,6 +24,12 @@ WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_WEB_CLIENT_ID =
   '208739557361-ed3r8sd4grqn01a3i2fnn3iupfu64mc6.apps.googleusercontent.com';
+// Native iOS builds require their own OAuth client ID (the web one can't
+// authorize the native flow). Created in Google Cloud Console for bundle
+// com.moduspilot.app. Its reversed form is registered as a URL scheme in
+// app.json so the OAuth redirect can return to the app.
+const GOOGLE_IOS_CLIENT_ID =
+  '208739557361-tl9n4r3t8gku6qcen09l4b0uscoo1c3m.apps.googleusercontent.com';
 
 async function ensureUserDoc(uid: string, displayName: string | null, email: string | null) {
   const ref = doc(db, 'users', uid);
@@ -43,6 +49,7 @@ export default function LoginScreen() {
 
   const [, response, promptGoogleAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
   });
 
   useEffect(() => {

@@ -1,15 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getAuth, inMemoryPersistence } from 'firebase/auth';
+// getReactNativePersistence ships in Firebase's React Native bundle, but it is
+// missing from the package's default type exports, so we silence the type-only
+// error here. At runtime (with package exports disabled in metro.config.js) the
+// React Native build resolves correctly and the function exists.
+// @ts-ignore
+import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Auth, Persistence } from 'firebase/auth';
-
-// Metro resolves @firebase/auth to the React Native bundle which exports this.
-// TypeScript picks the wrong bundle because the package puts "types" before
-// "react-native" in its exports map, so we cast via require.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const _rn = require('@firebase/auth') as { getReactNativePersistence?: (s: typeof AsyncStorage) => Persistence };
-const getReactNativePersistence = _rn.getReactNativePersistence;
+import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey:            'AIzaSyCVASdBpNKIfmLG7Dw73SLoCCAqIMSqLXo',
@@ -20,17 +18,18 @@ const firebaseConfig = {
   appId:             '1:208739557361:web:59cc5364fb808f77b52e50',
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// initializeApp/initializeAuth must run exactly once per app instance. On Fast
+// Refresh this module re-evaluates while the native app instance survives, so we
+// branch on whether the Firebase app already exists.
+const isNew = getApps().length === 0;
+const app = isNew ? initializeApp(firebaseConfig) : getApp();
 
-// initializeAuth must be called once; subsequent calls throw, so catch and fall back
 let auth: Auth;
-try {
+if (isNew) {
   auth = initializeAuth(app, {
-    persistence: getReactNativePersistence
-      ? getReactNativePersistence(AsyncStorage)
-      : inMemoryPersistence,
+    persistence: getReactNativePersistence(AsyncStorage),
   });
-} catch {
+} else {
   auth = getAuth(app);
 }
 
