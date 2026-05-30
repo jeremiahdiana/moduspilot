@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { signOut, deleteUser } from 'firebase/auth';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
-
-// Subcollections under users/{uid} to wipe on account deletion.
-const SUBCOLLECTIONS = [
-  'conversations', 'goals', 'tasks', 'habits', 'memories',
-  'google_accounts', 'integrations', 'events', 'drafts', 'fcmTokens', 'mcpServers',
-];
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { API_BASE, getAuthHeader } from '@/lib/api';
 
 export default function SettingsScreen() {
   const user = auth.currentUser;
@@ -23,26 +17,16 @@ export default function SettingsScreen() {
   }
 
   async function deleteAccount() {
-    const u = auth.currentUser;
-    if (!u) return;
+    if (!auth.currentUser) return;
     setDeleting(true);
     try {
-      // Wipe all Firestore data first, then the user doc.
-      for (const sub of SUBCOLLECTIONS) {
-        const snap = await getDocs(collection(db, 'users', u.uid, sub));
-        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-      }
-      await deleteDoc(doc(db, 'users', u.uid));
-
-      // Delete the auth user. If the session is too old Firebase requires a
-      // recent login — the data is already gone, so just sign out and let them
-      // sign back in fresh (they'll be treated as a brand-new user).
-      try {
-        await deleteUser(u);
-      } catch {
-        await signOut(auth);
-      }
-      // Auth state goes null → the (app) layout guard routes to Welcome.
+      // Server-side (Admin SDK): wipes the user doc + all subcollections and the
+      // auth user. Clients are blocked from deleting their own user doc.
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_BASE}/api/account/delete`, { method: 'POST', headers });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      // Clear the now-orphaned local session → the (app) guard routes to Welcome.
+      await signOut(auth);
     } catch {
       setDeleting(false);
       Alert.alert('Delete failed', 'Could not delete your account. Please try again.');
