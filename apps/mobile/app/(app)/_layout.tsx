@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   const icons: Record<string, string> = {
+    Briefing: '☀️',
     Chat: '💬',
     Goals: '🎯',
     Habits: '🔥',
@@ -35,6 +36,12 @@ export default function AppLayout() {
         },
       }}
     >
+      <Tabs.Screen
+        name="briefing"
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon label="Briefing" focused={focused} />,
+        }}
+      />
       <Tabs.Screen
         name="chat"
         options={{
