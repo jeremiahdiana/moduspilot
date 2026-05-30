@@ -1,5 +1,6 @@
-import { Tabs } from 'expo-router';
-import { View, Text } from 'react-native';
+import { Tabs, Redirect } from 'expo-router';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { useAuth } from '@/hooks/useAuth';
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   const icons: Record<string, string> = {
@@ -22,6 +23,18 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
 }
 
 export default function AppLayout() {
+  const { user, loading } = useAuth();
+
+  // Guard: kick unauthenticated users (e.g. after sign-out) back to welcome.
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg">
+        <ActivityIndicator size="large" color="#7C3AED" />
+      </View>
+    );
+  }
+  if (!user) return <Redirect href="/(auth)/welcome" />;
+
   return (
     <Tabs
       screenOptions={{
