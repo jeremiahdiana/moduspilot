@@ -5,12 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "modus",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "ios": {
       "bundleIdentifier": "com.moduspilot.app",
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {
+        "NSMicrophoneUsageDescription": "Allow MODUS to use the microphone for voice input in chat.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -24,8 +27,21 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      ["expo-apple-authentication"],
-      ["expo-splash-screen", { "backgroundColor": "#0a0a0f" }]
+      [
+        "expo-apple-authentication"
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0a0a0f"
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow MODUS to use the microphone for voice input in chat."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
