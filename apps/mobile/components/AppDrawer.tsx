@@ -11,6 +11,7 @@ import { haptics } from '@/lib/haptics';
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
 const NAV: { label: string; seg: string; href: string; icon: IconName }[] = [
+  { label: 'Dashboard', seg: 'dashboard', href: '/(app)/dashboard', icon: 'dashboard' },
   { label: 'Briefing', seg: 'briefing', href: '/(app)/briefing', icon: 'wb-sunny' },
   { label: 'Chat',     seg: 'chat',     href: '/(app)/chat',     icon: 'auto-awesome' },
   { label: 'Goals',    seg: 'goals',    href: '/(app)/goals',    icon: 'flag' },
