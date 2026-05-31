@@ -10,6 +10,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Icon } from '@/components/Icon';
+import { useThemeColors } from '@/lib/theme';
 
 interface Goal {
   id: string;
@@ -31,31 +34,21 @@ function ProgressBar({ progress }: { progress: number }) {
     }).start();
   }, [progress]);
 
-  const width = anim.interpolate({
-    inputRange: [0, 100],
-    outputRange: ['0%', '100%'],
-  });
+  const width = anim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
 
   return (
-    <View className="h-1.5 bg-surface rounded-full overflow-hidden">
-      <Animated.View
-        style={{ width }}
-        className="h-full bg-brand rounded-full"
-      />
+    <View className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+      <Animated.View style={{ width }} className="h-full bg-brand rounded-full" />
     </View>
   );
 }
 
 function GoalRow({ goal }: { goal: Goal }) {
   return (
-    <View className="bg-surface rounded-2xl px-4 py-4 gap-2.5">
+    <View className="bg-surface border border-border rounded-2xl px-4 py-4 gap-2.5">
       <View className="flex-row items-start justify-between gap-3">
-        <Text className="text-text font-semibold text-base flex-1" numberOfLines={2}>
-          {goal.title}
-        </Text>
-        {goal.dueDate && (
-          <Text className="text-muted text-xs mt-0.5 shrink-0">{goal.dueDate}</Text>
-        )}
+        <Text className="text-text font-semibold text-base flex-1" numberOfLines={2}>{goal.title}</Text>
+        {goal.dueDate && <Text className="text-muted text-xs mt-0.5 shrink-0">{goal.dueDate}</Text>}
       </View>
       <ProgressBar progress={goal.progress} />
       <Text className="text-muted text-xs">{goal.progress}% complete</Text>
@@ -65,6 +58,7 @@ function GoalRow({ goal }: { goal: Goal }) {
 
 export default function GoalsScreen() {
   const { user } = useAuth();
+  const c = useThemeColors();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -89,25 +83,21 @@ export default function GoalsScreen() {
   }, [user]);
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top']}>
-      <View className="px-5 py-3 border-b border-border flex-row items-center justify-between">
-        <Text className="text-xl font-black text-text">Goals</Text>
-        {goals.length > 0 && (
-          <Text className="text-muted text-sm">{goals.length} active</Text>
-        )}
-      </View>
+    <SafeAreaView className="flex-1" edges={['top']}>
+      <ScreenHeader
+        title="Goals"
+        right={goals.length > 0 ? <Text className="text-muted text-sm">{goals.length} active</Text> : undefined}
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#7C3AED" />
+          <ActivityIndicator color={c.brand} />
         </View>
       ) : goals.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-2 px-8">
-          <Text className="text-4xl">🎯</Text>
+        <View className="flex-1 items-center justify-center gap-3 px-8">
+          <Icon name="flag" tone="muted" size={44} />
           <Text className="text-text font-semibold text-base">No goals yet</Text>
-          <Text className="text-muted text-sm text-center">
-            Ask MODUS in chat to help you set a goal.
-          </Text>
+          <Text className="text-muted text-sm text-center">Ask MODUS in chat to help you set a goal.</Text>
         </View>
       ) : (
         <FlatList

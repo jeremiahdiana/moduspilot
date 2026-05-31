@@ -1,12 +1,13 @@
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Icon, type IconName } from '@/components/Icon';
 
-const FEATURES = [
-  { icon: '✉️', title: 'Email, drafted & sent', desc: 'MODUS writes it, you approve in one tap.' },
-  { icon: '📅', title: 'Calendar, managed', desc: 'Schedule and block time automatically.' },
-  { icon: '🎯', title: 'Goals you hit', desc: 'Daily check-ins and accountability built in.' },
-  { icon: '🧠', title: 'Memory that sticks', desc: 'Never repeat yourself again.' },
+const FEATURES: { icon: IconName; title: string; desc: string }[] = [
+  { icon: 'mail-outline', title: 'Email, drafted & sent', desc: 'MODUS writes it, you approve in one tap.' },
+  { icon: 'calendar-today', title: 'Calendar, managed', desc: 'Schedule and block time automatically.' },
+  { icon: 'flag', title: 'Goals you hit', desc: 'Daily check-ins and accountability built in.' },
+  { icon: 'psychology', title: 'Memory that sticks', desc: 'Never repeat yourself again.' },
 ];
 
 export default function WelcomeScreen() {
@@ -38,7 +39,7 @@ export default function WelcomeScreen() {
               className="bg-surface border border-border rounded-2xl p-4"
               style={{ width: '47%' }}
             >
-              <Text className="text-2xl mb-2">{f.icon}</Text>
+              <View className="mb-2"><Icon name={f.icon} tone="brand" size={24} /></View>
               <Text className="text-text text-xs font-semibold leading-snug">{f.title}</Text>
               <Text className="text-muted text-xs leading-snug mt-1">{f.desc}</Text>
             </View>

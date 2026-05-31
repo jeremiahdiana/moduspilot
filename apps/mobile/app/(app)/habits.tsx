@@ -1,22 +1,12 @@
 import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  doc,
-  updateDoc,
-} from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Icon } from '@/components/Icon';
+import { useThemeColors } from '@/lib/theme';
 
 interface Habit {
   id: string;
@@ -45,42 +35,34 @@ function recalcStreak(dates: string[], unchecking: boolean): number {
 }
 
 function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
+  const c = useThemeColors();
   const done = habit.completedDates.includes(today);
 
   return (
-    <View className="bg-surface rounded-2xl px-4 py-4 flex-row items-center gap-3">
+    <View className="bg-surface border border-border rounded-2xl px-4 py-4 flex-row items-center gap-3">
       <TouchableOpacity
         onPress={onToggle}
         activeOpacity={0.7}
         style={{
-          width: 26,
-          height: 26,
-          borderRadius: 8,
-          borderWidth: 2,
-          borderColor: done ? '#7C3AED' : '#2a2a3d',
-          backgroundColor: done ? '#7C3AED' : 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: 26, height: 26, borderRadius: 8, borderWidth: 2,
+          borderColor: done ? c.brand : c.border,
+          backgroundColor: done ? c.brand : 'transparent',
+          alignItems: 'center', justifyContent: 'center',
         }}
       >
-        {done && (
-          <Text style={{ color: 'white', fontSize: 14, fontWeight: '700', lineHeight: 16 }}>✓</Text>
-        )}
+        {done && <Icon name="check" color="#fff" size={16} />}
       </TouchableOpacity>
 
       <Text
         className="flex-1 text-text font-medium text-base"
         numberOfLines={1}
-        style={[
-          { opacity: done ? 0.5 : 1 },
-          done ? { textDecorationLine: 'line-through' as const } : {},
-        ]}
+        style={[{ opacity: done ? 0.5 : 1 }, done ? { textDecorationLine: 'line-through' as const } : {}]}
       >
         {habit.title}
       </Text>
 
-      <View className="items-end">
-        <Text className="text-base">{habit.streak > 0 ? '🔥' : '💤'}</Text>
+      <View className="flex-row items-center gap-1">
+        <Icon name="local-fire-department" size={18} color={habit.streak > 0 ? c.brand : c.muted} />
         <Text className="text-muted text-xs">{habit.streak}d</Text>
       </View>
     </View>
@@ -89,6 +71,7 @@ function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
 
 export default function HabitsScreen() {
   const { user } = useAuth();
+  const c = useThemeColors();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -114,43 +97,34 @@ export default function HabitsScreen() {
       ? habit.completedDates.filter(d => d !== today)
       : [...habit.completedDates, today];
     const streak = recalcStreak(newDates, done);
-    await updateDoc(doc(db, 'users', user.uid, 'habits', habit.id), {
-      completedDates: newDates,
-      streak,
-    });
+    await updateDoc(doc(db, 'users', user.uid, 'habits', habit.id), { completedDates: newDates, streak });
   }
 
   const doneCount = habits.filter(h => h.completedDates.includes(today)).length;
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top']}>
-      <View className="px-5 py-3 border-b border-border flex-row items-center justify-between">
-        <Text className="text-xl font-black text-text">Habits</Text>
-        {habits.length > 0 && (
-          <Text className="text-muted text-sm">{doneCount}/{habits.length} today</Text>
-        )}
-      </View>
+    <SafeAreaView className="flex-1" edges={['top']}>
+      <ScreenHeader
+        title="Habits"
+        right={habits.length > 0 ? <Text className="text-muted text-sm">{doneCount}/{habits.length} today</Text> : undefined}
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#7C3AED" />
+          <ActivityIndicator color={c.brand} />
         </View>
       ) : habits.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-2 px-8">
-          <Text className="text-4xl">🔥</Text>
+        <View className="flex-1 items-center justify-center gap-3 px-8">
+          <Icon name="local-fire-department" tone="muted" size={44} />
           <Text className="text-text font-semibold text-base">No habits yet</Text>
-          <Text className="text-muted text-sm text-center">
-            Ask MODUS in chat to help you build a habit.
-          </Text>
+          <Text className="text-muted text-sm text-center">Ask MODUS in chat to help you build a habit.</Text>
         </View>
       ) : (
         <FlatList
           data={habits}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          renderItem={({ item }) => (
-            <HabitRow habit={item} onToggle={() => toggleToday(item)} />
-          )}
+          renderItem={({ item }) => <HabitRow habit={item} onToggle={() => toggleToday(item)} />}
           showsVerticalScrollIndicator={false}
         />
       )}

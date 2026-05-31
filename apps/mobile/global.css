@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* Light theme (default) */
+  :root {
+    --bg: 250 249 255;
+    --text: 13 13 20;
+    --muted: 100 90 122;
+    --brand: 124 58 237;
+    --brand-light: 124 58 237;
+    --border: 226 220 244;
+    --surface: 255 255 255;
+    --surface-2: 243 239 252;
+  }
+
+  /* Dark theme — applied when the color scheme is dark (system default or a
+     manual override set through NativeWind's useColorScheme). */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: 10 10 15;
+      --text: 232 232 240;
+      --muted: 139 139 160;
+      --brand: 124 58 237;
+      --brand-light: 148 97 255;
+      --border: 30 30 46;
+      --surface: 15 15 26;
+      --surface-2: 22 22 38;
+    }
+  }
+}

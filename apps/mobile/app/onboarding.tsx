@@ -13,57 +13,60 @@ import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'fireba
 import { auth, db } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { AuthButtons } from '@/components/AuthButtons';
+import { Icon, type IconName } from '@/components/Icon';
+import { useThemeColors } from '@/lib/theme';
 
-interface Option { icon: string; label: string; desc?: string }
+interface Option { icon: IconName; label: string; desc?: string }
 
 const EMPLOYMENT: Option[] = [
-  { icon: '💼', label: 'Employed full-time', desc: 'Working 9 to 5 and beyond' },
-  { icon: '⚡', label: 'Self-employed / freelancer', desc: 'Running your own show' },
-  { icon: '🕐', label: 'Employed part-time', desc: 'Splitting your time' },
-  { icon: '📚', label: 'Student', desc: 'Still in the learning phase' },
-  { icon: '🔍', label: 'Between roles', desc: 'Looking for the next move' },
-  { icon: '🌐', label: 'Other' },
+  { icon: 'work', label: 'Employed full-time', desc: 'Working 9 to 5 and beyond' },
+  { icon: 'bolt', label: 'Self-employed / freelancer', desc: 'Running your own show' },
+  { icon: 'schedule', label: 'Employed part-time', desc: 'Splitting your time' },
+  { icon: 'school', label: 'Student', desc: 'Still in the learning phase' },
+  { icon: 'search', label: 'Between roles', desc: 'Looking for the next move' },
+  { icon: 'more-horiz', label: 'Other' },
 ];
 const INDUSTRY: Option[] = [
-  { icon: '💻', label: 'Tech / software' },
-  { icon: '🎨', label: 'Marketing / creative' },
-  { icon: '📈', label: 'Finance / business' },
-  { icon: '🏥', label: 'Healthcare' },
-  { icon: '📚', label: 'Education' },
-  { icon: '🤝', label: 'Sales' },
-  { icon: '⚙️', label: 'Trades / skilled labor' },
-  { icon: '🌐', label: 'Other' },
+  { icon: 'code', label: 'Tech / software' },
+  { icon: 'palette', label: 'Marketing / creative' },
+  { icon: 'trending-up', label: 'Finance / business' },
+  { icon: 'local-hospital', label: 'Healthcare' },
+  { icon: 'school', label: 'Education' },
+  { icon: 'handshake', label: 'Sales' },
+  { icon: 'build', label: 'Trades / skilled labor' },
+  { icon: 'more-horiz', label: 'Other' },
 ];
 const GOALS: Option[] = [
-  { icon: '🎯', label: 'Land a new job or role' },
-  { icon: '🚀', label: 'Build a business or side project' },
-  { icon: '⏰', label: 'Get better at managing my time' },
-  { icon: '⚡', label: 'Ship more / be more productive at work' },
-  { icon: '🧠', label: 'Develop a new skill' },
-  { icon: '🧭', label: 'Figure out what I actually want to do' },
-  { icon: '🌐', label: 'Other' },
+  { icon: 'flag', label: 'Land a new job or role' },
+  { icon: 'rocket-launch', label: 'Build a business or side project' },
+  { icon: 'schedule', label: 'Get better at managing my time' },
+  { icon: 'bolt', label: 'Ship more / be more productive at work' },
+  { icon: 'psychology', label: 'Develop a new skill' },
+  { icon: 'explore', label: 'Figure out what I actually want to do' },
+  { icon: 'more-horiz', label: 'Other' },
 ];
 const CHALLENGE: Option[] = [
-  { icon: '🔄', label: "Know what to do but can't stay consistent" },
-  { icon: '🌊', label: "Overwhelmed and don't know where to start" },
-  { icon: '📱', label: 'Get distracted too easily' },
-  { icon: '💭', label: "Set goals but don't follow through" },
-  { icon: '🗺️', label: "Don't have a clear plan" },
-  { icon: '🌐', label: 'Other' },
+  { icon: 'autorenew', label: "Know what to do but can't stay consistent" },
+  { icon: 'waves', label: "Overwhelmed and don't know where to start" },
+  { icon: 'smartphone', label: 'Get distracted too easily' },
+  { icon: 'cloud', label: "Set goals but don't follow through" },
+  { icon: 'map', label: "Don't have a clear plan" },
+  { icon: 'more-horiz', label: 'Other' },
 ];
 const TASKS: Option[] = [
-  { icon: '✅', label: 'I use a to-do app' },
-  { icon: '🧠', label: 'I keep it in my head' },
-  { icon: '📝', label: 'I use a notes app' },
-  { icon: '📅', label: 'I use a calendar' },
-  { icon: '⚠️', label: 'I have a system but it breaks down' },
-  { icon: '🤷', label: "I don't really manage them" },
-  { icon: '🌐', label: 'Other' },
+  { icon: 'check-circle', label: 'I use a to-do app' },
+  { icon: 'psychology', label: 'I keep it in my head' },
+  { icon: 'edit-note', label: 'I use a notes app' },
+  { icon: 'calendar-today', label: 'I use a calendar' },
+  { icon: 'warning-amber', label: 'I have a system but it breaks down' },
+  { icon: 'help-outline', label: "I don't really manage them" },
+  { icon: 'more-horiz', label: 'Other' },
 ];
 
 function OptionCard({ option, selected, onPress, multi }: {
   option: Option; selected: boolean; onPress: () => void; multi?: boolean;
 }) {
+  const c = useThemeColors();
   return (
     <TouchableOpacity
       activeOpacity={0.8}
@@ -72,8 +75,8 @@ function OptionCard({ option, selected, onPress, multi }: {
         selected ? 'border-brand bg-surface-2' : 'border-border bg-surface'
       }`}
     >
-      <View className={`w-10 h-10 rounded-xl items-center justify-center ${selected ? 'bg-brand/20' : 'bg-bg'}`}>
-        <Text style={{ fontSize: 18 }}>{option.icon}</Text>
+      <View className={`w-10 h-10 rounded-xl items-center justify-center ${selected ? 'bg-brand/20' : 'bg-surface-2'}`}>
+        <Icon name={option.icon} size={20} color={selected ? c.brand : c.muted} />
       </View>
       <View className="flex-1">
         <Text className={`text-[15px] font-semibold ${selected ? 'text-brand-light' : 'text-text'}`}>
@@ -86,7 +89,7 @@ function OptionCard({ option, selected, onPress, multi }: {
           selected ? 'border-brand bg-brand' : 'border-muted/40'
         }`}
       >
-        {selected && <Text style={{ color: 'white', fontSize: 11, fontWeight: '900' }}>✓</Text>}
+        {selected && <Icon name="check" color="#fff" size={12} />}
       </View>
     </TouchableOpacity>
   );
@@ -400,7 +403,7 @@ export default function OnboardingScreen() {
           <View className="bg-surface-2 border border-brand/30 rounded-2xl p-5 gap-3">
             <View className="flex-row items-center gap-3">
               <View className="w-12 h-12 rounded-2xl bg-brand/20 items-center justify-center">
-                <Text style={{ fontSize: 22 }}>🔁</Text>
+                <Icon name="autorenew" tone="brand" size={24} />
               </View>
               <View className="flex-1">
                 <Text className="text-text font-bold text-base">Daily Review</Text>
@@ -435,7 +438,7 @@ export default function OnboardingScreen() {
               'A memory of who you are and what you want',
             ].map((line, i) => (
               <View key={i} className="flex-row items-start gap-2.5">
-                <Text className="text-brand-light text-sm mt-0.5">✓</Text>
+                <View className="mt-0.5"><Icon name="check" tone="brand" size={16} /></View>
                 <Text className="text-text text-sm flex-1 leading-snug">{line}</Text>
               </View>
             ))}

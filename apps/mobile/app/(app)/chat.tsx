@@ -12,6 +12,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { streamChat, type Message } from '@/lib/api';
+import { useDrawer } from '@/components/AppDrawer';
+import { Icon } from '@/components/Icon';
+import { useThemeColors } from '@/lib/theme';
 
 type UIMessage = Message & { id: string };
 
@@ -20,7 +23,14 @@ function newId() {
   return `msg_${Date.now()}_${++msgCounter}`;
 }
 
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning.' : h < 17 ? 'Good afternoon.' : 'Good evening.';
+}
+
 export default function ChatScreen() {
+  const { open } = useDrawer();
+  const c = useThemeColors();
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -50,11 +60,7 @@ export default function ChatScreen() {
 
     try {
       for await (const chunk of streamChat(history, controller.signal)) {
-        setMessages(prev =>
-          prev.map(m =>
-            m.id === assistantId ? { ...m, content: m.content + chunk } : m,
-          ),
-        );
+        setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: m.content + chunk } : m)));
         scrollToBottom();
       }
     } catch (e: unknown) {
@@ -79,14 +85,12 @@ export default function ChatScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top']}>
-      {/* Header */}
-      <View className="px-5 py-3 border-b border-border flex-row items-center">
-        <Text className="text-xl font-black text-brand tracking-widest flex-1">MODUS</Text>
-        <View className="flex-row items-center gap-1.5">
-          <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <Text className="text-xs text-muted">Live</Text>
-        </View>
+    <SafeAreaView className="flex-1" edges={['top']}>
+      {/* Minimal top bar — hamburger only */}
+      <View className="px-4 py-3 flex-row items-center">
+        <TouchableOpacity onPress={open} activeOpacity={0.7} className="p-1.5 -ml-1 rounded-full">
+          <Icon name="menu" tone="muted" size={26} />
+        </TouchableOpacity>
       </View>
 
       <KeyboardAvoidingView
@@ -94,43 +98,45 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Messages */}
         <FlatList
           ref={listRef}
           data={messages}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
           onContentSizeChange={scrollToBottom}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={<Greeting />}
           renderItem={({ item }) => <MessageBubble message={item} streaming={streaming} />}
+          showsVerticalScrollIndicator={false}
         />
 
-        {/* Input bar */}
-        <View className="px-4 pb-2 pt-3 border-t border-border flex-row items-end gap-3">
-          <TextInput
-            className="flex-1 bg-surface rounded-2xl px-4 py-3 text-text text-base"
-            style={{ minHeight: 48, maxHeight: 120 }}
-            placeholder="Ask MODUS anything..."
-            placeholderTextColor="#6b6b80"
-            value={input}
-            onChangeText={setInput}
-            multiline
-            returnKeyType="send"
-            onSubmitEditing={send}
-            editable={!streaming}
-          />
-          <TouchableOpacity
-            onPress={streaming ? stopStreaming : send}
-            activeOpacity={0.8}
-            className="bg-brand rounded-2xl items-center justify-center"
-            style={{ width: 48, height: 48 }}
-          >
-            {streaming ? (
-              <View className="w-3.5 h-3.5 bg-white rounded-sm" />
-            ) : (
-              <Text className="text-white font-bold text-lg">↑</Text>
-            )}
-          </TouchableOpacity>
+        {/* Floating glass input */}
+        <View className="px-4 pb-3 pt-1">
+          <View className="bg-surface-2 border border-border rounded-3xl px-2 py-2 flex-row items-end gap-2">
+            <TextInput
+              className="flex-1 text-text text-base px-3 py-2.5"
+              style={{ maxHeight: 120 }}
+              placeholder="Ask MODUS anything…"
+              placeholderTextColor={c.muted}
+              value={input}
+              onChangeText={setInput}
+              multiline
+              returnKeyType="send"
+              onSubmitEditing={send}
+              editable={!streaming}
+            />
+            <TouchableOpacity
+              onPress={streaming ? stopStreaming : send}
+              activeOpacity={0.8}
+              className="bg-brand rounded-2xl items-center justify-center"
+              style={{ width: 44, height: 44 }}
+            >
+              {streaming ? (
+                <View style={{ width: 13, height: 13, backgroundColor: '#fff', borderRadius: 3 }} />
+              ) : (
+                <Icon name="arrow-upward" color="#fff" size={22} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -138,6 +144,7 @@ export default function ChatScreen() {
 }
 
 function MessageBubble({ message, streaming }: { message: UIMessage; streaming: boolean }) {
+  const c = useThemeColors();
   const isUser = message.role === 'user';
   const isEmpty = message.content === '' && !isUser && streaming;
 
@@ -150,33 +157,31 @@ function MessageBubble({ message, streaming }: { message: UIMessage; streaming: 
       )}
       <View
         className={`rounded-2xl px-4 py-3 max-w-[80%] ${
-          isUser
-            ? 'bg-brand rounded-br-sm'
-            : 'bg-surface-2 rounded-bl-sm'
+          isUser ? 'bg-brand rounded-br-sm' : 'bg-surface border border-border rounded-bl-sm'
         }`}
       >
         {isEmpty ? (
-          <ActivityIndicator size="small" color="#6b6b80" />
+          <ActivityIndicator size="small" color={c.muted} />
         ) : (
-          <Text className={`text-base leading-6 ${isUser ? 'text-white' : 'text-text'}`}>
-            {message.content}
-          </Text>
+          <Text className={`text-base leading-6 ${isUser ? 'text-white' : 'text-text'}`}>{message.content}</Text>
         )}
       </View>
     </View>
   );
 }
 
-function EmptyState() {
+function Greeting() {
   return (
-    <View className="flex-1 items-center justify-center py-20 gap-3">
-      <View className="w-16 h-16 rounded-full bg-surface border border-border items-center justify-center">
-        <Text className="text-brand font-black text-xl tracking-widest">M</Text>
+    <View className="flex-1 items-center justify-center gap-5 px-8" style={{ minHeight: 360 }}>
+      <View className="w-24 h-24 rounded-[28px] bg-surface border border-border items-center justify-center">
+        <Text className="text-brand font-black text-3xl tracking-widest">M</Text>
       </View>
-      <Text className="text-text font-semibold text-lg">Good morning.</Text>
-      <Text className="text-muted text-sm text-center px-8">
-        I'm MODUS, your AI chief of staff.{'\n'}What do you want to tackle today?
-      </Text>
+      <View className="items-center gap-2">
+        <Text className="text-text font-black text-3xl tracking-tight">{greeting()}</Text>
+        <Text className="text-muted text-base text-center leading-relaxed">
+          I'm MODUS, your AI chief of staff.{'\n'}What do you want to tackle today?
+        </Text>
+      </View>
     </View>
   );
 }
