@@ -48,6 +48,7 @@ export function ApprovalCard({
   const [error, setError] = useState('');
   const [editedTitle, setEditedTitle] = useState(data?.title ?? '');
   const [editedProgress, setEditedProgress] = useState(initialProgress);
+  const [editedBody, setEditedBody] = useState(data?.payload?.body ? String(data.payload.body) : '');
 
   if (!data || !data.type) return null;
 
@@ -127,6 +128,26 @@ export function ApprovalCard({
               <View className="h-full bg-brand rounded-full" style={{ width: `${editedProgress}%` }} />
             </View>
           </View>
+        ) : isEmail ? (
+          <View className="gap-2">
+            <TextInput
+              value={editedTitle}
+              onChangeText={setEditedTitle}
+              placeholder="Subject"
+              placeholderTextColor={c.muted}
+              className="bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-text text-base"
+            />
+            <TextInput
+              value={editedBody}
+              onChangeText={setEditedBody}
+              autoFocus
+              multiline
+              placeholder="Message"
+              placeholderTextColor={c.muted}
+              textAlignVertical="top"
+              className="bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-text text-sm leading-relaxed min-h-[140px]"
+            />
+          </View>
         ) : (
           <TextInput
             value={editedTitle}
@@ -139,10 +160,16 @@ export function ApprovalCard({
         )}
         <View className="flex-row gap-2">
           <TouchableOpacity
-            disabled={loading || (!isProgress && !editedTitle.trim())}
-            onPress={() => (isProgress ? approve(data.title, { progress: editedProgress }) : approve(editedTitle))}
+            disabled={loading || (!isProgress && !editedTitle.trim()) || (isEmail && !editedBody.trim())}
+            onPress={() =>
+              isProgress
+                ? approve(data.title, { progress: editedProgress })
+                : isEmail
+                  ? approve(editedTitle, { subject: editedTitle, body: editedBody })
+                  : approve(editedTitle)
+            }
             className="flex-1 bg-brand rounded-xl py-2.5 items-center"
-            style={{ opacity: loading || (!isProgress && !editedTitle.trim()) ? 0.5 : 1 }}
+            style={{ opacity: loading || (!isProgress && !editedTitle.trim()) || (isEmail && !editedBody.trim()) ? 0.5 : 1 }}
           >
             {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-semibold text-sm">Confirm</Text>}
           </TouchableOpacity>
@@ -202,7 +229,12 @@ export function ApprovalCard({
         </TouchableOpacity>
         {!isConnect && (
           <TouchableOpacity
-            onPress={() => { setEditedTitle(data.title); setEditedProgress(initialProgress); setStatus('editing'); }}
+            onPress={() => {
+              setEditedTitle(isEmail ? (data.payload?.subject ? String(data.payload.subject) : data.title) : data.title);
+              setEditedBody(isEmail ? (data.payload?.body ? String(data.payload.body) : '') : '');
+              setEditedProgress(initialProgress);
+              setStatus('editing');
+            }}
             className="flex-1 border border-border rounded-xl py-2.5 items-center"
           >
             <Text className="text-muted font-semibold text-sm">Edit</Text>
