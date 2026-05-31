@@ -53,6 +53,12 @@ const CAPABILITIES: CapabilityRow[] = [
     desc: 'MODUS watches your connected inbox and proactively drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft first.',
     badge: 'Beta',
   },
+  {
+    key: 'relationshipNurture',
+    label: 'Relationship Follow-ups',
+    desc: 'MODUS notices people you’ve fallen out of touch with and drafts a warm reach-out to reconnect. Nothing sends until you approve, and you can edit any draft first.',
+    badge: 'Beta',
+  },
 ];
 
 interface Props {

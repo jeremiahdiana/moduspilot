@@ -21,6 +21,7 @@ export interface UserSettings {
     vectorMemory: boolean;
     webSearch: boolean;
     inboxTriage: boolean;
+    relationshipNurture: boolean;
   };
 }
 
@@ -47,6 +48,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     vectorMemory: false,
     webSearch: false,
     inboxTriage: true,
+    relationshipNurture: true,
   },
 };
 

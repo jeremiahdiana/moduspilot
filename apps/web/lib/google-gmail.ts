@@ -215,3 +215,51 @@ export async function getActionableThreads(
     return [];
   }
 }
+
+export interface LastThread {
+  threadId: string;
+  subject: string;
+  snippet: string;
+  body: string;
+  date: string;
+}
+
+/**
+ * Most recent thread involving a specific contact (either direction), used to
+ * give a reach-out draft real context. Returns null if nothing is found.
+ */
+export async function getLastThreadWith(accessToken: string, email: string): Promise<LastThread | null> {
+  try {
+    const q = `from:${email} OR to:${email}`;
+    const listRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${encodeURIComponent(q)}&maxResults=1`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!listRes.ok) return null;
+    const listData = await listRes.json() as { threads?: { id: string }[] };
+    const first = listData.threads?.[0];
+    if (!first) return null;
+
+    const tRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads/${first.id}?format=full`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (!tRes.ok) return null;
+    const threadData = await tRes.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msgs: any[] = threadData.messages ?? [];
+    if (!msgs.length) return null;
+
+    const firstMsg = msgs[0];
+    const latestMsg = msgs[msgs.length - 1];
+    const firstHeaders: { name: string; value: string }[] = firstMsg.payload?.headers ?? [];
+    const subject = firstHeaders.find(h => h.name === 'Subject')?.value ?? '(no subject)';
+    const latestHeaders: { name: string; value: string }[] = latestMsg.payload?.headers ?? [];
+    const date = latestHeaders.find(h => h.name === 'Date')?.value ?? '';
+    const body = extractTextBody(latestMsg.payload);
+
+    return { threadId: threadData.id ?? first.id, subject, snippet: threadData.snippet ?? '', body, date };
+  } catch {
+    return null;
+  }
+}
