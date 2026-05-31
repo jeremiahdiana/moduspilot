@@ -20,6 +20,7 @@ export interface UserSettings {
     voiceInput: boolean;
     vectorMemory: boolean;
     webSearch: boolean;
+    inboxTriage: boolean;
   };
 }
 
@@ -45,6 +46,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     voiceInput: false,
     vectorMemory: false,
     webSearch: false,
+    inboxTriage: true,
   },
 };
 

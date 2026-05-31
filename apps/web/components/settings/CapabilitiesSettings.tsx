@@ -47,6 +47,12 @@ const CAPABILITIES: CapabilityRow[] = [
     label: 'Vector Memory',
     desc: 'MODUS stores semantic memories from your conversations in Pinecone so it can recall past context across sessions.',
   },
+  {
+    key: 'inboxTriage',
+    label: 'Inbox Triage',
+    desc: 'MODUS watches your connected inbox and proactively drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft first.',
+    badge: 'Beta',
+  },
 ];
 
 interface Props {

@@ -138,6 +138,7 @@ export default function ApprovalCard({ raw, onApproved }: { raw: string; onAppro
   const [loading, setLoading] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedProgress, setEditedProgress] = useState(0);
+  const [editedBody, setEditedBody] = useState('');
   const [error, setError] = useState('');
   const [googleAccounts, setGoogleAccounts] = useState<{ email: string }[]>([]);
   const [selectedAccount, setSelectedAccount] = useState('');
@@ -296,6 +297,18 @@ export default function ApprovalCard({ raw, onApproved }: { raw: string; onAppro
                       onChange={e => setEditedProgress(Number(e.target.value))} className="w-full accent-brand" />
                   </div>
                 </div>
+              ) : isEmailType ? (
+                <div className="space-y-2">
+                  <input value={editedTitle} onChange={e => setEditedTitle(e.target.value)}
+                    placeholder="Subject"
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-brand transition-colors"
+                    onKeyDown={e => { if (e.key === 'Escape') setStatus('pending'); }} />
+                  <textarea autoFocus value={editedBody} onChange={e => setEditedBody(e.target.value)}
+                    rows={7}
+                    placeholder="Message"
+                    className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-brand transition-colors resize-y leading-relaxed"
+                    onKeyDown={e => { if (e.key === 'Escape') setStatus('pending'); }} />
+                </div>
               ) : (
                 <>
                   <input autoFocus value={editedTitle} onChange={e => setEditedTitle(e.target.value)}
@@ -307,8 +320,12 @@ export default function ApprovalCard({ raw, onApproved }: { raw: string; onAppro
             </div>
             <div className="flex gap-2">
               <motion.button
-                onClick={() => data.type === 'update_goal_progress' ? approve(data.title, { progress: editedProgress }) : approve(editedTitle)}
-                disabled={loading || (data.type !== 'update_goal_progress' && !editedTitle.trim())}
+                onClick={() => {
+                  if (data.type === 'update_goal_progress') approve(data.title, { progress: editedProgress });
+                  else if (isEmailType) approve(editedTitle, { subject: editedTitle, body: editedBody });
+                  else approve(editedTitle);
+                }}
+                disabled={loading || (data.type !== 'update_goal_progress' && !editedTitle.trim()) || (isEmailType && !editedBody.trim())}
                 whileHover={!loading ? { scale: 1.02 } : {}}
                 whileTap={!loading ? { scale: 0.97 } : {}}
                 transition={springFast}
@@ -403,7 +420,12 @@ export default function ApprovalCard({ raw, onApproved }: { raw: string; onAppro
               </motion.button>
               {!isConnectCard && (
                 <motion.button
-                  onClick={() => { setEditedTitle(data.title); setEditedProgress(pendingProgress); setStatus('editing'); }}
+                  onClick={() => {
+                    setEditedTitle(isEmailType ? String(data.payload?.subject ?? data.title) : data.title);
+                    setEditedBody(isEmailType ? String(data.payload?.body ?? '') : '');
+                    setEditedProgress(pendingProgress);
+                    setStatus('editing');
+                  }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   transition={springFast}

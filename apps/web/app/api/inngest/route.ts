@@ -8,8 +8,9 @@ import { weeklyReview } from '@/functions/inngest/weekly-review';
 import { meetingIntelligence } from '@/functions/inngest/meeting-intelligence';
 import { contactTracker } from '@/functions/inngest/contact-tracker';
 import { focusProtection } from '@/functions/inngest/focus-protection';
+import { inboxTriage } from '@/functions/inngest/inbox-triage';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [dailyCheckin, memoryUpsert, habitReminder, endOfDayReflection, weeklyReview, meetingIntelligence, contactTracker, focusProtection],
+  functions: [dailyCheckin, memoryUpsert, habitReminder, endOfDayReflection, weeklyReview, meetingIntelligence, contactTracker, focusProtection, inboxTriage],
 });
