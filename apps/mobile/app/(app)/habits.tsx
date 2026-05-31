@@ -10,7 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS, useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
-import { EmptyState, CountPill } from '@/components/ui';
+import { EmptyState, CountPill, AnimatedRow } from '@/components/ui';
+import { haptics } from '@/lib/haptics';
 
 interface Habit {
   id: string;
@@ -117,6 +118,7 @@ export default function HabitsScreen() {
   async function toggleToday(habit: Habit) {
     if (!user) return;
     const done = habit.completedDates.includes(today);
+    if (done) haptics.light(); else haptics.success();
     const newDates = done
       ? habit.completedDates.filter(d => d !== today)
       : [...habit.completedDates, today];
@@ -144,7 +146,7 @@ export default function HabitsScreen() {
           data={habits}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          renderItem={({ item }) => <HabitRow habit={item} onToggle={() => toggleToday(item)} />}
+          renderItem={({ item, index }) => <AnimatedRow index={index}><HabitRow habit={item} onToggle={() => toggleToday(item)} /></AnimatedRow>}
           showsVerticalScrollIndicator={false}
         />
       )}

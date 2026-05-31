@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
+import { haptics } from '@/lib/haptics';
 import {
   ApprovalData,
   TYPE_LABELS,
@@ -61,6 +62,7 @@ export function ApprovalCard({
     setError('');
     try {
       await submitApproval(data, title, overridePayload);
+      haptics.success();
       setStatus('approved');
       if (!isConnect) {
         const merged = { ...data.payload, ...(overridePayload ?? {}) };
@@ -207,7 +209,7 @@ export function ApprovalCard({
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          onPress={() => setStatus('dismissed')}
+          onPress={() => { haptics.light(); setStatus('dismissed'); }}
           className="flex-1 bg-surface-2 border border-border rounded-xl py-2.5 items-center"
         >
           <Text className="text-muted font-semibold text-sm">Skip</Text>

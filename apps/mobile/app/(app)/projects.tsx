@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS } from '@/lib/theme';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
-import { EmptyState, GradientButton } from '@/components/ui';
+import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete } from '@/components/ui';
 
 interface Project {
   id: string;
@@ -72,6 +72,11 @@ export default function ProjectsScreen() {
     ]);
   }
 
+  function deleteProjectNow(p: Project) {
+    if (!user) return;
+    deleteDoc(doc(db, 'users', user.uid, 'projects', p.id)).catch(() => {});
+  }
+
   function projectActions(p: Project) {
     if (!user) return;
     Alert.alert(p.title, undefined, [
@@ -125,7 +130,9 @@ export default function ProjectsScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
+            <AnimatedRow index={index}>
+            <SwipeToDelete onDelete={() => deleteProjectNow(item)}>
             <TouchableOpacity
               activeOpacity={0.8}
               onLongPress={() => projectActions(item)}
@@ -148,6 +155,8 @@ export default function ProjectsScreen() {
               </View>
               <Icon name="more-horiz" tone="muted" size={20} />
             </TouchableOpacity>
+            </SwipeToDelete>
+            </AnimatedRow>
           )}
         />
       )}

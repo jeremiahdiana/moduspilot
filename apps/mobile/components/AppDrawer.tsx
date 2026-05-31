@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@/components/Icon';
 import { GRADIENTS, useThemeColors } from '@/lib/theme';
 import { GradientText } from '@/components/ui/GradientText';
+import { haptics } from '@/lib/haptics';
 
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
@@ -46,6 +47,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   }, [slide, fade]);
 
   function go(href: string) {
+    haptics.select();
     close();
     // Let the close animation start before swapping routes.
     setTimeout(() => router.replace(href as never), 60);

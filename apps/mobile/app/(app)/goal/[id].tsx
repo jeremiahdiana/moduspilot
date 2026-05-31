@@ -12,6 +12,7 @@ import { DetailHeader } from '@/components/DetailHeader';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ui';
 import { useThemeColors } from '@/lib/theme';
+import { haptics } from '@/lib/haptics';
 
 interface Note { id: string; content: string; date: string; }
 interface Goal {
@@ -65,6 +66,7 @@ export default function GoalDetail() {
   function setProgress(p: number) {
     if (!user || !id) return;
     const clamped = Math.max(0, Math.min(100, p));
+    if (clamped >= 100) haptics.success(); else haptics.light();
     updateDoc(ref(), {
       progress: clamped,
       progressLog: arrayUnion({ progress: clamped, date: new Date().toISOString().slice(0, 10) }),

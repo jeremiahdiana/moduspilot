@@ -11,8 +11,9 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
-import { EmptyState, CountPill } from '@/components/ui';
+import { EmptyState, CountPill, AnimatedRow, SwipeToDelete } from '@/components/ui';
 import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { haptics } from '@/lib/haptics';
 
 interface Task {
   id: string;
@@ -114,6 +115,7 @@ export default function TasksScreen() {
 
   function toggle(t: Task) {
     if (!user) return;
+    if (t.done) haptics.light(); else haptics.success();
     updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { done: !t.done }).catch(() => {});
   }
 
@@ -121,8 +123,13 @@ export default function TasksScreen() {
     if (!user) return;
     Alert.alert(t.title, 'Delete this task?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { deleted: true }).catch(() => {}) },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteNow(t) },
     ]);
+  }
+
+  function deleteNow(t: Task) {
+    if (!user) return;
+    updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { deleted: true }).catch(() => {});
   }
 
   const open = tasks.filter(t => !t.done);
@@ -164,7 +171,13 @@ export default function TasksScreen() {
           ListHeaderComponent={
             open.length > 0 ? <View className="px-1 pb-1"><CountPill label={`${open.length} open`} /></View> : null
           }
-          renderItem={({ item }) => <TaskRow task={item} onToggle={() => toggle(item)} onDelete={() => remove(item)} />}
+          renderItem={({ item, index }) => (
+            <AnimatedRow index={index}>
+              <SwipeToDelete onDelete={() => deleteNow(item)}>
+                <TaskRow task={item} onToggle={() => toggle(item)} onDelete={() => remove(item)} />
+              </SwipeToDelete>
+            </AnimatedRow>
+          )}
         />
       )}
     </SafeAreaView>

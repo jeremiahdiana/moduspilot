@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS, useThemeColors } from '@/lib/theme';
 import { GlassView } from '@/components/ui/Glass';
 import { GradientText } from '@/components/ui/GradientText';
+import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -125,6 +126,7 @@ export default function ChatScreen() {
   async function send() {
     const text = input.trim();
     if (!text || streaming) return;
+    haptics.medium();
     setInput('');
 
     const userMsg: UIMessage = { id: newId(), role: 'user', content: text };

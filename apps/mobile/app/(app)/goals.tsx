@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
-import { ProgressRing } from '@/components/ui';
+import { ProgressRing, AnimatedRow } from '@/components/ui';
 import { EmptyState, CountPill } from '@/components/ui/Common';
 
 interface Goal {
@@ -97,7 +97,7 @@ export default function GoalsScreen() {
           data={goals}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
-          renderItem={({ item }) => <GoalRow goal={item} />}
+          renderItem={({ item, index }) => <AnimatedRow index={index}><GoalRow goal={item} /></AnimatedRow>}
           showsVerticalScrollIndicator={false}
         />
       )}
