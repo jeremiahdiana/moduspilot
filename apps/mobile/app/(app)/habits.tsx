@@ -6,9 +6,11 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
-import { useThemeColors } from '@/lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRADIENTS, useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
+import { EmptyState, CountPill } from '@/components/ui';
 
 interface Habit {
   id: string;
@@ -41,32 +43,43 @@ function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
   const done = habit.completedDates.includes(today);
 
   return (
-    <View className="bg-surface border border-border rounded-2xl px-4 py-4 flex-row items-center gap-3">
-      <TouchableOpacity
-        onPress={onToggle}
-        activeOpacity={0.7}
-        style={{
-          width: 26, height: 26, borderRadius: 8, borderWidth: 2,
-          borderColor: done ? c.brand : c.border,
-          backgroundColor: done ? c.brand : 'transparent',
-          alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        {done && <Icon name="check" color="#fff" size={16} />}
+    <View className="bg-surface border border-border rounded-3xl px-4 py-4 flex-row items-center gap-3.5">
+      <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
+        {done ? (
+          <LinearGradient
+            colors={GRADIENTS.brand}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name="check" color="#fff" size={18} />
+          </LinearGradient>
+        ) : (
+          <View
+            style={{
+              width: 30, height: 30, borderRadius: 15, borderWidth: 2,
+              borderColor: c.border, alignItems: 'center', justifyContent: 'center',
+            }}
+          />
+        )}
       </TouchableOpacity>
 
       <Text
-        className="flex-1 text-text font-medium text-base"
+        className="flex-1 text-text font-semibold text-base"
         numberOfLines={1}
-        style={[{ opacity: done ? 0.5 : 1 }, done ? { textDecorationLine: 'line-through' as const } : {}]}
+        style={[{ opacity: done ? 0.45 : 1 }, done ? { textDecorationLine: 'line-through' as const } : {}]}
       >
         {habit.title}
       </Text>
 
-      <View className="flex-row items-center gap-1">
-        <Icon name="local-fire-department" size={18} color={habit.streak > 0 ? c.brand : c.muted} />
-        <Text className="text-muted text-xs">{habit.streak}d</Text>
-      </View>
+      {habit.streak > 0 ? (
+        <View className="flex-row items-center gap-1 px-2.5 py-1 rounded-full bg-brand/10">
+          <Icon name="local-fire-department" size={15} tone="brand" />
+          <Text className="text-brand text-xs font-bold">{habit.streak}</Text>
+        </View>
+      ) : (
+        <Icon name="local-fire-department" size={16} tone="muted" />
+      )}
     </View>
   );
 }
@@ -117,7 +130,7 @@ export default function HabitsScreen() {
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Habits"
-        right={habits.length > 0 ? <Text className="text-muted text-sm">{doneCount}/{habits.length} today</Text> : undefined}
+        right={habits.length > 0 ? <CountPill label={`${doneCount}/${habits.length} today`} /> : undefined}
       />
 
       {loading ? (
@@ -125,11 +138,7 @@ export default function HabitsScreen() {
           <SkeletonHabitRow />
         </SkeletonList>
       ) : habits.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-3 px-8">
-          <Icon name="local-fire-department" tone="muted" size={44} />
-          <Text className="text-text font-semibold text-base">No habits yet</Text>
-          <Text className="text-muted text-sm text-center">Ask MODUS in chat to help you build a habit.</Text>
-        </View>
+        <EmptyState icon="local-fire-department" title="No habits yet" subtitle="Ask MODUS in chat to help you build a habit." />
       ) : (
         <FlatList
           data={habits}

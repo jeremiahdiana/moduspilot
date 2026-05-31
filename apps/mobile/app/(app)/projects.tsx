@@ -9,8 +9,11 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRADIENTS } from '@/lib/theme';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
+import { EmptyState, GradientButton } from '@/components/ui';
 
 interface Project {
   id: string;
@@ -89,8 +92,15 @@ export default function ProjectsScreen() {
       <ScreenHeader
         title="Projects"
         right={
-          <TouchableOpacity onPress={addProject} activeOpacity={0.7} className="p-1.5 rounded-full">
-            <Icon name="add" tone="brand" size={26} />
+          <TouchableOpacity onPress={addProject} activeOpacity={0.8}>
+            <LinearGradient
+              colors={GRADIENTS.brand}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Icon name="add" color="#fff" size={24} />
+            </LinearGradient>
           </TouchableOpacity>
         }
       />
@@ -100,15 +110,13 @@ export default function ProjectsScreen() {
           <SkeletonCard />
         </SkeletonList>
       ) : projects.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-3 px-8">
-          <Icon name="folder-open" tone="muted" size={44} />
-          <Text className="text-text font-semibold text-base">No projects yet</Text>
-          <Text className="text-muted text-sm text-center">
-            Group related work into a project. Tap + to create your first one.
-          </Text>
-          <TouchableOpacity onPress={addProject} activeOpacity={0.85} className="mt-2 bg-brand rounded-2xl px-6 py-3">
-            <Text className="text-white font-bold text-sm">New project</Text>
-          </TouchableOpacity>
+        <View className="flex-1 items-center justify-center gap-4 px-10">
+          <EmptyState
+            icon="folder-open"
+            title="No projects yet"
+            subtitle="Group related work into a project. Tap + to create your first one."
+          />
+          <GradientButton label="New project" icon="add" onPress={addProject} />
         </View>
       ) : (
         <FlatList
@@ -121,13 +129,18 @@ export default function ProjectsScreen() {
               activeOpacity={0.8}
               onLongPress={() => projectActions(item)}
               onPress={() => projectActions(item)}
-              className="bg-surface border border-border rounded-2xl px-4 py-4 flex-row items-center gap-3"
+              className="bg-surface border border-border rounded-3xl px-4 py-4 flex-row items-center gap-3.5"
             >
-              <View className="w-10 h-10 rounded-xl bg-brand/12 items-center justify-center">
-                <Icon name="folder" tone="brand" size={20} />
-              </View>
+              <LinearGradient
+                colors={GRADIENTS.brand}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Icon name="folder" color="#fff" size={22} />
+              </LinearGradient>
               <View className="flex-1">
-                <Text className="text-text font-semibold text-[15px]" numberOfLines={1}>{item.title}</Text>
+                <Text className="text-text font-bold text-base" numberOfLines={1}>{item.title}</Text>
                 {!!item.description && (
                   <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{item.description}</Text>
                 )}

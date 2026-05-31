@@ -17,7 +17,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
-import { useThemeColors } from '@/lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { GlassView } from '@/components/ui/Glass';
+import { GradientText } from '@/components/ui/GradientText';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -230,7 +233,8 @@ export default function ChatScreen() {
 
         {/* Floating glass input */}
         <View className="px-4 pb-3 pt-1">
-          <View className="bg-surface-2 border border-border rounded-3xl px-2 py-2 flex-row items-end gap-2">
+          <GlassView radius={28} intensity={50}>
+          <View className="px-2 py-2 flex-row items-end gap-2">
             <TextInput
               className="flex-1 text-text text-base px-3 py-2.5"
               style={{ maxHeight: 120 }}
@@ -261,19 +265,22 @@ export default function ChatScreen() {
                 )}
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              onPress={streaming ? stopStreaming : send}
-              activeOpacity={0.8}
-              className="bg-brand rounded-2xl items-center justify-center"
-              style={{ width: 44, height: 44 }}
-            >
-              {streaming ? (
-                <View style={{ width: 13, height: 13, backgroundColor: '#fff', borderRadius: 3 }} />
-              ) : (
-                <Icon name="arrow-upward" color="#fff" size={22} />
-              )}
+            <TouchableOpacity onPress={streaming ? stopStreaming : send} activeOpacity={0.8}>
+              <LinearGradient
+                colors={GRADIENTS.brand}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}
+              >
+                {streaming ? (
+                  <View style={{ width: 13, height: 13, backgroundColor: '#fff', borderRadius: 3 }} />
+                ) : (
+                  <Icon name="arrow-upward" color="#fff" size={22} />
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
+          </GlassView>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -295,9 +302,16 @@ function MessageBubble({
   if (isUser) {
     return (
       <View className="flex-row justify-end">
-        <View className="rounded-2xl rounded-br-sm px-4 py-3 max-w-[80%] bg-brand">
-          <Text className="text-base leading-6 text-white">{message.content}</Text>
-        </View>
+        <LinearGradient
+          colors={GRADIENTS.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ borderRadius: 18, borderBottomRightRadius: 4, maxWidth: '80%' }}
+        >
+          <View className="px-4 py-3">
+            <Text className="text-base leading-6 text-white">{message.content}</Text>
+          </View>
+        </LinearGradient>
       </View>
     );
   }
@@ -312,9 +326,14 @@ function MessageBubble({
 
   return (
     <View className="flex-row justify-start">
-      <View className="w-7 h-7 rounded-full bg-brand items-center justify-center mr-2 mt-1" style={{ flexShrink: 0 }}>
+      <LinearGradient
+        colors={GRADIENTS.brand}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
+      >
         <Text className="text-white font-black text-xs">M</Text>
-      </View>
+      </LinearGradient>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
         {isEmpty ? (
           <View className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
@@ -353,11 +372,18 @@ function MessageBubble({
 function Greeting() {
   return (
     <View className="flex-1 items-center justify-center gap-5 px-8" style={{ minHeight: 360 }}>
-      <View className="w-24 h-24 rounded-[28px] bg-surface border border-border items-center justify-center">
-        <Text className="text-brand font-black text-3xl tracking-widest">M</Text>
-      </View>
+      <LinearGradient
+        colors={GRADIENTS.brand}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ width: 92, height: 92, borderRadius: 30, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Text className="text-white font-black text-4xl tracking-widest">M</Text>
+      </LinearGradient>
       <View className="items-center gap-2">
-        <Text className="text-text font-black text-3xl tracking-tight">{greeting()}</Text>
+        <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
+          {greeting()}
+        </GradientText>
         <Text className="text-muted text-base text-center leading-relaxed">
           I'm MODUS, your AI chief of staff.{'\n'}What do you want to tackle today?
         </Text>

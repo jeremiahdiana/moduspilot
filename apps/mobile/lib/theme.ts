@@ -18,6 +18,13 @@ export const PALETTE = {
   },
 };
 
+// Brand gradients (match the web app's tailwind/globals.css).
+export const GRADIENTS = {
+  brand: ['#8b5cf6', '#7c3aed', '#6d28d9'] as const,            // primary buttons
+  headline: ['#a78bfa', '#7c3aed', '#c084fc', '#818cf8'] as const, // gradient text
+  ring: ['#a78bfa', '#7c3aed', '#6d28d9'] as const,             // progress rings
+};
+
 export type ThemeName = 'light' | 'dark';
 
 export function useThemeColors() {

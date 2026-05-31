@@ -1,10 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  Animated,
-} from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -13,6 +8,8 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
+import { ProgressRing } from '@/components/ui';
+import { EmptyState, CountPill } from '@/components/ui/Common';
 
 interface Goal {
   id: string;
@@ -23,35 +20,21 @@ interface Goal {
   description?: string;
 }
 
-function ProgressBar({ progress }: { progress: number }) {
-  const anim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: Math.min(100, Math.max(0, progress)),
-      duration: 700,
-      useNativeDriver: false,
-    }).start();
-  }, [progress]);
-
-  const width = anim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
-
-  return (
-    <View className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-      <Animated.View style={{ width }} className="h-full bg-brand rounded-full" />
-    </View>
-  );
-}
-
 function GoalRow({ goal }: { goal: Goal }) {
   return (
-    <View className="bg-surface border border-border rounded-2xl px-4 py-4 gap-2.5">
-      <View className="flex-row items-start justify-between gap-3">
-        <Text className="text-text font-semibold text-base flex-1" numberOfLines={2}>{goal.title}</Text>
-        {goal.dueDate && <Text className="text-muted text-xs mt-0.5 shrink-0">{goal.dueDate}</Text>}
+    <View className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-4">
+      <View className="flex-1 gap-1.5">
+        <Text className="text-text font-bold text-base" numberOfLines={2}>{goal.title}</Text>
+        {goal.dueDate ? (
+          <View className="flex-row items-center gap-1.5">
+            <Icon name="event" tone="muted" size={13} />
+            <Text className="text-muted text-xs">{goal.dueDate}</Text>
+          </View>
+        ) : (
+          <Text className="text-muted text-xs">{goal.progress}% complete</Text>
+        )}
       </View>
-      <ProgressBar progress={goal.progress} />
-      <Text className="text-muted text-xs">{goal.progress}% complete</Text>
+      <ProgressRing progress={goal.progress} size={58} stroke={5} />
     </View>
   );
 }
@@ -94,7 +77,7 @@ export default function GoalsScreen() {
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Goals"
-        right={goals.length > 0 ? <Text className="text-muted text-sm">{goals.length} active</Text> : undefined}
+        right={goals.length > 0 ? <CountPill label={`${goals.length} active`} /> : undefined}
       />
 
       {loading ? (
@@ -102,11 +85,7 @@ export default function GoalsScreen() {
           <SkeletonCard />
         </SkeletonList>
       ) : goals.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-3 px-8">
-          <Icon name="flag" tone="muted" size={44} />
-          <Text className="text-text font-semibold text-base">No goals yet</Text>
-          <Text className="text-muted text-sm text-center">Ask MODUS in chat to help you set a goal.</Text>
-        </View>
+        <EmptyState icon="flag" title="No goals yet" subtitle="Ask MODUS in chat to help you set a goal." />
       ) : (
         <FlatList
           data={goals}
