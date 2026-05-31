@@ -6,7 +6,8 @@ import { auth } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
-import { useThemeColors, useThemeToggle } from '@/lib/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRADIENTS, useThemeColors, useThemeToggle } from '@/lib/theme';
 
 export default function SettingsScreen() {
   const user = auth.currentUser;
@@ -52,18 +53,25 @@ export default function SettingsScreen() {
 
       <View className="flex-1 px-5 py-6 gap-4">
         {/* Account info */}
-        <View className="bg-surface border border-border rounded-2xl p-4 flex-row items-center gap-3">
-          <View className="w-12 h-12 rounded-full bg-brand/12 items-center justify-center">
-            <Icon name="person" tone="brand" size={24} />
-          </View>
+        <View className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-3.5">
+          <LinearGradient
+            colors={GRADIENTS.brand}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text className="text-white font-black text-xl">
+              {(user?.displayName ?? user?.email ?? '?').trim().charAt(0).toUpperCase()}
+            </Text>
+          </LinearGradient>
           <View className="flex-1">
-            <Text className="text-text font-semibold">{user?.displayName ?? 'User'}</Text>
+            <Text className="text-text font-bold text-base">{user?.displayName ?? 'User'}</Text>
             <Text className="text-muted text-sm">{user?.email ?? ''}</Text>
           </View>
         </View>
 
         {/* Appearance */}
-        <View className="bg-surface border border-border rounded-2xl px-4 py-3 flex-row items-center gap-3">
+        <View className="bg-surface border border-border rounded-3xl px-4 py-3.5 flex-row items-center gap-3">
           <Icon name={isDark ? 'dark-mode' : 'light-mode'} tone="muted" size={22} />
           <Text className="text-text font-medium flex-1">Dark mode</Text>
           <Switch
@@ -76,7 +84,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Open web app */}
-        <View className="bg-surface border border-border rounded-2xl p-4">
+        <View className="bg-surface border border-border rounded-3xl p-4">
           <Text className="text-xs text-muted font-semibold uppercase tracking-wider mb-2">More settings</Text>
           <Text className="text-muted text-sm">
             Full settings (billing, connectors, memory) are available at{' '}
@@ -90,7 +98,7 @@ export default function SettingsScreen() {
             onPress={handleSignOut}
             disabled={deleting}
             activeOpacity={0.8}
-            className="border border-border rounded-2xl py-4 flex-row items-center justify-center gap-2"
+            className="border border-border rounded-3xl py-4 flex-row items-center justify-center gap-2"
           >
             <Icon name="logout" tone="text" size={20} />
             <Text className="text-text font-semibold">Sign Out</Text>
@@ -101,7 +109,7 @@ export default function SettingsScreen() {
             onPress={confirmDelete}
             disabled={deleting}
             activeOpacity={0.8}
-            className="border border-red-900/40 rounded-2xl py-4 items-center flex-row justify-center gap-2"
+            className="border border-red-900/40 rounded-3xl py-4 items-center flex-row justify-center gap-2"
           >
             {deleting ? <ActivityIndicator color="#f87171" size="small" /> : <Icon name="delete-outline" color="#f87171" size={20} />}
             <Text className="text-red-400 font-semibold">{deleting ? 'Deleting…' : 'Delete Account'}</Text>

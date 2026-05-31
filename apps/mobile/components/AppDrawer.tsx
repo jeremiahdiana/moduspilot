@@ -2,8 +2,10 @@ import { createContext, useContext, useRef, useState, useEffect, useCallback } f
 import { View, Text, TouchableOpacity, Pressable, Animated, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@/components/Icon';
-import { useThemeColors } from '@/lib/theme';
+import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { GradientText } from '@/components/ui/GradientText';
 
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
@@ -66,28 +68,47 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
               <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
                 <View className="flex-1 px-5 pt-6 pb-4">
                   <View className="flex-row items-center justify-between mb-10 px-1">
-                    <Text className="text-2xl font-black text-brand tracking-widest">MODUS</Text>
+                    <View className="flex-row items-center gap-2.5">
+                      <LinearGradient
+                        colors={GRADIENTS.brand}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{ width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Text className="text-white font-black text-lg">M</Text>
+                      </LinearGradient>
+                      <GradientText className="text-2xl font-black tracking-widest">MODUS</GradientText>
+                    </View>
                     <TouchableOpacity onPress={close} className="p-1.5 rounded-full" activeOpacity={0.7}>
                       <Icon name="close" tone="muted" size={22} />
                     </TouchableOpacity>
                   </View>
 
-                  <View className="gap-1">
+                  <View className="gap-1.5">
                     {NAV.map(item => {
                       const active = pathname === `/${item.seg}`;
-                      return (
-                        <TouchableOpacity
-                          key={item.seg}
-                          activeOpacity={0.75}
-                          onPress={() => go(item.href)}
-                          className={`flex-row items-center gap-4 px-4 py-3.5 rounded-2xl ${active ? 'bg-brand/12' : ''}`}
-                        >
-                          <Icon name={item.icon} size={22} color={active ? c.brand : c.muted} />
-                          <Text
-                            className={`text-[15px] tracking-wide ${active ? 'text-brand font-bold' : 'text-text font-medium'}`}
-                          >
+                      const row = (
+                        <View className="flex-row items-center gap-4 px-4 py-3.5">
+                          <Icon name={item.icon} size={22} color={active ? '#fff' : c.muted} />
+                          <Text className={`text-[15px] tracking-wide ${active ? 'text-white font-bold' : 'text-text font-medium'}`}>
                             {item.label}
                           </Text>
+                        </View>
+                      );
+                      return (
+                        <TouchableOpacity key={item.seg} activeOpacity={0.8} onPress={() => go(item.href)}>
+                          {active ? (
+                            <LinearGradient
+                              colors={GRADIENTS.brand}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                              style={{ borderRadius: 16 }}
+                            >
+                              {row}
+                            </LinearGradient>
+                          ) : (
+                            row
+                          )}
                         </TouchableOpacity>
                       );
                     })}
