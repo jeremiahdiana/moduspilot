@@ -1,19 +1,34 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Switch } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Switch, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { Icon } from '@/components/Icon';
+import { Icon, type IconName } from '@/components/Icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS, useThemeColors, useThemeToggle } from '@/lib/theme';
+import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/settings';
 
 export default function SettingsScreen() {
   const user = auth.currentUser;
   const c = useThemeColors();
   const { isDark, setDark } = useThemeToggle();
   const [deleting, setDeleting] = useState(false);
+  const [settings, setSettings] = useState<UserSettings>({});
+
+  const uid = currentUid();
+  useEffect(() => {
+    if (uid) getSettings(uid).then(setSettings);
+  }, [uid]);
+
+  async function toggleCapability(key: 'webSearch' | 'voiceInput', value: boolean) {
+    if (!uid) return;
+    setSettings(s => ({ ...s, capabilities: { ...s.capabilities, [key]: value } }));
+    const next = await saveSettings(uid, settings, { capabilities: { [key]: value } });
+    setSettings(next);
+  }
 
   function handleSignOut() {
     Alert.alert('Sign out', 'Are you sure?', [
@@ -51,7 +66,8 @@ export default function SettingsScreen() {
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader title="Settings" />
 
-      <View className="flex-1 px-5 py-6 gap-4">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
+       <View className="gap-4">
         {/* Account info */}
         <View className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-3.5">
           <LinearGradient
@@ -83,16 +99,36 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* Open web app */}
-        <View className="bg-surface border border-border rounded-3xl p-4">
-          <Text className="text-xs text-muted font-semibold uppercase tracking-wider mb-2">More settings</Text>
-          <Text className="text-muted text-sm">
-            Full settings (billing, connectors, memory) are available at{' '}
-            <Text className="text-brand">moduspilot.com</Text>
-          </Text>
+        {/* Preferences */}
+        <View className="bg-surface border border-border rounded-3xl overflow-hidden">
+          <NavRow icon="person-outline" label="Personal context" onPress={() => router.push('/(app)/personal-context' as never)} />
+          <Divider />
+          <NavRow icon="tune" label="Model" onPress={() => router.push('/(app)/model-settings' as never)} />
+          <Divider />
+          <NavRow icon="psychology" label="Memory" onPress={() => router.push('/(app)/memory' as never)} />
         </View>
 
-        <View className="mt-auto gap-3">
+        {/* Capabilities */}
+        <View className="bg-surface border border-border rounded-3xl overflow-hidden">
+          <ToggleRow
+            icon="search" label="Web search" sub="Let MODUS search the web"
+            value={!!settings.capabilities?.webSearch}
+            onChange={v => toggleCapability('webSearch', v)} brand={c.brand} border={c.border}
+          />
+          <Divider />
+          <ToggleRow
+            icon="mic-none" label="Voice input" sub="Mic button in chat"
+            value={settings.capabilities?.voiceInput !== false}
+            onChange={v => toggleCapability('voiceInput', v)} brand={c.brand} border={c.border}
+          />
+        </View>
+
+        {/* Web-only note */}
+        <Text className="text-muted text-xs text-center px-4 leading-5">
+          Billing and connectors are managed at moduspilot.com
+        </Text>
+
+        <View className="gap-3 mt-2">
           {/* Sign out */}
           <TouchableOpacity
             onPress={handleSignOut}
@@ -115,7 +151,37 @@ export default function SettingsScreen() {
             <Text className="text-red-400 font-semibold">{deleting ? 'Deleting…' : 'Delete Account'}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+       </View>
+      </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function Divider() {
+  return <View className="h-px bg-border ml-14" />;
+}
+
+function NavRow({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} className="flex-row items-center gap-3.5 px-4 py-4">
+      <Icon name={icon} tone="muted" size={22} />
+      <Text className="text-text font-medium text-[15px] flex-1">{label}</Text>
+      <Icon name="chevron-right" tone="muted" size={20} />
+    </TouchableOpacity>
+  );
+}
+
+function ToggleRow({ icon, label, sub, value, onChange, brand, border }: {
+  icon: IconName; label: string; sub: string; value: boolean; onChange: (v: boolean) => void; brand: string; border: string;
+}) {
+  return (
+    <View className="flex-row items-center gap-3.5 px-4 py-3.5">
+      <Icon name={icon} tone="muted" size={22} />
+      <View className="flex-1">
+        <Text className="text-text font-medium text-[15px]">{label}</Text>
+        <Text className="text-muted text-xs">{sub}</Text>
+      </View>
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: brand, false: border }} thumbColor="#ffffff" ios_backgroundColor={border} />
+    </View>
   );
 }
