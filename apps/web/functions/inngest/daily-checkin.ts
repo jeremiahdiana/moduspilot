@@ -100,7 +100,7 @@ export const dailyCheckin = inngest.createFunction(
                   messages: [{ id: msgId(), role: 'assistant', content: text }],
                 }),
                 adminDb.collection('users').doc(uid).update({ lastCheckinDate: today }),
-                sendPushToUser(uid, 'Midday check-in', text.slice(0, 120)).catch(() => {}),
+                sendPushToUser(uid, 'Midday check-in', text.slice(0, 120), { type: 'checkin' }).catch(() => {}),
               ]);
 
               console.log(`[daily-checkin] sent to ${uid}`);

@@ -41,7 +41,8 @@
         {
           "microphonePermission": "Allow MODUS to use the microphone for voice input in chat."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
