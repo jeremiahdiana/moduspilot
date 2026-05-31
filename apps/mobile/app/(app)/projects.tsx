@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   collection, onSnapshot, query, orderBy,
@@ -9,7 +9,8 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
-import { useThemeColors } from '@/lib/theme';
+import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
+import { readCache, writeCache } from '@/lib/cache';
 
 interface Project {
   id: string;
@@ -21,26 +22,33 @@ interface Project {
 
 export default function ProjectsScreen() {
   const { user } = useAuth();
-  const c = useThemeColors();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    let alive = true;
+
+    readCache<Project[]>(`projects.${user.uid}`).then(cached => {
+      if (alive && cached) { setProjects(cached); setLoading(false); }
+    });
+
     const q = query(collection(db, 'users', user.uid, 'projects'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, snap => {
-      setProjects(
-        snap.docs
-          .map(d => ({
-            id: d.id,
-            title: d.data().title ?? 'Untitled',
-            description: d.data().description,
-            status: d.data().status ?? 'active',
-          }))
-          .filter(p => p.status === 'active'),
-      );
+    const unsub = onSnapshot(q, snap => {
+      const next = snap.docs
+        .map(d => ({
+          id: d.id,
+          title: d.data().title ?? 'Untitled',
+          description: d.data().description,
+          status: d.data().status ?? 'active',
+        }))
+        .filter(p => p.status === 'active');
+      setProjects(next);
       setLoading(false);
+      writeCache(`projects.${user.uid}`, next);
     }, () => setLoading(false));
+
+    return () => { alive = false; unsub(); };
   }, [user]);
 
   function addProject() {
@@ -88,9 +96,9 @@ export default function ProjectsScreen() {
       />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={c.brand} />
-        </View>
+        <SkeletonList count={5}>
+          <SkeletonCard />
+        </SkeletonList>
       ) : projects.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-3 px-8">
           <Icon name="folder-open" tone="muted" size={44} />

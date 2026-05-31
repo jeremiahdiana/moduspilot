@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, type FormEvent, type ChangeEvent } from 'react';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Props {
   input: string;
@@ -83,16 +84,17 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
         </div>
       )}
       <div className="flex gap-3 items-end bg-panel border border-border rounded-2xl px-4 py-3">
+        <Tooltip label="Attach image" side="top" className="shrink-0">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           className="shrink-0 text-muted hover:text-text transition-colors pb-0.5"
-          title="Attach image"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
           </svg>
         </button>
+        </Tooltip>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
 
         <textarea
@@ -105,17 +107,19 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
           className="flex-1 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
         />
 
+        <Tooltip label={recording ? 'Stop recording' : 'Voice input'} side="top" className="shrink-0">
         <button
           type="button"
           onClick={toggleRecording}
           className={`shrink-0 transition-colors pb-0.5 ${recording ? 'text-red-400 animate-pulse' : 'text-muted hover:text-text'}`}
-          title={recording ? 'Stop recording' : 'Voice input'}
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
           </svg>
         </button>
+        </Tooltip>
 
+        <Tooltip label="Send" side="top" className="shrink-0">
         <button
           type="submit"
           disabled={isLoading || (!input.trim() && !attachedImage)}
@@ -125,6 +129,7 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
           </svg>
         </button>
+        </Tooltip>
       </div>
       {voiceError && <p className="text-center text-red-400 text-xs mt-1">{voiceError}</p>}
       <p className="text-center text-muted text-xs mt-2">Enter to send · Shift+Enter for new line</p>

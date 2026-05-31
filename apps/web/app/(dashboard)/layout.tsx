@@ -10,6 +10,7 @@ import { useRef, useState, useEffect } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
 // Minimal inline SVG icons — stroke-based, 24x24 viewBox
@@ -206,7 +207,9 @@ function SidebarContent({
       {/* User menu */}
       <div className="mt-auto pt-3 border-t border-border" ref={menuRef}>
         <div className="px-2 pb-2 flex justify-end">
-          <AnimatedThemeToggler sound={false} />
+          <Tooltip label="Toggle theme" side="left">
+            <AnimatedThemeToggler sound={false} />
+          </Tooltip>
         </div>
         {open && user && (
           <div className="mb-2 bg-panel border border-border rounded-xl overflow-hidden shadow-lg">

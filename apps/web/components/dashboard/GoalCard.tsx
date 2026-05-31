@@ -5,6 +5,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { SkeletonList, Skeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
 
 type Timeframe = 'short' | 'long';
@@ -56,9 +57,15 @@ export default function GoalCard() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
+      <SkeletonList count={3} className="flex-1 space-y-3 pr-1">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-3.5 w-10" />
+          </div>
+          <Skeleton className="h-2 w-full" rounded="rounded-full" />
+        </div>
+      </SkeletonList>
     );
   }
 

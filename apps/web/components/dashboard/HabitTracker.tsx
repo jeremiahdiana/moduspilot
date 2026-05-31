@@ -5,6 +5,7 @@ import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { SkeletonList, SkeletonRow } from '@/components/ui/Skeleton';
 
 interface Habit {
   id: string;
@@ -71,9 +72,9 @@ export default function HabitTracker() {
   return (
     <div className="h-full flex flex-col">
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        </div>
+        <SkeletonList count={4} className="flex-1 space-y-3 pr-1">
+          <SkeletonRow />
+        </SkeletonList>
       ) : habits.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-muted text-xs text-center">No habits yet.</p>

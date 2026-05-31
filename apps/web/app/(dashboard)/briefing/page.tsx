@@ -16,6 +16,7 @@ import type { BriefingData, BriefingScheduleItem } from '@/lib/briefing';
 import type { GmailThread } from '@/lib/google-gmail';
 import type { CalendarEvent } from '@/lib/google-calendar';
 import MessageBubble from '@/components/chat/MessageBubble';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface Briefing {
   id: string;
@@ -192,6 +193,37 @@ function EmailSkeleton() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Full-page briefing skeleton ─────────────────────────────────────────────────
+
+function BriefingSkeleton() {
+  return (
+    <div className="flex-1 overflow-y-auto p-8">
+      {/* Header */}
+      <div className="mb-8 space-y-3 max-w-3xl">
+        <Skeleton className="h-7 w-64" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+        <div className="flex gap-3 pt-2">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24" rounded="rounded-full" />
+          ))}
+        </div>
+      </div>
+      {/* 2-column body */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[...Array(4)].map((_, col) => (
+          <div key={col} className="bg-panel border border-border rounded-2xl p-5 space-y-3">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-5/6" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -947,7 +979,7 @@ export default function BriefingPage() {
     await updateDoc(doc(db, 'users', user.uid, 'conversations', selected.id), { energy: key });
   }, [selected, user]);
 
-  if (loading) return <div className="flex-1 flex items-center justify-center"><div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <BriefingSkeleton />;
   if (briefings.length === 0 && !autoGenerating) return <EmptyBriefing />;
   if (briefings.length === 0 && autoGenerating) return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">

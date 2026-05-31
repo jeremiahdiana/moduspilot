@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { User } from 'firebase/auth';
 import type { Conversation } from '@/hooks/useConversations';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Props {
   conversations: Conversation[];
@@ -262,32 +263,35 @@ export default function ConversationList({ conversations, activeId, onSelect, on
         {/* Hover actions */}
         {!isEditing && (
           <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+            <Tooltip label="Rename" side="bottom">
             <button
               onClick={(e) => startEdit(conv, e)}
               className="p-1 rounded text-muted hover:text-brand transition-colors"
-              title="Rename"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
             </button>
+            </Tooltip>
+            <Tooltip label={isSharedConv ? 'Shared' : 'Share'} side="bottom">
             <button
               onClick={(e) => { e.stopPropagation(); setShareModalId(isShareOpen ? null : conv.id); }}
               className={`p-1 rounded transition-colors ${isSharedConv ? 'text-brand' : 'text-muted hover:text-brand'}`}
-              title="Share"
             >
               <ShareIcon />
             </button>
+            </Tooltip>
+            <Tooltip label="Delete" side="bottom">
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
               className="p-1 rounded text-muted hover:text-red-400 transition-colors text-xs"
-              title="Delete"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
+            </Tooltip>
           </div>
         )}
 

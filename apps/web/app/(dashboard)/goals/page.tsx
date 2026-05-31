@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
+import { SkeletonList, SkeletonCard } from '@/components/ui/Skeleton';
 
 type Timeframe = 'short' | 'long';
 type GoalStatus = 'active' | 'completed' | 'deleted';
@@ -70,7 +71,6 @@ export default function GoalsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [form, setForm] = useState<GoalForm>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -111,17 +111,17 @@ export default function GoalsPage() {
     setModalOpen(true);
   }
 
-  async function saveGoal() {
+  function saveGoal() {
     if (!user || !form.title.trim()) return;
-    setSaving(true);
     const payload = { title: form.title.trim(), description: form.description.trim() || null, timeframe: form.timeframe, dueDate: form.dueDate || null };
-    if (editingGoal) {
-      await updateDoc(doc(db, 'users', user.uid, 'goals', editingGoal.id), payload);
-    } else {
-      await addDoc(collection(db, 'users', user.uid, 'goals'), { ...payload, status: 'active', progress: 0, source: 'manual', createdAt: serverTimestamp() });
-    }
-    setSaving(false);
+    // Optimistic: close the modal immediately and let the onSnapshot listener
+    // reflect the change (Firestore latency compensation surfaces local writes
+    // instantly, before the server acknowledges).
     setModalOpen(false);
+    const write = editingGoal
+      ? updateDoc(doc(db, 'users', user.uid, 'goals', editingGoal.id), payload)
+      : addDoc(collection(db, 'users', user.uid, 'goals'), { ...payload, status: 'active', progress: 0, source: 'manual', createdAt: serverTimestamp() });
+    write.catch(err => console.error('Failed to save goal', err));
   }
 
   async function softDelete(g: Goal) {
@@ -192,9 +192,9 @@ export default function GoalsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        </div>
+        <SkeletonList count={4} className="space-y-3 max-w-2xl">
+          <SkeletonCard />
+        </SkeletonList>
       ) : tab === 'active' ? (
         <div className="space-y-8 max-w-2xl">
           {/* Uncategorized */}
@@ -414,10 +414,10 @@ export default function GoalsPage() {
                 <button onClick={() => setModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm text-muted hover:text-text transition-colors">Cancel</button>
                 <button
                   onClick={saveGoal}
-                  disabled={!form.title.trim() || saving}
+                  disabled={!form.title.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : editingGoal ? 'Save changes' : 'Add goal'}
+                  {editingGoal ? 'Save changes' : 'Add goal'}
                 </button>
               </div>
             </motion.div>

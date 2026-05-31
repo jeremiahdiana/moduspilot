@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
@@ -623,8 +624,22 @@ export default function GoalDetailPage() {
 
   if (loading || !goal) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full">
-        <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full space-y-6">
+        <Skeleton className="h-4 w-24" />
+        <div className="flex items-center gap-5">
+          <Skeleton className="w-20 h-20 shrink-0" rounded="rounded-full" />
+          <div className="flex-1 space-y-3">
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        </div>
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-5/6" />
+        <div className="space-y-3 pt-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" rounded="rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }

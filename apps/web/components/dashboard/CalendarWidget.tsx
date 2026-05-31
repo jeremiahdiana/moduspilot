@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import type { CalendarEvent } from '@/lib/google-calendar';
+import { SkeletonList, Skeleton } from '@/components/ui/Skeleton';
 
 function fmtTime(iso: string): string {
   if (!iso) return '';
@@ -56,9 +57,12 @@ export default function CalendarWidget() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-20">
-        <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-      </div>
+      <SkeletonList count={3} className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-3 w-12 shrink-0" />
+          <Skeleton className="h-3 flex-1" />
+        </div>
+      </SkeletonList>
     );
   }
 

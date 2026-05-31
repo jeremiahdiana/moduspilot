@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import {
   collection, onSnapshot, query, orderBy,
-  doc, updateDoc, addDoc, serverTimestamp,
+  doc, updateDoc, setDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
+import { SkeletonList, SkeletonCard } from '@/components/ui/Skeleton';
 
 interface PinnedResource {
   type: 'github' | 'notion' | 'slack' | 'drive' | 'url';
@@ -42,7 +43,6 @@ export default function ProjectsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ title: '', description: '' });
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -61,10 +61,15 @@ export default function ProjectsPage() {
     return unsub;
   }, [user]);
 
-  async function createProject() {
+  function createProject() {
     if (!user || !form.title.trim()) return;
-    setSaving(true);
-    const ref = await addDoc(collection(db, 'users', user.uid, 'projects'), {
+    // Optimistic: generate the doc ref client-side so we can navigate to the new
+    // project instantly without waiting on the server round-trip. setDoc fires in
+    // the background; the detail page's listener picks it up from the local cache.
+    const ref = doc(collection(db, 'users', user.uid, 'projects'));
+    setModalOpen(false);
+    setForm({ title: '', description: '' });
+    setDoc(ref, {
       title: form.title.trim(),
       description: form.description.trim() || null,
       status: 'active',
@@ -72,10 +77,7 @@ export default function ProjectsPage() {
       notes: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
-    setSaving(false);
-    setModalOpen(false);
-    setForm({ title: '', description: '' });
+    }).catch(err => console.error('Failed to create project', err));
     router.push(`/projects/${ref.id}`);
   }
 
@@ -131,8 +133,10 @@ export default function ProjectsPage() {
 
       <AnimatePresence mode="wait" initial={false}>
         {loading ? (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center py-20">
-            <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <SkeletonList count={4} className="space-y-3 max-w-2xl">
+              <SkeletonCard />
+            </SkeletonList>
           </motion.div>
         ) : shown.length === 0 ? (
           <motion.div
@@ -243,10 +247,10 @@ export default function ProjectsPage() {
                 <button onClick={() => setModalOpen(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm text-muted hover:text-text transition-colors">Cancel</button>
                 <button
                   onClick={createProject}
-                  disabled={!form.title.trim() || saving}
+                  disabled={!form.title.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Creating…' : 'Create project'}
+                  Create project
                 </button>
               </div>
             </motion.div>

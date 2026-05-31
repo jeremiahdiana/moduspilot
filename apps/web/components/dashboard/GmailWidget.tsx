@@ -6,6 +6,8 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
 import type { GmailThread } from '@/lib/google-gmail';
+import { SkeletonList } from '@/components/ui/Skeleton';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 type Thread = GmailThread & { accountEmail?: string };
 type Filter = 'primary' | 'all';
@@ -212,9 +214,15 @@ export default function GmailWidget() {
     return (
       <>
         {accounts.length > 0 && controls}
-        <div className="flex items-center justify-center h-24">
-          <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        </div>
+        <SkeletonList count={3} className="space-y-3 mt-1">
+          <div className="flex items-start gap-2.5">
+            <Skeleton className="w-6 h-6 shrink-0" rounded="rounded-full" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <Skeleton className="h-3 w-2/5" />
+              <Skeleton className="h-2.5 w-4/5" />
+            </div>
+          </div>
+        </SkeletonList>
       </>
     );
   }

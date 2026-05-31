@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
+import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
+import { readCache, writeCache } from '@/lib/cache';
 
 interface Habit {
   id: string;
@@ -71,23 +73,32 @@ function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
 
 export default function HabitsScreen() {
   const { user } = useAuth();
-  const c = useThemeColors();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    let alive = true;
+
+    readCache<Habit[]>(`habits.${user.uid}`).then(cached => {
+      if (alive && cached) { setHabits(cached); setLoading(false); }
+    });
+
     const q = query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, snap => {
-      setHabits(snap.docs.map(d => ({
+    const unsub = onSnapshot(q, snap => {
+      const next = snap.docs.map(d => ({
         id: d.id,
         title: d.data().title ?? 'Untitled',
         streak: d.data().streak ?? 0,
         completedDates: d.data().completedDates ?? [],
-        frequency: d.data().frequency ?? 'daily',
-      })));
+        frequency: (d.data().frequency ?? 'daily') as 'daily' | 'weekly',
+      }));
+      setHabits(next);
       setLoading(false);
+      writeCache(`habits.${user.uid}`, next);
     }, () => setLoading(false));
+
+    return () => { alive = false; unsub(); };
   }, [user]);
 
   async function toggleToday(habit: Habit) {
@@ -110,9 +121,9 @@ export default function HabitsScreen() {
       />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={c.brand} />
-        </View>
+        <SkeletonList count={5}>
+          <SkeletonHabitRow />
+        </SkeletonList>
       ) : habits.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-3 px-8">
           <Icon name="local-fire-department" tone="muted" size={44} />

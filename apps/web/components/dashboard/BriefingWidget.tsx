@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { Skeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
 
 interface LatestBriefing {
@@ -47,8 +48,11 @@ export default function BriefingWidget() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-2.5">
+        <Skeleton className="h-3.5 w-2/5" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-5/6" />
+        <Skeleton className="h-3 w-3/4" />
       </div>
     );
   }

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import confetti from 'canvas-confetti';
+import { SkeletonList, SkeletonRow } from '@/components/ui/Skeleton';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -340,9 +341,9 @@ export default function RemindersPage() {
       </motion.div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        </div>
+        <SkeletonList count={5} className="max-w-2xl space-y-3">
+          <SkeletonRow />
+        </SkeletonList>
       ) : (
         <div className="max-w-2xl space-y-10">
 

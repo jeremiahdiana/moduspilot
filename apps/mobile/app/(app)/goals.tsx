@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  ActivityIndicator,
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,7 +11,8 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
-import { useThemeColors } from '@/lib/theme';
+import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
+import { readCache, writeCache } from '@/lib/cache';
 
 interface Goal {
   id: string;
@@ -58,28 +58,36 @@ function GoalRow({ goal }: { goal: Goal }) {
 
 export default function GoalsScreen() {
   const { user } = useAuth();
-  const c = useThemeColors();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    let alive = true;
+
+    // Paint last-known goals instantly while the live listener revalidates.
+    readCache<Goal[]>(`goals.${user.uid}`).then(cached => {
+      if (alive && cached) { setGoals(cached); setLoading(false); }
+    });
+
     const q = query(collection(db, 'users', user.uid, 'goals'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, snap => {
-      setGoals(
-        snap.docs
-          .map(d => ({
-            id: d.id,
-            title: d.data().title ?? 'Untitled',
-            progress: d.data().progress ?? 0,
-            dueDate: d.data().dueDate,
-            status: d.data().status ?? 'active',
-            description: d.data().description,
-          }))
-          .filter(g => g.status === 'active'),
-      );
+    const unsub = onSnapshot(q, snap => {
+      const next = snap.docs
+        .map(d => ({
+          id: d.id,
+          title: d.data().title ?? 'Untitled',
+          progress: d.data().progress ?? 0,
+          dueDate: d.data().dueDate,
+          status: d.data().status ?? 'active',
+          description: d.data().description,
+        }))
+        .filter(g => g.status === 'active');
+      setGoals(next);
       setLoading(false);
+      writeCache(`goals.${user.uid}`, next);
     }, () => setLoading(false));
+
+    return () => { alive = false; unsub(); };
   }, [user]);
 
   return (
@@ -90,9 +98,9 @@ export default function GoalsScreen() {
       />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={c.brand} />
-        </View>
+        <SkeletonList count={5}>
+          <SkeletonCard />
+        </SkeletonList>
       ) : goals.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-3 px-8">
           <Icon name="flag" tone="muted" size={44} />

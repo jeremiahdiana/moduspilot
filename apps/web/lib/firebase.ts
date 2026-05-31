@@ -1,6 +1,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,6 +21,15 @@ export const auth = getAuth(app);
 
 // experimentalForceLongPolling avoids the WebSocket watch-stream assertion
 // bug in Firebase 11.x (INTERNAL ASSERTION FAILED ca9 / b815).
+//
+// persistentLocalCache backs Firestore with IndexedDB, so onSnapshot listeners
+// serve last-known data from disk instantly on repeat visits (then revalidate
+// against the server in the background). persistentMultipleTabManager keeps that
+// cache consistent across multiple open tabs. This makes every Firestore read in
+// the app fast on subsequent loads with no per-component changes.
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
 });

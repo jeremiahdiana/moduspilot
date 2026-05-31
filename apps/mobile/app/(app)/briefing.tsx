@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
+import { Skeleton } from '@/components/Skeleton';
+import { readCache, writeCache } from '@/lib/cache';
 
 interface Top3Item { task: string; source: string }
 interface BriefingHabit { name: string; streak: number; status: 'at_risk' | 'on_track' | 'done' }
@@ -70,9 +72,12 @@ export default function BriefingScreen() {
         d => d.data().briefing === true && d.data().deleted !== true && d.data().briefingData,
       );
       if (latest) {
-        setData(latest.data().briefingData as BriefingData);
+        const briefingData = latest.data().briefingData as BriefingData;
         const ts = latest.data().createdAt;
-        setDate(ts?.toDate ? ts.toDate() : new Date());
+        const when = ts?.toDate ? ts.toDate() : new Date();
+        setData(briefingData);
+        setDate(when);
+        if (user) writeCache(`briefing.${user.uid}`, { data: briefingData, date: when.toISOString() });
       } else {
         setData(null);
         setDate(null);
@@ -85,16 +90,39 @@ export default function BriefingScreen() {
     }
   }
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    // Paint last-known briefing instantly while load() revalidates.
+    readCache<{ data: BriefingData; date: string }>(`briefing.${user.uid}`).then(cached => {
+      if (alive && cached) { setData(cached.data); setDate(new Date(cached.date)); setLoading(false); }
+    });
+    load();
+    return () => { alive = false; };
+  }, [user]);
 
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader title="Briefing" />
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={c.brand} />
-        </View>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} showsVerticalScrollIndicator={false}>
+          {/* Narrative */}
+          <View className="gap-2.5">
+            <Skeleton width="45%" height={20} />
+            <Skeleton height={13} />
+            <Skeleton width="85%" height={13} />
+            <Skeleton width="70%" height={13} />
+          </View>
+          {/* Cards */}
+          {[0, 1, 2].map(i => (
+            <View key={i} className="bg-surface border border-border rounded-2xl px-4 py-4 gap-2.5">
+              <Skeleton width="35%" height={13} />
+              <Skeleton height={12} />
+              <Skeleton width="80%" height={12} />
+            </View>
+          ))}
+        </ScrollView>
       ) : !data ? (
         <View className="flex-1 items-center justify-center gap-3 px-8">
           <Icon name="wb-sunny" tone="muted" size={44} />
