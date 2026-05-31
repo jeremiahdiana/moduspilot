@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +23,11 @@ interface Goal {
 
 function GoalRow({ goal }: { goal: Goal }) {
   return (
-    <View className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-4">
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => router.push(`/(app)/goal/${goal.id}` as never)}
+      className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-4"
+    >
       <View className="flex-1 gap-1.5">
         <Text className="text-text font-bold text-base" numberOfLines={2}>{goal.title}</Text>
         {goal.dueDate ? (
@@ -35,7 +40,8 @@ function GoalRow({ goal }: { goal: Goal }) {
         )}
       </View>
       <ProgressRing progress={goal.progress} size={58} stroke={5} />
-    </View>
+      <Icon name="chevron-right" tone="muted" size={20} />
+    </TouchableOpacity>
   );
 }
 

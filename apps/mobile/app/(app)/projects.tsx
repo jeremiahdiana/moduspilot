@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import {
   collection, onSnapshot, query, orderBy,
   addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
@@ -128,7 +129,7 @@ export default function ProjectsScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onLongPress={() => projectActions(item)}
-              onPress={() => projectActions(item)}
+              onPress={() => router.push(`/(app)/project/${item.id}` as never)}
               className="bg-surface border border-border rounded-3xl px-4 py-4 flex-row items-center gap-3.5"
             >
               <LinearGradient
