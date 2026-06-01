@@ -1,5 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
+import { getThreadReplyAddress } from '@/lib/google-gmail';
 import { sendGmailReply } from '@/lib/gmail-send';
 
 /**
@@ -288,23 +289,30 @@ export const approvalHandlers: Record<string, ApprovalHandler> = {
 
   send_email: async ({ uid, title, payload }) => {
     const fromAccount = payload.from_account as string | undefined;
+    const allAccounts = await getAllValidAccessTokens(uid);
     let googleToken: string | null = null;
-    if (fromAccount) {
-      const all = await getAllValidAccessTokens(uid);
-      googleToken = all.find(a => a.email === fromAccount)?.token ?? null;
-    }
+    if (fromAccount) googleToken = allAccounts.find(a => a.email === fromAccount)?.token ?? null;
     if (!googleToken) googleToken = await getValidAccessToken(uid);
     if (!googleToken) return Response.json({ error: 'Google not connected — reconnect in Settings.' }, { status: 400 });
-    if (!payload.to || !payload.body) {
-      return Response.json({ error: 'Missing required fields (to, body). Ask MODUS to regenerate the send card.' }, { status: 400 });
+
+    const threadId = payload.threadId as string | undefined;
+    // Replying in a thread: resolve the real recipient from Gmail so an
+    // AI-fabricated address (e.g. name@example.com) can never be used.
+    let to = (payload.to as string | undefined) ?? '';
+    if (threadId) {
+      const real = await getThreadReplyAddress(googleToken, threadId, allAccounts.map(a => a.email));
+      if (real) to = real;
+    }
+    if (!to || !payload.body) {
+      return Response.json({ error: 'Missing recipient or body. Ask MODUS to regenerate the send card.' }, { status: 400 });
     }
     try {
       await sendGmailReply(
         googleToken,
-        payload.to as string,
+        to,
         (payload.subject as string | undefined) ?? title,
         payload.body as string,
-        payload.threadId as string | undefined,
+        threadId,
       );
     } catch (err) {
       console.error('[approval/send_email]', err);

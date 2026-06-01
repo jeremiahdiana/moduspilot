@@ -90,7 +90,7 @@ export async function fetchGoogleData(
         if (threads.length > 0) {
           gmailBlock = '\n\nINBOX (last 10 days — Gmail IS connected; this is the complete list available. Do NOT suggest connecting Gmail or checking inbox — you already have it. Never invent emails not listed here):\n' +
             threads.slice(0, 10).map((t, i) =>
-              `${i + 1}. threadId: ${t.id}\n   From: ${t.from}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
+              `${i + 1}. threadId: ${t.id}\n   From: ${t.from} <${t.fromAddress}>\n   Reply-to address: ${t.fromAddress}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
             ).join('\n\n');
         } else if (wantsEmail) {
           gmailBlock = '\n\nINBOX: Gmail IS connected but no emails found in the last 10 days. Do NOT suggest connecting Gmail — it is already connected.';

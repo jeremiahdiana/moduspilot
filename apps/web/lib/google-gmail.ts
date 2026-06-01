@@ -216,6 +216,43 @@ export async function getActionableThreads(
   }
 }
 
+/**
+ * The address to reply to for a thread — the most recent message's From that
+ * isn't one of the user's own accounts. Used as a server-side safety net so a
+ * reply can never go to an AI-fabricated address (e.g. name@example.com): when
+ * a send carries a threadId, we resolve the real recipient from Gmail itself.
+ * Returns null if it can't be determined (caller falls back to the payload).
+ */
+export async function getThreadReplyAddress(
+  accessToken: string,
+  threadId: string,
+  selfEmails: string[] = [],
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=From`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const msgs = (data.messages ?? []) as { payload?: { headers?: { name: string; value: string }[] } }[];
+    const self = selfEmails.map(e => e.toLowerCase());
+    const addrOf = (m: typeof msgs[number]) => {
+      const raw = m.payload?.headers?.find(h => h.name === 'From')?.value ?? '';
+      return (raw.match(/<([^>]+)>/)?.[1] ?? raw.trim()).toLowerCase();
+    };
+    // Most recent inbound sender (skip the user's own messages).
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const addr = addrOf(msgs[i]);
+      if (addr && !self.includes(addr)) return addr;
+    }
+    // Fallback: newest From, even if it's the user.
+    return msgs.length ? (addrOf(msgs[msgs.length - 1]) || null) : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface LastThread {
   threadId: string;
   subject: string;
