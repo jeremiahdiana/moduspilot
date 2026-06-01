@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon } from '@/components/Icon';
 import { ProgressRing } from '@/components/ui';
+import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 
@@ -31,6 +32,7 @@ export default function GoalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const c = useThemeColors();
+  const { actionSheet, prompt, confirm } = useSheets();
   const [goal, setGoal] = useState<Goal | null>(null);
   const [tasks, setTasks] = useState<GoalTask[]>([]);
 
@@ -74,31 +76,30 @@ export default function GoalDetail() {
     }).catch(() => {});
   }
 
-  function editField(field: 'title' | 'description', label: string) {
-    Alert.prompt(label, undefined, text => {
-      if (text != null) updateDoc(ref(), { [field]: text.trim() }).catch(() => {});
-    }, 'plain-text', field === 'title' ? goal?.title : goal?.description);
-  }
-
-  function addNote() {
-    Alert.prompt('Add note', undefined, text => {
-      const content = text?.trim();
-      if (!content) return;
-      updateDoc(ref(), {
-        notes: arrayUnion({ id: `${Date.now()}`, content, date: new Date().toISOString().slice(0, 10) }),
-      }).catch(() => {});
+  async function editField(field: 'title' | 'description', label: string) {
+    const text = await prompt({
+      title: label,
+      defaultValue: field === 'title' ? goal?.title : goal?.description,
+      multiline: field === 'description',
     });
+    if (text != null) updateDoc(ref(), { [field]: text.trim() }).catch(() => {});
   }
 
-  function addTask() {
+  async function addNote() {
+    const content = (await prompt({ title: 'Add note', multiline: true, confirmLabel: 'Add' }))?.trim();
+    if (!content) return;
+    updateDoc(ref(), {
+      notes: arrayUnion({ id: `${Date.now()}`, content, date: new Date().toISOString().slice(0, 10) }),
+    }).catch(() => {});
+  }
+
+  async function addTask() {
     if (!user || !id) return;
-    Alert.prompt('Add task', undefined, text => {
-      const title = text?.trim();
-      if (!title) return;
-      addDoc(collection(db, 'users', user.uid, 'tasks'), {
-        title, done: false, goalId: id, createdAt: serverTimestamp(),
-      }).catch(() => {});
-    });
+    const title = (await prompt({ title: 'Add task', confirmLabel: 'Add' }))?.trim();
+    if (!title) return;
+    addDoc(collection(db, 'users', user.uid, 'tasks'), {
+      title, done: false, goalId: id, createdAt: serverTimestamp(),
+    }).catch(() => {});
   }
 
   function toggleTask(t: GoalTask) {
@@ -106,26 +107,23 @@ export default function GoalDetail() {
     updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { done: !t.done }).catch(() => {});
   }
 
-  function confirmDelete() {
-    Alert.alert('Delete goal?', 'This permanently removes the goal.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: () => deleteDoc(ref()).then(() => router.back()).catch(() => {}),
-      },
-    ]);
+  async function confirmDelete() {
+    const ok = await confirm({ title: 'Delete goal?', message: 'This permanently removes the goal.', confirmLabel: 'Delete', destructive: true });
+    if (ok) deleteDoc(ref()).then(() => router.back()).catch(() => {});
   }
 
   function menu() {
-    Alert.alert(goal?.title ?? 'Goal', undefined, [
-      { text: 'Edit title', onPress: () => editField('title', 'Edit title') },
-      { text: 'Edit description', onPress: () => editField('description', 'Edit description') },
-      goal?.status === 'completed'
-        ? { text: 'Reopen', onPress: () => updateDoc(ref(), { status: 'active' }).catch(() => {}) }
-        : { text: 'Mark complete', onPress: () => setProgress(100) },
-      { text: 'Delete', style: 'destructive', onPress: confirmDelete },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    actionSheet({
+      title: goal?.title ?? 'Goal',
+      actions: [
+        { label: 'Edit title', onPress: () => editField('title', 'Edit title') },
+        { label: 'Edit description', onPress: () => editField('description', 'Edit description') },
+        goal?.status === 'completed'
+          ? { label: 'Reopen', onPress: () => updateDoc(ref(), { status: 'active' }).catch(() => {}) }
+          : { label: 'Mark complete', onPress: () => setProgress(100) },
+        { label: 'Delete', destructive: true, onPress: confirmDelete },
+      ],
+    });
   }
 
   if (!goal) {

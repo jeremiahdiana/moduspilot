@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
 import { AppBackground } from '@/components/AppBackground';
+import { SheetsProvider } from '@/components/ui/Sheets';
 import { registerPush } from '@/lib/push';
 
 export default function AppLayout() {
@@ -34,17 +35,19 @@ export default function AppLayout() {
   if (!user) return <Redirect href="/(auth)/welcome" />;
 
   return (
-    <DrawerProvider>
-      <View className="flex-1 bg-bg">
-        <AppBackground />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: 'transparent' },
-            animation: 'fade',
-          }}
-        />
-      </View>
-    </DrawerProvider>
+    <SheetsProvider>
+      <DrawerProvider>
+        <View className="flex-1 bg-bg">
+          <AppBackground />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
+              animation: 'fade',
+            }}
+          />
+        </View>
+      </DrawerProvider>
+    </SheetsProvider>
   );
 }

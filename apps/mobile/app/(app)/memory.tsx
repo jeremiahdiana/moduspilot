@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon } from '@/components/Icon';
 import { EmptyState } from '@/components/ui';
+import { useSheets } from '@/components/ui/Sheets';
 import { subscribeMemories, addMemory, deleteMemory, currentUid, type Memory } from '@/lib/settings';
 
 export default function MemoryScreen() {
   const uid = currentUid();
+  const { prompt, confirm } = useSheets();
   const [memories, setMemories] = useState<Memory[]>([]);
 
   useEffect(() => {
@@ -15,19 +17,16 @@ export default function MemoryScreen() {
     return subscribeMemories(uid, setMemories);
   }, [uid]);
 
-  function add() {
+  async function add() {
     if (!uid) return;
-    Alert.prompt('Add memory', 'A fact MODUS should always remember.', text => {
-      if (text?.trim()) addMemory(uid, text).catch(() => {});
-    });
+    const text = await prompt({ title: 'Add memory', message: 'A fact MODUS should always remember.', multiline: true, confirmLabel: 'Add' });
+    if (text?.trim()) addMemory(uid, text).catch(() => {});
   }
 
-  function remove(m: Memory) {
+  async function remove(m: Memory) {
     if (!uid) return;
-    Alert.alert('Delete memory?', m.content, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteMemory(uid, m.id).catch(() => {}) },
-    ]);
+    const ok = await confirm({ title: 'Delete memory?', message: m.content, confirmLabel: 'Delete', destructive: true });
+    if (ok) deleteMemory(uid, m.id).catch(() => {});
   }
 
   return (

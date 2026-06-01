@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon, type IconName } from '@/components/Icon';
+import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors, useThemeToggle } from '@/lib/theme';
 import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/settings';
 
@@ -14,6 +15,7 @@ export default function SettingsScreen() {
   const user = auth.currentUser;
   const c = useThemeColors();
   const { isDark, setDark } = useThemeToggle();
+  const { confirm } = useSheets();
   const [deleting, setDeleting] = useState(false);
   const [settings, setSettings] = useState<UserSettings>({});
 
@@ -29,11 +31,9 @@ export default function SettingsScreen() {
     setSettings(next);
   }
 
-  function handleSignOut() {
-    Alert.alert('Sign out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => { signOut(auth); } },
-    ]);
+  async function handleSignOut() {
+    const ok = await confirm({ title: 'Sign out', message: 'Are you sure?', confirmLabel: 'Sign out', destructive: true });
+    if (ok) signOut(auth);
   }
 
   async function deleteAccount() {
@@ -50,15 +50,14 @@ export default function SettingsScreen() {
     }
   }
 
-  function confirmDelete() {
-    Alert.alert(
-      'Delete account?',
-      'This permanently deletes your account and all goals, habits, tasks, conversations, and memories. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete everything', style: 'destructive', onPress: deleteAccount },
-      ],
-    );
+  async function confirmDelete() {
+    const ok = await confirm({
+      title: 'Delete account?',
+      message: 'This permanently deletes your account and all goals, habits, tasks, conversations, and memories. This cannot be undone.',
+      confirmLabel: 'Delete everything',
+      destructive: true,
+    });
+    if (ok) deleteAccount();
   }
 
   return (

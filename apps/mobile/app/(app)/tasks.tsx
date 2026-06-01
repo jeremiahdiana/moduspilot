@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, serverTimestamp,
@@ -11,6 +11,7 @@ import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow, SwipeToDelete } from '@/components/ui';
+import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 
@@ -67,6 +68,7 @@ function TaskRow({ task, onToggle, onDelete }: { task: Task; onToggle: () => voi
 
 export default function TasksScreen() {
   const { user } = useAuth();
+  const { prompt, confirm } = useSheets();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -99,15 +101,13 @@ export default function TasksScreen() {
     return () => { alive = false; unsub(); };
   }, [user]);
 
-  function addTask() {
+  async function addTask() {
     if (!user) return;
-    Alert.prompt('New task', 'What needs doing?', text => {
-      const title = text?.trim();
-      if (!title) return;
-      addDoc(collection(db, 'users', user.uid, 'tasks'), {
-        title, done: false, deleted: false, createdAt: serverTimestamp(),
-      }).catch(() => {});
-    });
+    const title = (await prompt({ title: 'New task', message: 'What needs doing?', confirmLabel: 'Add' }))?.trim();
+    if (!title) return;
+    addDoc(collection(db, 'users', user.uid, 'tasks'), {
+      title, done: false, deleted: false, createdAt: serverTimestamp(),
+    }).catch(() => {});
   }
 
   function toggle(t: Task) {
@@ -116,12 +116,10 @@ export default function TasksScreen() {
     updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { done: !t.done }).catch(() => {});
   }
 
-  function remove(t: Task) {
+  async function remove(t: Task) {
     if (!user) return;
-    Alert.alert(t.title, 'Delete this task?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteNow(t) },
-    ]);
+    const ok = await confirm({ title: t.title, message: 'Delete this task?', confirmLabel: 'Delete', destructive: true });
+    if (ok) deleteNow(t);
   }
 
   function deleteNow(t: Task) {

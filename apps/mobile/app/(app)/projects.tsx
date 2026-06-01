@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
+import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete } from '@/components/ui';
@@ -24,6 +25,7 @@ interface Project {
 
 export default function ProjectsScreen() {
   const { user } = useAuth();
+  const { actionSheet, prompt } = useSheets();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,21 +55,13 @@ export default function ProjectsScreen() {
     return () => { alive = false; unsub(); };
   }, [user]);
 
-  function addProject() {
+  async function addProject() {
     if (!user) return;
-    Alert.prompt('New project', 'Give your project a name.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Create',
-        onPress: (text?: string) => {
-          const title = text?.trim();
-          if (!title) return;
-          addDoc(collection(db, 'users', user.uid, 'projects'), {
-            title, description: '', status: 'active', createdAt: serverTimestamp(),
-          }).catch(() => Alert.alert('Error', 'Could not create the project.'));
-        },
-      },
-    ]);
+    const title = (await prompt({ title: 'New project', message: 'Give your project a name.', confirmLabel: 'Create' }))?.trim();
+    if (!title) return;
+    addDoc(collection(db, 'users', user.uid, 'projects'), {
+      title, description: '', status: 'active', createdAt: serverTimestamp(),
+    }).catch(() => Alert.alert('Error', 'Could not create the project.'));
   }
 
   function deleteProjectNow(p: Project) {
@@ -77,18 +71,13 @@ export default function ProjectsScreen() {
 
   function projectActions(p: Project) {
     if (!user) return;
-    Alert.alert(p.title, undefined, [
-      {
-        text: 'Mark complete',
-        onPress: () => updateDoc(doc(db, 'users', user.uid, 'projects', p.id), { status: 'done' }).catch(() => {}),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteDoc(doc(db, 'users', user.uid, 'projects', p.id)).catch(() => {}),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    actionSheet({
+      title: p.title,
+      actions: [
+        { label: 'Mark complete', onPress: () => updateDoc(doc(db, 'users', user.uid, 'projects', p.id), { status: 'done' }).catch(() => {}) },
+        { label: 'Delete', destructive: true, onPress: () => deleteProjectNow(p) },
+      ],
+    });
   }
 
   return (

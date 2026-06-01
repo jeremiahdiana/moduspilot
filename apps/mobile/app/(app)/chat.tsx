@@ -25,6 +25,7 @@ import { ApprovalCard } from '@/components/ApprovalCard';
 import { DraftOptionsCard } from '@/components/DraftOptionsCard';
 import { TypingDots } from '@/components/ui/TypingDots';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
+import { useSheets } from '@/components/ui/Sheets';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import {
   subscribeConversations, createConversation, saveMessages,
@@ -420,11 +421,10 @@ function HistoryModal({
   onDelete: (id: string) => void;
   onNew: () => void;
 }) {
-  function confirmDelete(conv: ConvSummary) {
-    Alert.alert(conv.title, 'Delete this conversation?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => onDelete(conv.id) },
-    ]);
+  const { confirm } = useSheets();
+  async function confirmDelete(conv: ConvSummary) {
+    const ok = await confirm({ title: conv.title, message: 'Delete this conversation?', confirmLabel: 'Delete', destructive: true });
+    if (ok) onDelete(conv.id);
   }
 
   return (

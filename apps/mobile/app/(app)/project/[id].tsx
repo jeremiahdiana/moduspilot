@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon, type IconName } from '@/components/Icon';
+import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 
 interface Note { id: string; content: string; date: string; }
@@ -31,6 +32,7 @@ export default function ProjectDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const c = useThemeColors();
+  const { actionSheet, prompt, confirm } = useSheets();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
 
@@ -59,31 +61,30 @@ export default function ProjectDetail() {
 
   const ref = () => doc(db, 'users', user!.uid, 'projects', id!);
 
-  function editField(field: 'title' | 'description', label: string) {
-    Alert.prompt(label, undefined, text => {
-      if (text != null) updateDoc(ref(), { [field]: text.trim() }).catch(() => {});
-    }, 'plain-text', field === 'title' ? project?.title : project?.description);
-  }
-
-  function addNote() {
-    Alert.prompt('Add note', undefined, text => {
-      const content = text?.trim();
-      if (!content) return;
-      updateDoc(ref(), {
-        notes: arrayUnion({ id: `${Date.now()}`, content, date: new Date().toISOString().slice(0, 10) }),
-      }).catch(() => {});
+  async function editField(field: 'title' | 'description', label: string) {
+    const text = await prompt({
+      title: label,
+      defaultValue: field === 'title' ? project?.title : project?.description,
+      multiline: field === 'description',
     });
+    if (text != null) updateDoc(ref(), { [field]: text.trim() }).catch(() => {});
   }
 
-  function addTask() {
+  async function addNote() {
+    const content = (await prompt({ title: 'Add note', multiline: true, confirmLabel: 'Add' }))?.trim();
+    if (!content) return;
+    updateDoc(ref(), {
+      notes: arrayUnion({ id: `${Date.now()}`, content, date: new Date().toISOString().slice(0, 10) }),
+    }).catch(() => {});
+  }
+
+  async function addTask() {
     if (!user || !id) return;
-    Alert.prompt('Add task', undefined, text => {
-      const title = text?.trim();
-      if (!title) return;
-      addDoc(collection(db, 'users', user.uid, 'tasks'), {
-        title, done: false, projectId: id, createdAt: serverTimestamp(),
-      }).catch(() => {});
-    });
+    const title = (await prompt({ title: 'Add task', confirmLabel: 'Add' }))?.trim();
+    if (!title) return;
+    addDoc(collection(db, 'users', user.uid, 'tasks'), {
+      title, done: false, projectId: id, createdAt: serverTimestamp(),
+    }).catch(() => {});
   }
 
   function toggleTask(t: ProjectTask) {
@@ -91,22 +92,23 @@ export default function ProjectDetail() {
     updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { done: !t.done }).catch(() => {});
   }
 
+  async function confirmDelete() {
+    const ok = await confirm({ title: 'Delete project?', message: 'This permanently removes the project.', confirmLabel: 'Delete', destructive: true });
+    if (ok) deleteDoc(ref()).then(() => router.back()).catch(() => {});
+  }
+
   function menu() {
-    Alert.alert(project?.title ?? 'Project', undefined, [
-      { text: 'Edit title', onPress: () => editField('title', 'Edit title') },
-      { text: 'Edit description', onPress: () => editField('description', 'Edit description') },
-      project?.status === 'active'
-        ? { text: 'Mark complete', onPress: () => updateDoc(ref(), { status: 'done' }).then(() => router.back()).catch(() => {}) }
-        : { text: 'Reopen', onPress: () => updateDoc(ref(), { status: 'active' }).catch(() => {}) },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: () => Alert.alert('Delete project?', 'This permanently removes the project.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => deleteDoc(ref()).then(() => router.back()).catch(() => {}) },
-        ]),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    actionSheet({
+      title: project?.title ?? 'Project',
+      actions: [
+        { label: 'Edit title', onPress: () => editField('title', 'Edit title') },
+        { label: 'Edit description', onPress: () => editField('description', 'Edit description') },
+        project?.status === 'active'
+          ? { label: 'Mark complete', onPress: () => updateDoc(ref(), { status: 'done' }).then(() => router.back()).catch(() => {}) }
+          : { label: 'Reopen', onPress: () => updateDoc(ref(), { status: 'active' }).catch(() => {}) },
+        { label: 'Delete', destructive: true, onPress: confirmDelete },
+      ],
+    });
   }
 
   if (!project) {
