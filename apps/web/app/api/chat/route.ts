@@ -19,7 +19,7 @@ import { getRecentNotionPages } from '@/lib/notion-data';
 import { getRecentSlackActivity } from '@/lib/slack-data';
 import { getGitHubWorkItems } from '@/lib/github-data';
 import { getMcpServers } from '@/lib/mcp-servers';
-import { MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
+import { MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT, FREE_DAILY_LIMIT, GUEST_DAILY_LIMIT, TRIAL_MS } from '@/lib/constants';
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
         const snap = await txn.get(guestRef);
         const data = snap.data() ?? {};
         const count = (data.date as string) === todayStr ? ((data.count as number) ?? 0) : 0;
-        if (count >= 5) { guestBlocked = true; return; }
+        if (count >= GUEST_DAILY_LIMIT) { guestBlocked = true; return; }
         txn.set(guestRef, { count: count + 1, date: todayStr });
       });
       if (guestBlocked) {
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
           const signupMs = typeof rawSignup.toDate === 'function'
             ? rawSignup.toDate().getTime()
             : new Date(rawSignup as string).getTime();
-          inTrial = Date.now() - signupMs < 30 * 24 * 60 * 60 * 1000;
+          inTrial = Date.now() - signupMs < TRIAL_MS;
         } else {
           // First time — record signup date and grant full trial
           adminDb.collection('users').doc(uid).set(
@@ -135,7 +135,7 @@ export async function POST(req: Request) {
             const usageDate = (data.usageDate as string) ?? '';
             const dailyMessages = (data.dailyMessages as number) ?? 0;
             const count = usageDate === todayStr ? dailyMessages : 0;
-            if (count >= 20) { limitReached = true; return; }
+            if (count >= FREE_DAILY_LIMIT) { limitReached = true; return; }
             if (usageDate === todayStr) {
               txn.set(userRef, { dailyMessages: FieldValue.increment(1) }, { merge: true });
             } else {

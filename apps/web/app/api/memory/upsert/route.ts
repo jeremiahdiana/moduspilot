@@ -1,17 +1,10 @@
-import { adminAuth } from '@/lib/firebase-admin';
+import { requireAuth } from '@/lib/api-auth';
 import { upsertMemory } from '@/lib/pinecone';
 
 export async function POST(req: Request) {
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!token) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-  let uid: string;
-  try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    uid = decoded.uid;
-  } catch {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+  const { uid } = auth;
 
   if (!process.env.PINECONE_API_KEY) return Response.json({ ok: true });
 

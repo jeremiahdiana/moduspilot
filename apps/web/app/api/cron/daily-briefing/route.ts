@@ -1,19 +1,6 @@
-import { adminDb } from '@/lib/firebase-admin';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
-
-function getAdminApp() {
-  if (getApps().length) return getApp();
-  return initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
 
 function msgId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -26,7 +13,6 @@ export async function GET(req: Request) {
   }
 
   const db = adminDb;
-  const authAdmin = getAuth(getAdminApp());
   const results: { uid: string; status: string; error?: string }[] = [];
 
   try {
@@ -43,7 +29,7 @@ export async function GET(req: Request) {
       try {
         let name = 'there';
         try {
-          const authUser = await authAdmin.getUser(uid);
+          const authUser = await adminAuth.getUser(uid);
           name = authUser.displayName?.split(' ')[0] || 'there';
         } catch { /* use fallback */ }
 
