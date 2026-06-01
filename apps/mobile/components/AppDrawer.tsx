@@ -1,7 +1,9 @@
 import { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Pressable, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Animated, Dimensions, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { useColorScheme } from 'nativewind';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@/components/Icon';
 import { GRADIENTS, useThemeColors } from '@/lib/theme';
@@ -31,6 +33,8 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const c = useThemeColors();
+  const { colorScheme } = useColorScheme();
+  const dark = colorScheme === 'dark';
 
   const open = useCallback(() => {
     setMounted(true);
@@ -67,8 +71,10 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
             <Animated.View
               style={{ transform: [{ translateX: slide }], width: WIDTH }}
-              className="absolute inset-y-0 left-0 bg-surface border-r border-border"
+              className="absolute inset-y-0 left-0 border-r border-border overflow-hidden"
             >
+              <BlurView intensity={dark ? 45 : 65} tint={dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: dark ? 'rgba(17,17,24,0.5)' : 'rgba(255,255,255,0.55)' }]} />
               <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
                 <View className="flex-1 px-5 pt-6 pb-4">
                   <View className="flex-row items-center justify-between mb-10 px-1">
