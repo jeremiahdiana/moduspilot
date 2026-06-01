@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
-import { GradientText, ProgressRing, AnimatedRow } from '@/components/ui';
-import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { AnimatedRow } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import { readCache, writeCache } from '@/lib/cache';
 
@@ -20,26 +18,33 @@ function greeting() {
   return 'Good evening';
 }
 function todayLabel() {
-  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  return new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 interface Goal { id: string; title: string; progress: number; status: string; deleted?: boolean }
 interface Task { id: string; title: string; done: boolean; deleted?: boolean; dueDate?: string }
-interface Habit { id: string; streak: number }
 
-// ── Stat pill ────────────────────────────────────────────────────────────────
-function StatPill({ value, label, icon, onPress, tint }: { value: number; label: string; icon: IconName; onPress: () => void; tint: string }) {
+// ── Inline stat (dense, dot-separated) ────────────────────────────────────────
+function Stat({ value, label, onPress }: { value: number; label: string; onPress: () => void }) {
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() => { haptics.select(); onPress(); }}
-      className="flex-row items-center gap-1.5 px-3 py-2 rounded-full border border-border bg-surface"
-    >
-      <Icon name={icon} size={15} color={tint} />
-      <Text className="text-text font-black text-sm tabular-nums">{value}</Text>
-      <Text className="text-muted text-xs">{label}</Text>
+    <TouchableOpacity activeOpacity={0.6} onPress={() => { haptics.select(); onPress(); }} className="flex-row items-baseline gap-1">
+      <Text className="text-text font-bold text-sm tabular-nums">{value}</Text>
+      <Text className="text-muted text-sm">{label}</Text>
     </TouchableOpacity>
+  );
+}
+const Dot = () => <Text className="text-border text-sm mx-2">·</Text>;
+
+// ── Section header ─────────────────────────────────────────────────────────────
+function SectionHead({ title, href }: { title: string; href: string }) {
+  return (
+    <View className="flex-row items-center justify-between mb-2.5">
+      <Text className="text-text font-display font-bold text-lg">{title}</Text>
+      <TouchableOpacity onPress={() => router.push(href as never)} activeOpacity={0.6}>
+        <Text className="text-brand font-semibold text-[13px]">All</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -47,9 +52,9 @@ function StatPill({ value, label, icon, onPress, tint }: { value: number; label:
 function QuickAction({ label, icon, href }: { label: string; icon: IconName; href: string }) {
   return (
     <TouchableOpacity
-      activeOpacity={0.8}
+      activeOpacity={0.7}
       onPress={() => { haptics.select(); router.push(href as never); }}
-      className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-2xl border border-border bg-surface"
+      className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-surface"
     >
       <Icon name={icon} tone="brand" size={16} />
       <Text className="text-text font-semibold text-[13px]">{label}</Text>
@@ -60,7 +65,6 @@ function QuickAction({ label, icon, href }: { label: string; icon: IconName; hre
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { open } = useDrawer();
-  const c = useThemeColors();
   const firstName = user?.displayName?.split(' ')[0] ?? '';
 
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -146,56 +150,54 @@ export default function DashboardScreen() {
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Top bar: hamburger + live badge */}
-        <View className="flex-row items-center justify-between mb-5">
+        <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
             onPress={open}
             activeOpacity={0.7}
-            className="w-10 h-10 items-center justify-center rounded-2xl bg-surface border border-border"
+            className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border"
           >
             <Icon name="menu" tone="text" size={22} />
           </TouchableOpacity>
-          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25">
+          <View className="flex-row items-center gap-1.5">
             <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <Text className="text-emerald-500 text-[10px] font-bold tracking-wide">MODUS · Live</Text>
+            <Text className="text-muted text-[11px] font-semibold tracking-wide">Live</Text>
           </View>
         </View>
 
-        {/* Greeting */}
+        {/* Greeting — plain, calm, no gradient */}
         <Text className="text-3xl font-display font-bold text-text tracking-tight">
-          {greeting()}{firstName ? ', ' : '.'}
+          {greeting()}{firstName ? `, ${firstName}` : ''}.
         </Text>
-        {firstName ? <GradientText className="text-3xl font-black tracking-tight">{`${firstName}.`}</GradientText> : null}
-        <Text className="text-muted text-sm mt-1">{todayLabel()}</Text>
+        <Text className="text-muted text-sm mt-1.5">{todayLabel()}</Text>
 
-        {/* Stat pills */}
-        <View className="flex-row flex-wrap gap-2 mt-4">
-          <StatPill value={goals.length} label="active goals" icon="flag" tint={c.brand} onPress={() => router.push('/(app)/goals' as never)} />
-          <StatPill value={dueToday.length} label="due today" icon="checklist" tint="#eab308" onPress={() => router.push('/(app)/tasks' as never)} />
+        {/* Dense inline stats */}
+        <View className="flex-row items-center flex-wrap mt-3">
+          <Stat value={goals.length} label="goals" onPress={() => router.push('/(app)/goals' as never)} />
+          <Dot />
+          <Stat value={dueToday.length} label="due today" onPress={() => router.push('/(app)/tasks' as never)} />
           {topStreak > 0 && (
-            <StatPill value={topStreak} label="day streak" icon="local-fire-department" tint="#f97316" onPress={() => router.push('/(app)/habits' as never)} />
+            <>
+              <Dot />
+              <Stat value={topStreak} label="day streak" onPress={() => router.push('/(app)/habits' as never)} />
+            </>
           )}
         </View>
 
-        {/* Focus card */}
+        {/* Focus — flat card with a thin accent bar */}
         {focus && (
-          <LinearGradient
-            colors={['rgba(124,58,237,0.16)', 'rgba(124,58,237,0.04)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 24, marginTop: 20 }}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/tasks') as never)}
+            className="flex-row mt-5 rounded-xl border border-border bg-surface overflow-hidden"
           >
-            <View className="flex-row items-center gap-4 p-4 rounded-3xl border border-brand/25">
-              <LinearGradient colors={GRADIENTS.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="my-location" tone="white" size={20} />
-              </LinearGradient>
-              <View className="flex-1">
-                <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-0.5">
-                  {focus.source === 'briefing' ? 'Your focus today' : 'Up next'}
-                </Text>
-                <Text className="text-text font-bold text-base" numberOfLines={2}>{focus.title}</Text>
-              </View>
+            <View className="w-1 bg-brand" />
+            <View className="flex-1 px-4 py-3.5">
+              <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-1">
+                {focus.source === 'briefing' ? 'Focus today' : 'Up next'}
+              </Text>
+              <Text className="text-text font-semibold text-[15px] leading-5" numberOfLines={2}>{focus.title}</Text>
             </View>
-          </LinearGradient>
+          </TouchableOpacity>
         )}
 
         {/* Quick actions */}
@@ -207,31 +209,28 @@ export default function DashboardScreen() {
         </View>
 
         {/* Goals preview */}
-        <View className="mt-7">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-text font-display font-bold text-lg">Goals</Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/goals' as never)} activeOpacity={0.7}>
-              <Text className="text-brand font-semibold text-sm">See all</Text>
-            </TouchableOpacity>
-          </View>
+        <View className="mt-8">
+          <SectionHead title="Goals" href="/(app)/goals" />
           {topGoals.length === 0 ? (
-            <View className="bg-surface border border-border rounded-3xl p-5 items-center">
+            <View className="bg-surface border border-border rounded-xl px-4 py-5 items-center">
               <Text className="text-muted text-sm">No active goals. Ask MODUS to set one.</Text>
             </View>
           ) : (
-            <View className="gap-2.5">
+            <View className="gap-2">
               {topGoals.map((g, i) => (
                 <AnimatedRow key={g.id} index={i}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => router.push(`/(app)/goal/${g.id}` as never)}
-                    className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-4"
+                    className="bg-surface border border-border rounded-xl px-4 py-3.5 gap-2.5"
                   >
-                    <View className="flex-1 gap-1">
-                      <Text className="text-text font-bold text-[15px]" numberOfLines={2}>{g.title}</Text>
-                      <Text className="text-muted text-xs">{g.progress}% complete</Text>
+                    <View className="flex-row items-center justify-between gap-3">
+                      <Text className="text-text font-medium text-[15px] flex-1" numberOfLines={1}>{g.title}</Text>
+                      <Text className="text-muted text-xs font-semibold tabular-nums">{g.progress}%</Text>
                     </View>
-                    <ProgressRing progress={g.progress} size={52} stroke={5} />
+                    <View className="h-1 rounded-full bg-surface-2 overflow-hidden">
+                      <View className="h-full rounded-full bg-brand" style={{ width: `${Math.max(0, Math.min(100, g.progress))}%` }} />
+                    </View>
                   </TouchableOpacity>
                 </AnimatedRow>
               ))}
@@ -240,28 +239,23 @@ export default function DashboardScreen() {
         </View>
 
         {/* Due today preview */}
-        <View className="mt-7">
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-text font-display font-bold text-lg">Due today</Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/tasks' as never)} activeOpacity={0.7}>
-              <Text className="text-brand font-semibold text-sm">See all</Text>
-            </TouchableOpacity>
-          </View>
+        <View className="mt-8">
+          <SectionHead title="Due today" href="/(app)/tasks" />
           {dueToday.length === 0 ? (
-            <View className="bg-surface border border-border rounded-3xl p-5 items-center">
+            <View className="bg-surface border border-border rounded-xl px-4 py-5 items-center">
               <Text className="text-muted text-sm">Nothing due today. You're clear.</Text>
             </View>
           ) : (
-            <View className="gap-2.5">
+            <View className="gap-2">
               {dueToday.slice(0, 4).map((t, i) => (
                 <AnimatedRow key={t.id} index={i}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => router.push('/(app)/tasks' as never)}
-                    className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-3"
+                    className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center gap-3"
                   >
-                    <Icon name="radio-button-unchecked" tone="muted" size={20} />
-                    <Text className="text-text font-medium text-[15px] flex-1" numberOfLines={1}>{t.title}</Text>
+                    <Icon name="radio-button-unchecked" tone="muted" size={19} />
+                    <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{t.title}</Text>
                   </TouchableOpacity>
                 </AnimatedRow>
               ))}
