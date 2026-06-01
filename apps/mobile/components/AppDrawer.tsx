@@ -79,7 +79,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
                         end={{ x: 1, y: 1 }}
                         style={{ width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Text className="text-white font-black text-lg">M</Text>
+                        <Text className="text-white font-display font-bold text-lg">M</Text>
                       </LinearGradient>
                       <GradientText className="text-2xl font-black tracking-widest">MODUS</GradientText>
                     </View>

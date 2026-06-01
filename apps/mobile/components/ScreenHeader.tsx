@@ -14,7 +14,7 @@ export function ScreenHeader({ title, right }: { title: string; right?: React.Re
       >
         <Icon name="menu" tone="text" size={22} />
       </TouchableOpacity>
-      <Text className="text-3xl font-black text-text flex-1 tracking-tight" numberOfLines={1}>{title}</Text>
+      <Text className="text-3xl font-display font-bold text-text flex-1 tracking-tight" numberOfLines={1}>{title}</Text>
       {right}
     </View>
   );

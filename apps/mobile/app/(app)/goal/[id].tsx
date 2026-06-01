@@ -154,7 +154,7 @@ export default function GoalDetail() {
         <View className="items-center gap-4">
           <ProgressRing progress={goal.progress} size={132} stroke={10} />
           <TouchableOpacity onPress={() => editField('title', 'Edit title')} activeOpacity={0.7}>
-            <Text className="text-text font-black text-2xl text-center tracking-tight">{goal.title}</Text>
+            <Text className="text-text font-display font-bold text-2xl text-center tracking-tight">{goal.title}</Text>
           </TouchableOpacity>
           {goal.dueDate ? (
             <View className="flex-row items-center gap-1.5">
@@ -171,7 +171,7 @@ export default function GoalDetail() {
             <TouchableOpacity onPress={() => setProgress(goal.progress - 5)} className="w-11 h-11 rounded-2xl bg-surface-2 border border-border items-center justify-center">
               <Icon name="remove" tone="text" size={22} />
             </TouchableOpacity>
-            <Text className="text-brand font-black text-2xl">{goal.progress}%</Text>
+            <Text className="text-brand font-display font-bold text-2xl">{goal.progress}%</Text>
             <TouchableOpacity onPress={() => setProgress(goal.progress + 5)} className="w-11 h-11 rounded-2xl bg-surface-2 border border-border items-center justify-center">
               <Icon name="add" tone="text" size={22} />
             </TouchableOpacity>

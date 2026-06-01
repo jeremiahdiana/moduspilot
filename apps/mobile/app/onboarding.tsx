@@ -241,7 +241,7 @@ export default function OnboardingScreen() {
           <View className="gap-6">
             <View>
               <Text className="text-brand-light text-xs font-bold uppercase tracking-widest mb-2">First things first</Text>
-              <Text className="text-3xl font-black text-text leading-tight">What should{'\n'}MODUS call you?</Text>
+              <Text className="text-3xl font-display font-bold text-text leading-tight">What should{'\n'}MODUS call you?</Text>
               <Text className="text-muted text-sm mt-2">Your assistant needs a name for you.</Text>
             </View>
             <TextInput
@@ -286,7 +286,7 @@ export default function OnboardingScreen() {
   if (screen === 'done') {
     return (
       <SafeAreaView className="flex-1 bg-bg items-center justify-center gap-4">
-        <Text className="text-4xl font-black text-brand tracking-widest">MODUS</Text>
+        <Text className="text-4xl font-display font-bold text-brand tracking-widest">MODUS</Text>
         <Text className="text-text font-bold text-lg">
           MODUS is ready{name.trim() ? `, ${name.trim()}` : ''}.
         </Text>
@@ -486,7 +486,7 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="text-2xl font-black text-text leading-tight">{current.title}</Text>
+        <Text className="text-2xl font-display font-bold text-text leading-tight">{current.title}</Text>
         {current.subtitle && <Text className="text-muted text-sm mt-1.5 mb-1">{current.subtitle}</Text>}
         <View className="mt-5">{current.body}</View>
       </ScrollView>

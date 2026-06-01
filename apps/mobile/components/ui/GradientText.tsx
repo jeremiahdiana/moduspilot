@@ -23,14 +23,14 @@ export function GradientText({
   return (
     <MaskedView
       maskElement={
-        <Text className={className} style={[{ backgroundColor: 'transparent' }, style]}>
+        <Text className={`font-display ${className ?? ''}`} style={[{ backgroundColor: 'transparent' }, style]}>
           {children}
         </Text>
       }
     >
       <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.6 }}>
         {/* Transparent copy sizes the gradient to the text bounds. */}
-        <Text className={className} style={[style, { opacity: 0 }]}>{children}</Text>
+        <Text className={`font-display ${className ?? ''}`} style={[style, { opacity: 0 }]}>{children}</Text>
       </LinearGradient>
     </MaskedView>
   );

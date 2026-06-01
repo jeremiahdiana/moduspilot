@@ -34,11 +34,11 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 1 }}
               style={{ width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}
             >
-              <Text className="text-white font-black text-4xl tracking-widest">M</Text>
+              <Text className="text-white font-display font-bold text-4xl tracking-widest">M</Text>
             </LinearGradient>
             <GradientText className="text-5xl font-black tracking-widest" style={{ paddingVertical: 2 }}>MODUS</GradientText>
             <Text className="text-muted text-[10px] tracking-[0.3em] uppercase font-semibold mb-6 mt-1">pilot</Text>
-            <Text className="text-3xl font-black text-text text-center leading-tight">
+            <Text className="text-3xl font-display font-bold text-text text-center leading-tight">
               Your AI chief{'\n'}of staff.
             </Text>
             <Text className="text-muted text-sm text-center mt-3 leading-relaxed px-2">

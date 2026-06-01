@@ -132,7 +132,7 @@ export default function ProjectDetail() {
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 16 }} showsVerticalScrollIndicator={false}>
         <TouchableOpacity onPress={() => editField('title', 'Edit title')} activeOpacity={0.7}>
-          <Text className="text-text font-black text-3xl tracking-tight">{project.title}</Text>
+          <Text className="text-text font-display font-bold text-3xl tracking-tight">{project.title}</Text>
           {tasks.length > 0 && <Text className="text-muted text-sm mt-1">{doneCount}/{tasks.length} tasks done</Text>}
         </TouchableOpacity>
 

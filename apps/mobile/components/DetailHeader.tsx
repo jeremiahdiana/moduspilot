@@ -14,7 +14,7 @@ export function DetailHeader({ title, right }: { title?: string; right?: React.R
         <Icon name="arrow-back" tone="text" size={22} />
       </TouchableOpacity>
       {title ? (
-        <Text className="text-xl font-black text-text flex-1 tracking-tight" numberOfLines={1}>{title}</Text>
+        <Text className="text-xl font-display font-bold text-text flex-1 tracking-tight" numberOfLines={1}>{title}</Text>
       ) : (
         <View className="flex-1" />
       )}

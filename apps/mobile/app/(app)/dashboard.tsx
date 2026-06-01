@@ -161,7 +161,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Greeting */}
-        <Text className="text-3xl font-black text-text tracking-tight">
+        <Text className="text-3xl font-display font-bold text-text tracking-tight">
           {greeting()}{firstName ? ', ' : '.'}
         </Text>
         {firstName ? <GradientText className="text-3xl font-black tracking-tight">{`${firstName}.`}</GradientText> : null}
@@ -209,7 +209,7 @@ export default function DashboardScreen() {
         {/* Goals preview */}
         <View className="mt-7">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-text font-black text-lg">Goals</Text>
+            <Text className="text-text font-display font-bold text-lg">Goals</Text>
             <TouchableOpacity onPress={() => router.push('/(app)/goals' as never)} activeOpacity={0.7}>
               <Text className="text-brand font-semibold text-sm">See all</Text>
             </TouchableOpacity>
@@ -242,7 +242,7 @@ export default function DashboardScreen() {
         {/* Due today preview */}
         <View className="mt-7">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-text font-black text-lg">Due today</Text>
+            <Text className="text-text font-display font-bold text-lg">Due today</Text>
             <TouchableOpacity onPress={() => router.push('/(app)/tasks' as never)} activeOpacity={0.7}>
               <Text className="text-brand font-semibold text-sm">See all</Text>
             </TouchableOpacity>

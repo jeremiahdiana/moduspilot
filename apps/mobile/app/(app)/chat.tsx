@@ -334,7 +334,7 @@ function MessageBubble({
         end={{ x: 1, y: 1 }}
         style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
       >
-        <Text className="text-white font-black text-xs">M</Text>
+        <Text className="text-white font-display font-bold text-xs">M</Text>
       </LinearGradient>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
         {isEmpty ? (
@@ -380,7 +380,7 @@ function Greeting() {
         end={{ x: 1, y: 1 }}
         style={{ width: 92, height: 92, borderRadius: 30, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Text className="text-white font-black text-4xl tracking-widest">M</Text>
+        <Text className="text-white font-display font-bold text-4xl tracking-widest">M</Text>
       </LinearGradient>
       <View className="items-center gap-2">
         <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>

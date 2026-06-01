@@ -9,7 +9,7 @@
     --text: 13 13 20;
     --muted: 100 90 122;
     --brand: 124 58 237;
-    --brand-light: 124 58 237;
+    --brand-light: 167 139 250;
     --border: 226 220 244;
     --surface: 255 255 255;
     --surface-2: 243 239 252;
@@ -21,11 +21,11 @@
     :root {
       --bg: 10 10 15;
       --text: 232 232 240;
-      --muted: 139 139 160;
+      --muted: 107 107 128;
       --brand: 124 58 237;
-      --brand-light: 148 97 255;
+      --brand-light: 167 139 250;
       --border: 30 30 46;
-      --surface: 15 15 26;
+      --surface: 17 17 24;
       --surface-2: 22 22 38;
     }
   }

@@ -11,7 +11,7 @@ export default function LoginScreen() {
       <View className="flex-1 items-center justify-between px-8 py-12">
         {/* Logo */}
         <View className="flex-1 items-center justify-center">
-          <Text className="text-5xl font-black text-brand tracking-widest mb-3">MODUS</Text>
+          <Text className="text-5xl font-display font-bold text-brand tracking-widest mb-3">MODUS</Text>
           <Text className="text-xl font-bold text-text mt-2">Welcome back</Text>
           <Text className="text-base text-muted text-center mt-1">
             Sign in to pick up where you left off.

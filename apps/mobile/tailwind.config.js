@@ -8,6 +8,14 @@ module.exports = {
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
+      // Brand typography — matches web (Clash Display headings, Satoshi body).
+      // Loaded at runtime via expo-font; iOS picks the weighted face from the
+      // family name + font-weight utility. `font-display` opts a heading into
+      // Clash Display; everything else defaults to Satoshi (see lib/fonts.ts).
+      fontFamily: {
+        display: ['Clash Display'],
+        sans: ['Satoshi'],
+      },
       // Semantic tokens driven by CSS variables in global.css, so every class
       // (bg-bg, text-text, …) follows the active light/dark theme automatically.
       colors: {

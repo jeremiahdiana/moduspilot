@@ -76,7 +76,7 @@ export default function SettingsScreen() {
             end={{ x: 1, y: 1 }}
             style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text className="text-white font-black text-xl">
+            <Text className="text-white font-display font-bold text-xl">
               {(user?.displayName ?? user?.email ?? '?').trim().charAt(0).toUpperCase()}
             </Text>
           </LinearGradient>

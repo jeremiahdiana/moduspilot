@@ -8,13 +8,13 @@ const KEY = 'modus.theme';
 export const PALETTE = {
   light: {
     bg: '#FAF9FF', text: '#0D0D14', muted: '#645A7A',
-    brand: '#7C3AED', brandLight: '#7C3AED',
+    brand: '#7C3AED', brandLight: '#A78BFA',
     border: '#E2DCF4', surface: '#FFFFFF', surface2: '#F3EFFC', white: '#FFFFFF',
   },
   dark: {
-    bg: '#0A0A0F', text: '#E8E8F0', muted: '#8B8BA0',
-    brand: '#9461FF', brandLight: '#9461FF',
-    border: '#1E1E2E', surface: '#0F0F1A', surface2: '#161626', white: '#FFFFFF',
+    bg: '#0A0A0F', text: '#E8E8F0', muted: '#6B6B80',
+    brand: '#7C3AED', brandLight: '#A78BFA',
+    border: '#1E1E2E', surface: '#111118', surface2: '#161626', white: '#FFFFFF',
   },
 };
 
@@ -32,12 +32,18 @@ export function useThemeColors() {
   return PALETTE[colorScheme === 'dark' ? 'dark' : 'light'];
 }
 
-/** Restore the saved theme on app launch (defaults to system if none saved). */
+/**
+ * Restore the saved theme on app launch. Defaults to DARK when nothing is
+ * saved — matches the web app, which always starts dark (light is in-session
+ * only). Without this, the app would follow the OS scheme and feel off-brand.
+ */
 export async function loadSavedTheme() {
   try {
     const v = await AsyncStorage.getItem(KEY);
-    if (v === 'light' || v === 'dark') nwColorScheme.set(v);
-  } catch {}
+    nwColorScheme.set(v === 'light' ? 'light' : 'dark');
+  } catch {
+    nwColorScheme.set('dark');
+  }
 }
 
 export async function persistTheme(name: ThemeName) {

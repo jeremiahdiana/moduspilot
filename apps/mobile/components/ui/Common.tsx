@@ -24,7 +24,7 @@ export function EmptyState({
         <Icon name={icon} color="#fff" size={36} />
       </LinearGradient>
       <View className="items-center gap-1.5">
-        <Text className="text-text font-bold text-lg">{title}</Text>
+        <Text className="text-text font-display font-bold text-lg">{title}</Text>
         <Text className="text-muted text-sm text-center leading-5">{subtitle}</Text>
       </View>
     </View>
