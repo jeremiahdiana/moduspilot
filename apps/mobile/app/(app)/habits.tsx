@@ -6,8 +6,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow } from '@/components/ui';
@@ -44,17 +43,15 @@ function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
   const done = habit.completedDates.includes(today);
 
   return (
-    <View className="bg-surface border border-border rounded-3xl px-4 py-4 flex-row items-center gap-3.5">
+    <View className="bg-surface border border-border rounded-xl px-4 py-4 flex-row items-center gap-3.5">
       <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
         {done ? (
-          <LinearGradient
-            colors={GRADIENTS.brand}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
+            className="bg-brand"
             style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="check" color="#fff" size={18} />
-          </LinearGradient>
+          </View>
         ) : (
           <View
             style={{

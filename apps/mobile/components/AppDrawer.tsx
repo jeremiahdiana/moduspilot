@@ -88,31 +88,20 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
                     </TouchableOpacity>
                   </View>
 
-                  <View className="gap-1.5">
+                  <View className="gap-1">
                     {NAV.map(item => {
                       const active = pathname === `/${item.seg}`;
-                      const row = (
-                        <View className="flex-row items-center gap-4 px-4 py-3.5">
-                          <Icon name={item.icon} size={22} color={active ? '#fff' : c.muted} />
-                          <Text className={`text-[15px] tracking-wide ${active ? 'text-white font-bold' : 'text-text font-medium'}`}>
+                      return (
+                        <TouchableOpacity
+                          key={item.seg}
+                          activeOpacity={0.7}
+                          onPress={() => go(item.href)}
+                          className={`flex-row items-center gap-4 px-4 py-3.5 rounded-xl ${active ? 'bg-brand/10' : ''}`}
+                        >
+                          <Icon name={item.icon} size={22} color={active ? c.brand : c.muted} />
+                          <Text className={`text-[15px] tracking-wide ${active ? 'text-brand font-semibold' : 'text-text font-medium'}`}>
                             {item.label}
                           </Text>
-                        </View>
-                      );
-                      return (
-                        <TouchableOpacity key={item.seg} activeOpacity={0.8} onPress={() => go(item.href)}>
-                          {active ? (
-                            <LinearGradient
-                              colors={GRADIENTS.brand}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 0 }}
-                              style={{ borderRadius: 16 }}
-                            >
-                              {row}
-                            </LinearGradient>
-                          ) : (
-                            row
-                          )}
                         </TouchableOpacity>
                       );
                     })}

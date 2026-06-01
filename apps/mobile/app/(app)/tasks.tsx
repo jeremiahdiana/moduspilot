@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, serverTimestamp,
 } from 'firebase/firestore';
@@ -12,7 +11,7 @@ import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow, SwipeToDelete } from '@/components/ui';
-import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 
 interface Task {
@@ -33,18 +32,16 @@ function TaskRow({ task, onToggle, onDelete }: { task: Task; onToggle: () => voi
     <TouchableOpacity
       activeOpacity={0.8}
       onLongPress={onDelete}
-      className="bg-surface border border-border rounded-3xl px-4 py-4 flex-row items-center gap-3.5"
+      className="bg-surface border border-border rounded-xl px-4 py-4 flex-row items-center gap-3.5"
     >
       <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
         {task.done ? (
-          <LinearGradient
-            colors={GRADIENTS.brand}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
+            className="bg-brand"
             style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="check" color="#fff" size={16} />
-          </LinearGradient>
+          </View>
         ) : (
           <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: c.border }} />
         )}
@@ -141,15 +138,12 @@ export default function TasksScreen() {
       <ScreenHeader
         title="Tasks"
         right={
-          <TouchableOpacity onPress={addTask} activeOpacity={0.8}>
-            <LinearGradient
-              colors={GRADIENTS.brand}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="add" color="#fff" size={24} />
-            </LinearGradient>
+          <TouchableOpacity
+            onPress={addTask}
+            activeOpacity={0.8}
+            className="w-10 h-10 rounded-xl bg-brand items-center justify-center"
+          >
+            <Icon name="add" color="#fff" size={24} />
           </TouchableOpacity>
         }
       />

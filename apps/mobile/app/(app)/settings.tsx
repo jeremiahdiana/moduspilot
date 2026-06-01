@@ -7,8 +7,7 @@ import { auth } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon, type IconName } from '@/components/Icon';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRADIENTS, useThemeColors, useThemeToggle } from '@/lib/theme';
+import { useThemeColors, useThemeToggle } from '@/lib/theme';
 import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/settings';
 
 export default function SettingsScreen() {
@@ -69,17 +68,12 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
        <View className="gap-4">
         {/* Account info */}
-        <View className="bg-surface border border-border rounded-3xl p-4 flex-row items-center gap-3.5">
-          <LinearGradient
-            colors={GRADIENTS.brand}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Text className="text-white font-display font-bold text-xl">
+        <View className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3.5">
+          <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-brand/10">
+            <Text className="text-brand font-display font-bold text-xl">
               {(user?.displayName ?? user?.email ?? '?').trim().charAt(0).toUpperCase()}
             </Text>
-          </LinearGradient>
+          </View>
           <View className="flex-1">
             <Text className="text-text font-bold text-base">{user?.displayName ?? 'User'}</Text>
             <Text className="text-muted text-sm">{user?.email ?? ''}</Text>
@@ -87,7 +81,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Appearance */}
-        <View className="bg-surface border border-border rounded-3xl px-4 py-3.5 flex-row items-center gap-3">
+        <View className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center gap-3">
           <Icon name={isDark ? 'dark-mode' : 'light-mode'} tone="muted" size={22} />
           <Text className="text-text font-medium flex-1">Dark mode</Text>
           <Switch
@@ -100,7 +94,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Preferences */}
-        <View className="bg-surface border border-border rounded-3xl overflow-hidden">
+        <View className="bg-surface border border-border rounded-xl overflow-hidden">
           <NavRow icon="person-outline" label="Personal context" onPress={() => router.push('/(app)/personal-context' as never)} />
           <Divider />
           <NavRow icon="tune" label="Model" onPress={() => router.push('/(app)/model-settings' as never)} />
@@ -109,7 +103,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Capabilities */}
-        <View className="bg-surface border border-border rounded-3xl overflow-hidden">
+        <View className="bg-surface border border-border rounded-xl overflow-hidden">
           <ToggleRow
             icon="search" label="Web search" sub="Let MODUS search the web"
             value={!!settings.capabilities?.webSearch}
@@ -134,7 +128,7 @@ export default function SettingsScreen() {
             onPress={handleSignOut}
             disabled={deleting}
             activeOpacity={0.8}
-            className="border border-border rounded-3xl py-4 flex-row items-center justify-center gap-2"
+            className="border border-border rounded-xl py-4 flex-row items-center justify-center gap-2"
           >
             <Icon name="logout" tone="text" size={20} />
             <Text className="text-text font-semibold">Sign Out</Text>
@@ -145,7 +139,7 @@ export default function SettingsScreen() {
             onPress={confirmDelete}
             disabled={deleting}
             activeOpacity={0.8}
-            className="border border-red-900/40 rounded-3xl py-4 items-center flex-row justify-center gap-2"
+            className="border border-red-900/40 rounded-xl py-4 items-center flex-row justify-center gap-2"
           >
             {deleting ? <ActivityIndicator color="#f87171" size="small" /> : <Icon name="delete-outline" color="#f87171" size={20} />}
             <Text className="text-red-400 font-semibold">{deleting ? 'Deleting…' : 'Delete Account'}</Text>

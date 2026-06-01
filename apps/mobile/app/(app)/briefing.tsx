@@ -5,8 +5,7 @@ import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 import { Skeleton } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState } from '@/components/ui';
@@ -49,7 +48,7 @@ function HabitStatusPill({ status, streak }: { status: BriefingHabit['status']; 
 }
 
 const Card = ({ children }: { children: React.ReactNode }) => (
-  <View className="bg-surface border border-border rounded-3xl px-4 py-4">{children}</View>
+  <View className="bg-surface border border-border rounded-xl px-4 py-4">{children}</View>
 );
 
 export default function BriefingScreen() {
@@ -138,31 +137,27 @@ export default function BriefingScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={c.brand} />
           }
         >
-          {/* Gradient hero */}
-          <LinearGradient
-            colors={GRADIENTS.brand}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 26, padding: 20, marginBottom: 4 }}
-          >
-            {date && <Text className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1.5">{formatDate(date)}</Text>}
-            <Text className="text-white text-base leading-6 font-medium">{data.narrative ?? data.openingLine}</Text>
-          </LinearGradient>
+          {/* Hero — flat card with a thin brand accent bar */}
+          <View className="flex-row rounded-xl border border-border bg-surface overflow-hidden mb-1">
+            <View className="w-1 bg-brand" />
+            <View className="flex-1 p-5">
+              {date && <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-1.5">{formatDate(date)}</Text>}
+              <Text className="text-text text-base leading-6">{data.narrative ?? data.openingLine}</Text>
+            </View>
+          </View>
 
           {data.top3?.length > 0 && (
             <View className="mt-3">
               <SectionLabel>Top 3 for today</SectionLabel>
-              <View className="bg-surface border border-border rounded-3xl px-4 py-2">
+              <View className="bg-surface border border-border rounded-xl px-4 py-2">
                 {data.top3.map((item, i) => (
                   <View key={i} className={`flex-row items-start gap-3 py-3 ${i < data.top3.length - 1 ? 'border-b border-border' : ''}`}>
-                    <LinearGradient
-                      colors={GRADIENTS.brand}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
+                    <View
+                      className="bg-brand"
                       style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}
                     >
                       <Text className="text-white text-xs font-bold">{i + 1}</Text>
-                    </LinearGradient>
+                    </View>
                     <View className="flex-1">
                       <Text className="text-text text-[15px] font-medium leading-5">{item.task}</Text>
                       {!!item.source && <Text className="text-muted text-xs mt-0.5">{item.source}</Text>}
@@ -176,7 +171,7 @@ export default function BriefingScreen() {
           {data.schedule?.length > 0 && (
             <View className="mt-3">
               <SectionLabel>Today</SectionLabel>
-              <View className="bg-surface border border-border rounded-3xl px-4 py-2">
+              <View className="bg-surface border border-border rounded-xl px-4 py-2">
                 {data.schedule.map((item, i) => (
                   <View key={i} className={`flex-row items-center gap-3 py-3 ${i < data.schedule.length - 1 ? 'border-b border-border' : ''}`}>
                     <Text className="text-brand-light text-xs font-semibold w-16">{item.time}</Text>
@@ -190,7 +185,7 @@ export default function BriefingScreen() {
           {data.habits?.length > 0 && (
             <View className="mt-3">
               <SectionLabel>Habits</SectionLabel>
-              <View className="bg-surface border border-border rounded-3xl px-4 py-2">
+              <View className="bg-surface border border-border rounded-xl px-4 py-2">
                 {data.habits.map((h, i) => (
                   <View key={i} className={`flex-row items-center justify-between gap-3 py-3 ${i < data.habits.length - 1 ? 'border-b border-border' : ''}`}>
                     <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{h.name}</Text>

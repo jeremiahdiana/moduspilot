@@ -136,7 +136,7 @@ export default function ProjectDetail() {
           {tasks.length > 0 && <Text className="text-muted text-sm mt-1">{doneCount}/{tasks.length} tasks done</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => editField('description', 'Edit description')} activeOpacity={0.7} className="bg-surface border border-border rounded-3xl p-4 gap-1.5">
+        <TouchableOpacity onPress={() => editField('description', 'Edit description')} activeOpacity={0.7} className="bg-surface border border-border rounded-xl p-4 gap-1.5">
           <Text className="text-muted text-xs font-semibold uppercase tracking-wider">Description</Text>
           <Text className={project.description ? 'text-text text-[15px] leading-6' : 'text-muted text-[15px]'}>
             {project.description || 'Tap to add a description…'}
@@ -165,7 +165,7 @@ export default function ProjectDetail() {
         </Section>
 
         {project.resources.length > 0 && (
-          <View className="bg-surface border border-border rounded-3xl p-4">
+          <View className="bg-surface border border-border rounded-xl p-4">
             <Text className="text-muted text-xs font-semibold uppercase tracking-wider mb-1">Resources</Text>
             <View className="divide-y divide-border">
               {project.resources.map((r, i) => (
@@ -203,7 +203,7 @@ export default function ProjectDetail() {
 
 function Section({ title, onAdd, children }: { title: string; onAdd: () => void; children: React.ReactNode }) {
   return (
-    <View className="bg-surface border border-border rounded-3xl p-4">
+    <View className="bg-surface border border-border rounded-xl p-4">
       <View className="flex-row items-center justify-between mb-1">
         <Text className="text-muted text-xs font-semibold uppercase tracking-wider">{title}</Text>
         <TouchableOpacity onPress={onAdd} className="w-7 h-7 rounded-full bg-surface-2 border border-border items-center justify-center">

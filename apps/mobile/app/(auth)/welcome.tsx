@@ -51,7 +51,7 @@ export default function WelcomeScreen() {
             {FEATURES.map(f => (
               <View
                 key={f.title}
-                className="bg-surface border border-border rounded-3xl p-4"
+                className="bg-surface border border-border rounded-xl p-4"
                 style={{ width: '47%' }}
               >
                 <LinearGradient

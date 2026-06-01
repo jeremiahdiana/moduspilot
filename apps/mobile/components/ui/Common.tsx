@@ -1,9 +1,7 @@
 import { View, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@/components/Icon';
-import { GRADIENTS } from '@/lib/theme';
 
-/** Polished empty state: gradient icon medallion + title + subtitle. */
+/** Polished empty state: flat brand-tinted icon medallion + title + subtitle. */
 export function EmptyState({
   icon,
   title,
@@ -15,14 +13,9 @@ export function EmptyState({
 }) {
   return (
     <View className="flex-1 items-center justify-center gap-4 px-10">
-      <LinearGradient
-        colors={GRADIENTS.brand}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ width: 76, height: 76, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Icon name={icon} color="#fff" size={36} />
-      </LinearGradient>
+      <View className="w-[76px] h-[76px] rounded-2xl items-center justify-center bg-brand/10">
+        <Icon name={icon} tone="brand" size={34} />
+      </View>
       <View className="items-center gap-1.5">
         <Text className="text-text font-display font-bold text-lg">{title}</Text>
         <Text className="text-muted text-sm text-center leading-5">{subtitle}</Text>

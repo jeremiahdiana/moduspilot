@@ -165,7 +165,7 @@ export default function GoalDetail() {
         </View>
 
         {/* Progress editor */}
-        <View className="bg-surface border border-border rounded-3xl p-4 gap-3">
+        <View className="bg-surface border border-border rounded-xl p-4 gap-3">
           <Text className="text-muted text-xs font-semibold uppercase tracking-wider">Progress</Text>
           <View className="flex-row items-center justify-between">
             <TouchableOpacity onPress={() => setProgress(goal.progress - 5)} className="w-11 h-11 rounded-2xl bg-surface-2 border border-border items-center justify-center">
@@ -190,7 +190,7 @@ export default function GoalDetail() {
         </View>
 
         {/* Description */}
-        <TouchableOpacity onPress={() => editField('description', 'Edit description')} activeOpacity={0.7} className="bg-surface border border-border rounded-3xl p-4 gap-1.5">
+        <TouchableOpacity onPress={() => editField('description', 'Edit description')} activeOpacity={0.7} className="bg-surface border border-border rounded-xl p-4 gap-1.5">
           <Text className="text-muted text-xs font-semibold uppercase tracking-wider">Description</Text>
           <Text className={goal.description ? 'text-text text-[15px] leading-6' : 'text-muted text-[15px]'}>
             {goal.description || 'Tap to add a description…'}
@@ -239,7 +239,7 @@ export default function GoalDetail() {
 
 function Section({ title, onAdd, children }: { title: string; onAdd: () => void; children: React.ReactNode }) {
   return (
-    <View className="bg-surface border border-border rounded-3xl p-4">
+    <View className="bg-surface border border-border rounded-xl p-4">
       <View className="flex-row items-center justify-between mb-1">
         <Text className="text-muted text-xs font-semibold uppercase tracking-wider">{title}</Text>
         <TouchableOpacity onPress={onAdd} className="w-7 h-7 rounded-full bg-surface-2 border border-border items-center justify-center">

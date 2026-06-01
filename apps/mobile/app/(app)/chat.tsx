@@ -17,8 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 import { GlassView } from '@/components/ui/Glass';
 import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
@@ -267,19 +266,17 @@ export default function ChatScreen() {
                 )}
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={streaming ? stopStreaming : send} activeOpacity={0.8}>
-              <LinearGradient
-                colors={GRADIENTS.brand}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}
-              >
-                {streaming ? (
-                  <View style={{ width: 13, height: 13, backgroundColor: '#fff', borderRadius: 3 }} />
-                ) : (
-                  <Icon name="arrow-upward" color="#fff" size={22} />
-                )}
-              </LinearGradient>
+            <TouchableOpacity
+              onPress={streaming ? stopStreaming : send}
+              activeOpacity={0.8}
+              className="bg-brand items-center justify-center"
+              style={{ width: 44, height: 44, borderRadius: 16 }}
+            >
+              {streaming ? (
+                <View style={{ width: 13, height: 13, backgroundColor: '#fff', borderRadius: 3 }} />
+              ) : (
+                <Icon name="arrow-upward" color="#fff" size={22} />
+              )}
             </TouchableOpacity>
           </View>
           </GlassView>
@@ -304,16 +301,14 @@ function MessageBubble({
   if (isUser) {
     return (
       <View className="flex-row justify-end">
-        <LinearGradient
-          colors={GRADIENTS.brand}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+        <View
+          className="bg-brand"
           style={{ borderRadius: 18, borderBottomRightRadius: 4, maxWidth: '80%' }}
         >
           <View className="px-4 py-3">
             <Text className="text-base leading-6 text-white">{message.content}</Text>
           </View>
-        </LinearGradient>
+        </View>
       </View>
     );
   }
@@ -328,14 +323,12 @@ function MessageBubble({
 
   return (
     <View className="flex-row justify-start">
-      <LinearGradient
-        colors={GRADIENTS.brand}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
+        className="bg-brand"
         style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
       >
         <Text className="text-white font-display font-bold text-xs">M</Text>
-      </LinearGradient>
+      </View>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
         {isEmpty ? (
           <View className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
@@ -374,14 +367,12 @@ function MessageBubble({
 function Greeting() {
   return (
     <View className="flex-1 items-center justify-center gap-5 px-8" style={{ minHeight: 360 }}>
-      <LinearGradient
-        colors={GRADIENTS.brand}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
+        className="bg-brand"
         style={{ width: 92, height: 92, borderRadius: 30, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text className="text-white font-display font-bold text-4xl tracking-widest">M</Text>
-      </LinearGradient>
+      </View>
       <View className="items-center gap-2">
         <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
           {greeting()}

@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon } from '@/components/Icon';
 import { EmptyState } from '@/components/ui';
-import { GRADIENTS } from '@/lib/theme';
 import { subscribeMemories, addMemory, deleteMemory, currentUid, type Memory } from '@/lib/settings';
 
 export default function MemoryScreen() {
@@ -37,15 +35,12 @@ export default function MemoryScreen() {
       <DetailHeader
         title="Memory"
         right={
-          <TouchableOpacity onPress={add} activeOpacity={0.8}>
-            <LinearGradient
-              colors={GRADIENTS.brand}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="add" color="#fff" size={24} />
-            </LinearGradient>
+          <TouchableOpacity
+            onPress={add}
+            activeOpacity={0.8}
+            className="w-10 h-10 rounded-xl bg-brand items-center justify-center"
+          >
+            <Icon name="add" color="#fff" size={24} />
           </TouchableOpacity>
         }
       />
@@ -62,7 +57,7 @@ export default function MemoryScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onLongPress={() => remove(item)}
-              className="bg-surface border border-border rounded-3xl p-4 flex-row items-start gap-3"
+              className="bg-surface border border-border rounded-xl p-4 flex-row items-start gap-3"
             >
               <Icon name="psychology" tone="brand" size={18} />
               <View className="flex-1">

@@ -10,8 +10,6 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRADIENTS } from '@/lib/theme';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete } from '@/components/ui';
@@ -98,15 +96,12 @@ export default function ProjectsScreen() {
       <ScreenHeader
         title="Projects"
         right={
-          <TouchableOpacity onPress={addProject} activeOpacity={0.8}>
-            <LinearGradient
-              colors={GRADIENTS.brand}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Icon name="add" color="#fff" size={24} />
-            </LinearGradient>
+          <TouchableOpacity
+            onPress={addProject}
+            activeOpacity={0.8}
+            className="w-10 h-10 rounded-xl bg-brand items-center justify-center"
+          >
+            <Icon name="add" color="#fff" size={24} />
           </TouchableOpacity>
         }
       />
@@ -137,16 +132,11 @@ export default function ProjectsScreen() {
               activeOpacity={0.8}
               onLongPress={() => projectActions(item)}
               onPress={() => router.push(`/(app)/project/${item.id}` as never)}
-              className="bg-surface border border-border rounded-3xl px-4 py-4 flex-row items-center gap-3.5"
+              className="bg-surface border border-border rounded-xl px-4 py-4 flex-row items-center gap-3.5"
             >
-              <LinearGradient
-                colors={GRADIENTS.brand}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Icon name="folder" color="#fff" size={22} />
-              </LinearGradient>
+              <View className="w-11 h-11 rounded-xl bg-brand/10 items-center justify-center">
+                <Icon name="folder" tone="brand" size={22} />
+              </View>
               <View className="flex-1">
                 <Text className="text-text font-bold text-base" numberOfLines={1}>{item.title}</Text>
                 {!!item.description && (

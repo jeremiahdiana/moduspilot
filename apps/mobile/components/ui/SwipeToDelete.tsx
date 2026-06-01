@@ -18,7 +18,7 @@ export function SwipeToDelete({ children, onDelete }: { children: React.ReactNod
         <TouchableOpacity
           onPress={() => { haptics.warning(); onDelete(); }}
           activeOpacity={0.85}
-          className="bg-red-500 rounded-3xl items-center justify-center ml-2"
+          className="bg-red-500 rounded-xl items-center justify-center ml-2"
           style={{ width: 76 }}
         >
           <Icon name="delete-outline" color="#fff" size={24} />
