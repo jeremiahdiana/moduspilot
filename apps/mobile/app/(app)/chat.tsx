@@ -22,6 +22,8 @@ import { GlassView } from '@/components/ui/Glass';
 import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
+import { DraftOptionsCard } from '@/components/DraftOptionsCard';
+import { TypingDots } from '@/components/ui/TypingDots';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import {
@@ -122,11 +124,16 @@ export default function ChatScreen() {
     if (convIdRef.current === id) startNewChat();
   }
 
-  async function send() {
+  function send() {
     const text = input.trim();
     if (!text || streaming) return;
-    haptics.medium();
     setInput('');
+    void sendMessage(text);
+  }
+
+  async function sendMessage(text: string) {
+    if (!text.trim() || streaming) return;
+    haptics.medium();
 
     const userMsg: UIMessage = { id: newId(), role: 'user', content: text };
     const assistantId = newId();
@@ -227,6 +234,7 @@ export default function ChatScreen() {
               message={item}
               isStreaming={streaming && index === messages.length - 1}
               onFollowUp={appendFollowUp}
+              onSend={sendMessage}
             />
           )}
           showsVerticalScrollIndicator={false}
@@ -290,10 +298,12 @@ function MessageBubble({
   message,
   isStreaming,
   onFollowUp,
+  onSend,
 }: {
   message: UIMessage;
   isStreaming: boolean;
   onFollowUp: (text: string) => void;
+  onSend: (text: string) => void;
 }) {
   const c = useThemeColors();
   const isUser = message.role === 'user';
@@ -331,8 +341,8 @@ function MessageBubble({
       </View>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
         {isEmpty ? (
-          <View className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
-            <ActivityIndicator size="small" color={c.muted} />
+          <View className="rounded-2xl rounded-bl-sm px-4 py-4 bg-surface border border-border self-start">
+            <TypingDots />
           </View>
         ) : isStreaming ? (
           <>
@@ -352,6 +362,8 @@ function MessageBubble({
           parts!.map((part, i) =>
             part.type === 'approval' ? (
               <ApprovalCard key={i} raw={part.value} onFollowUp={onFollowUp} />
+            ) : part.type === 'draft_options' ? (
+              <DraftOptionsCard key={i} raw={part.value} onSend={onSend} />
             ) : part.value.trim() ? (
               <View key={i} className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
                 <Markdown text={part.value.trim()} />
