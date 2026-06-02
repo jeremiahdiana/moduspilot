@@ -3,6 +3,7 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Li
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
+import * as Speech from 'expo-speech';
 import { router } from 'expo-router';
 import {
   collection, query, orderBy, limit, getDocs, doc, updateDoc, onSnapshot, serverTimestamp,
@@ -37,15 +38,33 @@ interface BriefingData {
 interface LiveTask { id: string; title: string; done: boolean; dueDate?: string; completedAt?: { toDate?: () => Date } }
 interface LiveHabit { id: string; title: string; streak: number; completedDates: string[] }
 
+interface BriefingEntry { id: string; date: Date; data: BriefingData; energy: string | null; completedTop3: number[] }
+
 const todayStr = () => new Date().toISOString().slice(0, 10);
 function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
+function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 function formatDate(d: Date) { return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
+function fmtShort(d: Date) {
+  const t = startOfToday(); const y = new Date(t); y.setDate(y.getDate() - 1);
+  if (d >= t) return 'Today';
+  if (d >= y) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 function isOverdue(d?: string) { return !!d && d < todayStr(); }
 function recalcStreak(dates: string[]): number {
   const sorted = [...dates].sort().reverse();
   let streak = 0; const cursor = new Date();
   for (const d of sorted) { if (d === cursor.toISOString().slice(0, 10)) { streak++; cursor.setDate(cursor.getDate() - 1); } else break; }
   return streak;
+}
+function briefingToSpeech(d: BriefingData): string {
+  const parts: string[] = [];
+  if (d.narrative) parts.push(d.narrative); else if (d.openingLine) parts.push(d.openingLine);
+  if (d.top3?.length) parts.push('Your top 3 today: ' + d.top3.map((t, i) => `${i + 1}. ${t.task}`).join('. '));
+  if (d.schedule?.length) parts.push('Schedule: ' + d.schedule.map(s => `${s.time}, ${s.title}`).join('. '));
+  if (d.looseEnd?.text) parts.push('Loose end: ' + d.looseEnd.text);
+  if (d.patternCallout) parts.push('MODUS noticed: ' + d.patternCallout);
+  return parts.join('. ');
 }
 function weatherEmoji(desc: string) {
   if (desc.includes('Clear')) return '☀️';
@@ -185,8 +204,30 @@ export default function BriefingScreen() {
   const [energy, setEnergy] = useState<string | null>(null);
   const [completedTop3, setCompletedTop3] = useState<number[]>([]);
   const [customEnergy, setCustomEnergy] = useState('');
+  const [allBriefings, setAllBriefings] = useState<BriefingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [speaking, setSpeaking] = useState(false);
+
+  function applyBriefing(b: BriefingEntry) {
+    setData(b.data); setDate(b.date); setDocId(b.id);
+    setEnergy(b.energy); setCompletedTop3(b.completedTop3);
+  }
+
+  function toggleSpeech() {
+    if (speaking) { Speech.stop(); setSpeaking(false); return; }
+    if (!data) return;
+    haptics.select();
+    setSpeaking(true);
+    Speech.speak(briefingToSpeech(data), {
+      rate: 0.97,
+      onDone: () => setSpeaking(false),
+      onStopped: () => setSpeaking(false),
+      onError: () => setSpeaking(false),
+    });
+  }
+  useEffect(() => () => { Speech.stop(); }, []);
 
   // Live + integration data
   const [tasks, setTasks] = useState<LiveTask[]>([]);
@@ -207,14 +248,23 @@ export default function BriefingScreen() {
     if (!user) { setLoading(false); return; }
     try {
       const snap = await getDocs(query(collection(db, 'users', user.uid, 'conversations'), orderBy('createdAt', 'desc'), limit(30)));
-      const latest = snap.docs.find(d => d.data().briefing === true && d.data().deleted !== true && d.data().briefingData);
-      if (latest) {
-        const dd = latest.data();
-        const bd = dd.briefingData as BriefingData;
+      const all: BriefingEntry[] = [];
+      const seenDays = new Set<string>();
+      for (const d of snap.docs) {
+        const dd = d.data();
+        if (dd.briefing !== true || dd.deleted === true || !dd.briefingData) continue;
         const when = dd.createdAt?.toDate ? dd.createdAt.toDate() : new Date();
-        setData(bd); setDate(when); setDocId(latest.id);
-        setEnergy(dd.energy ?? null); setCompletedTop3(dd.completedTop3 ?? []);
-        writeCache(`briefing.${user.uid}`, { data: bd, date: when.toISOString() });
+        const dayKey = when.toISOString().slice(0, 10);
+        if (seenDays.has(dayKey)) continue; // one per calendar day (matches web sidebar)
+        seenDays.add(dayKey);
+        all.push({ id: d.id, date: when, data: dd.briefingData as BriefingData, energy: dd.energy ?? null, completedTop3: dd.completedTop3 ?? [] });
+      }
+      setAllBriefings(all);
+      if (all.length > 0) {
+        const keep = docId ? all.find(b => b.id === docId) : null;
+        const pick = keep ?? all.find(b => b.date >= startOfToday()) ?? all[0];
+        applyBriefing(pick);
+        writeCache(`briefing.${user.uid}`, { data: pick.data, date: pick.date.toISOString() });
       } else { setData(null); setDate(null); setDocId(null); }
     } catch { setData(null); }
     finally { setLoading(false); setRefreshing(false); }
@@ -308,7 +358,15 @@ export default function BriefingScreen() {
 
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
-      <ScreenHeader title="Briefing" />
+      <ScreenHeader
+        title="Briefing"
+        right={data ? (
+          <TouchableOpacity onPress={toggleSpeech} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
+            <Icon name={speaking ? 'stop' : 'volume-up'} tone={speaking ? 'brand' : 'muted'} size={20} />
+          </TouchableOpacity>
+        ) : undefined}
+      />
+
 
       {loading ? (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} showsVerticalScrollIndicator={false}>
@@ -325,6 +383,25 @@ export default function BriefingScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={c.brand} />}
         >
+          {/* Past briefings — day selector (web has a sidebar) */}
+          {allBriefings.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {allBriefings.map(b => {
+                const active = b.id === docId;
+                return (
+                  <TouchableOpacity
+                    key={b.id}
+                    onPress={() => { haptics.select(); applyBriefing(b); }}
+                    activeOpacity={0.7}
+                    className={`px-3.5 py-1.5 rounded-full border ${active ? 'bg-brand border-brand' : 'bg-surface/70 border-border/60'}`}
+                  >
+                    <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-muted'}`}>{fmtShort(b.date)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+
           {/* Hero — narrative + day-score ring + stats banner */}
           <View className="rounded-2xl border border-brand/20 overflow-hidden">
             <View className="flex-row">

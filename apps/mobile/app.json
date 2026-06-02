@@ -14,6 +14,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Allow MODUS to use the microphone for voice input in chat.",
+        "NSLocationWhenInUseUsageDescription": "Allow MODUS to use your location for local weather in your briefing.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -40,6 +41,12 @@
         "expo-audio",
         {
           "microphonePermission": "Allow MODUS to use the microphone for voice input in chat."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow MODUS to use your location for local weather in your briefing."
         }
       ],
       "expo-notifications"

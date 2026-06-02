@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { auth } from './firebase';
 
 export const API_BASE = 'https://app.moduspilot.com';
@@ -93,10 +94,23 @@ const WMO: Record<number, string> = {
 };
 
 export async function fetchWeather(): Promise<Weather | null> {
+  let lat: number | undefined, lon: number | undefined;
+  // Precise GPS first (granted permission), else fall back to IP geolocation.
   try {
-    const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
-    const lat = geo.latitude, lon = geo.longitude;
-    if (lat == null || lon == null) return null;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === 'granted') {
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      lat = pos.coords.latitude; lon = pos.coords.longitude;
+    }
+  } catch { /* fall through */ }
+  if (lat == null || lon == null) {
+    try {
+      const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
+      lat = geo.latitude; lon = geo.longitude;
+    } catch { return null; }
+  }
+  if (lat == null || lon == null) return null;
+  try {
     const d = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`).then(r => r.json());
     const cw = d.current_weather;
     if (!cw) return null;

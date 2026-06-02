@@ -39,8 +39,10 @@ function avatarColor(name: string) {
   return colors[Math.abs(h) % colors.length];
 }
 
-interface Goal { id: string; title: string; progress: number; status: string; deleted?: boolean }
-interface Task { id: string; title: string; done: boolean; deleted?: boolean; dueDate?: string }
+interface Goal { id: string; title: string; progress: number; status: string; deleted?: boolean; dueDate?: string }
+interface Task { id: string; title: string; done: boolean; deleted?: boolean; dueDate?: string; priority?: 'high' | 'medium' | 'low' }
+
+const PRIORITY_DOT: Record<string, string> = { high: '#ef4444', medium: '#f59e0b', low: '#6b6b80' };
 interface Habit { id: string; title: string; streak: number; completedDates: string[] }
 interface BriefPreview { preview: string; createdAt: Date; read: boolean }
 
@@ -147,7 +149,7 @@ export default function DashboardScreen() {
       query(collection(db, 'users', uid, 'goals'), orderBy('createdAt', 'desc')),
       snap => {
         const next = snap.docs
-          .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', progress: d.data().progress ?? 0, status: d.data().status ?? 'active', deleted: d.data().deleted }))
+          .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', progress: d.data().progress ?? 0, status: d.data().status ?? 'active', deleted: d.data().deleted, dueDate: d.data().dueDate }))
           .filter(g => g.status === 'active' && !g.deleted);
         setGoals(next);
         writeCache(`dash.goals.${uid}`, next);
@@ -159,7 +161,7 @@ export default function DashboardScreen() {
       collection(db, 'users', uid, 'tasks'),
       snap => {
         const next = snap.docs
-          .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', done: d.data().done ?? false, deleted: d.data().deleted, dueDate: d.data().dueDate }))
+          .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', done: d.data().done ?? false, deleted: d.data().deleted, dueDate: d.data().dueDate, priority: d.data().priority }))
           .filter(t => !t.done && !t.deleted);
         setTasks(next);
         writeCache(`dash.tasks.${uid}`, next);
@@ -399,6 +401,7 @@ export default function DashboardScreen() {
                 >
                   <View className="flex-row items-center justify-between gap-3">
                     <Text className="text-text font-medium text-[15px] flex-1" numberOfLines={1}>{g.title}</Text>
+                    {g.dueDate ? <Text className="text-muted text-[11px]">{g.dueDate}</Text> : null}
                     <Text className="text-muted text-xs font-semibold tabular-nums">{g.progress}%</Text>
                   </View>
                   <View className="h-1 rounded-full bg-surface-2 overflow-hidden">
@@ -423,6 +426,7 @@ export default function DashboardScreen() {
                 >
                   <Icon name="radio-button-unchecked" tone="muted" size={19} />
                   <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{t.title}</Text>
+                  {t.priority && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: PRIORITY_DOT[t.priority] }} />}
                 </TouchableOpacity>
               ))
             )}
