@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
 import { GradientText } from '@/components/ui/GradientText';
+import { Logo } from '@/components/ui/Logo';
 import { haptics } from '@/lib/haptics';
 import { readCache, writeCache } from '@/lib/cache';
 import { fetchInbox, fetchTodayEvents, type InboxThread, type CalEvent } from '@/lib/api';
@@ -45,8 +47,8 @@ interface BriefPreview { preview: string; createdAt: Date; read: boolean }
 
 // Web's animated headline gradient stops (globals.css .gradient-text-animated).
 const NAME_GRADIENT = ['#7c3aed', '#a78bfa', '#c084fc', '#8b5cf6', '#7c3aed'] as const;
-const LOGO_LIGHT = require('@/assets/brand/logo.png');
-const LOGO_DARK = require('@/assets/brand/logo-dark.png');
+// Faint top-down sheen so translucent cards read as glass, not flat black.
+const SHEEN = ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.012)'] as const;
 
 // Accent hexes mirror web's Tailwind shades, per theme (web uses
 // `text-yellow-600 dark:text-yellow-400` etc.). brand is constant both modes.
@@ -94,7 +96,8 @@ function Chip({ label, icon, hex, tint, href }: { label: string; icon: IconName;
 // ── Section card with brand-tinted medallion header (matches web Widget) ──────
 function Card({ title, icon, href, children }: { title: string; icon: IconName; href?: string; children: React.ReactNode }) {
   return (
-    <View className="bg-surface border border-border/60 rounded-2xl overflow-hidden">
+    <View className="bg-surface/70 border border-border/60 rounded-2xl overflow-hidden">
+      <LinearGradient colors={SHEEN} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-border/60">
         <View className="flex-row items-center gap-2.5">
           <View className="w-6 h-6 rounded-md bg-brand/10 items-center justify-center">
@@ -255,11 +258,7 @@ export default function DashboardScreen() {
           <TouchableOpacity onPress={open} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
             <Icon name="menu" tone="text" size={22} />
           </TouchableOpacity>
-          <Image
-            source={colorScheme === 'dark' ? LOGO_DARK : LOGO_LIGHT}
-            style={{ width: 44, height: 34 }}
-            resizeMode="contain"
-          />
+          <Logo width={44} />
           <View className="-ml-0.5">
             <Text className="text-brand font-black tracking-widest text-sm leading-none">MODUS</Text>
             <Text className="text-muted text-[8px] font-semibold uppercase tracking-widest mt-0.5">pilot</Text>

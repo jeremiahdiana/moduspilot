@@ -14,6 +14,7 @@ import { auth, db } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { AuthButtons } from '@/components/AuthButtons';
 import { Icon, type IconName } from '@/components/Icon';
+import { Logo } from '@/components/ui/Logo';
 import { useThemeColors } from '@/lib/theme';
 
 interface Option { icon: IconName; label: string; desc?: string }
@@ -286,6 +287,7 @@ export default function OnboardingScreen() {
   if (screen === 'done') {
     return (
       <SafeAreaView className="flex-1 bg-bg items-center justify-center gap-4">
+        <Logo width={84} />
         <Text className="text-4xl font-display font-bold text-brand tracking-widest">MODUS</Text>
         <Text className="text-text font-bold text-lg">
           MODUS is ready{name.trim() ? `, ${name.trim()}` : ''}.

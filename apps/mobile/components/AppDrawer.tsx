@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from 'nativewind';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@/components/Icon';
-import { GRADIENTS, useThemeColors } from '@/lib/theme';
+import { useThemeColors } from '@/lib/theme';
 import { GradientText } from '@/components/ui/GradientText';
+import { Logo } from '@/components/ui/Logo';
 import { haptics } from '@/lib/haptics';
 
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
@@ -79,14 +79,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
                 <View className="flex-1 px-5 pt-6 pb-4">
                   <View className="flex-row items-center justify-between mb-10 px-1">
                     <View className="flex-row items-center gap-2.5">
-                      <LinearGradient
-                        colors={GRADIENTS.brand}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{ width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <Text className="text-white font-display font-bold text-lg">M</Text>
-                      </LinearGradient>
+                      <Logo width={34} />
                       <GradientText className="text-2xl font-black tracking-widest">MODUS</GradientText>
                     </View>
                     <TouchableOpacity onPress={close} className="p-1.5 rounded-full" activeOpacity={0.7}>

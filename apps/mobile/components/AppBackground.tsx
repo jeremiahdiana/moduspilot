@@ -53,17 +53,17 @@ export function AppBackground() {
   const { colorScheme } = useColorScheme();
   const { width, height } = useWindowDimensions();
   const dark = colorScheme === 'dark';
-  const S = Math.max(width, height) * 0.9;
+  const S = Math.max(width, height) * 0.8;
 
-  // Brand-violet family only, low opacity, both modes subtle (matches web's
-  // header orbs: ~0.12–0.16 dark). Anchored top so the body stays flat.
-  const c1 = dark ? 'rgba(124,58,237,0.13)' : 'rgba(124,58,237,0.08)';
-  const c2 = dark ? 'rgba(167,139,250,0.10)' : 'rgba(167,139,250,0.07)';
+  // Brand-violet only, dim, and small/high so the glow dies out by ~1/3 down
+  // the screen (web fades to flat black by the first card). Body stays black.
+  const c1 = dark ? 'rgba(124,58,237,0.10)' : 'rgba(124,58,237,0.07)';
+  const c2 = dark ? 'rgba(167,139,250,0.06)' : 'rgba(167,139,250,0.05)';
 
   return (
     <View className="absolute inset-0 bg-bg" pointerEvents="none">
-      <Blob color={c1} size={S} x={-S * 0.32} y={-S * 0.42} duration={20000} delay={0} drift={36} />
-      <Blob color={c2} size={S * 0.7} x={width - S * 0.5} y={-S * 0.22} duration={26000} delay={1500} drift={30} />
+      <Blob color={c1} size={S * 0.72} x={-S * 0.22} y={-S * 0.30} duration={20000} delay={0} drift={28} />
+      <Blob color={c2} size={S * 0.5} x={width - S * 0.42} y={-S * 0.20} duration={26000} delay={1500} drift={24} />
     </View>
   );
 }

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Icon, type IconName } from '@/components/Icon';
 import { AppBackground } from '@/components/AppBackground';
 import { GradientText } from '@/components/ui/GradientText';
-import { GradientButton } from '@/components/ui';
+import { GradientButton, Logo } from '@/components/ui';
 import { GRADIENTS } from '@/lib/theme';
 
 const FEATURES: { icon: IconName; title: string; desc: string }[] = [
@@ -28,14 +28,7 @@ export default function WelcomeScreen() {
         >
           {/* Hero */}
           <View className="items-center mt-6">
-            <LinearGradient
-              colors={GRADIENTS.brand}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}
-            >
-              <Text className="text-white font-display font-bold text-4xl tracking-widest">M</Text>
-            </LinearGradient>
+            <Logo width={80} style={{ marginBottom: 14 }} />
             <GradientText className="text-5xl font-black tracking-widest" style={{ paddingVertical: 2 }}>MODUS</GradientText>
             <Text className="text-muted text-[10px] tracking-[0.3em] uppercase font-semibold mb-6 mt-1">pilot</Text>
             <Text className="text-3xl font-display font-bold text-text text-center leading-tight">

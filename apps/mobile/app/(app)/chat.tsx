@@ -19,6 +19,7 @@ import { Icon } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme';
 import { GlassView } from '@/components/ui/Glass';
+import { Logo } from '@/components/ui/Logo';
 import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
@@ -335,10 +336,9 @@ function MessageBubble({
   return (
     <View className="flex-row justify-start">
       <View
-        className="bg-brand"
-        style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
+        style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
       >
-        <Text className="text-white font-display font-bold text-xs">M</Text>
+        <Logo width={26} />
       </View>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
         {isEmpty ? (
@@ -380,12 +380,7 @@ function MessageBubble({
 function Greeting() {
   return (
     <View className="flex-1 items-center justify-center gap-5 px-8" style={{ minHeight: 360 }}>
-      <View
-        className="bg-brand"
-        style={{ width: 92, height: 92, borderRadius: 30, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Text className="text-white font-display font-bold text-4xl tracking-widest">M</Text>
-      </View>
+      <Logo width={92} />
       <View className="items-center gap-2">
         <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
           {greeting()}

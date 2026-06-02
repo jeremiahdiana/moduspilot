@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AuthButtons } from '@/components/AuthButtons';
+import { Logo } from '@/components/ui/Logo';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function LoginScreen() {
       <View className="flex-1 items-center justify-between px-8 py-12">
         {/* Logo */}
         <View className="flex-1 items-center justify-center">
+          <Logo width={88} style={{ marginBottom: 16 }} />
           <Text className="text-5xl font-display font-bold text-brand tracking-widest mb-3">MODUS</Text>
           <Text className="text-xl font-bold text-text mt-2">Welcome back</Text>
           <Text className="text-base text-muted text-center mt-1">
