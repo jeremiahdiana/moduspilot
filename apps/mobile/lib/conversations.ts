@@ -1,6 +1,6 @@
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc, updateDoc, getDoc, doc, serverTimestamp,
+  addDoc, updateDoc, setDoc, getDoc, doc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -68,6 +68,33 @@ export async function saveMessages(
   };
   if (title) update.title = title;
   await updateDoc(doc(db, 'users', uid, 'conversations', convId), update);
+}
+
+/**
+ * Ensure a deterministic scoped conversation exists (id `goal-{id}` /
+ * `project-{id}`, matching web so the thread syncs across devices). Creates the
+ * shell if missing, otherwise just refreshes title/links; returns any existing
+ * messages so the chat can seed from prior history.
+ */
+export async function ensureScopedConversation(
+  uid: string,
+  convId: string,
+  fields: { title: string; goalId?: string; projectId?: string },
+): Promise<StoredMessage[]> {
+  const ref = doc(db, 'users', uid, 'conversations', convId);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await setDoc(ref, { ...fields, deleted: false }, { merge: true });
+    return (snap.data()?.messages ?? []) as StoredMessage[];
+  }
+  await setDoc(ref, {
+    ...fields,
+    messages: [],
+    deleted: false,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return [];
 }
 
 export async function loadConversation(uid: string, convId: string): Promise<StoredMessage[]> {

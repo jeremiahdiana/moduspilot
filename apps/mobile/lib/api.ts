@@ -14,6 +14,16 @@ export type Message = {
   content: string;
 };
 
+// Scoped-chat context — mirrors the web goal/project detail chat body, so the
+// server builds a goal/project-aware system prompt.
+export type GoalContext = { id: string; title: string; description?: string; progress?: number };
+export type ProjectContext = { id: string; title: string; description?: string; status?: string };
+export type ChatOpts = {
+  signal?: AbortSignal;
+  goalContext?: GoalContext;
+  projectContext?: ProjectContext;
+};
+
 // ── Google: today's inbox + calendar (same endpoints the web dashboard uses) ──
 
 export type InboxThread = {
@@ -58,14 +68,19 @@ export async function fetchTodayEvents(): Promise<{ events: CalEvent[]; notConne
 
 export async function* streamChat(
   messages: Message[],
-  signal?: AbortSignal,
+  opts: ChatOpts = {},
 ): AsyncGenerator<string> {
   const headers = await getAuthHeader();
+  const { signal, goalContext, projectContext } = opts;
 
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({
+      messages,
+      ...(goalContext ? { goalContext } : {}),
+      ...(projectContext ? { projectContext } : {}),
+    }),
     signal,
   });
 

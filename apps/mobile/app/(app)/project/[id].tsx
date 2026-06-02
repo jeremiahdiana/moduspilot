@@ -138,6 +138,22 @@ export default function ProjectDetail() {
           {tasks.length > 0 && <Text className="text-muted text-sm mt-1">{doneCount}/{tasks.length} tasks done</Text>}
         </TouchableOpacity>
 
+        {/* Ask MODUS — scoped AI for this project */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push({ pathname: '/(app)/chat', params: { projectId: id } })}
+          className="flex-row items-center gap-3 rounded-xl bg-brand/5 border border-brand/25 px-4 py-3.5"
+        >
+          <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">
+            <Icon name="auto-awesome" tone="brand" size={18} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-text font-semibold text-[15px]">Ask MODUS about this project</Text>
+            <Text className="text-muted text-xs mt-0.5">Plan, break down tasks, get unstuck</Text>
+          </View>
+          <Icon name="chevron-right" tone="muted" size={20} />
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => editField('description', 'Edit description')} activeOpacity={0.7} className="bg-surface border border-border rounded-xl p-4 gap-1.5">
           <Text className="text-muted text-xs font-semibold uppercase tracking-wider">Description</Text>
           <Text className={project.description ? 'text-text text-[15px] leading-6' : 'text-muted text-[15px]'}>

@@ -162,6 +162,22 @@ export default function GoalDetail() {
           ) : null}
         </View>
 
+        {/* Ask MODUS — scoped AI for this goal */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push({ pathname: '/(app)/chat', params: { goalId: id } })}
+          className="flex-row items-center gap-3 rounded-xl bg-brand/5 border border-brand/25 px-4 py-3.5"
+        >
+          <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">
+            <Icon name="auto-awesome" tone="brand" size={18} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-text font-semibold text-[15px]">Ask MODUS about this goal</Text>
+            <Text className="text-muted text-xs mt-0.5">Strategy, next steps, check-ins</Text>
+          </View>
+          <Icon name="chevron-right" tone="muted" size={20} />
+        </TouchableOpacity>
+
         {/* Progress editor */}
         <View className="bg-surface border border-border rounded-xl p-4 gap-3">
           <Text className="text-muted text-xs font-semibold uppercase tracking-wider">Progress</Text>

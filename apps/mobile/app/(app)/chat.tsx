@@ -12,7 +12,10 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { streamChat, type Message } from '@/lib/api';
+import { useLocalSearchParams, router } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { streamChat, type Message, type GoalContext, type ProjectContext } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon } from '@/components/Icon';
@@ -30,9 +33,11 @@ import { useSheets } from '@/components/ui/Sheets';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import {
   subscribeConversations, createConversation, saveMessages,
-  loadConversation, deleteConversation, deriveTitle,
+  loadConversation, deleteConversation, deriveTitle, ensureScopedConversation,
   type ConvSummary,
 } from '@/lib/conversations';
+
+type Scope = { kind: 'goal' | 'project'; title: string; goalContext?: GoalContext; projectContext?: ProjectContext };
 
 type UIMessage = Message & { id: string };
 
@@ -56,11 +61,53 @@ export default function ChatScreen() {
   const [convId, setConvId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [scope, setScope] = useState<Scope | null>(null);
   const convIdRef = useRef<string | null>(null);
+  const scopeRef = useRef<Scope | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const listRef = useRef<FlatList>(null);
 
+  // Scoped chat: opened from a goal/project detail screen via route params.
+  const params = useLocalSearchParams<{ goalId?: string; projectId?: string }>();
+  const scopeId = params.goalId ? `goal:${params.goalId}` : params.projectId ? `project:${params.projectId}` : null;
+  const handledScopeRef = useRef<string | null | undefined>(undefined);
+
   useEffect(() => { convIdRef.current = convId; }, [convId]);
+  useEffect(() => { scopeRef.current = scope; }, [scope]);
+
+  useEffect(() => {
+    if (!user || handledScopeRef.current === scopeId) return;
+    handledScopeRef.current = scopeId;
+    if (!scopeId) { setScope(null); return; }
+
+    let alive = true;
+    (async () => {
+      const isGoal = scopeId.startsWith('goal:');
+      const id = scopeId.split(':')[1];
+      const convIdScoped = isGoal ? `goal-${id}` : `project-${id}`;
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid, isGoal ? 'goals' : 'projects', id));
+        const d = snap.data() ?? {};
+        const title = (d.title as string) ?? (isGoal ? 'Goal' : 'Project');
+        const nextScope: Scope = isGoal
+          ? { kind: 'goal', title, goalContext: { id, title, description: d.description, progress: d.progress } }
+          : { kind: 'project', title, projectContext: { id, title, description: d.description, status: d.status } };
+        const existing = await ensureScopedConversation(user.uid, convIdScoped, {
+          title: `${isGoal ? 'Goal' : 'Project'}: ${title}`,
+          ...(isGoal ? { goalId: id } : { projectId: id }),
+        });
+        if (!alive) return;
+        abortRef.current?.abort();
+        setMessages(existing.map(m => ({ id: m.id || newId(), role: m.role, content: m.content })));
+        setConvId(convIdScoped);
+        convIdRef.current = convIdScoped;
+        setScope(nextScope);
+        scrollToBottom();
+      } catch { /* fall back to a normal chat */ }
+    })();
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, scopeId]);
 
   useEffect(() => {
     if (!user) return;
@@ -104,11 +151,17 @@ export default function ChatScreen() {
     setConvId(null);
     convIdRef.current = null;
     setHistoryOpen(false);
+    if (scopeRef.current) {
+      setScope(null);
+      handledScopeRef.current = null;
+      router.setParams({ goalId: '', projectId: '' });
+    }
   }
 
   async function openConversation(id: string) {
     if (!user) return;
     setHistoryOpen(false);
+    setScope(null);
     try {
       const stored = await loadConversation(user.uid, id);
       setMessages(stored.map(m => ({ id: m.id || newId(), role: m.role, content: m.content })));
@@ -152,7 +205,11 @@ export default function ChatScreen() {
 
     let acc = '';
     try {
-      for await (const chunk of streamChat(history, controller.signal)) {
+      for await (const chunk of streamChat(history, {
+        signal: controller.signal,
+        goalContext: scopeRef.current?.goalContext,
+        projectContext: scopeRef.current?.projectContext,
+      })) {
         acc += chunk;
         setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: acc } : m)));
         scrollToBottom();
@@ -209,6 +266,18 @@ export default function ChatScreen() {
         </View>
       </View>
 
+      {scope && (
+        <View className="mx-4 mb-1.5 flex-row items-center gap-2 px-3 py-2 rounded-xl bg-brand/10 border border-brand/25">
+          <Icon name={scope.kind === 'goal' ? 'flag' : 'folder'} tone="brand" size={15} />
+          <Text className="text-brand text-xs font-semibold flex-1" numberOfLines={1}>
+            {scope.kind === 'goal' ? 'Goal' : 'Project'}: {scope.title}
+          </Text>
+          <TouchableOpacity onPress={startNewChat} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+            <Icon name="close" tone="muted" size={16} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <HistoryModal
         visible={historyOpen}
         conversations={conversations}
@@ -249,7 +318,7 @@ export default function ChatScreen() {
             <TextInput
               className="flex-1 text-text text-base px-3 py-2.5"
               style={{ maxHeight: 120 }}
-              placeholder="Ask MODUS anything…"
+              placeholder={scope ? `Ask about this ${scope.kind}…` : 'Ask MODUS anything…'}
               placeholderTextColor={c.muted}
               value={input}
               onChangeText={setInput}
