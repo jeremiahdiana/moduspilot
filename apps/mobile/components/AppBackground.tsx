@@ -12,10 +12,10 @@ import Animated, {
 import { useColorScheme } from 'nativewind';
 
 /**
- * Living ambient backdrop — soft brand-tinted glows that slowly drift and
- * breathe behind every screen (think Gemini / iOS). Deliberately low-opacity
- * and slow so it reads as depth/atmosphere, not decoration. The shared
- * background persists across navigations, so screen switches feel continuous.
+ * Ambient backdrop. Matches web: two low-opacity brand-violet glows anchored
+ * near the top (like the dashboard header orbs), so the body reads essentially
+ * flat. Deliberately quiet — a hint of atmosphere, not a gradient wash. No blue
+ * (that read as off-brand); brand-violet family only, both light and dark.
  */
 function Blob({
   color, size, x, y, duration, delay, drift,
@@ -30,9 +30,9 @@ function Blob({
     transform: [
       { translateX: x + (p.value - 0.5) * drift },
       { translateY: y + (p.value - 0.5) * drift },
-      { scale: 0.9 + p.value * 0.25 },
+      { scale: 0.95 + p.value * 0.12 },
     ],
-    opacity: 0.7 + p.value * 0.3,
+    opacity: 0.85 + p.value * 0.15,
   }));
   return (
     <Animated.View style={[{ position: 'absolute', width: size, height: size }, style]} pointerEvents="none">
@@ -53,16 +53,17 @@ export function AppBackground() {
   const { colorScheme } = useColorScheme();
   const { width, height } = useWindowDimensions();
   const dark = colorScheme === 'dark';
-  const S = Math.max(width, height) * 0.95;
+  const S = Math.max(width, height) * 0.9;
 
-  // Subtle in dark, a touch softer in light. Two brand-family hues for depth.
-  const c1 = dark ? 'rgba(124,58,237,0.20)' : 'rgba(124,58,237,0.12)';
-  const c2 = dark ? 'rgba(56,120,255,0.16)' : 'rgba(167,139,250,0.12)';
+  // Brand-violet family only, low opacity, both modes subtle (matches web's
+  // header orbs: ~0.12–0.16 dark). Anchored top so the body stays flat.
+  const c1 = dark ? 'rgba(124,58,237,0.13)' : 'rgba(124,58,237,0.08)';
+  const c2 = dark ? 'rgba(167,139,250,0.10)' : 'rgba(167,139,250,0.07)';
 
   return (
     <View className="absolute inset-0 bg-bg" pointerEvents="none">
-      <Blob color={c1} size={S} x={-S * 0.28} y={-S * 0.22} duration={15000} delay={0} drift={90} />
-      <Blob color={c2} size={S * 0.9} x={width - S * 0.62} y={height - S * 0.7} duration={19000} delay={1200} drift={80} />
+      <Blob color={c1} size={S} x={-S * 0.32} y={-S * 0.42} duration={20000} delay={0} drift={36} />
+      <Blob color={c2} size={S * 0.7} x={width - S * 0.5} y={-S * 0.22} duration={26000} delay={1500} drift={30} />
     </View>
   );
 }

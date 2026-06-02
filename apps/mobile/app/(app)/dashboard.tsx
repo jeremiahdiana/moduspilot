@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
-import { AnimatedRow } from '@/components/ui';
+import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { readCache, writeCache } from '@/lib/cache';
 import { fetchInbox, fetchTodayEvents, type InboxThread, type CalEvent } from '@/lib/api';
@@ -19,7 +19,7 @@ function greeting() {
   return 'Good evening';
 }
 function todayLabel() {
-  return new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 const todayStr = () => new Date().toISOString().slice(0, 10);
 function fmtTime(iso: string) {
@@ -42,50 +42,58 @@ interface Task { id: string; title: string; done: boolean; deleted?: boolean; du
 interface Habit { id: string; title: string; streak: number; completedDates: string[] }
 interface BriefPreview { preview: string; createdAt: Date; read: boolean }
 
-// ── Inline stat (dense, dot-separated) ────────────────────────────────────────
-function Stat({ value, label, onPress }: { value: number; label: string; onPress: () => void }) {
+// ── Colored stat pill (matches web: tinted, outlined, colored number+label) ───
+function Pill({ value, label, hex, tint, onPress }: { value: number; label: string; hex: string; tint: string; onPress: () => void }) {
   return (
-    <TouchableOpacity activeOpacity={0.6} onPress={() => { haptics.select(); onPress(); }} className="flex-row items-baseline gap-1">
-      <Text className="text-text font-bold text-sm tabular-nums">{value}</Text>
-      <Text className="text-muted text-sm">{label}</Text>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => { haptics.select(); onPress(); }}
+      className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border ${tint}`}
+    >
+      <Text className="font-bold text-sm tabular-nums" style={{ color: hex }}>{value}</Text>
+      <Text className="text-xs font-medium" style={{ color: hex }}>{label}</Text>
     </TouchableOpacity>
   );
 }
-const Dot = () => <Text className="text-border text-sm mx-2">·</Text>;
 
-// ── Section header ─────────────────────────────────────────────────────────────
-function SectionHead({ title, href }: { title: string; href?: string }) {
-  return (
-    <View className="flex-row items-center justify-between mb-2.5">
-      <Text className="text-text font-display font-bold text-lg">{title}</Text>
-      {href && (
-        <TouchableOpacity onPress={() => router.push(href as never)} activeOpacity={0.6}>
-          <Text className="text-brand font-semibold text-[13px]">All</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-const EmptyRow = ({ text }: { text: string }) => (
-  <View className="bg-surface border border-border rounded-xl px-4 py-4 items-center">
-    <Text className="text-muted text-sm text-center">{text}</Text>
-  </View>
-);
-
-// ── Quick action ─────────────────────────────────────────────────────────────
-function QuickAction({ label, icon, href }: { label: string; icon: IconName; href: string }) {
+// ── Colored quick-action chip (matches web) ──────────────────────────────────
+function Chip({ label, icon, hex, tint, href }: { label: string; icon: IconName; hex: string; tint: string; href: string }) {
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={() => { haptics.select(); router.push(href as never); }}
-      className="flex-row items-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-surface"
+      className={`flex-row items-center gap-1.5 px-3 py-2 rounded-full border ${tint}`}
     >
-      <Icon name={icon} tone="brand" size={16} />
-      <Text className="text-text font-semibold text-[13px]">{label}</Text>
+      <Icon name={icon} size={15} color={hex} />
+      <Text className="font-semibold text-[13px]" style={{ color: hex }}>{label}</Text>
     </TouchableOpacity>
   );
 }
+
+// ── Section card with brand-tinted medallion header (matches web Widget) ──────
+function Card({ title, icon, href, children }: { title: string; icon: IconName; href?: string; children: React.ReactNode }) {
+  return (
+    <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+        <View className="flex-row items-center gap-2.5">
+          <View className="w-7 h-7 rounded-lg bg-brand/10 items-center justify-center">
+            <Icon name={icon} tone="brand" size={16} />
+          </View>
+          <Text className="text-text font-semibold text-sm">{title}</Text>
+        </View>
+        {href && (
+          <TouchableOpacity onPress={() => router.push(href as never)} activeOpacity={0.6}>
+            <Text className="text-muted text-xs font-medium">View all →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {children}
+    </View>
+  );
+}
+const CardEmpty = ({ text }: { text: string }) => (
+  <View className="px-4 py-5 items-center"><Text className="text-muted text-sm text-center">{text}</Text></View>
+);
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -224,101 +232,104 @@ export default function DashboardScreen() {
           <TouchableOpacity onPress={open} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
             <Icon name="menu" tone="text" size={22} />
           </TouchableOpacity>
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <Text className="text-muted text-[11px] font-semibold tracking-wide">Live</Text>
+            <Text className="text-[10px] font-semibold tracking-wide" style={{ color: '#10b981' }}>MODUS · Live</Text>
           </View>
         </View>
 
-        {/* Greeting */}
-        <Text className="text-3xl font-display font-bold text-text tracking-tight">
-          {greeting()}{firstName ? `, ${firstName}` : ''}.
-        </Text>
+        {/* Greeting — gradient name (matches web) */}
+        {firstName ? (
+          <>
+            <Text className="text-3xl font-display font-bold text-text tracking-tight">{greeting()},</Text>
+            <GradientText className="text-3xl font-bold tracking-tight">{`${firstName}.`}</GradientText>
+          </>
+        ) : (
+          <Text className="text-3xl font-display font-bold text-text tracking-tight">{greeting()}.</Text>
+        )}
         <Text className="text-muted text-sm mt-1.5">{todayLabel()}</Text>
 
-        {/* Dense inline stats */}
-        <View className="flex-row items-center flex-wrap mt-3">
-          <Stat value={goals.length} label="goals" onPress={() => router.push('/(app)/goals' as never)} />
-          <Dot />
-          <Stat value={dueToday.length} label="due today" onPress={() => router.push('/(app)/tasks' as never)} />
-          {topStreak > 0 && (<><Dot /><Stat value={topStreak} label="day streak" onPress={() => router.push('/(app)/habits' as never)} /></>)}
-          {inbox.length > 0 && (<><Dot /><Stat value={inbox.length} label="unread" onPress={() => router.push('/(app)/briefing' as never)} /></>)}
+        {/* Colored stat pills */}
+        <View className="flex-row items-center flex-wrap gap-2 mt-4">
+          <Pill value={goals.length} label="active goals" hex="#7c3aed" tint="border-brand/30 bg-brand/5" onPress={() => router.push('/(app)/goals' as never)} />
+          <Pill value={dueToday.length} label="due today" hex="#eab308" tint="border-yellow-500/30 bg-yellow-500/10" onPress={() => router.push('/(app)/tasks' as never)} />
+          {topStreak > 0 && (
+            <Pill value={topStreak} label="day streak" hex="#f97316" tint="border-orange-500/30 bg-orange-500/10" onPress={() => router.push('/(app)/habits' as never)} />
+          )}
+          {inbox.length > 0 && (
+            <Pill value={inbox.length} label="unread" hex="#8b5cf6" tint="border-violet-500/30 bg-violet-500/10" onPress={() => router.push('/(app)/briefing' as never)} />
+          )}
         </View>
 
-        {/* Focus */}
+        {/* Quick actions */}
+        <Text className="text-muted/70 text-[11px] mt-5 mb-2">Quick actions</Text>
+        <View className="flex-row flex-wrap gap-2">
+          <Chip label="+ Task" icon="add-task" hex="#eab308" tint="border-yellow-500/30 bg-yellow-500/10" href="/(app)/tasks" />
+          <Chip label="+ Goal" icon="flag" hex="#7c3aed" tint="border-brand/30 bg-brand/5" href="/(app)/goals" />
+          <Chip label="+ Log habit" icon="local-fire-department" hex="#f97316" tint="border-orange-500/30 bg-orange-500/10" href="/(app)/habits" />
+          <Chip label="+ Ask MODUS" icon="auto-awesome" hex="#8b5cf6" tint="border-violet-500/30 bg-violet-500/10" href="/(app)/chat" />
+        </View>
+
+        {/* Focus card — brand-tinted with medallion (matches web) */}
         {focus && (
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/tasks') as never)}
-            className="flex-row mt-5 rounded-xl border border-border bg-surface overflow-hidden"
+            className="flex-row items-center gap-4 mt-5 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4"
           >
-            <View className="w-1 bg-brand" />
-            <View className="flex-1 px-4 py-3.5">
-              <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-1">
-                {focus.source === 'briefing' ? 'Focus today' : 'Up next'}
+            <View className="w-10 h-10 rounded-xl bg-brand/15 items-center justify-center">
+              <Icon name="track-changes" tone="brand" size={20} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-0.5">
+                {focus.source === 'briefing' ? 'Your focus today' : 'Up next'}
               </Text>
               <Text className="text-text font-semibold text-[15px] leading-5" numberOfLines={2}>{focus.title}</Text>
             </View>
           </TouchableOpacity>
         )}
 
-        {/* Quick actions */}
-        <View className="flex-row flex-wrap gap-2 mt-5">
-          <QuickAction label="Task" icon="add-task" href="/(app)/tasks" />
-          <QuickAction label="Goal" icon="flag" href="/(app)/goals" />
-          <QuickAction label="Habit" icon="local-fire-department" href="/(app)/habits" />
-          <QuickAction label="Ask MODUS" icon="auto-awesome" href="/(app)/chat" />
-        </View>
-
-        {/* Today's schedule (calendar) */}
-        <View className="mt-8">
-          <SectionHead title="Today's schedule" href="/(app)/briefing" />
-          {events.length === 0 ? (
-            <EmptyRow text={googleConnected ? 'Nothing scheduled today.' : 'Connect Google in chat to see your schedule.'} />
-          ) : (
-            <View className="bg-surface border border-border rounded-xl overflow-hidden">
-              {events.slice(0, 5).map((e, i) => (
+        {/* Sections */}
+        <View className="gap-4 mt-6">
+          {/* Today's schedule */}
+          <Card title="Today's schedule" icon="event" href="/(app)/briefing">
+            {events.length === 0 ? (
+              <CardEmpty text={googleConnected ? 'Nothing scheduled today.' : 'Connect Google in chat to see your schedule.'} />
+            ) : (
+              events.slice(0, 5).map((e, i) => (
                 <View key={e.id} className={`flex-row items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-border' : ''}`}>
                   <Text className="text-brand font-semibold text-xs tabular-nums w-16">{fmtTime(e.start)}</Text>
                   <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{e.title}</Text>
                 </View>
-              ))}
-            </View>
-          )}
-        </View>
+              ))
+            )}
+          </Card>
 
-        {/* Today's briefing */}
-        <View className="mt-8">
-          <SectionHead title="Today's briefing" href="/(app)/briefing" />
-          {!brief ? (
-            <EmptyRow text="No briefings yet. They arrive at your scheduled time." />
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/(app)/briefing' as never)}
-              className="bg-surface border border-border rounded-xl px-4 py-3.5"
-            >
-              <View className="flex-row items-center gap-2 mb-1.5">
-                {!brief.read && <View className="w-1.5 h-1.5 rounded-full bg-brand" />}
-                <Text className="text-muted text-[11px]">
-                  {briefIsToday ? 'Today' : brief.createdAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </Text>
-              </View>
-              <Text className="text-text text-sm leading-5" numberOfLines={4}>{brief.preview}</Text>
-              <Text className="text-brand font-semibold text-[13px] mt-2">Read full briefing →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Inbox */}
-        {(inbox.length > 0 || !googleConnected) && (
-          <View className="mt-8">
-            <SectionHead title="Inbox" href="/(app)/briefing" />
-            {inbox.length === 0 ? (
-              <EmptyRow text="Connect Google in chat to see your inbox." />
+          {/* Today's briefing */}
+          <Card title="Today's briefing" icon="notifications" href="/(app)/briefing">
+            {!brief ? (
+              <CardEmpty text="No briefings yet. They arrive at your scheduled time." />
             ) : (
-              <View className="bg-surface border border-border rounded-xl overflow-hidden">
-                {inbox.slice(0, 4).map((t, i) => (
+              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(app)/briefing' as never)} className="px-4 py-3.5">
+                <View className="flex-row items-center gap-2 mb-1.5">
+                  {!brief.read && <View className="w-1.5 h-1.5 rounded-full bg-brand" />}
+                  <Text className="text-muted text-[11px]">
+                    {briefIsToday ? 'Today' : brief.createdAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </Text>
+                </View>
+                <Text className="text-text text-sm leading-5" numberOfLines={4}>{brief.preview}</Text>
+                <Text className="text-brand font-semibold text-[13px] mt-2">Read full briefing →</Text>
+              </TouchableOpacity>
+            )}
+          </Card>
+
+          {/* Inbox */}
+          {(inbox.length > 0 || !googleConnected) && (
+            <Card title="Inbox" icon="mail-outline" href="/(app)/briefing">
+              {inbox.length === 0 ? (
+                <CardEmpty text="Connect Google in chat to see your inbox." />
+              ) : (
+                inbox.slice(0, 4).map((t, i) => (
                   <TouchableOpacity
                     key={t.id}
                     activeOpacity={0.8}
@@ -338,68 +349,57 @@ export default function DashboardScreen() {
                     </View>
                     {t.unread && <View className="w-1.5 h-1.5 rounded-full bg-brand mt-1.5" />}
                   </TouchableOpacity>
-                ))}
-              </View>
+                ))
+              )}
+            </Card>
+          )}
+
+          {/* Goals */}
+          <Card title="Goals" icon="flag" href="/(app)/goals">
+            {topGoals.length === 0 ? (
+              <CardEmpty text="No active goals. Ask MODUS to set one." />
+            ) : (
+              topGoals.map((g, i) => (
+                <TouchableOpacity
+                  key={g.id}
+                  activeOpacity={0.8}
+                  onPress={() => router.push(`/(app)/goal/${g.id}` as never)}
+                  className={`px-4 py-3.5 gap-2.5 ${i > 0 ? 'border-t border-border' : ''}`}
+                >
+                  <View className="flex-row items-center justify-between gap-3">
+                    <Text className="text-text font-medium text-[15px] flex-1" numberOfLines={1}>{g.title}</Text>
+                    <Text className="text-muted text-xs font-semibold tabular-nums">{g.progress}%</Text>
+                  </View>
+                  <View className="h-1 rounded-full bg-surface-2 overflow-hidden">
+                    <View className="h-full rounded-full bg-brand" style={{ width: `${Math.max(0, Math.min(100, g.progress))}%` }} />
+                  </View>
+                </TouchableOpacity>
+              ))
             )}
-          </View>
-        )}
+          </Card>
 
-        {/* Goals */}
-        <View className="mt-8">
-          <SectionHead title="Goals" href="/(app)/goals" />
-          {topGoals.length === 0 ? (
-            <EmptyRow text="No active goals. Ask MODUS to set one." />
-          ) : (
-            <View className="gap-2">
-              {topGoals.map((g, i) => (
-                <AnimatedRow key={g.id} index={i}>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/(app)/goal/${g.id}` as never)}
-                    className="bg-surface border border-border rounded-xl px-4 py-3.5 gap-2.5"
-                  >
-                    <View className="flex-row items-center justify-between gap-3">
-                      <Text className="text-text font-medium text-[15px] flex-1" numberOfLines={1}>{g.title}</Text>
-                      <Text className="text-muted text-xs font-semibold tabular-nums">{g.progress}%</Text>
-                    </View>
-                    <View className="h-1 rounded-full bg-surface-2 overflow-hidden">
-                      <View className="h-full rounded-full bg-brand" style={{ width: `${Math.max(0, Math.min(100, g.progress))}%` }} />
-                    </View>
-                  </TouchableOpacity>
-                </AnimatedRow>
-              ))}
-            </View>
-          )}
-        </View>
+          {/* Due today */}
+          <Card title="Due today" icon="check-box" href="/(app)/tasks">
+            {dueToday.length === 0 ? (
+              <CardEmpty text="Nothing due today. You're clear." />
+            ) : (
+              dueToday.slice(0, 4).map((t, i) => (
+                <TouchableOpacity
+                  key={t.id}
+                  activeOpacity={0.8}
+                  onPress={() => router.push('/(app)/tasks' as never)}
+                  className={`px-4 py-3.5 flex-row items-center gap-3 ${i > 0 ? 'border-t border-border' : ''}`}
+                >
+                  <Icon name="radio-button-unchecked" tone="muted" size={19} />
+                  <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{t.title}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </Card>
 
-        {/* Due today */}
-        <View className="mt-8">
-          <SectionHead title="Due today" href="/(app)/tasks" />
-          {dueToday.length === 0 ? (
-            <EmptyRow text="Nothing due today. You're clear." />
-          ) : (
-            <View className="gap-2">
-              {dueToday.slice(0, 4).map((t, i) => (
-                <AnimatedRow key={t.id} index={i}>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => router.push('/(app)/tasks' as never)}
-                    className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center gap-3"
-                  >
-                    <Icon name="radio-button-unchecked" tone="muted" size={19} />
-                    <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{t.title}</Text>
-                  </TouchableOpacity>
-                </AnimatedRow>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Habits — tap to check in */}
-        {habits.length > 0 && (
-          <View className="mt-8">
-            <SectionHead title="Habits" href="/(app)/habits" />
-            <View className="bg-surface border border-border rounded-xl overflow-hidden">
+          {/* Habits — tap to check in */}
+          {habits.length > 0 && (
+            <Card title="Habits" icon="autorenew" href="/(app)/habits">
               {habits.slice(0, 5).map((h, i) => {
                 const done = h.completedDates.includes(todayStr());
                 return (
@@ -422,9 +422,9 @@ export default function DashboardScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </View>
-          </View>
-        )}
+            </Card>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
