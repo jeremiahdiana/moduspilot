@@ -242,6 +242,7 @@ export default function BriefingScreen() {
   const [inbox, setInbox] = useState<InboxThread[]>([]);
   const [inboxFilter, setInboxFilter] = useState<'primary' | 'all'>('primary');
   const [inboxConnected, setInboxConnected] = useState(true);
+  const [inboxLoading, setInboxLoading] = useState(true);
   const [expandedMail, setExpandedMail] = useState<string | null>(null);
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -306,7 +307,10 @@ export default function BriefingScreen() {
   useEffect(() => {
     if (!user) return;
     let alive = true;
-    fetchInbox(inboxFilter).then(r => { if (!alive) return; setInbox(r.threads); setInboxConnected(!r.notConnected); });
+    setInboxLoading(true);
+    fetchInbox(inboxFilter)
+      .then(r => { if (!alive) return; setInbox(r.threads); setInboxConnected(!r.notConnected); })
+      .finally(() => { if (alive) setInboxLoading(false); });
     return () => { alive = false; };
   }, [user, inboxFilter]);
 
@@ -426,7 +430,7 @@ export default function BriefingScreen() {
                   <Text className="text-muted text-xs"><Text className="text-text font-semibold">{tasks.filter(t => !t.done && t.dueDate === today).length}</Text> due</Text>
                   <Text className="text-muted text-xs"><Text className="text-text font-semibold">{events.filter(e => !e.allDay).length}</Text> meetings</Text>
                   <Text className="text-muted text-xs"><Text className="text-text font-semibold">{habitsDone}/{habits.length}</Text> habits</Text>
-                  {inboxConnected && <Text className="text-muted text-xs"><Text className="text-text font-semibold">{inbox.length}</Text> unread</Text>}
+                  {inboxConnected && !inboxLoading && <Text className="text-muted text-xs"><Text className="text-text font-semibold">{inbox.length}</Text> unread</Text>}
                   {weather && <Text className="text-muted text-xs">{weatherEmoji(weather.desc)} {weather.temp}{weather.unit}</Text>}
                 </View>
                 {(yTasksDone > 0 || yHabitsDone > 0) && (
@@ -535,7 +539,19 @@ export default function BriefingScreen() {
                 </View>
               }
             >
-              {inbox.length === 0 ? (
+              {inboxLoading ? (
+                <View className="gap-3 py-1">
+                  {[0, 1].map(i => (
+                    <View key={i} className="flex-row items-center gap-3">
+                      <Skeleton width={28} height={28} radius={14} />
+                      <View className="flex-1 gap-1.5">
+                        <Skeleton width="40%" height={12} />
+                        <Skeleton width="78%" height={11} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : inbox.length === 0 ? (
                 <Text className="text-muted text-xs">No unread emails.</Text>
               ) : (
                 <View>

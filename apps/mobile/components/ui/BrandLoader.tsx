@@ -28,13 +28,15 @@ function PulseRing({ delay, color }: { delay: number; color: string }) {
   useEffect(() => {
     p.value = withDelay(delay, withRepeat(withTiming(1, { duration: 2600, easing: Easing.out(Easing.ease) }), -1, false));
   }, []);
+  // Start at the glow-disc edge (scale 1 = base diameter) and only expand
+  // outward, so rings ripple around the mark and never cross through it.
   const style = useAnimatedStyle(() => ({
-    transform: [{ scale: 0.45 + p.value * 1.8 }],
-    opacity: (1 - p.value) * 0.45,
+    transform: [{ scale: 1 + p.value * 1.4 }],
+    opacity: (1 - p.value) * 0.4,
   }));
   return (
     <Layer>
-      <Animated.View style={[{ width: 104, height: 104, borderRadius: 52, borderWidth: 1.5, borderColor: color }, style]} />
+      <Animated.View style={[{ width: 128, height: 128, borderRadius: 64, borderWidth: 1.5, borderColor: color }, style]} />
     </Layer>
   );
 }

@@ -6,15 +6,17 @@ import Animated, {
   withDelay,
   withTiming,
   withSequence,
+  withRepeat,
   Easing,
 } from 'react-native-reanimated';
 
 /**
  * Entrance for MODUS's proactive cards (the "noticed / loose end / relationship"
- * observations). The card rises + scales in, then a one-time accent glow pulses
- * along its border and fades — so a surfaced observation reads as MODUS *raising
- * its hand*, not static text. `accent` should match the card's accent color;
- * `delay` staggers a stack. Fires once on mount (no re-animate on data swaps).
+ * observations). The card rises + scales in once, then a soft accent glow pulses
+ * along its border on a slow ~8s loop — so the observation keeps gently raising
+ * its hand and is catchable even when it starts below the fold (the entrance
+ * alone fires off-screen and is missed). `accent` matches the card's accent
+ * color; `delay` staggers a stack.
  */
 export function ProactiveReveal({
   children,
@@ -32,11 +34,17 @@ export function ProactiveReveal({
 
   useEffect(() => {
     enter.value = withDelay(delay, withTiming(1, { duration: 460, easing: Easing.out(Easing.cubic) }));
+    // slow recurring attention pulse: brighten, fade, then a long rest, forever
     glow.value = withDelay(
       delay + 360,
-      withSequence(
-        withTiming(1, { duration: 420, easing: Easing.out(Easing.ease) }),
-        withTiming(0, { duration: 1000, easing: Easing.in(Easing.ease) }),
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 480, easing: Easing.out(Easing.ease) }),
+          withTiming(0, { duration: 1100, easing: Easing.in(Easing.ease) }),
+          withTiming(0, { duration: 6200 }), // rest before next pulse
+        ),
+        -1,
+        false,
       ),
     );
   }, []);
@@ -46,7 +54,7 @@ export function ProactiveReveal({
     transform: [{ translateY: (1 - enter.value) * 12 }, { scale: 0.96 + enter.value * 0.04 }],
   }));
 
-  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value * 0.85 }));
 
   return (
     <Animated.View style={cardStyle}>

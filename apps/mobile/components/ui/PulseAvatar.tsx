@@ -21,9 +21,11 @@ import { useThemeColors } from '@/lib/theme';
  * the avatar column keeps its layout footprint.
  */
 function Ring({ size, color, run }: { size: number; color: string; run: SharedValue<number> }) {
+  // Begin just outside the mark (scale 1 = base diameter) and expand outward
+  // only, so rings never ripple through the logo.
   const style = useAnimatedStyle(() => ({
     opacity: (1 - run.value) * 0.4,
-    transform: [{ scale: 0.55 + run.value * 1.25 }],
+    transform: [{ scale: 1 + run.value * 0.7 }],
   }));
   return (
     <Animated.View
@@ -65,13 +67,14 @@ export function PulseAvatar({ size = 26, active = false }: { size?: number; acti
 
   const logoStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + breathe.value * 0.08 }] }));
   const box = size + 4;
+  const ringBase = size + 9; // sits just outside the mark
 
   return (
     <View style={{ width: box, height: box, alignItems: 'center', justifyContent: 'center' }}>
       {active ? (
         <>
-          <Ring size={box} color={c.brand} run={ringA} />
-          <Ring size={box} color={c.brand} run={ringB} />
+          <Ring size={ringBase} color={c.brand} run={ringA} />
+          <Ring size={ringBase} color={c.brand} run={ringB} />
         </>
       ) : null}
       <Animated.View style={logoStyle}>
