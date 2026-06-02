@@ -1,6 +1,6 @@
 import { streamText, experimental_createMCPClient } from 'ai';
 import type { CoreMessage } from 'ai';
-import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
+import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { getMcpServers } from '@/lib/mcp-servers';
@@ -217,9 +217,14 @@ export async function POST(req: Request) {
       }
     }
 
+    // Layer 2: if the latest message looks like a prompt-extraction / override
+    // attempt, reinforce the refusal for this turn (the prompt's confidentiality
+    // section is layer one).
+    const extractionGuard = looksLikePromptExtraction(queryText) ? PROMPT_EXTRACTION_REMINDER : '';
+
     const result = streamText({
       model: chatModel,
-      system: fullSystemPrompt + mcpBlock,
+      system: fullSystemPrompt + mcpBlock + extractionGuard,
       messages: cappedMessages,
       maxTokens: 2048,
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
