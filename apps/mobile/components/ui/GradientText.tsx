@@ -14,23 +14,28 @@ export function GradientText({
   style,
   className,
   colors = GRADIENTS.headline,
+  display = true,
 }: {
   children: string;
   style?: TextStyle;
   className?: string;
   colors?: readonly [string, string, ...string[]];
+  /** Use Clash Display (default). Set false to fill the body font (Satoshi) —
+   *  e.g. the dashboard greeting name, which web renders in the body font. */
+  display?: boolean;
 }) {
+  const font = display ? 'font-display' : 'font-sans';
   return (
     <MaskedView
       maskElement={
-        <Text className={`font-display ${className ?? ''}`} style={[{ backgroundColor: 'transparent' }, style]}>
+        <Text className={`${font} ${className ?? ''}`} style={[{ backgroundColor: 'transparent' }, style]}>
           {children}
         </Text>
       }
     >
       <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0.6 }}>
         {/* Transparent copy sizes the gradient to the text bounds. */}
-        <Text className={`font-display ${className ?? ''}`} style={[style, { opacity: 0 }]}>{children}</Text>
+        <Text className={`${font} ${className ?? ''}`} style={[style, { opacity: 0 }]}>{children}</Text>
       </LinearGradient>
     </MaskedView>
   );

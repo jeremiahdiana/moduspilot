@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,6 +43,26 @@ interface Task { id: string; title: string; done: boolean; deleted?: boolean; du
 interface Habit { id: string; title: string; streak: number; completedDates: string[] }
 interface BriefPreview { preview: string; createdAt: Date; read: boolean }
 
+// Web's animated headline gradient stops (globals.css .gradient-text-animated).
+const NAME_GRADIENT = ['#7c3aed', '#a78bfa', '#c084fc', '#8b5cf6', '#7c3aed'] as const;
+const LOGO_LIGHT = require('@/assets/brand/logo.png');
+const LOGO_DARK = require('@/assets/brand/logo-dark.png');
+
+// Accent hexes mirror web's Tailwind shades, per theme (web uses
+// `text-yellow-600 dark:text-yellow-400` etc.). brand is constant both modes.
+function accents(dark: boolean) {
+  return dark
+    ? { brand: '#7c3aed', yellow: '#facc15', orange: '#fb923c', violet: '#a78bfa', emerald: '#34d399' }
+    : { brand: '#7c3aed', yellow: '#ca8a04', orange: '#ea580c', violet: '#7c3aed', emerald: '#059669' };
+}
+// Static tint classes (NativeWind needs literals) — match web's bg-_/5 border-_/30.
+const TINT = {
+  brand: 'border-brand/30 bg-brand/5',
+  yellow: 'border-yellow-500/30 bg-yellow-500/5',
+  orange: 'border-orange-500/30 bg-orange-500/5',
+  violet: 'border-violet-400/30 bg-violet-500/5',
+} as const;
+
 // ── Colored stat pill (matches web: tinted, outlined, colored number+label) ───
 function Pill({ value, label, hex, tint, onPress }: { value: number; label: string; hex: string; tint: string; onPress: () => void }) {
   return (
@@ -73,17 +94,17 @@ function Chip({ label, icon, hex, tint, href }: { label: string; icon: IconName;
 // ── Section card with brand-tinted medallion header (matches web Widget) ──────
 function Card({ title, icon, href, children }: { title: string; icon: IconName; href?: string; children: React.ReactNode }) {
   return (
-    <View className="bg-surface border border-border rounded-2xl overflow-hidden">
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+    <View className="bg-surface border border-border/60 rounded-2xl overflow-hidden">
+      <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-border/60">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-7 h-7 rounded-lg bg-brand/10 items-center justify-center">
-            <Icon name={icon} tone="brand" size={16} />
+          <View className="w-6 h-6 rounded-md bg-brand/10 items-center justify-center">
+            <Icon name={icon} tone="brand" size={14} />
           </View>
           <Text className="text-text font-semibold text-sm">{title}</Text>
         </View>
         {href && (
           <TouchableOpacity onPress={() => router.push(href as never)} activeOpacity={0.6}>
-            <Text className="text-muted text-xs font-medium">View all →</Text>
+            <Text className="text-muted text-[11px] font-medium">View all →</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -98,6 +119,8 @@ const CardEmpty = ({ text }: { text: string }) => (
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { open } = useDrawer();
+  const { colorScheme } = useColorScheme();
+  const A = accents(colorScheme === 'dark');
   const firstName = user?.displayName?.split(' ')[0] ?? '';
 
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -227,47 +250,60 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
-        {/* Top bar */}
-        <View className="flex-row items-center justify-between mb-6">
+        {/* Top bar — hamburger + logo + wordmark (matches web nav) */}
+        <View className="flex-row items-center gap-2.5 mb-6">
           <TouchableOpacity onPress={open} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
             <Icon name="menu" tone="text" size={22} />
           </TouchableOpacity>
-          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <Text className="text-[10px] font-semibold tracking-wide" style={{ color: '#10b981' }}>MODUS · Live</Text>
+          <Image
+            source={colorScheme === 'dark' ? LOGO_DARK : LOGO_LIGHT}
+            style={{ width: 44, height: 34 }}
+            resizeMode="contain"
+          />
+          <View className="-ml-0.5">
+            <Text className="text-brand font-black tracking-widest text-sm leading-none">MODUS</Text>
+            <Text className="text-muted text-[8px] font-semibold uppercase tracking-widest mt-0.5">pilot</Text>
           </View>
         </View>
 
-        {/* Greeting — gradient name (matches web) */}
-        {firstName ? (
-          <>
-            <Text className="text-3xl font-display font-bold text-text tracking-tight">{greeting()},</Text>
-            <GradientText className="text-3xl font-bold tracking-tight">{`${firstName}.`}</GradientText>
-          </>
-        ) : (
-          <Text className="text-3xl font-display font-bold text-text tracking-tight">{greeting()}.</Text>
-        )}
-        <Text className="text-muted text-sm mt-1.5">{todayLabel()}</Text>
+        {/* Greeting + Live badge (matches web: badge to the right of greeting) */}
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            {firstName ? (
+              <>
+                <Text className="text-2xl font-medium text-text">{greeting()},</Text>
+                <GradientText display={false} colors={NAME_GRADIENT} className="text-2xl font-medium">{`${firstName}.`}</GradientText>
+              </>
+            ) : (
+              <Text className="text-2xl font-medium text-text">{greeting()}.</Text>
+            )}
+          </View>
+          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 mt-1">
+            <View className="w-2 h-2 rounded-full bg-emerald-500" />
+            <Text className="text-[10px] font-semibold tracking-wide" style={{ color: A.emerald }}>MODUS · Live</Text>
+          </View>
+        </View>
+        <Text className="text-muted text-sm mt-1">{todayLabel()}</Text>
 
         {/* Colored stat pills */}
-        <View className="flex-row items-center flex-wrap gap-2 mt-4">
-          <Pill value={goals.length} label="active goals" hex="#7c3aed" tint="border-brand/30 bg-brand/5" onPress={() => router.push('/(app)/goals' as never)} />
-          <Pill value={dueToday.length} label="due today" hex="#eab308" tint="border-yellow-500/30 bg-yellow-500/10" onPress={() => router.push('/(app)/tasks' as never)} />
+        <View className="flex-row items-center flex-wrap gap-2 mt-3.5">
+          <Pill value={goals.length} label="active goals" hex={A.brand} tint={TINT.brand} onPress={() => router.push('/(app)/goals' as never)} />
+          <Pill value={dueToday.length} label="due today" hex={A.yellow} tint={TINT.yellow} onPress={() => router.push('/(app)/tasks' as never)} />
           {topStreak > 0 && (
-            <Pill value={topStreak} label="day streak" hex="#f97316" tint="border-orange-500/30 bg-orange-500/10" onPress={() => router.push('/(app)/habits' as never)} />
+            <Pill value={topStreak} label="day streak" hex={A.orange} tint={TINT.orange} onPress={() => router.push('/(app)/habits' as never)} />
           )}
           {inbox.length > 0 && (
-            <Pill value={inbox.length} label="unread" hex="#8b5cf6" tint="border-violet-500/30 bg-violet-500/10" onPress={() => router.push('/(app)/briefing' as never)} />
+            <Pill value={inbox.length} label="unread" hex={A.violet} tint={TINT.violet} onPress={() => router.push('/(app)/briefing' as never)} />
           )}
         </View>
 
         {/* Quick actions */}
         <Text className="text-muted/70 text-[11px] mt-5 mb-2">Quick actions</Text>
         <View className="flex-row flex-wrap gap-2">
-          <Chip label="+ Task" icon="add-task" hex="#eab308" tint="border-yellow-500/30 bg-yellow-500/10" href="/(app)/tasks" />
-          <Chip label="+ Goal" icon="flag" hex="#7c3aed" tint="border-brand/30 bg-brand/5" href="/(app)/goals" />
-          <Chip label="+ Log habit" icon="local-fire-department" hex="#f97316" tint="border-orange-500/30 bg-orange-500/10" href="/(app)/habits" />
-          <Chip label="+ Ask MODUS" icon="auto-awesome" hex="#8b5cf6" tint="border-violet-500/30 bg-violet-500/10" href="/(app)/chat" />
+          <Chip label="+ Task" icon="add-task" hex={A.yellow} tint={TINT.yellow} href="/(app)/tasks" />
+          <Chip label="+ Goal" icon="flag" hex={A.brand} tint={TINT.brand} href="/(app)/goals" />
+          <Chip label="+ Log habit" icon="local-fire-department" hex={A.orange} tint={TINT.orange} href="/(app)/habits" />
+          <Chip label="+ Ask MODUS" icon="auto-awesome" hex={A.violet} tint={TINT.violet} href="/(app)/chat" />
         </View>
 
         {/* Focus card — brand-tinted with medallion (matches web) */}
@@ -277,14 +313,14 @@ export default function DashboardScreen() {
             onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/tasks') as never)}
             className="flex-row items-center gap-4 mt-5 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4"
           >
-            <View className="w-10 h-10 rounded-xl bg-brand/15 items-center justify-center">
-              <Icon name="track-changes" tone="brand" size={20} />
+            <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">
+              <Icon name="track-changes" tone="brand" size={18} />
             </View>
             <View className="flex-1">
-              <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-0.5">
+              <Text className="text-brand/70 text-[10px] font-semibold uppercase tracking-widest mb-0.5">
                 {focus.source === 'briefing' ? 'Your focus today' : 'Up next'}
               </Text>
-              <Text className="text-text font-semibold text-[15px] leading-5" numberOfLines={2}>{focus.title}</Text>
+              <Text className="text-text font-semibold text-sm leading-5" numberOfLines={2}>{focus.title}</Text>
             </View>
           </TouchableOpacity>
         )}
