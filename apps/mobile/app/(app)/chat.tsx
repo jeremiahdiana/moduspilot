@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Alert,
   Modal,
 } from 'react-native';
@@ -32,6 +31,7 @@ import { PulseAvatar } from '@/components/ui/PulseAvatar';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
 import { useSheets } from '@/components/ui/Sheets';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { VoiceOverlay } from '@/components/VoiceOverlay';
 import {
   subscribeConversations, createConversation, saveMessages,
   loadConversation, deleteConversation, deriveTitle, ensureScopedConversation,
@@ -265,6 +265,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
+      <VoiceOverlay state={voice.state} level={voice.level} onStop={voice.toggle} onCancel={voice.cancel} />
       {/* Top bar — hamburger + new chat + history */}
       <View className="px-4 py-3 flex-row items-center justify-between">
         <TouchableOpacity onPress={open} activeOpacity={0.7} className="p-1.5 -ml-1 rounded-full">
@@ -345,18 +346,10 @@ export default function ChatScreen() {
               <TouchableOpacity
                 onPress={voice.toggle}
                 activeOpacity={0.8}
-                className={`rounded-2xl items-center justify-center border ${voice.state === 'recording' ? 'bg-red-500/10 border-red-500/40' : 'bg-surface border-border'}`}
+                className="rounded-2xl items-center justify-center border bg-surface border-border"
                 style={{ width: 44, height: 44 }}
               >
-                {voice.state === 'transcribing' ? (
-                  <ActivityIndicator size="small" color={c.muted} />
-                ) : (
-                  <Icon
-                    name={voice.state === 'recording' ? 'stop' : 'mic-none'}
-                    size={22}
-                    color={voice.state === 'recording' ? '#ef4444' : c.muted}
-                  />
-                )}
+                <Icon name="mic-none" size={22} color={c.muted} />
               </TouchableOpacity>
             )}
             <TouchableOpacity

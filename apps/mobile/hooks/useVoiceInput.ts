@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   useAudioRecorder,
   RecordingPresets,
@@ -6,14 +6,22 @@ import {
   requestRecordingPermissionsAsync,
 } from 'expo-audio';
 import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy';
+import { useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 
 type VoiceState = 'idle' | 'recording' | 'transcribing';
+
+// Metering on so the orb can react to the live mic level.
+const REC_OPTS = { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true };
 
 /**
  * Voice input — record mic audio with expo-audio, then transcribe via the same
  * /api/transcribe (Groq Whisper) endpoint the web app uses. Returns a toggle:
  * first press starts recording, second stops + transcribes and calls onResult.
+ *
+ * Also exposes `level` — a 0..1 reanimated SharedValue tracking the live mic
+ * amplitude (smoothed from getStatus().metering dBFS) so the VoiceOrb can
+ * breathe with the user's voice — and `cancel` to abort without transcribing.
  *
  * The upload uses expo-file-system's native multipart uploadAsync rather than
  * fetch + FormData: the app's global fetch is Expo's WinterCG implementation
@@ -23,10 +31,28 @@ type VoiceState = 'idle' | 'recording' | 'transcribing';
  *
  * Requires the expo-audio native module (a dev rebuild — `npx expo run:ios`).
  */
-export function useVoiceInput(onResult: (text: string) => void) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+export function useVoiceInput(onResult: (text: string) => void): {
+  state: VoiceState;
+  error: string;
+  toggle: () => void;
+  cancel: () => void;
+  level: SharedValue<number>;
+} {
+  const recorder = useAudioRecorder(REC_OPTS);
   const [state, setState] = useState<VoiceState>('idle');
   const [error, setError] = useState('');
+  const level = useSharedValue(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    level.value = withTiming(0, { duration: 250 });
+  }, [level]);
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   const start = useCallback(async () => {
     setError('');
@@ -39,9 +65,16 @@ export function useVoiceInput(onResult: (text: string) => void) {
     await recorder.prepareToRecordAsync();
     recorder.record();
     setState('recording');
-  }, [recorder]);
+    pollRef.current = setInterval(() => {
+      const m = recorder.getStatus().metering;
+      // metering is dBFS (~-60 silence .. 0 max). Map to 0..1, then ease toward it.
+      const target = typeof m === 'number' && isFinite(m) ? Math.max(0, Math.min(1, (m + 55) / 55)) : 0;
+      level.value = level.value + (target - level.value) * 0.35;
+    }, 70);
+  }, [recorder, level]);
 
   const stop = useCallback(async () => {
+    stopPolling();
     setState('transcribing');
     try {
       await recorder.stop();
@@ -69,7 +102,13 @@ export function useVoiceInput(onResult: (text: string) => void) {
     } finally {
       setState('idle');
     }
-  }, [recorder, onResult]);
+  }, [recorder, onResult, stopPolling]);
+
+  const cancel = useCallback(async () => {
+    stopPolling();
+    try { await recorder.stop(); } catch { /* nothing was recorded */ }
+    setState('idle');
+  }, [recorder, stopPolling]);
 
   const toggle = useCallback(() => {
     if (state === 'transcribing') return;
@@ -77,5 +116,5 @@ export function useVoiceInput(onResult: (text: string) => void) {
     else void start();
   }, [state, start, stop]);
 
-  return { state, error, toggle };
+  return { state, error, toggle, cancel, level };
 }
