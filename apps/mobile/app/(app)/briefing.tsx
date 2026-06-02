@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import { router } from 'expo-router';
-import { collection, query, orderBy, limit, getDocs, doc, updateDoc } from 'firebase/firestore';
+import {
+  collection, query, orderBy, limit, getDocs, doc, updateDoc, onSnapshot, serverTimestamp,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -13,6 +16,10 @@ import { Skeleton } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
+import {
+  fetchInbox, fetchTodayEvents, fetchNews, fetchWeather,
+  type InboxThread, type CalEvent, type NewsItem, type Weather,
+} from '@/lib/api';
 
 interface Top3Item { task: string; source: string }
 interface BriefingHabit { name: string; streak: number; status: 'at_risk' | 'on_track' | 'done' }
@@ -27,22 +34,35 @@ interface BriefingData {
   relationshipAlert: string | null;
   schedule: ScheduleItem[];
 }
+interface LiveTask { id: string; title: string; done: boolean; dueDate?: string; completedAt?: { toDate?: () => Date } }
+interface LiveHabit { id: string; title: string; streak: number; completedDates: string[] }
 
-function formatDate(d: Date) {
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+const todayStr = () => new Date().toISOString().slice(0, 10);
+function yesterdayStr() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
+function formatDate(d: Date) { return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
+function isOverdue(d?: string) { return !!d && d < todayStr(); }
+function recalcStreak(dates: string[]): number {
+  const sorted = [...dates].sort().reverse();
+  let streak = 0; const cursor = new Date();
+  for (const d of sorted) { if (d === cursor.toISOString().slice(0, 10)) { streak++; cursor.setDate(cursor.getDate() - 1); } else break; }
+  return streak;
+}
+function weatherEmoji(desc: string) {
+  if (desc.includes('Clear')) return '☀️';
+  if (desc.includes('cloud') || desc.includes('Overcast')) return '⛅';
+  if (desc.includes('ain') || desc.includes('shower')) return '🌧️';
+  if (desc.includes('now')) return '❄️';
+  if (desc.includes('Thunder')) return '⛈️';
+  if (desc.includes('og')) return '🌫️';
+  return '🌤️';
 }
 
-// ── Labeled card (icon + colored uppercase label + optional left accent bar) ──
-function LabeledCard({
-  icon, color, label, accent, right, children,
-}: {
+// ── Labeled card ──────────────────────────────────────────────────────────────
+function LabeledCard({ icon, color, label, accent, right, children }: {
   icon: IconName; color: string; label: string; accent?: string; right?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <View
-      className="bg-surface/70 border border-border/60 rounded-2xl px-5 py-4"
-      style={accent ? { borderLeftWidth: 3, borderLeftColor: accent } : undefined}
-    >
+    <View className="bg-surface/70 border border-border/60 rounded-2xl px-5 py-4" style={accent ? { borderLeftWidth: 3, borderLeftColor: accent } : undefined}>
       <View className="flex-row items-center justify-between mb-2.5">
         <View className="flex-row items-center gap-2">
           <Icon name={icon} size={15} color={color} />
@@ -55,7 +75,6 @@ function LabeledCard({
   );
 }
 
-// ── Energy check ──────────────────────────────────────────────────────────────
 const ENERGY_OPTS = [
   { key: 'fully_charged', label: 'Fully charged', emoji: '🔋' },
   { key: 'okay', label: 'Okay', emoji: '😐' },
@@ -80,6 +99,83 @@ function HabitStatusPill({ status, streak }: { status: BriefingHabit['status']; 
   );
 }
 
+function DayScoreRing({ score, border }: { score: number; border: string }) {
+  const size = 46, stroke = 3.5, r = (size - stroke * 2) / 2, circ = 2 * Math.PI * r;
+  const pct = Math.min(100, Math.max(0, score));
+  const color = pct >= 80 ? '#10B981' : pct >= 40 ? '#7C3AED' : '#F59E0B';
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }], position: 'absolute' }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={border} strokeWidth={stroke} fill="none" />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - (pct / 100) * circ} />
+      </Svg>
+      <Text style={{ color, fontSize: 11, fontWeight: '700' }}>{pct}%</Text>
+    </View>
+  );
+}
+
+// ── Schedule timeline ─────────────────────────────────────────────────────────
+const START_H = 8, END_H = 20, TOTAL_M = (END_H - START_H) * 60;
+const EVENT_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#f43f5e'];
+function evMins(iso: string) { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); }
+function evPct(m: number) { return ((Math.max(START_H * 60, Math.min(END_H * 60, m)) - START_H * 60) / TOTAL_M) * 100; }
+
+function ScheduleTimeline({ events, fallback, color }: { events: CalEvent[]; fallback: ScheduleItem[]; color: string }) {
+  const day = events.filter(e => !e.allDay && e.start);
+  if (day.length === 0 && fallback.length === 0) {
+    return <Text className="text-muted text-xs">No meetings today — clear runway.</Text>;
+  }
+  if (day.length === 0) {
+    return (
+      <View className="gap-1.5">
+        {fallback.map((item, i) => (
+          <View key={i} className="flex-row items-center gap-3 px-3 py-2 rounded-lg bg-surface-2">
+            <Text className="text-brand-light text-xs font-semibold w-16">{item.time}</Text>
+            <Text className="text-text text-[13px] flex-1" numberOfLines={2}>{item.title}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  }
+  return (
+    <View className="mt-1">
+      <View className="flex-row justify-between mb-1">
+        {[8, 10, 12, 14, 16, 18, 20].map(h => (
+          <Text key={h} className="text-muted" style={{ fontSize: 8 }}>{h === 12 ? '12p' : h > 12 ? `${h - 12}p` : `${h}a`}</Text>
+        ))}
+      </View>
+      <View className="rounded-lg overflow-hidden bg-surface-2" style={{ height: 32, position: 'relative' }}>
+        {day.map((e, i) => {
+          const s = evMins(e.start);
+          const en = e.end ? evMins(e.end) : s + 60;
+          const left = evPct(s);
+          const width = Math.max(evPct(en) - left, 3);
+          return (
+            <View key={i} style={{ position: 'absolute', top: 4, bottom: 4, left: `${left}%`, width: `${width}%`, backgroundColor: EVENT_COLORS[i % EVENT_COLORS.length], borderRadius: 4, paddingHorizontal: 4, justifyContent: 'center', opacity: 0.9 }}>
+              <Text numberOfLines={1} style={{ color: '#fff', fontSize: 8, fontWeight: '600' }}>{e.title}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <View className="mt-3 gap-1.5">
+        {day.map((e, i) => (
+          <View key={i} className="flex-row items-center gap-2">
+            <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: EVENT_COLORS[i % EVENT_COLORS.length] }} />
+            <Text className="text-muted text-[11px] w-14">{new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Text>
+            <Text className="text-text text-xs flex-1" numberOfLines={1}>{e.title}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const AVATAR_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4', '#f97316', '#ec4899'];
+function avatarColor(name: string) { let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff; return AVATAR_COLORS[h % AVATAR_COLORS.length]; }
+
+const NEWS_TOPICS = ['Fitness & Health', 'Technology & SaaS', 'Finance & Investing', 'Real Estate', 'E-commerce & Retail', 'Marketing & Advertising', 'Entrepreneurship & Startups', 'Crypto & Web3', 'Sports', 'Entertainment & Media'];
+function hostname(url: string) { try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; } }
+
 export default function BriefingScreen() {
   const { user } = useAuth();
   const c = useThemeColors();
@@ -92,58 +188,85 @@ export default function BriefingScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Live + integration data
+  const [tasks, setTasks] = useState<LiveTask[]>([]);
+  const [habits, setHabits] = useState<LiveHabit[]>([]);
+  const [inbox, setInbox] = useState<InboxThread[]>([]);
+  const [inboxFilter, setInboxFilter] = useState<'primary' | 'all'>('primary');
+  const [inboxConnected, setInboxConnected] = useState(true);
+  const [expandedMail, setExpandedMail] = useState<string | null>(null);
+  const [events, setEvents] = useState<CalEvent[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [newsIndustry, setNewsIndustry] = useState('');
+  const [newsTopic, setNewsTopic] = useState<string | undefined>(undefined);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsPickerOpen, setNewsPickerOpen] = useState(false);
+  const [weather, setWeather] = useState<Weather | null>(null);
+
   async function load() {
     if (!user) { setLoading(false); return; }
     try {
-      const q = query(
-        collection(db, 'users', user.uid, 'conversations'),
-        orderBy('createdAt', 'desc'),
-        limit(30),
-      );
-      const snap = await getDocs(q);
-      const latest = snap.docs.find(
-        d => d.data().briefing === true && d.data().deleted !== true && d.data().briefingData,
-      );
+      const snap = await getDocs(query(collection(db, 'users', user.uid, 'conversations'), orderBy('createdAt', 'desc'), limit(30)));
+      const latest = snap.docs.find(d => d.data().briefing === true && d.data().deleted !== true && d.data().briefingData);
       if (latest) {
         const dd = latest.data();
-        const briefingData = dd.briefingData as BriefingData;
-        const ts = dd.createdAt;
-        const when = ts?.toDate ? ts.toDate() : new Date();
-        setData(briefingData);
-        setDate(when);
-        setDocId(latest.id);
-        setEnergy(dd.energy ?? null);
-        setCompletedTop3(dd.completedTop3 ?? []);
-        if (user) writeCache(`briefing.${user.uid}`, { data: briefingData, date: when.toISOString() });
-      } else {
-        setData(null); setDate(null); setDocId(null);
-      }
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+        const bd = dd.briefingData as BriefingData;
+        const when = dd.createdAt?.toDate ? dd.createdAt.toDate() : new Date();
+        setData(bd); setDate(when); setDocId(latest.id);
+        setEnergy(dd.energy ?? null); setCompletedTop3(dd.completedTop3 ?? []);
+        writeCache(`briefing.${user.uid}`, { data: bd, date: when.toISOString() });
+      } else { setData(null); setDate(null); setDocId(null); }
+    } catch { setData(null); }
+    finally { setLoading(false); setRefreshing(false); }
   }
 
   useEffect(() => {
     if (!user) return;
+    const uid = user.uid;
     let alive = true;
-    readCache<{ data: BriefingData; date: string }>(`briefing.${user.uid}`).then(cached => {
+    readCache<{ data: BriefingData; date: string }>(`briefing.${uid}`).then(cached => {
       if (alive && cached) { setData(cached.data); setDate(new Date(cached.date)); setLoading(false); }
     });
     load();
-    return () => { alive = false; };
+
+    const unsubT = onSnapshot(collection(db, 'users', uid, 'tasks'), snap => {
+      setTasks(snap.docs
+        .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', done: d.data().done ?? false, dueDate: d.data().dueDate, completedAt: d.data().completedAt, deleted: d.data().deleted ?? false }))
+        .filter(t => !t.deleted) as LiveTask[]);
+    }, () => {});
+    const unsubH = onSnapshot(query(collection(db, 'users', uid, 'habits'), orderBy('createdAt', 'desc')), snap => {
+      setHabits(snap.docs.map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', streak: d.data().streak ?? 0, completedDates: d.data().completedDates ?? [] })));
+    }, () => {});
+
+    fetchTodayEvents().then(r => { if (alive) setEvents(r.events); });
+    fetchWeather().then(w => { if (alive) setWeather(w); });
+
+    return () => { alive = false; unsubT(); unsubH(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Inbox (re-fetch on filter change)
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    fetchInbox(inboxFilter).then(r => { if (!alive) return; setInbox(r.threads); setInboxConnected(!r.notConnected); });
+    return () => { alive = false; };
+  }, [user, inboxFilter]);
+
+  // News (re-fetch on topic change)
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    setNewsLoading(true);
+    fetchNews(newsTopic).then(r => { if (!alive) return; setNews(r.items); setNewsIndustry(r.industry); setNewsLoading(false); });
+    return () => { alive = false; };
+  }, [user, newsTopic]);
+
   function selectEnergy(key: string) {
     if (!user || !docId) return;
-    haptics.select();
-    setEnergy(key);
+    haptics.select(); setEnergy(key);
     updateDoc(doc(db, 'users', user.uid, 'conversations', docId), { energy: key }).catch(() => {});
   }
-
   function toggleTop3(i: number) {
     if (!user || !docId) return;
     haptics.select();
@@ -151,8 +274,37 @@ export default function BriefingScreen() {
     setCompletedTop3(next);
     updateDoc(doc(db, 'users', user.uid, 'conversations', docId), { completedTop3: next }).catch(() => {});
   }
+  function markTaskDone(id: string) {
+    if (!user) return;
+    haptics.success();
+    updateDoc(doc(db, 'users', user.uid, 'tasks', id), { done: true, completedAt: serverTimestamp() }).catch(() => {});
+  }
+  function logHabit(h: LiveHabit) {
+    if (!user) return;
+    haptics.success();
+    const dates = [...h.completedDates, todayStr()];
+    updateDoc(doc(db, 'users', user.uid, 'habits', h.id), { completedDates: dates, streak: recalcStreak(dates) }).catch(() => {});
+  }
+  function draftReply(t: InboxThread) {
+    const prompt = `Write a draft reply for this email directly in chat — just the reply text. When I say "send it", generate a send_email approval card with threadId: "${t.id}", subject: "Re: ${t.subject}", and body = the draft.\n\nFrom: ${t.from}\nSubject: ${t.subject}\n\n${t.snippet}`;
+    router.push({ pathname: '/(app)/chat', params: { prefill: prompt } });
+  }
 
+  // Derived
+  const today = todayStr();
+  const overdueTasks = tasks.filter(t => !t.done && isOverdue(t.dueDate));
+  const atRiskHabits = habits.filter(h => !h.completedDates.includes(today) && h.streak > 0);
+  const habitsDone = habits.filter(h => h.completedDates.includes(today)).length;
+  const habitPct = habits.length > 0 ? habitsDone / habits.length : 1;
+  const dayScore = Math.round(25 + (energy ? 25 : 0) + habitPct * 50);
+  const yStr = yesterdayStr();
+  const yTasksDone = tasks.filter(t => { const ca = t.completedAt?.toDate?.(); return ca && ca.toISOString().slice(0, 10) === yStr; }).length;
+  const yHabitsDone = habits.filter(h => h.completedDates.includes(yStr)).length;
   const energyOpt = ENERGY_OPTS.find(o => o.key === energy);
+  const needsAttention = [
+    ...overdueTasks.map(t => ({ id: t.id, kind: 'task' as const, title: t.title, sub: t.dueDate === today ? 'Due today' : `Overdue · ${t.dueDate}` })),
+    ...atRiskHabits.map(h => ({ id: h.id, kind: 'habit' as const, title: h.title, sub: `${h.streak}🔥 streak at risk`, habit: h })),
+  ];
 
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
@@ -160,46 +312,49 @@ export default function BriefingScreen() {
 
       {loading ? (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} showsVerticalScrollIndicator={false}>
-          <View className="gap-2.5">
-            <Skeleton width="45%" height={20} />
-            <Skeleton height={13} /><Skeleton width="85%" height={13} /><Skeleton width="70%" height={13} />
-          </View>
+          <View className="gap-2.5"><Skeleton width="45%" height={20} /><Skeleton height={13} /><Skeleton width="85%" height={13} /><Skeleton width="70%" height={13} /></View>
           {[0, 1, 2].map(i => (
-            <View key={i} className="bg-surface/70 border border-border/60 rounded-2xl px-4 py-4 gap-2.5">
-              <Skeleton width="35%" height={13} /><Skeleton height={12} /><Skeleton width="80%" height={12} />
-            </View>
+            <View key={i} className="bg-surface/70 border border-border/60 rounded-2xl px-4 py-4 gap-2.5"><Skeleton width="35%" height={13} /><Skeleton height={12} /><Skeleton width="80%" height={12} /></View>
           ))}
         </ScrollView>
       ) : !data ? (
-        <EmptyState
-          icon="wb-sunny"
-          title="No briefing yet"
-          subtitle="MODUS generates your morning briefing automatically each day. Pull down to refresh."
-        />
+        <EmptyState icon="wb-sunny" title="No briefing yet" subtitle="MODUS generates your morning briefing automatically each day. Pull down to refresh." />
       ) : (
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 12 }}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={c.brand} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={c.brand} />}
         >
-          {/* Hero — narrative with brand accent bar */}
-          <View className="flex-row rounded-2xl border border-brand/20 overflow-hidden">
-            <View className="w-1 bg-brand" />
-            <View className="flex-1 p-5">
-              {date && <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-1.5">{formatDate(date)}</Text>}
-              <Text className="text-text text-base leading-6">{data.narrative ?? data.openingLine}</Text>
+          {/* Hero — narrative + day-score ring + stats banner */}
+          <View className="rounded-2xl border border-brand/20 overflow-hidden">
+            <View className="flex-row">
+              <View className="w-1 bg-brand" />
+              <View className="flex-1 p-5">
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    {date && <Text className="text-brand text-[10px] font-bold uppercase tracking-widest mb-1.5">{formatDate(date)}</Text>}
+                    <Text className="text-text text-base leading-6">{data.narrative ?? data.openingLine}</Text>
+                  </View>
+                  <DayScoreRing score={dayScore} border={c.border} />
+                </View>
+                {/* stats banner */}
+                <View className="flex-row flex-wrap gap-x-4 gap-y-1 mt-3">
+                  <Text className="text-muted text-xs"><Text className="text-text font-semibold">{tasks.filter(t => !t.done && t.dueDate === today).length}</Text> due</Text>
+                  <Text className="text-muted text-xs"><Text className="text-text font-semibold">{events.filter(e => !e.allDay).length}</Text> meetings</Text>
+                  <Text className="text-muted text-xs"><Text className="text-text font-semibold">{habitsDone}/{habits.length}</Text> habits</Text>
+                  {inboxConnected && <Text className="text-muted text-xs"><Text className="text-text font-semibold">{inbox.length}</Text> unread</Text>}
+                  {weather && <Text className="text-muted text-xs">{weatherEmoji(weather.desc)} {weather.temp}{weather.unit}</Text>}
+                </View>
+                {(yTasksDone > 0 || yHabitsDone > 0) && (
+                  <Text className="text-muted text-[11px] mt-2">Yesterday: {yTasksDone} tasks · {yHabitsDone} habits done</Text>
+                )}
+              </View>
             </View>
           </View>
 
-          {/* Mission today — the #1 priority, highlighted */}
+          {/* Mission today */}
           {data.top3?.[0]?.task && (
-            <LinearGradient
-              colors={['rgba(124,58,237,0.10)', 'rgba(124,58,237,0.03)']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)' }}
-            >
+            <LinearGradient colors={['rgba(124,58,237,0.10)', 'rgba(124,58,237,0.03)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)' }}>
               <View className="px-5 py-4">
                 <View className="flex-row items-center gap-2 mb-1.5">
                   <Icon name="track-changes" size={15} color={c.brand} />
@@ -209,6 +364,32 @@ export default function BriefingScreen() {
                 {!!data.top3[0].source && <Text className="text-muted text-xs mt-1">{data.top3[0].source}</Text>}
               </View>
             </LinearGradient>
+          )}
+
+          {/* Needs attention */}
+          {needsAttention.length > 0 && (
+            <LabeledCard icon="bolt" color="#f59e0b" label="Needs attention" right={<View className="px-2 py-0.5 rounded-full bg-amber-500/10"><Text className="text-[10px] font-bold" style={{ color: '#f59e0b' }}>{needsAttention.length}</Text></View>}>
+              <View className="gap-2">
+                {needsAttention.map(item => (
+                  <View key={item.id} className="flex-row items-center gap-3 py-1">
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: item.kind === 'task' ? '#f87171' : '#fbbf24' }} />
+                    <View className="flex-1">
+                      <Text className="text-text text-[13px] font-medium" numberOfLines={1}>{item.title}</Text>
+                      <Text className="text-muted text-[11px]">{item.sub}</Text>
+                    </View>
+                    {item.kind === 'task' ? (
+                      <TouchableOpacity onPress={() => markTaskDone(item.id)} activeOpacity={0.7} className="px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                        <Text className="text-[11px] font-semibold" style={{ color: '#10b981' }}>Done</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity onPress={() => logHabit(item.habit)} activeOpacity={0.7} className="px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/5">
+                        <Text className="text-[11px] font-semibold" style={{ color: '#f59e0b' }}>Log it</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </LabeledCard>
           )}
 
           {/* Energy check */}
@@ -223,24 +404,12 @@ export default function BriefingScreen() {
                 <Text className="text-muted text-sm mb-3">Where are you at this morning?</Text>
                 <View className="flex-row flex-wrap gap-1.5">
                   {ENERGY_OPTS.map(o => (
-                    <TouchableOpacity
-                      key={o.key}
-                      onPress={() => selectEnergy(o.key)}
-                      activeOpacity={0.7}
-                      className="px-3 py-1.5 rounded-lg border border-border bg-surface"
-                    >
+                    <TouchableOpacity key={o.key} onPress={() => selectEnergy(o.key)} activeOpacity={0.7} className="px-3 py-1.5 rounded-lg border border-border bg-surface">
                       <Text className="text-text text-xs">{o.emoji} {o.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-                <TextInput
-                  value={customEnergy}
-                  onChangeText={setCustomEnergy}
-                  onSubmitEditing={() => { if (customEnergy.trim()) selectEnergy(customEnergy.trim()); }}
-                  placeholder="Or type how you're feeling…"
-                  placeholderTextColor={c.muted}
-                  className="mt-3 text-muted text-xs"
-                />
+                <TextInput value={customEnergy} onChangeText={setCustomEnergy} onSubmitEditing={() => { if (customEnergy.trim()) selectEnergy(customEnergy.trim()); }} placeholder="Or type how you're feeling…" placeholderTextColor={c.muted} className="mt-3 text-muted text-xs" />
               </>
             )}
           </LabeledCard>
@@ -252,20 +421,9 @@ export default function BriefingScreen() {
                 {data.top3.map((item, i) => {
                   const done = completedTop3.includes(i);
                   return (
-                    <TouchableOpacity
-                      key={i}
-                      onPress={() => toggleTop3(i)}
-                      activeOpacity={0.7}
-                      className="flex-row items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2"
-                    >
+                    <TouchableOpacity key={i} onPress={() => toggleTop3(i)} activeOpacity={0.7} className="flex-row items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2">
                       <Text className="text-[11px] font-bold w-3" style={{ color: done ? c.muted : c.brand }}>{i + 1}</Text>
-                      <View
-                        style={{
-                          width: 18, height: 18, borderRadius: 5, borderWidth: 1.5,
-                          borderColor: done ? c.brand : c.border, backgroundColor: done ? c.brand : 'transparent',
-                          alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
+                      <View style={{ width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: done ? c.brand : c.border, backgroundColor: done ? c.brand : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
                         {done && <Icon name="check" color="#fff" size={12} />}
                       </View>
                       <View className="flex-1">
@@ -279,21 +437,66 @@ export default function BriefingScreen() {
             </LabeledCard>
           )}
 
-          {/* Schedule */}
-          {data.schedule?.length > 0 && (
-            <LabeledCard icon="event" color="#3b82f6" label="Today's schedule">
-              <View className="gap-1.5">
-                {data.schedule.map((item, i) => (
-                  <View key={i} className="flex-row items-center gap-3 px-3 py-2 rounded-lg bg-surface-2">
-                    <Text className="text-brand-light text-xs font-semibold w-16">{item.time}</Text>
-                    <Text className="text-text text-[13px] flex-1" numberOfLines={2}>{item.title}</Text>
-                  </View>
-                ))}
-              </View>
+          {/* Inbox */}
+          {inboxConnected && (
+            <LabeledCard
+              icon="mail-outline" color="#10b981" label="Inbox"
+              right={
+                <View className="flex-row bg-surface border border-border rounded-lg p-0.5">
+                  {(['primary', 'all'] as const).map(f => (
+                    <TouchableOpacity key={f} onPress={() => setInboxFilter(f)} className={`px-2 py-0.5 rounded ${inboxFilter === f ? 'bg-brand' : ''}`}>
+                      <Text className={`text-[10px] font-medium ${inboxFilter === f ? 'text-white' : 'text-muted'}`}>{f === 'primary' ? 'Primary' : 'All'}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              }
+            >
+              {inbox.length === 0 ? (
+                <Text className="text-muted text-xs">No unread emails.</Text>
+              ) : (
+                <View>
+                  {inbox.slice(0, 5).map(t => {
+                    const open = expandedMail === t.id;
+                    return (
+                      <View key={t.id} className="border-b border-border/50 last:border-0">
+                        <TouchableOpacity onPress={() => setExpandedMail(open ? null : t.id)} activeOpacity={0.7} className="flex-row items-start gap-3 py-3">
+                          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: avatarColor(t.from), alignItems: 'center', justifyContent: 'center' }}>
+                            <Text className="text-white text-[11px] font-bold">{t.from.trim()[0]?.toUpperCase() ?? '?'}</Text>
+                          </View>
+                          <View className="flex-1">
+                            <View className="flex-row justify-between gap-2">
+                              <Text className="text-text text-xs font-semibold flex-1" numberOfLines={1}>{t.from}</Text>
+                              <Text className="text-muted text-[10px]">{t.date?.slice(0, 6)}</Text>
+                            </View>
+                            <Text className="text-text/90 text-[12px]" numberOfLines={1}>{t.subject}</Text>
+                            {!open && <Text className="text-muted text-[11px] mt-0.5" numberOfLines={1}>{t.snippet}</Text>}
+                          </View>
+                          {t.unread && <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 6, backgroundColor: c.brand }} />}
+                        </TouchableOpacity>
+                        {open && (
+                          <View className="pb-3 -mt-1">
+                            <View className="bg-surface-2 rounded-lg p-3">
+                              <Text className="text-text/80 text-[12px] leading-5">{t.snippet}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => draftReply(t)} activeOpacity={0.7} className="mt-2.5 self-start px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5">
+                              <Text className="text-brand text-[11px] font-semibold">Draft reply with MODUS ↗</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </LabeledCard>
           )}
 
-          {/* Habits */}
+          {/* Schedule timeline */}
+          <LabeledCard icon="event" color="#3b82f6" label="Today's schedule">
+            <ScheduleTimeline events={events} fallback={data.schedule ?? []} color={c.brand} />
+          </LabeledCard>
+
+          {/* Habits status (from briefing) */}
           {data.habits?.length > 0 && (
             <LabeledCard icon="local-fire-department" color="#f97316" label="Habits">
               <View className="gap-0.5">
@@ -311,17 +514,13 @@ export default function BriefingScreen() {
           {data.looseEnd?.text && (
             <LabeledCard icon="schedule" color="#f97316" label="Loose end" accent="rgba(249,115,22,0.45)">
               <Text className="text-text text-[13px] leading-5">{data.looseEnd.text}</Text>
-              <TouchableOpacity
-                onPress={() => router.push('/(app)/reminders' as never)}
-                activeOpacity={0.7}
-                className="mt-3 self-start px-2.5 py-1 rounded-lg border border-border bg-surface"
-              >
+              <TouchableOpacity onPress={() => router.push('/(app)/reminders' as never)} activeOpacity={0.7} className="mt-3 self-start px-2.5 py-1 rounded-lg border border-border bg-surface">
                 <Text className="text-muted text-[11px]">Handle now ↗</Text>
               </TouchableOpacity>
             </LabeledCard>
           )}
 
-          {/* MODUS noticed — AI pattern observation */}
+          {/* MODUS noticed */}
           {data.patternCallout && (
             <LabeledCard icon="visibility" color="#f59e0b" label="MODUS noticed" accent="rgba(245,158,11,0.45)">
               <Text className="text-text text-[13px] leading-5">{data.patternCallout}</Text>
@@ -335,15 +534,44 @@ export default function BriefingScreen() {
             </LabeledCard>
           )}
 
-          {/* Ask MODUS about today */}
-          <TouchableOpacity
-            onPress={() => router.push('/(app)/chat' as never)}
-            activeOpacity={0.85}
-            className="flex-row items-center gap-3 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4 mt-1"
+          {/* In the news */}
+          <LabeledCard
+            icon="article" color="#3b82f6" label={`In the news${newsIndustry ? ' · ' + newsIndustry : ''}`}
+            right={
+              <TouchableOpacity onPress={() => setNewsPickerOpen(v => !v)} hitSlop={8}>
+                <Icon name={newsPickerOpen ? 'expand-less' : 'expand-more'} tone="muted" size={18} />
+              </TouchableOpacity>
+            }
           >
-            <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">
-              <Icon name="auto-awesome" tone="brand" size={18} />
-            </View>
+            {newsPickerOpen && (
+              <View className="mb-3 border border-border rounded-xl overflow-hidden">
+                {NEWS_TOPICS.map(topic => (
+                  <TouchableOpacity key={topic} onPress={() => { setNewsTopic(topic); setNewsPickerOpen(false); }} className={`px-3 py-2 border-b border-border/40 ${topic === newsIndustry ? 'bg-brand/5' : ''}`}>
+                    <Text className={`text-[12px] ${topic === newsIndustry ? 'text-brand font-semibold' : 'text-text'}`}>{topic}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {newsLoading ? (
+              <View className="gap-3">{[0, 1, 2].map(i => (<View key={i} className="gap-1.5"><Skeleton height={12} /><Skeleton width="70%" height={11} /></View>))}</View>
+            ) : news.length === 0 ? (
+              <Text className="text-muted text-xs">No news right now.</Text>
+            ) : (
+              <View>
+                {news.slice(0, 5).map((item, i) => (
+                  <TouchableOpacity key={i} onPress={() => Linking.openURL(item.url)} activeOpacity={0.7} className={`py-3 ${i < Math.min(news.length, 5) - 1 ? 'border-b border-border/50' : ''}`}>
+                    <Text className="text-text text-[13px] font-medium leading-snug" numberOfLines={2}>{item.title}</Text>
+                    {!!item.snippet && <Text className="text-muted text-[11px] mt-0.5" numberOfLines={2}>{item.snippet}</Text>}
+                    {!!hostname(item.url) && <Text className="text-muted/60 text-[10px] mt-1">{hostname(item.url)}</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </LabeledCard>
+
+          {/* Ask MODUS */}
+          <TouchableOpacity onPress={() => router.push('/(app)/chat' as never)} activeOpacity={0.85} className="flex-row items-center gap-3 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4 mt-1">
+            <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center"><Icon name="auto-awesome" tone="brand" size={18} /></View>
             <View className="flex-1">
               <Text className="text-text font-semibold text-[15px]">Anything on your mind?</Text>
               <Text className="text-muted text-xs mt-0.5">Add a task, ask what you missed, or talk it through</Text>

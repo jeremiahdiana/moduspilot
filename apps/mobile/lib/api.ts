@@ -51,7 +51,7 @@ export async function fetchInbox(
   }
 }
 
-export type CalEvent = { id: string; title: string; start: string };
+export type CalEvent = { id: string; title: string; start: string; end?: string; allDay?: boolean };
 
 export async function fetchTodayEvents(): Promise<{ events: CalEvent[]; notConnected: boolean }> {
   const headers = await getAuthHeader();
@@ -63,6 +63,46 @@ export async function fetchTodayEvents(): Promise<{ events: CalEvent[]; notConne
     return { events: data.events ?? [], notConnected: !!data.notConnected };
   } catch {
     return { events: [], notConnected: false };
+  }
+}
+
+// ── Briefing: news (server endpoint same as web) ──────────────────────────────
+export type NewsItem = { title: string; url: string; snippet: string; image?: string | null };
+
+export async function fetchNews(topic?: string): Promise<{ items: NewsItem[]; industry: string }> {
+  const headers = await getAuthHeader();
+  if (!headers.Authorization) return { items: [], industry: topic ?? '' };
+  try {
+    const qs = topic ? `?topic=${encodeURIComponent(topic)}` : '';
+    const res = await fetch(`${API_BASE}/api/briefing/news${qs}`, { headers });
+    if (!res.ok) return { items: [], industry: topic ?? '' };
+    const d = await res.json();
+    return { items: d.items ?? [], industry: d.industry ?? topic ?? '' };
+  } catch {
+    return { items: [], industry: topic ?? '' };
+  }
+}
+
+// ── Weather (IP geolocation → open-meteo; no native location dep) ─────────────
+export type Weather = { temp: number; unit: string; desc: string };
+const WMO: Record<number, string> = {
+  0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+  45: 'Foggy', 48: 'Foggy', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+  61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+  80: 'Rain showers', 81: 'Rain showers', 82: 'Heavy showers', 95: 'Thunderstorm',
+};
+
+export async function fetchWeather(): Promise<Weather | null> {
+  try {
+    const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
+    const lat = geo.latitude, lon = geo.longitude;
+    if (lat == null || lon == null) return null;
+    const d = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`).then(r => r.json());
+    const cw = d.current_weather;
+    if (!cw) return null;
+    return { temp: Math.round(cw.temperature), unit: '°F', desc: WMO[cw.weathercode] ?? 'Clear' };
+  } catch {
+    return null;
   }
 }
 

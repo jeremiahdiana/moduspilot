@@ -68,9 +68,10 @@ export default function ChatScreen() {
   const listRef = useRef<FlatList>(null);
 
   // Scoped chat: opened from a goal/project detail screen via route params.
-  const params = useLocalSearchParams<{ goalId?: string; projectId?: string }>();
+  const params = useLocalSearchParams<{ goalId?: string; projectId?: string; prefill?: string }>();
   const scopeId = params.goalId ? `goal:${params.goalId}` : params.projectId ? `project:${params.projectId}` : null;
   const handledScopeRef = useRef<string | null | undefined>(undefined);
+  const prefillHandledRef = useRef(false);
 
   useEffect(() => { convIdRef.current = convId; }, [convId]);
   useEffect(() => { scopeRef.current = scope; }, [scope]);
@@ -239,6 +240,18 @@ export default function ChatScreen() {
   function stopStreaming() {
     abortRef.current?.abort();
   }
+
+  // Draft-reply / quick-ask entry: a screen opened chat with a prefilled prompt.
+  useEffect(() => {
+    if (!user || prefillHandledRef.current) return;
+    const p = params.prefill;
+    if (typeof p === 'string' && p.trim()) {
+      prefillHandledRef.current = true;
+      void sendMessage(p);
+      router.setParams({ prefill: '' });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, params.prefill]);
 
   const appendFollowUp = useCallback((text: string) => {
     setMessages(prev => {
