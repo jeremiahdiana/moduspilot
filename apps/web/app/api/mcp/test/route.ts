@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { experimental_createMCPClient } from 'ai';
+import { assertPublicUrl } from '@/lib/ssrf';
 
 const TIMEOUT_MS = 6000;
 
@@ -35,9 +36,9 @@ export async function POST(req: NextRequest) {
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 });
 
   try {
-    new URL(url); // validate format
-  } catch {
-    return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    await assertPublicUrl(url); // format + SSRF guard (no private/internal hosts)
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Invalid URL' }, { status: 400 });
   }
 
   let client: Awaited<ReturnType<typeof experimental_createMCPClient>> | null = null;

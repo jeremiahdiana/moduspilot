@@ -2,6 +2,7 @@
 
 import { useState, useRef, type FormEvent, type ChangeEvent } from 'react';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { auth } from '@/lib/firebase';
 
 interface Props {
   input: string;
@@ -52,7 +53,12 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
       const form = new FormData();
       form.append('audio', blob);
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+      const idToken = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+        body: form,
+      });
       const data = await res.json() as { text?: string };
       if (data.text) onVoiceTranscript(data.text);
     };

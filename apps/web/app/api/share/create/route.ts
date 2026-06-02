@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { requireAuth } from '@/lib/api-auth';
 import { FieldValue } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
-function randomId(len = 12) {
+function randomId(len = 16) {
+  // Crypto-secure: share links are the only thing gating a publicly reachable
+  // page, so the id must be unguessable (Math.random is predictable).
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let id = '';
-  for (let i = 0; i < len; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < len; i++) id += chars[crypto.randomInt(chars.length)];
   return id;
 }
 

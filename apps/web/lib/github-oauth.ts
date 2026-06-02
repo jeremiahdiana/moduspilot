@@ -1,5 +1,6 @@
 import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { signOAuthState } from './oauth-state';
 
 export const GITHUB_SCOPES = ['repo', 'read:user', 'read:org'].join(' ');
 
@@ -8,7 +9,7 @@ function accountsCol(uid: string) {
 }
 
 export function buildGitHubOAuthUrl(uid: string, origin = 'settings'): string {
-  const state = Buffer.from(JSON.stringify({ uid, origin })).toString('base64url');
+  const state = signOAuthState({ uid, origin });
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID!,
     scope: GITHUB_SCOPES,

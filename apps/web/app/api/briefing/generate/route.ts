@@ -142,6 +142,6 @@ export async function POST(req: Request) {
     return Response.json({ id: ref.id, briefingData });
   } catch (e) {
     console.error('[briefing/generate]', e);
-    return Response.json({ error: String(e) }, { status: 500 });
+    return Response.json({ error: 'Briefing generation failed' }, { status: 500 });
   }
 }

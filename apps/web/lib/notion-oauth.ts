@@ -1,12 +1,13 @@
 import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { signOAuthState } from './oauth-state';
 
 function accountsCol(uid: string) {
   return adminDb.collection('users').doc(uid).collection('notion_accounts');
 }
 
 export function buildNotionOAuthUrl(uid: string, origin = 'settings'): string {
-  const state = Buffer.from(JSON.stringify({ uid, origin })).toString('base64url');
+  const state = signOAuthState({ uid, origin });
   const params = new URLSearchParams({
     client_id: process.env.NOTION_CLIENT_ID!,
     response_type: 'code',

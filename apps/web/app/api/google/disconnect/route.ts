@@ -19,6 +19,7 @@ export async function POST(req: Request) {
 
     return Response.json({ ok: true });
   } catch (e) {
-    return Response.json({ error: String(e) }, { status: 500 });
+    console.error('[google/disconnect]', String(e));
+    return Response.json({ error: 'Disconnect failed' }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import { exchangeGitHubCode, fetchGitHubUser, storeGitHubTokens } from '@/lib/github-oauth';
+import { verifyOAuthState } from '@/lib/oauth-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +14,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { uid, origin = 'settings' } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const verified = verifyOAuthState(state);
+    if (!verified) throw new Error('Invalid OAuth state');
+    const { uid, origin = 'settings' } = verified;
     const { access_token } = await exchangeGitHubCode(code);
     const ghUser = await fetchGitHubUser(access_token);
     await storeGitHubTokens(uid, { access_token, ...ghUser });

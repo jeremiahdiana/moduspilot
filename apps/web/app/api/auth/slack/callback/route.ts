@@ -1,4 +1,5 @@
 import { exchangeSlackCode, storeSlackTokens } from '@/lib/slack-oauth';
+import { verifyOAuthState } from '@/lib/oauth-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +14,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { uid, origin = 'settings' } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const verified = verifyOAuthState(state);
+    if (!verified) throw new Error('Invalid OAuth state');
+    const { uid, origin = 'settings' } = verified;
     const tokens = await exchangeSlackCode(code);
     await storeSlackTokens(uid, tokens);
     if (origin === 'chat') {

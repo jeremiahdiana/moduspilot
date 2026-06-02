@@ -37,12 +37,12 @@ service cloud.firestore {
     }
 
     // ── Shared conversations ──────────────────────────────────────────────────
-    // Public read so anyone with a share link can view the conversation.
-    // Writes are server-only (Firebase Admin SDK bypasses these rules entirely),
-    // so we deny client writes here.
+    // Both the public /s/[shareId] page and the share API routes read these via
+    // the Admin SDK (which bypasses rules), so clients never need direct access.
+    // Denying client reads stops anyone from scraping the raw doc — which holds
+    // the owner's uid and full message text — straight out of Firestore.
     match /sharedConversations/{shareId} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if false;
     }
   }
 }

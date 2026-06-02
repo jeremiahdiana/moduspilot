@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 import { addMcpServer, getMcpServers } from '@/lib/mcp-servers';
+import { assertPublicUrl } from '@/lib/ssrf';
 
 const MAX_SERVERS = 10;
 
@@ -14,8 +15,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name and URL are required' }, { status: 400 });
   }
 
-  try { new URL(url); } catch {
-    return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+  try { await assertPublicUrl(url); } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Invalid URL' }, { status: 400 });
   }
 
   const existing = await getMcpServers(uid);

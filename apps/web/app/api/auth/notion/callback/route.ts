@@ -1,4 +1,5 @@
 import { exchangeNotionCode, storeNotionTokens } from '@/lib/notion-oauth';
+import { verifyOAuthState } from '@/lib/oauth-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +14,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { uid, origin = 'settings' } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const verified = verifyOAuthState(state);
+    if (!verified) throw new Error('Invalid OAuth state');
+    const { uid, origin = 'settings' } = verified;
     const tokens = await exchangeNotionCode(code);
     await storeNotionTokens(uid, tokens);
     if (origin === 'chat') {

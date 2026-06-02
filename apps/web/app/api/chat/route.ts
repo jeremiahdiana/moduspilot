@@ -4,6 +4,7 @@ import { MODUS_SYSTEM_PROMPT } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { getMcpServers } from '@/lib/mcp-servers';
+import { assertPublicUrl } from '@/lib/ssrf';
 import {
   enforceGuestRateLimit,
   enforceFreeTierLimit,
@@ -171,13 +172,17 @@ export async function POST(req: Request) {
           const results = await Promise.allSettled(
             mcpServers.map(server =>
               Promise.race([
-                experimental_createMCPClient({
-                  transport: {
-                    type: 'sse',
-                    url: server.url,
-                    headers: server.authHeader ? { Authorization: server.authHeader } : undefined,
-                  },
-                }),
+                // Re-check at connection time: a stored URL could resolve to an
+                // internal address now (DNS rebinding) even if it was public when added.
+                assertPublicUrl(server.url).then(() =>
+                  experimental_createMCPClient({
+                    transport: {
+                      type: 'sse',
+                      url: server.url,
+                      headers: server.authHeader ? { Authorization: server.authHeader } : undefined,
+                    },
+                  }),
+                ),
                 new Promise<never>((_, reject) =>
                   setTimeout(() => reject(new Error('timeout')), 4000)
                 ),
@@ -250,12 +255,12 @@ export async function POST(req: Request) {
         if (sl.includes('rate limit') || sl.includes('429') || sl.includes('too many')) return 'rate_limit_reached';
         if (sl.includes('401') || sl.includes('api key') || sl.includes('unauthorized')) return 'api_key_error';
         if (sl.includes('503') || sl.includes('502') || sl.includes('overloaded')) return 'provider_down';
-        return s;
+        // Don't leak raw provider/internal error text to the client.
+        return 'chat_error';
       },
     });
   } catch (e) {
-    const s = String(e);
-    console.error('[chat] route error:', s);
-    return Response.json({ error: s }, { status: 500 });
+    console.error('[chat] route error:', String(e));
+    return Response.json({ error: 'Something went wrong' }, { status: 500 });
   }
 }

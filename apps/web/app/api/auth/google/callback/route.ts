@@ -1,5 +1,6 @@
 import { exchangeCode, storeGoogleAccountTokens } from '@/lib/google-oauth';
 import { adminAuth } from '@/lib/firebase-admin';
+import { verifyOAuthState, originFromState } from '@/lib/oauth-state';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,10 +11,7 @@ export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (error || !code || !state) {
-    let origin = 'settings';
-    if (state) {
-      try { origin = JSON.parse(Buffer.from(state, 'base64url').toString()).origin ?? 'settings'; } catch {}
-    }
+    const origin = originFromState(state);
     if (origin === 'onboarding') {
       return Response.redirect(`${appUrl}/onboarding?error=google_denied`);
     }
@@ -21,8 +19,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
-    const { uid, origin = 'settings' } = decoded;
+    // Only trust a uid that came back inside a state WE signed — otherwise an
+    // attacker could forge a state with a victim's uid and have us mint a custom
+    // token for them (account takeover).
+    const verified = verifyOAuthState(state);
+    if (!verified) throw new Error('Invalid OAuth state');
+    const { uid, origin = 'settings' } = verified;
     const tokens = await exchangeCode(code);
 
     let email = '';
@@ -58,7 +60,7 @@ export async function GET(req: Request) {
     return Response.redirect(`${appUrl}/settings?tab=connectors&connected=${encodeURIComponent(email)}`);
   } catch (e) {
     console.error('[google/callback]', e);
-    const origin = (() => { try { return JSON.parse(Buffer.from(state!, 'base64url').toString()).origin ?? 'settings'; } catch { return 'settings'; } })();
+    const origin = originFromState(state);
     if (origin === 'onboarding') {
       return Response.redirect(`${appUrl}/onboarding?error=google_failed`);
     }

@@ -1,5 +1,6 @@
 import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { signOAuthState } from './oauth-state';
 
 export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
@@ -21,7 +22,7 @@ export function buildOAuthUrl(uid: string, origin: string = 'settings'): string 
     // select_account shows account picker; consent forces re-auth so Google always
     // issues a fresh refresh_token — required for reconnect after disconnect.
     prompt: 'select_account consent',
-    state: Buffer.from(JSON.stringify({ uid, origin })).toString('base64url'),
+    state: signOAuthState({ uid, origin }),
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
