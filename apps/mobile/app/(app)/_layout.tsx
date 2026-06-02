@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
 import { AppBackground } from '@/components/AppBackground';
+import { BrandLoader } from '@/components/ui';
 import { SheetsProvider } from '@/components/ui/Sheets';
 import { registerPush } from '@/lib/push';
 
@@ -37,13 +38,7 @@ export default function AppLayout() {
   }, [user]);
 
   // Guard: kick unauthenticated users (e.g. after sign-out) back to welcome.
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-bg">
-        <ActivityIndicator size="large" color="#7C3AED" />
-      </View>
-    );
-  }
+  if (loading) return <BrandLoader />;
   if (!user) return <Redirect href="/(auth)/welcome" />;
 
   return (

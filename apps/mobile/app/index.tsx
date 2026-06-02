@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { BrandLoader } from '@/components/ui';
 
 function Splash() {
-  return (
-    <View className="flex-1 items-center justify-center bg-bg">
-      <ActivityIndicator size="large" color="#7C3AED" />
-    </View>
-  );
+  return <BrandLoader />;
 }
 
 export default function Index() {

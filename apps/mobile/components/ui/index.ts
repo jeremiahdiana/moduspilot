@@ -1,6 +1,7 @@
 export { GradientButton } from './GradientButton';
 export { GradientText, GradientTextRow } from './GradientText';
 export { Logo } from './Logo';
+export { BrandLoader } from './BrandLoader';
 export { GlassView, GlassCard } from './Glass';
 export { ProgressRing } from './ProgressRing';
 export { GradientProgressBar } from './GradientProgressBar';
