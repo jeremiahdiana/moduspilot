@@ -15,6 +15,7 @@ import { useThemeColors } from '@/lib/theme';
 import { Skeleton } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState } from '@/components/ui';
+import { ProactiveReveal } from '@/components/ui/ProactiveReveal';
 import { haptics } from '@/lib/haptics';
 import {
   fetchInbox, fetchTodayEvents, fetchNews, fetchWeather,
@@ -595,26 +596,32 @@ export default function BriefingScreen() {
 
           {/* Loose end */}
           {data.looseEnd?.text && (
-            <LabeledCard icon="schedule" color="#f97316" label="Loose end" accent="rgba(249,115,22,0.45)">
-              <Text className="text-text text-[13px] leading-5">{data.looseEnd.text}</Text>
-              <TouchableOpacity onPress={() => router.push('/(app)/reminders' as never)} activeOpacity={0.7} className="mt-3 self-start px-2.5 py-1 rounded-lg border border-border bg-surface">
-                <Text className="text-muted text-[11px]">Handle now ↗</Text>
-              </TouchableOpacity>
-            </LabeledCard>
+            <ProactiveReveal delay={0} accent="#f97316">
+              <LabeledCard icon="schedule" color="#f97316" label="Loose end" accent="rgba(249,115,22,0.45)">
+                <Text className="text-text text-[13px] leading-5">{data.looseEnd.text}</Text>
+                <TouchableOpacity onPress={() => router.push('/(app)/reminders' as never)} activeOpacity={0.7} className="mt-3 self-start px-2.5 py-1 rounded-lg border border-border bg-surface">
+                  <Text className="text-muted text-[11px]">Handle now ↗</Text>
+                </TouchableOpacity>
+              </LabeledCard>
+            </ProactiveReveal>
           )}
 
           {/* MODUS noticed */}
           {data.patternCallout && (
-            <LabeledCard icon="visibility" color="#f59e0b" label="MODUS noticed" accent="rgba(245,158,11,0.45)">
-              <Text className="text-text text-[13px] leading-5">{data.patternCallout}</Text>
-            </LabeledCard>
+            <ProactiveReveal delay={90} accent="#f59e0b">
+              <LabeledCard icon="visibility" color="#f59e0b" label="MODUS noticed" accent="rgba(245,158,11,0.45)">
+                <Text className="text-text text-[13px] leading-5">{data.patternCallout}</Text>
+              </LabeledCard>
+            </ProactiveReveal>
           )}
 
           {/* Relationship nudge */}
           {data.relationshipAlert && (
-            <LabeledCard icon="group" color="#3b82f6" label="Relationship nudge" accent="rgba(59,130,246,0.45)">
-              <Text className="text-text text-[13px] leading-5">{data.relationshipAlert}</Text>
-            </LabeledCard>
+            <ProactiveReveal delay={180} accent="#3b82f6">
+              <LabeledCard icon="group" color="#3b82f6" label="Relationship nudge" accent="rgba(59,130,246,0.45)">
+                <Text className="text-text text-[13px] leading-5">{data.relationshipAlert}</Text>
+              </LabeledCard>
+            </ProactiveReveal>
           )}
 
           {/* In the news */}

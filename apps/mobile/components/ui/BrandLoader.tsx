@@ -58,7 +58,7 @@ export function BrandLoader({ label }: { label?: string }) {
         <PulseRing delay={870} color={c.brand} />
         <PulseRing delay={1740} color={c.brand} />
         {/* wing mark */}
-        <Layer><Animated.View style={logoStyle}><Logo width={76} /></Animated.View></Layer>
+        <Layer><Animated.View style={logoStyle}><Logo width={76} opticalCenter /></Animated.View></Layer>
       </View>
       {label ? <Text className="text-muted text-[13px] mt-2">{label}</Text> : null}
     </View>

@@ -75,7 +75,7 @@ export function PulseAvatar({ size = 26, active = false }: { size?: number; acti
         </>
       ) : null}
       <Animated.View style={logoStyle}>
-        <Logo width={size} />
+        <Logo width={size} opticalCenter />
       </Animated.View>
     </View>
   );
