@@ -27,7 +27,8 @@ import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { DraftOptionsCard } from '@/components/DraftOptionsCard';
-import { TypingDots } from '@/components/ui/TypingDots';
+import { ThinkingPulse } from '@/components/ui/ThinkingPulse';
+import { PulseAvatar } from '@/components/ui/PulseAvatar';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
 import { useSheets } from '@/components/ui/Sheets';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -418,14 +419,14 @@ function MessageBubble({
   return (
     <View className="flex-row justify-start">
       <View
-        style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
+        style={{ width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
       >
-        <Logo width={26} />
+        <PulseAvatar size={26} active={isStreaming} />
       </View>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
         {isEmpty ? (
           <View className="rounded-2xl rounded-bl-sm px-4 py-4 bg-surface border border-border self-start">
-            <TypingDots />
+            <ThinkingPulse />
           </View>
         ) : isStreaming ? (
           <>
