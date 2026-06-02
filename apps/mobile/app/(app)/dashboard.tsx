@@ -46,8 +46,10 @@ const PRIORITY_DOT: Record<string, string> = { high: '#ef4444', medium: '#f59e0b
 interface Habit { id: string; title: string; streak: number; completedDates: string[] }
 interface BriefPreview { preview: string; createdAt: Date; read: boolean }
 
-// Web's animated headline gradient stops (globals.css .gradient-text-animated).
-const NAME_GRADIENT = ['#7c3aed', '#a78bfa', '#c084fc', '#8b5cf6', '#7c3aed'] as const;
+// Web's animated headline gradient stops. The light stops are deeper violets —
+// the dark-mode pastels (#a78bfa/#c084fc) wash out to near-invisible on white.
+const NAME_GRADIENT_DARK = ['#7c3aed', '#a78bfa', '#c084fc', '#8b5cf6', '#7c3aed'] as const;
+const NAME_GRADIENT_LIGHT = ['#6d28d9', '#7c3aed', '#9333ea', '#7c3aed', '#6d28d9'] as const;
 
 // Accent hexes mirror web's Tailwind shades, per theme (web uses
 // `text-yellow-600 dark:text-yellow-400` etc.). brand is constant both modes.
@@ -56,12 +58,13 @@ function accents(dark: boolean) {
     ? { brand: '#7c3aed', yellow: '#facc15', orange: '#fb923c', violet: '#a78bfa', emerald: '#34d399' }
     : { brand: '#7c3aed', yellow: '#ca8a04', orange: '#ea580c', violet: '#7c3aed', emerald: '#059669' };
 }
-// Static tint classes (NativeWind needs literals) — match web's bg-_/5 border-_/30.
+// Static tint classes (NativeWind needs literals). Light mode gets a stronger
+// fill + border — /5 over white is invisible; dark keeps the subtle wash.
 const TINT = {
-  brand: 'border-brand/30 bg-brand/5',
-  yellow: 'border-yellow-500/30 bg-yellow-500/5',
-  orange: 'border-orange-500/30 bg-orange-500/5',
-  violet: 'border-violet-400/30 bg-violet-500/5',
+  brand: 'bg-brand/15 dark:bg-brand/5 border-brand/40 dark:border-brand/30',
+  yellow: 'bg-yellow-500/15 dark:bg-yellow-500/5 border-yellow-500/40 dark:border-yellow-500/30',
+  orange: 'bg-orange-500/15 dark:bg-orange-500/5 border-orange-500/40 dark:border-orange-500/30',
+  violet: 'bg-violet-500/15 dark:bg-violet-500/5 border-violet-400/40 dark:border-violet-400/30',
 } as const;
 
 // ── Colored stat pill (matches web: tinted, outlined, colored number+label) ───
@@ -98,7 +101,7 @@ function Card({ title, icon, href, children }: { title: string; icon: IconName; 
     <View className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl overflow-hidden">
       <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-border dark:border-border/60">
         <View className="flex-row items-center gap-2.5">
-          <View className="w-6 h-6 rounded-md bg-brand/10 items-center justify-center">
+          <View className="w-6 h-6 rounded-md bg-brand/15 dark:bg-brand/10 items-center justify-center">
             <Icon name={icon} tone="brand" size={14} />
           </View>
           <Text className="text-text font-semibold text-sm">{title}</Text>
@@ -269,13 +272,13 @@ export default function DashboardScreen() {
             {firstName ? (
               <>
                 <Text className="text-2xl font-medium text-text">{greeting()},</Text>
-                <GradientText display={false} colors={NAME_GRADIENT} className="text-2xl font-medium">{`${firstName}.`}</GradientText>
+                <GradientText display={false} colors={colorScheme === 'dark' ? NAME_GRADIENT_DARK : NAME_GRADIENT_LIGHT} className="text-2xl font-medium">{`${firstName}.`}</GradientText>
               </>
             ) : (
               <Text className="text-2xl font-medium text-text">{greeting()}.</Text>
             )}
           </View>
-          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 mt-1">
+          <View className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 dark:bg-emerald-500/10 border border-emerald-500/30 dark:border-emerald-500/20 mt-1">
             <View className="w-2 h-2 rounded-full bg-emerald-500" />
             <Text className="text-[10px] font-semibold tracking-wide" style={{ color: A.emerald }}>MODUS · Live</Text>
           </View>
@@ -308,9 +311,9 @@ export default function DashboardScreen() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/reminders') as never)}
-            className="flex-row items-center gap-4 mt-5 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4"
+            className="flex-row items-center gap-4 mt-5 rounded-2xl bg-brand/10 dark:bg-brand/5 border border-brand/30 dark:border-brand/25 px-5 py-4"
           >
-            <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">
+            <View className="w-9 h-9 rounded-xl bg-brand/20 dark:bg-brand/15 items-center justify-center">
               <Icon name="track-changes" tone="brand" size={18} />
             </View>
             <View className="flex-1">
