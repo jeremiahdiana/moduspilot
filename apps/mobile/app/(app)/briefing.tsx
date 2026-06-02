@@ -3,7 +3,6 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Li
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import * as Speech from 'expo-speech';
 import { router } from 'expo-router';
 import {
   collection, query, orderBy, limit, getDocs, doc, updateDoc, onSnapshot, serverTimestamp,
@@ -21,6 +20,12 @@ import {
   fetchInbox, fetchTodayEvents, fetchNews, fetchWeather,
   type InboxThread, type CalEvent, type NewsItem, type Weather,
 } from '@/lib/api';
+
+// expo-speech is a NATIVE module — load lazily so a JS reload before a native
+// rebuild doesn't crash with "Cannot find native module 'ExpoSpeech'".
+const Speech: typeof import('expo-speech') | null = (() => {
+  try { return require('expo-speech'); } catch { return null; }
+})();
 
 interface Top3Item { task: string; source: string }
 interface BriefingHabit { name: string; streak: number; status: 'at_risk' | 'on_track' | 'done' }
@@ -216,6 +221,7 @@ export default function BriefingScreen() {
   }
 
   function toggleSpeech() {
+    if (!Speech) return;
     if (speaking) { Speech.stop(); setSpeaking(false); return; }
     if (!data) return;
     haptics.select();
@@ -227,7 +233,7 @@ export default function BriefingScreen() {
       onError: () => setSpeaking(false),
     });
   }
-  useEffect(() => () => { Speech.stop(); }, []);
+  useEffect(() => () => { Speech?.stop(); }, []);
 
   // Live + integration data
   const [tasks, setTasks] = useState<LiveTask[]>([]);
@@ -360,7 +366,7 @@ export default function BriefingScreen() {
     <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Briefing"
-        right={data ? (
+        right={data && Speech ? (
           <TouchableOpacity onPress={toggleSpeech} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
             <Icon name={speaking ? 'stop' : 'volume-up'} tone={speaking ? 'brand' : 'muted'} size={20} />
           </TouchableOpacity>

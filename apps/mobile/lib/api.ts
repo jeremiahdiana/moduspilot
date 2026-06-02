@@ -1,5 +1,11 @@
-import * as Location from 'expo-location';
 import { auth } from './firebase';
+
+// expo-location is a NATIVE module. Require it lazily inside a try/catch so a
+// JS reload before a native rebuild degrades to IP geolocation instead of
+// crashing the whole app with "Cannot find native module 'ExpoLocation'".
+function loadLocation(): typeof import('expo-location') | null {
+  try { return require('expo-location'); } catch { return null; }
+}
 
 export const API_BASE = 'https://app.moduspilot.com';
 
@@ -95,14 +101,18 @@ const WMO: Record<number, string> = {
 
 export async function fetchWeather(): Promise<Weather | null> {
   let lat: number | undefined, lon: number | undefined;
-  // Precise GPS first (granted permission), else fall back to IP geolocation.
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === 'granted') {
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-      lat = pos.coords.latitude; lon = pos.coords.longitude;
-    }
-  } catch { /* fall through */ }
+  // Precise GPS first (if the native module is present + permission granted),
+  // else fall back to IP geolocation.
+  const Location = loadLocation();
+  if (Location) {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        lat = pos.coords.latitude; lon = pos.coords.longitude;
+      }
+    } catch { /* fall through */ }
+  }
   if (lat == null || lon == null) {
     try {
       const geo = await fetch('https://ipapi.co/json/').then(r => r.json());
