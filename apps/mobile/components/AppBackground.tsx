@@ -29,10 +29,10 @@ function Blob({
   const style = useAnimatedStyle(() => ({
     transform: [
       { translateX: x + (p.value - 0.5) * drift },
-      { translateY: y + (p.value - 0.5) * drift },
-      { scale: 0.95 + p.value * 0.12 },
+      { translateY: y - (p.value - 0.5) * drift * 0.6 },
+      { scale: 0.82 + p.value * 0.42 },
     ],
-    opacity: 0.85 + p.value * 0.15,
+    opacity: 0.5 + p.value * 0.5,
   }));
   return (
     <Animated.View style={[{ position: 'absolute', width: size, height: size }, style]} pointerEvents="none">
@@ -55,15 +55,15 @@ export function AppBackground() {
   const dark = colorScheme === 'dark';
   const S = Math.max(width, height) * 0.8;
 
-  // Brand-violet only, dim, and small/high so the glow dies out by ~1/3 down
-  // the screen (web fades to flat black by the first card). Body stays black.
-  const c1 = dark ? 'rgba(124,58,237,0.10)' : 'rgba(124,58,237,0.07)';
-  const c2 = dark ? 'rgba(167,139,250,0.06)' : 'rgba(167,139,250,0.05)';
+  // Brand-violet only, dim, top-anchored (fades to black by ~1/3 down). Visible
+  // slow drift + breathe so it reads as a living gradient, not a static blob.
+  const c1 = dark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.08)';
+  const c2 = dark ? 'rgba(167,139,250,0.08)' : 'rgba(167,139,250,0.06)';
 
   return (
     <View className="absolute inset-0 bg-bg" pointerEvents="none">
-      <Blob color={c1} size={S * 0.72} x={-S * 0.22} y={-S * 0.30} duration={20000} delay={0} drift={28} />
-      <Blob color={c2} size={S * 0.5} x={width - S * 0.42} y={-S * 0.20} duration={26000} delay={1500} drift={24} />
+      <Blob color={c1} size={S * 0.72} x={-S * 0.22} y={-S * 0.30} duration={13000} delay={0} drift={150} />
+      <Blob color={c2} size={S * 0.5} x={width - S * 0.42} y={-S * 0.20} duration={17000} delay={900} drift={120} />
     </View>
   );
 }

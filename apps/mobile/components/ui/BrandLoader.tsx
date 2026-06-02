@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withRepeat, withTiming, withDelay, Easing,
 } from 'react-native-reanimated';
@@ -10,7 +10,19 @@ import { useThemeColors } from '@/lib/theme';
  * MODUS loading state — not a spinner. The wing mark breathes with a soft glow
  * while radar pulse-rings emanate outward: MODUS is the all-in-one quietly
  * "reaching across" and monitoring everything for you. Reanimated only.
+ *
+ * Every layer sits in its own absolute-fill + centered wrapper so the glow,
+ * rings and logo share one exact center (RN won't reliably center bare
+ * position:absolute children without insets).
  */
+function Layer({ children }: { children: React.ReactNode }) {
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+      {children}
+    </View>
+  );
+}
+
 function PulseRing({ delay, color }: { delay: number; color: string }) {
   const p = useSharedValue(0);
   useEffect(() => {
@@ -21,10 +33,9 @@ function PulseRing({ delay, color }: { delay: number; color: string }) {
     opacity: (1 - p.value) * 0.45,
   }));
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[{ position: 'absolute', width: 104, height: 104, borderRadius: 52, borderWidth: 1.5, borderColor: color }, style]}
-    />
+    <Layer>
+      <Animated.View style={[{ width: 104, height: 104, borderRadius: 52, borderWidth: 1.5, borderColor: color }, style]} />
+    </Layer>
   );
 }
 
@@ -39,17 +50,15 @@ export function BrandLoader({ label }: { label?: string }) {
 
   return (
     <View className="flex-1 items-center justify-center bg-bg">
-      <View style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 220, height: 220 }}>
         {/* soft breathing glow */}
-        <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: c.brand }, glowStyle]} />
+        <Layer><Animated.View style={[{ width: 130, height: 130, borderRadius: 65, backgroundColor: c.brand }, glowStyle]} /></Layer>
         {/* radar pulses */}
         <PulseRing delay={0} color={c.brand} />
         <PulseRing delay={870} color={c.brand} />
         <PulseRing delay={1740} color={c.brand} />
         {/* wing mark */}
-        <Animated.View style={logoStyle}>
-          <Logo width={76} />
-        </Animated.View>
+        <Layer><Animated.View style={logoStyle}><Logo width={76} /></Animated.View></Layer>
       </View>
       {label ? <Text className="text-muted text-[13px] mt-2">{label}</Text> : null}
     </View>
