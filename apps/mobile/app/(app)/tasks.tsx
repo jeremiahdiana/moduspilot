@@ -33,7 +33,7 @@ function TaskRow({ task, onToggle, onDelete }: { task: Task; onToggle: () => voi
     <TouchableOpacity
       activeOpacity={0.8}
       onLongPress={onDelete}
-      className="bg-surface border border-border rounded-xl px-4 py-4 flex-row items-center gap-3.5"
+      className="bg-surface/70 border border-border/60 rounded-2xl px-4 py-4 flex-row items-center gap-3.5"
     >
       <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
         {task.done ? (

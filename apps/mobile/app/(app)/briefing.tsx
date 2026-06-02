@@ -48,7 +48,7 @@ function HabitStatusPill({ status, streak }: { status: BriefingHabit['status']; 
 }
 
 const Card = ({ children }: { children: React.ReactNode }) => (
-  <View className="bg-surface border border-border rounded-xl px-4 py-4">{children}</View>
+  <View className="bg-surface/70 border border-border/60 rounded-xl px-4 py-4">{children}</View>
 );
 
 export default function BriefingScreen() {
@@ -116,7 +116,7 @@ export default function BriefingScreen() {
           </View>
           {/* Cards */}
           {[0, 1, 2].map(i => (
-            <View key={i} className="bg-surface border border-border rounded-2xl px-4 py-4 gap-2.5">
+            <View key={i} className="bg-surface/70 border border-border/60 rounded-2xl px-4 py-4 gap-2.5">
               <Skeleton width="35%" height={13} />
               <Skeleton height={12} />
               <Skeleton width="80%" height={12} />
@@ -149,7 +149,7 @@ export default function BriefingScreen() {
           {data.top3?.length > 0 && (
             <View className="mt-3">
               <SectionLabel>Top 3 for today</SectionLabel>
-              <View className="bg-surface border border-border rounded-xl px-4 py-2">
+              <View className="bg-surface/70 border border-border/60 rounded-xl px-4 py-2">
                 {data.top3.map((item, i) => (
                   <View key={i} className={`flex-row items-start gap-3 py-3 ${i < data.top3.length - 1 ? 'border-b border-border' : ''}`}>
                     <View
@@ -171,7 +171,7 @@ export default function BriefingScreen() {
           {data.schedule?.length > 0 && (
             <View className="mt-3">
               <SectionLabel>Today</SectionLabel>
-              <View className="bg-surface border border-border rounded-xl px-4 py-2">
+              <View className="bg-surface/70 border border-border/60 rounded-xl px-4 py-2">
                 {data.schedule.map((item, i) => (
                   <View key={i} className={`flex-row items-center gap-3 py-3 ${i < data.schedule.length - 1 ? 'border-b border-border' : ''}`}>
                     <Text className="text-brand-light text-xs font-semibold w-16">{item.time}</Text>
@@ -185,7 +185,7 @@ export default function BriefingScreen() {
           {data.habits?.length > 0 && (
             <View className="mt-3">
               <SectionLabel>Habits</SectionLabel>
-              <View className="bg-surface border border-border rounded-xl px-4 py-2">
+              <View className="bg-surface/70 border border-border/60 rounded-xl px-4 py-2">
                 {data.habits.map((h, i) => (
                   <View key={i} className={`flex-row items-center justify-between gap-3 py-3 ${i < data.habits.length - 1 ? 'border-b border-border' : ''}`}>
                     <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{h.name}</Text>
