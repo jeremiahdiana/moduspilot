@@ -283,9 +283,9 @@ export default function DashboardScreen() {
         {/* Colored stat pills */}
         <View className="flex-row items-center flex-wrap gap-2 mt-3.5">
           <Pill value={goals.length} label="active goals" hex={A.brand} tint={TINT.brand} onPress={() => router.push('/(app)/goals' as never)} />
-          <Pill value={dueToday.length} label="due today" hex={A.yellow} tint={TINT.yellow} onPress={() => router.push('/(app)/tasks' as never)} />
+          <Pill value={dueToday.length} label="due today" hex={A.yellow} tint={TINT.yellow} onPress={() => router.push('/(app)/reminders' as never)} />
           {topStreak > 0 && (
-            <Pill value={topStreak} label="day streak" hex={A.orange} tint={TINT.orange} onPress={() => router.push('/(app)/habits' as never)} />
+            <Pill value={topStreak} label="day streak" hex={A.orange} tint={TINT.orange} onPress={() => router.push('/(app)/reminders' as never)} />
           )}
           {inbox.length > 0 && (
             <Pill value={inbox.length} label="unread" hex={A.violet} tint={TINT.violet} onPress={() => router.push('/(app)/briefing' as never)} />
@@ -295,9 +295,9 @@ export default function DashboardScreen() {
         {/* Quick actions */}
         <Text className="text-muted/70 text-[11px] mt-5 mb-2">Quick actions</Text>
         <View className="flex-row flex-wrap gap-2">
-          <Chip label="+ Task" icon="add-task" hex={A.yellow} tint={TINT.yellow} href="/(app)/tasks" />
+          <Chip label="+ Task" icon="add-task" hex={A.yellow} tint={TINT.yellow} href="/(app)/reminders" />
           <Chip label="+ Goal" icon="flag" hex={A.brand} tint={TINT.brand} href="/(app)/goals" />
-          <Chip label="+ Log habit" icon="local-fire-department" hex={A.orange} tint={TINT.orange} href="/(app)/habits" />
+          <Chip label="+ Log habit" icon="local-fire-department" hex={A.orange} tint={TINT.orange} href="/(app)/reminders" />
           <Chip label="+ Ask MODUS" icon="auto-awesome" hex={A.violet} tint={TINT.violet} href="/(app)/chat" />
         </View>
 
@@ -305,7 +305,7 @@ export default function DashboardScreen() {
         {focus && (
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/tasks') as never)}
+            onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/reminders') as never)}
             className="flex-row items-center gap-4 mt-5 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4"
           >
             <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">
@@ -410,7 +410,7 @@ export default function DashboardScreen() {
           </Card>
 
           {/* Due today */}
-          <Card title="Due today" icon="check-box" href="/(app)/tasks">
+          <Card title="Due today" icon="check-box" href="/(app)/reminders">
             {dueToday.length === 0 ? (
               <CardEmpty text="Nothing due today. You're clear." />
             ) : (
@@ -418,7 +418,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity
                   key={t.id}
                   activeOpacity={0.8}
-                  onPress={() => router.push('/(app)/tasks' as never)}
+                  onPress={() => router.push('/(app)/reminders' as never)}
                   className={`px-4 py-3.5 flex-row items-center gap-3 ${i > 0 ? 'border-t border-border' : ''}`}
                 >
                   <Icon name="radio-button-unchecked" tone="muted" size={19} />
@@ -430,7 +430,7 @@ export default function DashboardScreen() {
 
           {/* Habits — tap to check in */}
           {habits.length > 0 && (
-            <Card title="Habits" icon="autorenew" href="/(app)/habits">
+            <Card title="Habits" icon="autorenew" href="/(app)/reminders">
               {habits.slice(0, 5).map((h, i) => {
                 const done = h.completedDates.includes(todayStr());
                 return (

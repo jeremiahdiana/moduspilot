@@ -16,10 +16,9 @@ const NAV: { label: string; seg: string; href: string; icon: IconName }[] = [
   { label: 'Dashboard', seg: 'dashboard', href: '/(app)/dashboard', icon: 'dashboard' },
   { label: 'Briefing', seg: 'briefing', href: '/(app)/briefing', icon: 'wb-sunny' },
   { label: 'Chat',     seg: 'chat',     href: '/(app)/chat',     icon: 'auto-awesome' },
-  { label: 'Goals',    seg: 'goals',    href: '/(app)/goals',    icon: 'flag' },
-  { label: 'Tasks',    seg: 'tasks',    href: '/(app)/tasks',    icon: 'checklist' },
-  { label: 'Habits',   seg: 'habits',   href: '/(app)/habits',   icon: 'local-fire-department' },
-  { label: 'Projects', seg: 'projects', href: '/(app)/projects', icon: 'folder' },
+  { label: 'Goals',     seg: 'goals',     href: '/(app)/goals',     icon: 'flag' },
+  { label: 'Reminders', seg: 'reminders', href: '/(app)/reminders', icon: 'checklist' },
+  { label: 'Projects',  seg: 'projects',  href: '/(app)/projects',  icon: 'folder' },
   { label: 'Settings', seg: 'settings', href: '/(app)/settings', icon: 'settings' },
 ];
 
