@@ -95,8 +95,8 @@ function Chip({ label, icon, hex, tint, href }: { label: string; icon: IconName;
 // ── Section card with brand-tinted medallion header (matches web Widget) ──────
 function Card({ title, icon, href, children }: { title: string; icon: IconName; href?: string; children: React.ReactNode }) {
   return (
-    <View className="bg-surface/70 border border-border/60 rounded-2xl overflow-hidden">
-      <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-border/60">
+    <View className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl overflow-hidden">
+      <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-border dark:border-border/60">
         <View className="flex-row items-center gap-2.5">
           <View className="w-6 h-6 rounded-md bg-brand/10 items-center justify-center">
             <Icon name={icon} tone="brand" size={14} />

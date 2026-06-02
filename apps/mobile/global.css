@@ -3,16 +3,17 @@
 @tailwind utilities;
 
 @layer base {
-  /* Light theme (default) */
+  /* Light theme (default) — soft grey-lavender canvas so the solid white cards
+     read as elevated panels (Linear/Notion style), with a defined border. */
   :root {
-    --bg: 250 249 255;
+    --bg: 238 236 246;
     --text: 13 13 20;
-    --muted: 100 90 122;
+    --muted: 90 82 110;
     --brand: 124 58 237;
     --brand-light: 167 139 250;
-    --border: 226 220 244;
+    --border: 211 204 229;
     --surface: 255 255 255;
-    --surface-2: 243 239 252;
+    --surface-2: 246 244 252;
   }
 
   /* Dark theme — applied when the color scheme is dark (system default or a

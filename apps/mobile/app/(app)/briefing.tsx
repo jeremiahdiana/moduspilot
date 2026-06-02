@@ -87,7 +87,7 @@ function LabeledCard({ icon, color, label, accent, right, children }: {
   icon: IconName; color: string; label: string; accent?: string; right?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <View className="bg-surface/70 border border-border/60 rounded-2xl px-5 py-4" style={accent ? { borderLeftWidth: 3, borderLeftColor: accent } : undefined}>
+    <View className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl px-5 py-4" style={accent ? { borderLeftWidth: 3, borderLeftColor: accent } : undefined}>
       <View className="flex-row items-center justify-between mb-2.5">
         <View className="flex-row items-center gap-2">
           <Icon name={icon} size={15} color={color} />
@@ -383,7 +383,7 @@ export default function BriefingScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} showsVerticalScrollIndicator={false}>
           <View className="gap-2.5"><Skeleton width="45%" height={20} /><Skeleton height={13} /><Skeleton width="85%" height={13} /><Skeleton width="70%" height={13} /></View>
           {[0, 1, 2].map(i => (
-            <View key={i} className="bg-surface/70 border border-border/60 rounded-2xl px-4 py-4 gap-2.5"><Skeleton width="35%" height={13} /><Skeleton height={12} /><Skeleton width="80%" height={12} /></View>
+            <View key={i} className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl px-4 py-4 gap-2.5"><Skeleton width="35%" height={13} /><Skeleton height={12} /><Skeleton width="80%" height={12} /></View>
           ))}
         </ScrollView>
       ) : !data ? (
@@ -404,7 +404,7 @@ export default function BriefingScreen() {
                     key={b.id}
                     onPress={() => { haptics.select(); applyBriefing(b); }}
                     activeOpacity={0.7}
-                    className={`px-3.5 py-1.5 rounded-full border ${active ? 'bg-brand border-brand' : 'bg-surface/70 border-border/60'}`}
+                    className={`px-3.5 py-1.5 rounded-full border ${active ? 'bg-brand border-brand' : 'bg-surface dark:bg-surface/70 border-border dark:border-border/60'}`}
                   >
                     <Text className={`text-xs font-semibold ${active ? 'text-white' : 'text-muted'}`}>{fmtShort(b.date)}</Text>
                   </TouchableOpacity>

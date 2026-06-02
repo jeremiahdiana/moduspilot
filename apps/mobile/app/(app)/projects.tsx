@@ -121,7 +121,7 @@ export default function ProjectsScreen() {
               activeOpacity={0.8}
               onLongPress={() => projectActions(item)}
               onPress={() => router.push(`/(app)/project/${item.id}` as never)}
-              className="bg-surface/70 border border-border/60 rounded-2xl px-4 py-4 flex-row items-center gap-3.5"
+              className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl px-4 py-4 flex-row items-center gap-3.5"
             >
               <View className="w-11 h-11 rounded-xl bg-brand/10 items-center justify-center">
                 <Icon name="folder" tone="brand" size={22} />

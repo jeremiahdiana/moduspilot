@@ -26,7 +26,7 @@ function GoalRow({ goal }: { goal: Goal }) {
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => router.push(`/(app)/goal/${goal.id}` as never)}
-      className="bg-surface/70 border border-border/60 rounded-2xl p-4 flex-row items-center gap-4"
+      className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl p-4 flex-row items-center gap-4"
     >
       <View className="flex-1 gap-1.5">
         <Text className="text-text font-bold text-base" numberOfLines={2}>{goal.title}</Text>

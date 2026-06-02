@@ -72,36 +72,44 @@ export function VoiceOrb({
     [state],
   );
 
+  // The center (core + logo) stays CALM; the voice radiates OUTWARD — the outer
+  // glow swells and an amplitude halo pushes out from the core edge with volume.
   const glowStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + amp.value * 0.5 + breathe.value * 0.1 }],
-    opacity: 0.12 + amp.value * 0.32,
+    transform: [{ scale: 1 + amp.value * 0.6 + breathe.value * 0.08 }],
+    opacity: 0.12 + amp.value * 0.34,
+  }));
+  const haloStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + amp.value * 0.7 }],
+    opacity: amp.value * 0.5,
   }));
   const coreStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 0.9 + amp.value * 0.3 + breathe.value * 0.06 }],
-    opacity: 0.5 + amp.value * 0.42,
+    transform: [{ scale: 1 + breathe.value * 0.03 }],
+    opacity: 0.82,
   }));
-  const logoStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + amp.value * 0.1 }] }));
 
   const ringBase = size * 0.86;
+  const coreSize = size * 0.62;
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <RadarRing base={ringBase} color={c.brand} run={r1} amp={amp} />
       <RadarRing base={ringBase} color={c.brand} run={r2} amp={amp} />
       <RadarRing base={ringBase} color={c.brand} run={r3} amp={amp} />
-      {/* soft outer glow */}
+      {/* soft outer glow — swells outward with the voice */}
       <Layer>
         <Animated.View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.brand }, glowStyle]} />
       </Layer>
-      {/* core disc */}
+      {/* amplitude halo — a ring pushed out from the core edge by volume */}
       <Layer>
-        <Animated.View style={[{ width: size * 0.62, height: size * 0.62, borderRadius: size * 0.31, backgroundColor: c.brand }, coreStyle]} />
+        <Animated.View style={[{ width: coreSize, height: coreSize, borderRadius: coreSize / 2, borderWidth: 2, borderColor: c.brandLight }, haloStyle]} />
       </Layer>
-      {/* wing mark */}
+      {/* core disc — calm, steady */}
       <Layer>
-        <Animated.View style={logoStyle}>
-          <Logo width={size * 0.42} opticalCenter />
-        </Animated.View>
+        <Animated.View style={[{ width: coreSize, height: coreSize, borderRadius: coreSize / 2, backgroundColor: c.brand }, coreStyle]} />
+      </Layer>
+      {/* wing mark — static */}
+      <Layer>
+        <Logo width={size * 0.42} opticalCenter />
       </Layer>
     </View>
   );

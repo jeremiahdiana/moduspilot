@@ -7,9 +7,9 @@ const KEY = 'modus.theme';
 // placeholderTextColor, ActivityIndicator, gradients, status bar).
 export const PALETTE = {
   light: {
-    bg: '#FAF9FF', text: '#0D0D14', muted: '#645A7A',
+    bg: '#EEECF6', text: '#0D0D14', muted: '#5A526E',
     brand: '#7C3AED', brandLight: '#A78BFA',
-    border: '#E2DCF4', surface: '#FFFFFF', surface2: '#F3EFFC', white: '#FFFFFF',
+    border: '#D3CCE5', surface: '#FFFFFF', surface2: '#F6F4FC', white: '#FFFFFF',
   },
   dark: {
     bg: '#0A0A0F', text: '#E8E8F0', muted: '#6B6B80',

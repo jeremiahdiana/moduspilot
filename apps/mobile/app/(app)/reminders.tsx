@@ -297,7 +297,7 @@ export default function RemindersScreen() {
                 const expanded = expandedHabit === h.id;
                 const stats = computeStats(h.completedDates);
                 return (
-                  <View key={h.id} className="bg-surface/70 border border-border/60 rounded-2xl overflow-hidden">
+                  <View key={h.id} className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl overflow-hidden">
                     <View className="flex-row items-center gap-3 px-4 py-3">
                       <TouchableOpacity
                         onPress={() => { haptics.select(); toggleHabit(h, todayStr); }}
@@ -322,7 +322,7 @@ export default function RemindersScreen() {
                       </TouchableOpacity>
                     </View>
                     {expanded && (
-                      <View className="border-t border-border/60 px-4 pt-3 pb-4 gap-3">
+                      <View className="border-t border-border dark:border-border/60 px-4 pt-3 pb-4 gap-3">
                         <View className="flex-row gap-4">
                           <Text className="text-muted text-xs"><Text className="text-text font-semibold">{stats.bestStreak}</Text> best</Text>
                           <Text className="text-muted text-xs"><Text className="text-text font-semibold">{stats.thisWeek}</Text> this week</Text>
@@ -344,7 +344,7 @@ export default function RemindersScreen() {
           <Text className="text-xs font-bold uppercase tracking-widest text-muted mb-4">Tasks</Text>
 
           {/* Quick add */}
-          <View className="flex-row items-center gap-2 mb-5 px-4 py-2.5 bg-surface/70 border border-border/60 rounded-xl">
+          <View className="flex-row items-center gap-2 mb-5 px-4 py-2.5 bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-xl">
             <Icon name="add" tone="muted" size={18} />
             <TextInput
               className="flex-1 text-text text-[15px]"
@@ -359,7 +359,7 @@ export default function RemindersScreen() {
 
           {/* Tabs + priority filter */}
           <View className="flex-row items-center gap-2 mb-5 flex-wrap">
-            <View className="flex-row bg-surface/70 border border-border/60 rounded-lg p-1 gap-1">
+            <View className="flex-row bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-lg p-1 gap-1">
               {(['todo', 'done'] as const).map(t => (
                 <TouchableOpacity key={t} onPress={() => { haptics.select(); setTab(t); }} className={`px-4 py-1.5 rounded-md ${tab === t ? 'bg-brand' : ''} flex-row items-center gap-1.5`}>
                   <Text className={`text-sm font-medium ${tab === t ? 'text-white' : 'text-muted'}`}>{t === 'todo' ? 'To Do' : 'Done'}</Text>
@@ -400,7 +400,7 @@ export default function RemindersScreen() {
                   <SectionLabel text={section.label} color={section.color} count={section.tasks.length} />
                   <View className="gap-2">
                     {section.tasks.map(t => (
-                      <View key={t.id} className="bg-surface/70 border border-border/60 rounded-2xl flex-row items-stretch overflow-hidden">
+                      <View key={t.id} className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl flex-row items-stretch overflow-hidden">
                         {t.priority && <View style={{ width: 4, backgroundColor: PRIORITY_BAND[t.priority] }} />}
                         <View className="flex-row items-start gap-3 px-4 py-3 flex-1">
                           <TouchableOpacity
