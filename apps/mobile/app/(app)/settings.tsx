@@ -116,10 +116,12 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* Web-only note */}
-        <Text className="text-muted text-xs text-center px-4 leading-5">
-          Billing and connectors are managed at moduspilot.com
-        </Text>
+        {/* Account & integrations */}
+        <View className="bg-surface border border-border rounded-xl overflow-hidden">
+          <NavRow icon="hub" label="Connectors" onPress={() => router.push('/(app)/connectors' as never)} />
+          <Divider />
+          <NavRow icon="credit-card" label="Billing & plan" onPress={() => router.push('/(app)/billing' as never)} />
+        </View>
 
         <View className="gap-3 mt-2">
           {/* Sign out */}

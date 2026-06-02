@@ -197,3 +197,59 @@ export async function* streamChat(
     }
   }
 }
+
+// ── Billing (Stripe) ──────────────────────────────────────────────────────────
+async function postForUrl(path: string, body?: unknown): Promise<string> {
+  const headers = await getAuthHeader();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body ?? {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.url) throw new Error(data.error ?? `Request failed (${res.status})`);
+  return data.url as string;
+}
+
+/** Stripe Checkout URL for a plan upgrade. */
+export const startCheckout = (plan: 'modus' | 'pilot') => postForUrl('/api/stripe/checkout', { plan });
+/** Stripe billing-portal URL (manage/cancel). */
+export const openBillingPortal = () => postForUrl('/api/stripe/portal');
+
+// ── Connectors ────────────────────────────────────────────────────────────────
+export type ConnectorProvider = 'google' | 'notion' | 'slack' | 'github';
+export interface ConnectorStatus {
+  google: { email: string; connectedAt: string | null }[];
+  notion: { workspaceId: string; workspaceName: string; ownerEmail: string }[];
+  slack: { teamId: string; teamName: string }[];
+  github: { login: string; name: string | null; avatarUrl: string }[];
+}
+
+export async function fetchConnectorStatus(): Promise<ConnectorStatus> {
+  const headers = await getAuthHeader();
+  const [conn, goog] = await Promise.all([
+    fetch(`${API_BASE}/api/connectors/status`, { headers }).then(r => r.json()).catch(() => ({})),
+    fetch(`${API_BASE}/api/google/status`, { headers }).then(r => r.json()).catch(() => ({})),
+  ]);
+  return {
+    google: goog.accounts ?? [],
+    notion: conn.notion ?? [],
+    slack: conn.slack ?? [],
+    github: conn.github ?? [],
+  };
+}
+
+/** OAuth connect URL for a provider (open in an in-app browser). */
+export const connectProvider = (p: ConnectorProvider) => postForUrl(`/api/auth/${p}/connect`);
+
+/** Disconnect a specific connected account. */
+export async function disconnectProvider(p: ConnectorProvider, body: Record<string, string>): Promise<void> {
+  const headers = await getAuthHeader();
+  const path = p === 'google' ? '/api/google/disconnect' : `/api/${p}/disconnect`;
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Disconnect failed (${res.status})`);
+}
