@@ -25,10 +25,13 @@ export type Message = {
 // server builds a goal/project-aware system prompt.
 export type GoalContext = { id: string; title: string; description?: string; progress?: number };
 export type ProjectContext = { id: string; title: string; description?: string; status?: string };
+export type ChatImage = { base64: string; mimeType: string };
 export type ChatOpts = {
   signal?: AbortSignal;
   goalContext?: GoalContext;
   projectContext?: ProjectContext;
+  /** Attach an image to the last user message (sent as an AI-SDK image part). */
+  image?: ChatImage;
 };
 
 // ── Google: today's inbox + calendar (same endpoints the web dashboard uses) ──
@@ -135,13 +138,29 @@ export async function* streamChat(
   opts: ChatOpts = {},
 ): AsyncGenerator<string> {
   const headers = await getAuthHeader();
-  const { signal, goalContext, projectContext } = opts;
+  const { signal, goalContext, projectContext, image } = opts;
+
+  // When an image is attached, rewrite the final user message into the AI-SDK
+  // structured-content form ([{text},{image}]) — mirrors the web client.
+  type OutPart = { type: 'text'; text: string } | { type: 'image'; image: string; mimeType: string };
+  type OutMessage = { role: Message['role']; content: string | OutPart[] };
+  let outgoing: OutMessage[] = messages;
+  if (image) {
+    outgoing = messages.map((m, i) => {
+      if (i !== messages.length - 1 || m.role !== 'user') return m;
+      const text = typeof m.content === 'string' ? m.content : '';
+      const parts: OutPart[] = [];
+      if (text.trim()) parts.push({ type: 'text', text });
+      parts.push({ type: 'image', image: image.base64, mimeType: image.mimeType });
+      return { role: m.role, content: parts };
+    });
+  }
 
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({
-      messages,
+      messages: outgoing,
       ...(goalContext ? { goalContext } : {}),
       ...(projectContext ? { projectContext } : {}),
     }),

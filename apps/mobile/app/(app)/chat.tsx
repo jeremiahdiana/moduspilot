@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -38,9 +39,15 @@ import {
   type ConvSummary,
 } from '@/lib/conversations';
 
+// expo-image-picker is a NATIVE module — load lazily so a JS reload before the
+// native rebuild doesn't crash with "Cannot find native module 'ExpoImagePicker'".
+const ImagePicker: typeof import('expo-image-picker') | null = (() => {
+  try { return require('expo-image-picker'); } catch { return null; }
+})();
+
 type Scope = { kind: 'goal' | 'project'; title: string; goalContext?: GoalContext; projectContext?: ProjectContext };
 
-type UIMessage = Message & { id: string };
+type UIMessage = Message & { id: string; image?: string };
 
 let msgCounter = 0;
 function newId() {
@@ -58,6 +65,7 @@ export default function ChatScreen() {
   const c = useThemeColors();
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
+  const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [convId, setConvId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
@@ -181,18 +189,47 @@ export default function ChatScreen() {
     if (convIdRef.current === id) startNewChat();
   }
 
-  function send() {
-    const text = input.trim();
-    if (!text || streaming) return;
-    setInput('');
-    void sendMessage(text);
+  async function pickImage() {
+    if (!ImagePicker) {
+      Alert.alert('Update needed', 'Image attachments need the latest app build.');
+      return;
+    }
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { Alert.alert('Photos access', 'Allow photo access to attach an image.'); return; }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mediaTypes = (ImagePicker as any).MediaTypeOptions?.Images ?? 'images';
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes, base64: true, quality: 0.5 });
+      if (res.canceled) return;
+      const asset = res.assets?.[0];
+      if (!asset?.base64) { Alert.alert('Couldn’t load image', 'Try a different photo.'); return; }
+      if (asset.base64.length > 6_000_000) { Alert.alert('Image too large', 'Pick a smaller image.'); return; }
+      haptics.select();
+      setAttachedImage({ base64: asset.base64, mimeType: asset.mimeType ?? 'image/jpeg' });
+    } catch {
+      Alert.alert('Couldn’t attach image', 'Please try again.');
+    }
   }
 
-  async function sendMessage(text: string) {
-    if (!text.trim() || streaming) return;
+  function send() {
+    const text = input.trim();
+    if ((!text && !attachedImage) || streaming) return;
+    const image = attachedImage;
+    setInput('');
+    setAttachedImage(null);
+    void sendMessage(text, image ?? undefined);
+  }
+
+  async function sendMessage(text: string, image?: { base64: string; mimeType: string }) {
+    if ((!text.trim() && !image) || streaming) return;
     haptics.medium();
 
-    const userMsg: UIMessage = { id: newId(), role: 'user', content: text };
+    const userMsg: UIMessage = {
+      id: newId(),
+      role: 'user',
+      content: text || (image ? 'Image' : ''),
+      ...(image ? { image: `data:${image.mimeType};base64,${image.base64}` } : {}),
+    };
     const assistantId = newId();
     const assistantMsg: UIMessage = { id: assistantId, role: 'assistant', content: '' };
 
@@ -211,6 +248,7 @@ export default function ChatScreen() {
         signal: controller.signal,
         goalContext: scopeRef.current?.goalContext,
         projectContext: scopeRef.current?.projectContext,
+        image,
       })) {
         acc += chunk;
         setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: acc } : m)));
@@ -329,6 +367,23 @@ export default function ChatScreen() {
         {/* Floating glass input */}
         <View className="px-4 pb-3 pt-1">
           <GlassView radius={28} intensity={50}>
+          {attachedImage && (
+            <View className="px-3 pt-3 flex-row">
+              <View>
+                <Image
+                  source={{ uri: `data:${attachedImage.mimeType};base64,${attachedImage.base64}` }}
+                  style={{ width: 56, height: 56, borderRadius: 12 }}
+                />
+                <TouchableOpacity
+                  onPress={() => setAttachedImage(null)}
+                  activeOpacity={0.8}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-surface border border-border items-center justify-center"
+                >
+                  <Icon name="close" size={13} color={c.muted} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
           <View className="px-2 py-2 flex-row items-end gap-2">
             <TextInput
               className="flex-1 text-text text-base px-3 py-2.5"
@@ -342,6 +397,16 @@ export default function ChatScreen() {
               onSubmitEditing={send}
               editable={!streaming}
             />
+            {!streaming && (
+              <TouchableOpacity
+                onPress={pickImage}
+                activeOpacity={0.8}
+                className="rounded-2xl items-center justify-center border bg-surface border-border"
+                style={{ width: 44, height: 44 }}
+              >
+                <Icon name="image" size={22} color={c.muted} />
+              </TouchableOpacity>
+            )}
             {!streaming && (
               <TouchableOpacity
                 onPress={voice.toggle}
@@ -390,12 +455,17 @@ function MessageBubble({
     return (
       <View className="flex-row justify-end">
         <View
-          className="bg-brand"
+          className="bg-brand overflow-hidden"
           style={{ borderRadius: 18, borderBottomRightRadius: 4, maxWidth: '80%' }}
         >
-          <View className="px-4 py-3">
-            <Text className="text-base leading-6 text-white">{message.content}</Text>
-          </View>
+          {message.image && (
+            <Image source={{ uri: message.image }} style={{ width: 200, height: 200 }} resizeMode="cover" />
+          )}
+          {message.content ? (
+            <View className="px-4 py-3">
+              <Text className="text-base leading-6 text-white">{message.content}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     );

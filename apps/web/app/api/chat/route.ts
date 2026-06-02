@@ -103,9 +103,21 @@ export async function POST(req: Request) {
       briefingTimezone = settings.briefingTimezone ?? 'UTC';
     }
 
-    // Derive query text early so context detection can use it
+    // Derive query text early so context detection can use it. For image
+    // messages the content is an array of parts — pull the text out of it.
     const lastUserMsg = [...cappedMessages].reverse().find(m => m.role === 'user');
-    const queryText = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : '';
+    const queryText = typeof lastUserMsg?.content === 'string'
+      ? lastUserMsg.content
+      : Array.isArray(lastUserMsg?.content)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? (lastUserMsg!.content as any[]).filter(p => p?.type === 'text').map(p => p.text).join(' ')
+        : '';
+
+    // Any image parts in the conversation → we need a vision-capable model.
+    const hasImage = cappedMessages.some(m =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Array.isArray(m.content) && (m.content as any[]).some(p => p?.type === 'image'),
+    );
 
     const wantsEmail    = needsEmailCtx(queryText)    || isVagueQuery(queryText);
     const wantsCalendar = needsCalendarCtx(queryText) || isVagueQuery(queryText);
@@ -135,8 +147,9 @@ export async function POST(req: Request) {
     // Collect Pinecone result (started in parallel above)
     const memoryContext = await memoryPromise;
 
-    // Resolve model — BYOK keys take priority, then platform default (Groq)
-    const chatModel = resolveChatModel(userData);
+    // Resolve model — BYOK keys take priority, then platform default (Groq).
+    // hasImage forces a vision-capable model.
+    const chatModel = resolveChatModel(userData, { hasImage });
 
     // System prompt blocks
     const userContextBlock = buildUserContextBlock(personalContext);
