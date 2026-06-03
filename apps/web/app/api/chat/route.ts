@@ -3,6 +3,7 @@ import type { CoreMessage } from 'ai';
 import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
+import { extractDurableMemory } from '@/lib/chat/memory';
 import { getMcpServers } from '@/lib/mcp-servers';
 import { assertPublicUrl } from '@/lib/ssrf';
 import {
@@ -255,12 +256,14 @@ export async function POST(req: Request) {
           trackTokenUsage(uid, userData, usage.totalTokens);
         }
         if (!uid || !queryText || !process.env.PINECONE_API_KEY) return;
-        const isSubstantive = (s: string) => s.trim().length >= 40 && s.trim().split(/\s+/).length >= 6;
+        // Respect the user's "generate memory from chat" setting (was ignored).
+        if (userData?.settings?.generateMemoryFromChat === false) return;
         try {
-          await Promise.all([
-            isSubstantive(queryText) ? upsertMemory(uid, queryText, { type: 'user_message', ts: Date.now().toString() }) : Promise.resolve(),
-            isSubstantive(text) ? upsertMemory(uid, text, { type: 'assistant_response', ts: Date.now().toString() }) : Promise.resolve(),
-          ]);
+          // Only persist a durable fact about the user — not the raw exchange.
+          const fact = await extractDurableMemory(queryText, text);
+          if (fact) {
+            await upsertMemory(uid, fact, { type: 'extracted_fact', ts: Date.now().toString() });
+          }
         } catch (e) {
           console.error('[chat] memory upsert failed:', e);
         }
