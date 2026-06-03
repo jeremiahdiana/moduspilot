@@ -161,6 +161,22 @@ body::after {
   50%      { transform: translate(10px, -15px) scale(1.06); }
 }
 
+/* Pause hero animations when the hero is scrolled off-screen */
+.hero-paused .hero-orb,
+.hero-paused .hero-gradient-text {
+  animation-play-state: paused;
+}
+
+/* CoreLoop progress bar — pure CSS fill (no per-frame React render) */
+@keyframes coreloop-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.coreloop-progress {
+  width: 0%;
+  animation: coreloop-fill 3s linear forwards;
+}
+
 /* Animated gradient headline */
 @keyframes gradient-pan {
   0%,100% { background-position: 0% 50%; }

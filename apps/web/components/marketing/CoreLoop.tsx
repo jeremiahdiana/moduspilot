@@ -1,7 +1,7 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
 
 const STEPS = [
   {
@@ -42,29 +42,18 @@ const STEP_DURATION = 3000;
 
 export default function CoreLoop() {
   const [active, setActive] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  const resumeRef = useRef<ReturnType<typeof setTimeout>>();
 
-  useEffect(() => {
-    if (paused) return;
-    const start = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const pct = Math.min((elapsed / STEP_DURATION) * 100, 100);
-      setProgress(pct);
-      if (pct >= 100) {
-        setActive(a => (a + 1) % STEPS.length);
-        setProgress(0);
-      }
-    }, 16);
-    return () => clearInterval(interval);
-  }, [active, paused]);
+  useEffect(() => () => clearTimeout(resumeRef.current), []);
+
+  const advance = () => { if (!paused) setActive(a => (a + 1) % STEPS.length); };
 
   const goTo = (i: number) => {
     setActive(i);
-    setProgress(0);
     setPaused(true);
-    setTimeout(() => setPaused(false), 5000);
+    clearTimeout(resumeRef.current);
+    resumeRef.current = setTimeout(() => setPaused(false), 5000);
   };
 
   return (
@@ -99,12 +88,15 @@ export default function CoreLoop() {
             >
               <div className="text-[10px] font-bold text-brand/60 mb-1 tracking-widest">{step.num}</div>
               <div className={`text-sm font-bold ${active === i ? 'text-text' : 'text-muted'}`}>{step.label}</div>
-              {/* Progress bar */}
+              {/* Progress bar — CSS animation drives both the fill and the
+                  auto-advance (onAnimationEnd), so there's no per-frame React render */}
               {active === i && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-border/30">
-                  <motion.div
-                    className="h-full bg-brand rounded-full"
-                    style={{ width: `${progress}%` }}
+                  <div
+                    key={active}
+                    onAnimationEnd={advance}
+                    className="h-full bg-brand rounded-full coreloop-progress"
+                    style={{ animationPlayState: paused ? 'paused' : 'running' }}
                   />
                 </div>
               )}
@@ -112,14 +104,14 @@ export default function CoreLoop() {
           ))}
         </div>
 
-        {/* Active step content */}
-        <AnimatePresence mode="wait">
+        {/* Active step content — keyed so it swaps instantly on click (no exit
+            wait); the new card just fades in */}
+        <div>
           <motion.div
             key={active}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
             className={`bg-panel border border-border/60 rounded-2xl p-10 bg-gradient-to-br ${STEPS[active].color}`}
           >
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 items-center">
@@ -158,7 +150,7 @@ export default function CoreLoop() {
               </div>
             </div>
           </motion.div>
-        </AnimatePresence>
+        </div>
       </div>
     </section>
   );

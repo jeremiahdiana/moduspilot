@@ -50,8 +50,17 @@ function ParticleCanvas() {
       }
       raf = requestAnimationFrame(tick);
     };
-    tick();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', init); };
+    // Only run the loop while the hero is actually on screen — stops the
+    // O(n²) particle work from burning CPU when the user has scrolled past it.
+    const start = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
+    const io = new IntersectionObserver(
+      ([entry]) => { entry.isIntersecting ? start() : stop(); },
+      { threshold: 0 }
+    );
+    io.observe(canvas);
+    start();
+    return () => { stop(); window.removeEventListener('resize', init); io.disconnect(); };
   }, []);
   return <canvas ref={ref} className="absolute inset-0 w-full h-full" />;
 }
@@ -104,7 +113,7 @@ function Ticker() {
         className="flex gap-4 whitespace-nowrap"
       >
         {items.map((item, i) => (
-          <span key={i} className="inline-flex items-center gap-2 text-xs text-muted/70 bg-panel/50 dark:bg-panel/40 backdrop-blur-sm border border-border/40 rounded-full px-3 py-1.5">
+          <span key={i} className="inline-flex items-center gap-2 text-xs text-muted/70 bg-panel/50 dark:bg-panel/40 border border-border/40 rounded-full px-3 py-1.5">
             {item}
           </span>
         ))}
@@ -249,8 +258,17 @@ function DashboardPreview() {
 
 /* ── Hero ── */
 export default function HeroSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [onScreen, setOnScreen] = useState(true);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pt-20 pb-16">
+    <section ref={sectionRef} className={`relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pt-20 pb-16${onScreen ? '' : ' hero-paused'}`}>
 
       {/* Background */}
       <div className="absolute inset-0 -z-10">
@@ -270,7 +288,7 @@ export default function HeroSection() {
         {/* Animated spotlight sweep */}
         <motion.div
           className="absolute inset-0 bg-[radial-gradient(ellipse_50%_35%_at_50%_35%,rgba(124,58,237,0.12),transparent_70%)]"
-          animate={{ opacity: [0.6, 1, 0.6] }}
+          animate={onScreen ? { opacity: [0.6, 1, 0.6] } : { opacity: 0.8 }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         />
       </div>
