@@ -17,10 +17,24 @@ export interface StoredMessage {
   content: string;
 }
 
+/**
+ * A proactively-surfaced conversation: MODUS started it on its own (inbox triage
+ * drafts a reply, relationship-nurture suggests reconnecting). The Inngest jobs
+ * tag the conversation doc with `inboxTriage:true` / `relationshipNudge:true`.
+ */
+export type ProactiveKind = 'inboxTriage' | 'relationshipNudge';
+
+function readProactive(data: Record<string, unknown> | undefined): ProactiveKind | undefined {
+  if (data?.inboxTriage === true) return 'inboxTriage';
+  if (data?.relationshipNudge === true) return 'relationshipNudge';
+  return undefined;
+}
+
 export interface ConvSummary {
   id: string;
   title: string;
   updatedAt: Date;
+  proactive?: ProactiveKind;
 }
 
 export function subscribeConversations(uid: string, cb: (convs: ConvSummary[]) => void) {
@@ -38,6 +52,7 @@ export function subscribeConversations(uid: string, cb: (convs: ConvSummary[]) =
             id: d.id,
             title: d.data().title || 'New chat',
             updatedAt: d.data().updatedAt?.toDate?.() ?? d.data().createdAt?.toDate?.() ?? new Date(),
+            proactive: readProactive(d.data()),
           })),
       );
     },
@@ -79,7 +94,7 @@ export async function saveMessages(
 export async function ensureScopedConversation(
   uid: string,
   convId: string,
-  fields: { title: string; goalId?: string; projectId?: string },
+  fields: { title: string; goalId?: string; projectId?: string; taskId?: string },
 ): Promise<StoredMessage[]> {
   const ref = doc(db, 'users', uid, 'conversations', convId);
   const snap = await getDoc(ref);
@@ -97,9 +112,16 @@ export async function ensureScopedConversation(
   return [];
 }
 
-export async function loadConversation(uid: string, convId: string): Promise<StoredMessage[]> {
+export async function loadConversation(
+  uid: string,
+  convId: string,
+): Promise<{ messages: StoredMessage[]; proactive?: ProactiveKind }> {
   const snap = await getDoc(doc(db, 'users', uid, 'conversations', convId));
-  return (snap.data()?.messages ?? []) as StoredMessage[];
+  const data = snap.data();
+  return {
+    messages: (data?.messages ?? []) as StoredMessage[],
+    proactive: readProactive(data),
+  };
 }
 
 export async function deleteConversation(uid: string, convId: string): Promise<void> {

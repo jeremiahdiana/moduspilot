@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Switch, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, Switch, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
@@ -66,18 +66,27 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
        <View className="gap-4">
-        {/* Account info */}
-        <View className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3.5">
-          <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-brand/10">
-            <Text className="text-brand font-display font-bold text-xl">
-              {(user?.displayName ?? user?.email ?? '?').trim().charAt(0).toUpperCase()}
-            </Text>
-          </View>
+        {/* Account info → profile */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/(app)/profile' as never)}
+          className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3.5"
+        >
+          {user?.photoURL ? (
+            <Image source={{ uri: user.photoURL }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+          ) : (
+            <View className="w-[52px] h-[52px] rounded-full items-center justify-center bg-brand/10">
+              <Text className="text-brand font-display font-bold text-xl">
+                {(user?.displayName ?? user?.email ?? '?').trim().charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View className="flex-1">
             <Text className="text-text font-bold text-base">{user?.displayName ?? 'User'}</Text>
             <Text className="text-muted text-sm">{user?.email ?? ''}</Text>
           </View>
-        </View>
+          <Icon name="chevron-right" tone="muted" size={20} />
+        </TouchableOpacity>
 
         {/* Appearance */}
         <View className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center gap-3">

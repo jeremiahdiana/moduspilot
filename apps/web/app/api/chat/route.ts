@@ -29,9 +29,11 @@ import {
   buildSettingsBlock,
   buildGoalContextBlock,
   buildProjectContextBlock,
+  buildTaskContextBlock,
   buildGoogleDataBlock,
   type GoalContext,
   type ProjectContext,
+  type TaskContext,
 } from '@/lib/chat/prompt';
 
 export async function POST(req: Request) {
@@ -78,6 +80,7 @@ export async function POST(req: Request) {
       briefingTimezone?: string;
       goalContext?: GoalContext;
       projectContext?: ProjectContext;
+      taskContext?: TaskContext;
     };
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
@@ -157,6 +160,7 @@ export async function POST(req: Request) {
     const settingsBlock = buildSettingsBlock(briefingHour, briefingTimezone);
     const goalContextBlock = buildGoalContextBlock(body.goalContext);
     const projectContextBlock = buildProjectContextBlock(body.projectContext);
+    const taskContextBlock = buildTaskContextBlock(body.taskContext);
     const projectResourcesBlock = (body.projectContext && uid)
       ? await fetchProjectResources(uid, body.projectContext)
       : '';
@@ -171,7 +175,7 @@ export async function POST(req: Request) {
       ({ connectorBlock, notionBlock, slackBlock, githubBlock } = await fetchConnectorData(uid, queryText));
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + projectContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;

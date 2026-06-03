@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import {
   collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, serverTimestamp,
 } from 'firebase/firestore';
@@ -27,11 +28,12 @@ const PRIORITY_COLOR: Record<string, string> = {
   high: '#ef4444', medium: '#f59e0b', low: '#8b8ba0',
 };
 
-function TaskRow({ task, onToggle, onDelete }: { task: Task; onToggle: () => void; onDelete: () => void }) {
+function TaskRow({ task, onToggle, onDelete, onOpen }: { task: Task; onToggle: () => void; onDelete: () => void; onOpen: () => void }) {
   const c = useThemeColors();
   return (
     <TouchableOpacity
       activeOpacity={0.8}
+      onPress={onOpen}
       onLongPress={onDelete}
       className="bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl px-4 py-4 flex-row items-center gap-3.5"
     >
@@ -152,7 +154,12 @@ export default function TasksScreen() {
         </SkeletonList>
       ) : tasks.length === 0 ? (
         <View className="flex-1 items-center justify-center">
-          <EmptyState icon="checklist" title="No tasks yet" subtitle="Tap + to add a task, or ask MODUS in chat." />
+          <EmptyState
+            icon="checklist"
+            title="No tasks yet"
+            subtitle="Capture what needs doing, or ask MODUS in chat."
+            action={{ label: 'Add a task', icon: 'add', onPress: addTask }}
+          />
         </View>
       ) : (
         <FlatList
@@ -166,7 +173,12 @@ export default function TasksScreen() {
           renderItem={({ item, index }) => (
             <AnimatedRow index={index}>
               <SwipeToDelete onDelete={() => deleteNow(item)}>
-                <TaskRow task={item} onToggle={() => toggle(item)} onDelete={() => remove(item)} />
+                <TaskRow
+                  task={item}
+                  onToggle={() => toggle(item)}
+                  onDelete={() => remove(item)}
+                  onOpen={() => router.push(`/(app)/task/${item.id}`)}
+                />
               </SwipeToDelete>
             </AnimatedRow>
           )}

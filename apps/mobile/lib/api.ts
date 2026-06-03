@@ -25,11 +25,13 @@ export type Message = {
 // server builds a goal/project-aware system prompt.
 export type GoalContext = { id: string; title: string; description?: string; progress?: number };
 export type ProjectContext = { id: string; title: string; description?: string; status?: string };
+export type TaskContext = { id: string; title: string; description?: string; done?: boolean; dueDate?: string; priority?: string };
 export type ChatImage = { base64: string; mimeType: string };
 export type ChatOpts = {
   signal?: AbortSignal;
   goalContext?: GoalContext;
   projectContext?: ProjectContext;
+  taskContext?: TaskContext;
   /** Attach an image to the last user message (sent as an AI-SDK image part). */
   image?: ChatImage;
 };
@@ -138,7 +140,7 @@ export async function* streamChat(
   opts: ChatOpts = {},
 ): AsyncGenerator<string> {
   const headers = await getAuthHeader();
-  const { signal, goalContext, projectContext, image } = opts;
+  const { signal, goalContext, projectContext, taskContext, image } = opts;
 
   // When an image is attached, rewrite the final user message into the AI-SDK
   // structured-content form ([{text},{image}]) — mirrors the web client.
@@ -163,6 +165,7 @@ export async function* streamChat(
       messages: outgoing,
       ...(goalContext ? { goalContext } : {}),
       ...(projectContext ? { projectContext } : {}),
+      ...(taskContext ? { taskContext } : {}),
     }),
     signal,
   });

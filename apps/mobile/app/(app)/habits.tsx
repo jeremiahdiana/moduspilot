@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -137,7 +138,16 @@ export default function HabitsScreen() {
           <SkeletonHabitRow />
         </SkeletonList>
       ) : habits.length === 0 ? (
-        <EmptyState icon="local-fire-department" title="No habits yet" subtitle="Ask MODUS in chat to help you build a habit." />
+        <EmptyState
+          icon="local-fire-department"
+          title="No habits yet"
+          subtitle="Pick something to do daily and MODUS will help you keep the streak."
+          action={{
+            label: 'Build a habit with MODUS',
+            icon: 'auto-awesome',
+            onPress: () => router.push({ pathname: '/(app)/chat', params: { prefill: 'Help me build a new habit.' } }),
+          }}
+        />
       ) : (
         <FlatList
           data={habits}

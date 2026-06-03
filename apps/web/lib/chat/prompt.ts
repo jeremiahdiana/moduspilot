@@ -31,6 +31,15 @@ export type ProjectContext = {
   activeChatId?: string;
 };
 
+export type TaskContext = {
+  id: string;
+  title: string;
+  description?: string;
+  done?: boolean;
+  dueDate?: string;
+  priority?: string;
+};
+
 export const STYLE_INSTRUCTIONS: Record<string, string> = {
   normal:      'RESPONSE STYLE: Be extremely direct and blunt. No softening, no filler. Cut straight to the answer.',
   concise:     'RESPONSE STYLE: Ultra-short responses only. One to three sentences max. No explanations unless explicitly asked.',
@@ -82,6 +91,16 @@ export function buildProjectContextBlock(pc?: ProjectContext): string {
   if (!pc) return '';
   const isMainProjectChat = !pc.activeChatId || pc.activeChatId === `project-${pc.id}`;
   return `\n\nPROJECT FOCUS: This conversation is scoped to the project "${pc.title}" (projectId: "${pc.id}"). ${pc.description ? `Description: ${pc.description}.` : ''} ${pc.resources.length > 0 ? `This project has ${pc.resources.length} pinned resource${pc.resources.length !== 1 ? 's' : ''}. Treat the PROJECT RESOURCES block below as primary context — prioritize it over global GITHUB/NOTION/SLACK/DRIVE blocks when answering project questions. Never reference repos, pages, or channels not in the pinned list when answering about this project.` : 'No resources are pinned yet — encourage the user to pin resources from the Resources tab.'}\n\nDo NOT generate update_goal_progress, create_habit, or goal-tracking cards in project chats. If the user asks to create a new chat for this project, output a create_project_chat approval card with payload.projectId = "${pc.id}". ${!isMainProjectChat ? `If asked to delete this chat, output a delete_project_chat card with payload.conversationId = "${pc.activeChatId}".` : 'This is the main project chat — do NOT generate a delete_project_chat card here.'}`;
+}
+
+export function buildTaskContextBlock(tc?: TaskContext): string {
+  if (!tc) return '';
+  const meta = [
+    tc.dueDate ? `Due: ${tc.dueDate}.` : '',
+    tc.priority ? `Priority: ${tc.priority}.` : '',
+    tc.done ? 'This task is already marked done.' : '',
+  ].filter(Boolean).join(' ');
+  return `\n\nTASK FOCUS: This conversation is dedicated to one specific task: "${tc.title}" (taskId: "${tc.id}"). ${tc.description ? `Description: ${tc.description}. ` : ''}${meta}\n\nHelp the user actually get this task done — break it into concrete next steps, unblock them, draft whatever it needs. Only propose an update_task or delete_task approval card when the user explicitly asks to change or remove the task, and include taskId: "${tc.id}" in the payload. If the user clearly says the task is finished, you may propose an update_task card with payload { taskId: "${tc.id}", done: true }.\n\nCRITICAL: Do NOT generate create_task, create_goal, create_habit, or any other approval card in this chat unless the user explicitly and clearly asks to create something new. Casual messages or questions must NEVER be treated as creation requests — answer those conversationally.`;
 }
 
 export function buildGoogleDataBlock(gmailBlock: string, calendarBlock: string): string {

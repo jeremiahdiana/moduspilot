@@ -20,12 +20,14 @@ import { useThemeColors } from '@/lib/theme';
  * Idle, it's just the static Logo. Rings draw outside the box (no clipping), so
  * the avatar column keeps its layout footprint.
  */
-function Ring({ size, color, run }: { size: number; color: string; run: SharedValue<number> }) {
+function Ring({
+  size, color, run, maxOpacity = 0.4, expand = 0.7,
+}: { size: number; color: string; run: SharedValue<number>; maxOpacity?: number; expand?: number }) {
   // Begin just outside the mark (scale 1 = base diameter) and expand outward
   // only, so rings never ripple through the logo.
   const style = useAnimatedStyle(() => ({
-    opacity: (1 - run.value) * 0.4,
-    transform: [{ scale: 1 + run.value * 0.7 }],
+    opacity: (1 - run.value) * maxOpacity,
+    transform: [{ scale: 1 + run.value * expand }],
   }));
   return (
     <Animated.View
@@ -39,21 +41,30 @@ function Ring({ size, color, run }: { size: number; color: string; run: SharedVa
   );
 }
 
-export function PulseAvatar({ size = 26, active = false }: { size?: number; active?: boolean }) {
+export function PulseAvatar({
+  size = 26, active = false, ambient = false,
+}: { size?: number; active?: boolean; ambient?: boolean }) {
   const c = useThemeColors();
   const breathe = useSharedValue(0);
   const ringA = useSharedValue(0);
   const ringB = useSharedValue(0);
 
   useEffect(() => {
+    cancelAnimation(breathe);
+    cancelAnimation(ringA);
+    cancelAnimation(ringB);
     if (active) {
+      // Thinking/responding — energetic breathe + quick radar.
       breathe.value = withRepeat(withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.ease) }), -1, true);
       ringA.value = withRepeat(withTiming(1, { duration: 2200, easing: Easing.out(Easing.ease) }), -1, false);
       ringB.value = withDelay(1100, withRepeat(withTiming(1, { duration: 2200, easing: Easing.out(Easing.ease) }), -1, false));
+    } else if (ambient) {
+      // Idle live-presence — a slow, faint heartbeat so MODUS reads as quietly
+      // present/monitoring in the background, not asleep.
+      breathe.value = withRepeat(withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }), -1, true);
+      ringA.value = withRepeat(withTiming(1, { duration: 3800, easing: Easing.out(Easing.ease) }), -1, false);
+      ringB.value = withDelay(1900, withRepeat(withTiming(1, { duration: 3800, easing: Easing.out(Easing.ease) }), -1, false));
     } else {
-      cancelAnimation(breathe);
-      cancelAnimation(ringA);
-      cancelAnimation(ringB);
       breathe.value = withTiming(0, { duration: 200 });
       ringA.value = 0;
       ringB.value = 0;
@@ -63,18 +74,22 @@ export function PulseAvatar({ size = 26, active = false }: { size?: number; acti
       cancelAnimation(ringA);
       cancelAnimation(ringB);
     };
-  }, [active]);
+  }, [active, ambient]);
 
-  const logoStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + breathe.value * 0.08 }] }));
+  const breatheScale = active ? 0.08 : 0.04;
+  const logoStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + breathe.value * breatheScale }] }));
   const box = size + 4;
   const ringBase = size + 9; // sits just outside the mark
+  const showRings = active || ambient;
+  const ringOpacity = active ? 0.4 : 0.2; // ambient rings are fainter
+  const ringExpand = active ? 0.7 : 0.85;
 
   return (
     <View style={{ width: box, height: box, alignItems: 'center', justifyContent: 'center' }}>
-      {active ? (
+      {showRings ? (
         <>
-          <Ring size={ringBase} color={c.brand} run={ringA} />
-          <Ring size={ringBase} color={c.brand} run={ringB} />
+          <Ring size={ringBase} color={c.brand} run={ringA} maxOpacity={ringOpacity} expand={ringExpand} />
+          <Ring size={ringBase} color={c.brand} run={ringB} maxOpacity={ringOpacity} expand={ringExpand} />
         </>
       ) : null}
       <Animated.View style={logoStyle}>

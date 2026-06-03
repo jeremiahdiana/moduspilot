@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { streamChat, type Message, type GoalContext, type ProjectContext } from '@/lib/api';
+import { streamChat, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon } from '@/components/Icon';
@@ -27,6 +27,7 @@ import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { DraftOptionsCard } from '@/components/DraftOptionsCard';
+import { ProactiveReveal } from '@/components/ui/ProactiveReveal';
 import { ThinkingPulse } from '@/components/ui/ThinkingPulse';
 import { PulseAvatar } from '@/components/ui/PulseAvatar';
 import { parseApprovalParts, stripApprovalBlocks, hasApprovalBlock } from '@/lib/approval';
@@ -36,8 +37,15 @@ import { VoiceOverlay } from '@/components/VoiceOverlay';
 import {
   subscribeConversations, createConversation, saveMessages,
   loadConversation, deleteConversation, deriveTitle, ensureScopedConversation,
-  type ConvSummary,
+  type ConvSummary, type ProactiveKind,
 } from '@/lib/conversations';
+
+// Accent color per proactive card kind — mirrors the briefing palette
+// (relationship nudge = blue) so the cue reads consistently across the app.
+const PROACTIVE_ACCENT: Record<ProactiveKind, string> = {
+  inboxTriage: '#f59e0b',
+  relationshipNudge: '#3b82f6',
+};
 
 // expo-image-picker is a NATIVE module — load lazily so a JS reload before the
 // native rebuild doesn't crash with "Cannot find native module 'ExpoImagePicker'".
@@ -45,7 +53,13 @@ const ImagePicker: typeof import('expo-image-picker') | null = (() => {
   try { return require('expo-image-picker'); } catch { return null; }
 })();
 
-type Scope = { kind: 'goal' | 'project'; title: string; goalContext?: GoalContext; projectContext?: ProjectContext };
+type Scope = {
+  kind: 'goal' | 'project' | 'task';
+  title: string;
+  goalContext?: GoalContext;
+  projectContext?: ProjectContext;
+  taskContext?: TaskContext;
+};
 
 type UIMessage = Message & { id: string; image?: string };
 
@@ -68,6 +82,9 @@ export default function ChatScreen() {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [convId, setConvId] = useState<string | null>(null);
+  // Set when the open conversation was started by MODUS itself (inbox triage /
+  // relationship nudge) — drives the proactive card entrance animation.
+  const [proactiveKind, setProactiveKind] = useState<ProactiveKind | null>(null);
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [scope, setScope] = useState<Scope | null>(null);
@@ -77,8 +94,14 @@ export default function ChatScreen() {
   const listRef = useRef<FlatList>(null);
 
   // Scoped chat: opened from a goal/project detail screen via route params.
-  const params = useLocalSearchParams<{ goalId?: string; projectId?: string; prefill?: string }>();
-  const scopeId = params.goalId ? `goal:${params.goalId}` : params.projectId ? `project:${params.projectId}` : null;
+  const params = useLocalSearchParams<{ goalId?: string; projectId?: string; taskId?: string; prefill?: string }>();
+  const scopeId = params.goalId
+    ? `goal:${params.goalId}`
+    : params.projectId
+      ? `project:${params.projectId}`
+      : params.taskId
+        ? `task:${params.taskId}`
+        : null;
   const handledScopeRef = useRef<string | null | undefined>(undefined);
   const prefillHandledRef = useRef(false);
 
@@ -92,23 +115,29 @@ export default function ChatScreen() {
 
     let alive = true;
     (async () => {
-      const isGoal = scopeId.startsWith('goal:');
+      const kind = scopeId.split(':')[0] as 'goal' | 'project' | 'task';
       const id = scopeId.split(':')[1];
-      const convIdScoped = isGoal ? `goal-${id}` : `project-${id}`;
+      const collectionName = kind === 'goal' ? 'goals' : kind === 'project' ? 'projects' : 'tasks';
+      const convIdScoped = `${kind}-${id}`;
+      const kindLabel = kind === 'goal' ? 'Goal' : kind === 'project' ? 'Project' : 'Task';
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid, isGoal ? 'goals' : 'projects', id));
+        const snap = await getDoc(doc(db, 'users', user.uid, collectionName, id));
         const d = snap.data() ?? {};
-        const title = (d.title as string) ?? (isGoal ? 'Goal' : 'Project');
-        const nextScope: Scope = isGoal
-          ? { kind: 'goal', title, goalContext: { id, title, description: d.description, progress: d.progress } }
-          : { kind: 'project', title, projectContext: { id, title, description: d.description, status: d.status } };
+        const title = (d.title as string) ?? kindLabel;
+        const nextScope: Scope =
+          kind === 'goal'
+            ? { kind: 'goal', title, goalContext: { id, title, description: d.description, progress: d.progress } }
+            : kind === 'project'
+              ? { kind: 'project', title, projectContext: { id, title, description: d.description, status: d.status } }
+              : { kind: 'task', title, taskContext: { id, title, description: d.description, done: d.done, dueDate: d.dueDate, priority: d.priority } };
         const existing = await ensureScopedConversation(user.uid, convIdScoped, {
-          title: `${isGoal ? 'Goal' : 'Project'}: ${title}`,
-          ...(isGoal ? { goalId: id } : { projectId: id }),
+          title: `${kindLabel}: ${title}`,
+          ...(kind === 'goal' ? { goalId: id } : kind === 'project' ? { projectId: id } : { taskId: id }),
         });
         if (!alive) return;
         abortRef.current?.abort();
         setMessages(existing.map(m => ({ id: m.id || newId(), role: m.role, content: m.content })));
+        setProactiveKind(null);
         setConvId(convIdScoped);
         convIdRef.current = convIdScoped;
         setScope(nextScope);
@@ -160,11 +189,12 @@ export default function ChatScreen() {
     setMessages([]);
     setConvId(null);
     convIdRef.current = null;
+    setProactiveKind(null);
     setHistoryOpen(false);
     if (scopeRef.current) {
       setScope(null);
       handledScopeRef.current = null;
-      router.setParams({ goalId: '', projectId: '' });
+      router.setParams({ goalId: '', projectId: '', taskId: '' });
     }
   }
 
@@ -173,8 +203,9 @@ export default function ChatScreen() {
     setHistoryOpen(false);
     setScope(null);
     try {
-      const stored = await loadConversation(user.uid, id);
+      const { messages: stored, proactive } = await loadConversation(user.uid, id);
       setMessages(stored.map(m => ({ id: m.id || newId(), role: m.role, content: m.content })));
+      setProactiveKind(proactive ?? null);
       setConvId(id);
       convIdRef.current = id;
       scrollToBottom();
@@ -248,6 +279,7 @@ export default function ChatScreen() {
         signal: controller.signal,
         goalContext: scopeRef.current?.goalContext,
         projectContext: scopeRef.current?.projectContext,
+        taskContext: scopeRef.current?.taskContext,
         image,
       })) {
         acc += chunk;
@@ -304,8 +336,15 @@ export default function ChatScreen() {
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
       <VoiceOverlay state={voice.state} level={voice.level} onStop={voice.toggle} onCancel={voice.cancel} />
-      {/* Top bar — hamburger + new chat + history */}
+      {/* Top bar — hamburger + new chat + history. Centered ambient mark signals
+          MODUS is live/present (full pulse while it's responding). */}
       <View className="px-4 py-3 flex-row items-center justify-between">
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <PulseAvatar size={22} active={streaming} ambient={!streaming} />
+        </View>
         <TouchableOpacity onPress={open} activeOpacity={0.7} className="p-1.5 -ml-1 rounded-full">
           <Icon name="menu" tone="muted" size={26} />
         </TouchableOpacity>
@@ -321,9 +360,9 @@ export default function ChatScreen() {
 
       {scope && (
         <View className="mx-4 mb-1.5 flex-row items-center gap-2 px-3 py-2 rounded-xl bg-brand/10 border border-brand/25">
-          <Icon name={scope.kind === 'goal' ? 'flag' : 'folder'} tone="brand" size={15} />
+          <Icon name={scope.kind === 'goal' ? 'flag' : scope.kind === 'task' ? 'check-circle' : 'folder'} tone="brand" size={15} />
           <Text className="text-brand text-xs font-semibold flex-1" numberOfLines={1}>
-            {scope.kind === 'goal' ? 'Goal' : 'Project'}: {scope.title}
+            {scope.kind === 'goal' ? 'Goal' : scope.kind === 'task' ? 'Task' : 'Project'}: {scope.title}
           </Text>
           <TouchableOpacity onPress={startNewChat} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
             <Icon name="close" tone="muted" size={16} />
@@ -359,6 +398,7 @@ export default function ChatScreen() {
               isStreaming={streaming && index === messages.length - 1}
               onFollowUp={appendFollowUp}
               onSend={sendMessage}
+              proactive={proactiveKind}
             />
           )}
           showsVerticalScrollIndicator={false}
@@ -442,11 +482,13 @@ function MessageBubble({
   isStreaming,
   onFollowUp,
   onSend,
+  proactive,
 }: {
   message: UIMessage;
   isStreaming: boolean;
   onFollowUp: (text: string) => void;
   onSend: (text: string) => void;
+  proactive?: ProactiveKind | null;
 }) {
   const c = useThemeColors();
   const isUser = message.role === 'user';
@@ -508,7 +550,13 @@ function MessageBubble({
         ) : (
           parts!.map((part, i) =>
             part.type === 'approval' ? (
-              <ApprovalCard key={i} raw={part.value} onFollowUp={onFollowUp} />
+              proactive ? (
+                <ProactiveReveal key={i} accent={PROACTIVE_ACCENT[proactive]} radius={16}>
+                  <ApprovalCard raw={part.value} onFollowUp={onFollowUp} />
+                </ProactiveReveal>
+              ) : (
+                <ApprovalCard key={i} raw={part.value} onFollowUp={onFollowUp} />
+              )
             ) : part.type === 'draft_options' ? (
               <DraftOptionsCard key={i} raw={part.value} onSend={onSend} />
             ) : part.value.trim() ? (

@@ -91,7 +91,16 @@ export default function GoalsScreen() {
           <SkeletonCard />
         </SkeletonList>
       ) : goals.length === 0 ? (
-        <EmptyState icon="flag" title="No goals yet" subtitle="Ask MODUS in chat to help you set a goal." />
+        <EmptyState
+          icon="flag"
+          title="No goals yet"
+          subtitle="Tell MODUS what you're working toward and it'll help you shape the goal."
+          action={{
+            label: 'Set a goal with MODUS',
+            icon: 'auto-awesome',
+            onPress: () => router.push({ pathname: '/(app)/chat', params: { prefill: 'Help me set a new goal.' } }),
+          }}
+        />
       ) : (
         <FlatList
           data={goals}
