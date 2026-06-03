@@ -72,6 +72,9 @@ export const inboxTriage = inngest.createFunction(
                 // Only threads waiting on US: latest message is unread + inbound.
                 if (!thread.unread) continue;
                 if (ownEmails.has(thread.fromAddress.toLowerCase())) continue;
+                // Skip newsletters / promos / transactional mail — never worth an
+                // auto-drafted reply (List-Unsubscribe header or bulk category).
+                if (thread.bulk) continue;
                 if (AUTOMATED_SENDER.test(thread.fromAddress) || AUTOMATED_SENDER.test(thread.from)) continue;
                 if ((thread.body ?? '').trim().length < 20) continue;
 

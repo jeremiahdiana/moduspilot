@@ -7,6 +7,9 @@ export interface GmailThread {
   body: string;
   date: string;
   unread: boolean;
+  /** Bulk/newsletter/transactional mail: has a List-Unsubscribe header or a
+   *  Gmail promo/update/social/forum category label. Not worth auto-replying to. */
+  bulk: boolean;
 }
 
 function htmlToText(html: string): string {
@@ -100,9 +103,9 @@ export async function getRecentSenders(accessToken: string, days = 30): Promise<
     const settled = await Promise.allSettled(
       threads.slice(0, 50).map(t =>
         fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=metadata&metadataHeaders=From&metadataHeaders=Date`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/threads/${t.id}?format=metadata&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=List-Unsubscribe`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
-        ).then(r => r.ok ? r.json() as Promise<{ messages?: { payload?: { headers?: { name: string; value: string }[] } }[] }> : null)
+        ).then(r => r.ok ? r.json() as Promise<{ messages?: { labelIds?: string[]; payload?: { headers?: { name: string; value: string }[] } }[] }> : null)
       )
     );
 
@@ -112,6 +115,13 @@ export async function getRecentSenders(accessToken: string, days = 30): Promise<
         const msgs = s.value.messages ?? [];
         if (!msgs.length) continue;
         const headers = msgs[0].payload?.headers ?? [];
+        // Skip newsletters / bulk senders so they never become "contacts" the
+        // relationship-nurture job suggests reconnecting with.
+        const labelIds = msgs[0].labelIds ?? [];
+        const isBulk =
+          headers.some(h => h.name.toLowerCase() === 'list-unsubscribe') ||
+          labelIds.some(l => l === 'CATEGORY_PROMOTIONS' || l === 'CATEGORY_UPDATES' || l === 'CATEGORY_SOCIAL' || l === 'CATEGORY_FORUMS');
+        if (isBulk) continue;
         const fromRaw = headers.find(h => h.name === 'From')?.value ?? '';
         const dateHeader = headers.find(h => h.name === 'Date')?.value ?? '';
         const emailMatch = fromRaw.match(/<([^>]+)>/);
@@ -203,10 +213,18 @@ export async function getActionableThreads(
         const from = cleanFrom(fromRaw);
         const fromAddress = fromRaw.match(/<([^>]+)>/)?.[1] ?? fromRaw.trim();
         const date = latestHeaders.find(h => h.name === 'Date')?.value ?? '';
-        const unread = (latestMsg.labelIds ?? []).includes('UNREAD');
+        const labelIds: string[] = latestMsg.labelIds ?? [];
+        const unread = labelIds.includes('UNREAD');
         const body = extractTextBody(latestMsg.payload);
 
-        results.push({ id: threadData.id ?? '', subject, from, fromAddress, snippet: threadData.snippet ?? '', body, date, unread });
+        // Bulk-mail signals: a List-Unsubscribe header (universal for newsletters/
+        // transactional senders) or a Gmail bulk-category label.
+        const hasUnsubscribe = latestHeaders.some(h => h.name.toLowerCase() === 'list-unsubscribe');
+        const bulkCategory = labelIds.some(l =>
+          l === 'CATEGORY_PROMOTIONS' || l === 'CATEGORY_UPDATES' || l === 'CATEGORY_SOCIAL' || l === 'CATEGORY_FORUMS');
+        const bulk = hasUnsubscribe || bulkCategory;
+
+        results.push({ id: threadData.id ?? '', subject, from, fromAddress, snippet: threadData.snippet ?? '', body, date, unread, bulk });
       } catch { /* skip */ }
     }
 
