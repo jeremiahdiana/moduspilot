@@ -123,7 +123,7 @@ export const weeklyReview = inngest.createFunction(
 
             const { text } = await generateText({
               model: groq('llama-3.3-70b-versatile'),
-              prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a weekly review for ${name}. Structure it as: (1) what they shipped this week, (2) what slipped and why it might have, (3) the behavioral pattern identified below — state it as fact, not speculation, (4) the sharpest focus for next week. Keep it under 200 words. Sharp, direct, no filler, no em dashes. Make it feel like a trusted advisor debriefing them, not a report.\n\n${contextLines.join('\n') || 'No data for this week.'}`,
+              prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a weekly review for ${name}. Structure it as: (1) what they shipped this week, (2) what slipped and why it might have, (3) the behavioral pattern identified below — state it as fact, not speculation, (4) the sharpest focus for next week. Keep it under 200 words. Sharp, direct, no filler, no em dashes. Make it feel like a trusted advisor debriefing them, not a report. Address ${name} directly in the second person ("you", "your") — never "we" or "our".\n\n${contextLines.join('\n') || 'No data for this week.'}`,
               maxTokens: 350,
             });
 

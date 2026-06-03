@@ -57,7 +57,7 @@ export const meetingIntelligence = inngest.createFunction(
 
                 const { text } = await generateText({
                   model: groq('llama-3.3-70b-versatile'),
-                  prompt: `You are MODUS Pilot. Write a sharp pre-meeting brief for ${name} going into "${event.title}" at ${startTime}. 3 sentences max: (1) one sentence on what this meeting is likely about, (2) one thing to have sharp in mind going in, (3) one question they should be ready to answer or ask. Direct, no filler, no em dashes.\n\nActive goals for context: ${goals.join(', ') || 'none'}\n${event.location ? `Location: ${event.location}` : ''}`,
+                  prompt: `You are MODUS Pilot. Write a sharp pre-meeting brief for ${name} going into "${event.title}" at ${startTime}. 3 sentences max: (1) one sentence on what this meeting is likely about, (2) one thing to have sharp in mind going in, (3) one question they should be ready to answer or ask. Address ${name} directly in the second person ("you", "your") — never "we" or "our". Direct, no filler, no em dashes.\n\nActive goals for context: ${goals.join(', ') || 'none'}\n${event.location ? `Location: ${event.location}` : ''}`,
                   maxTokens: 150,
                 });
 

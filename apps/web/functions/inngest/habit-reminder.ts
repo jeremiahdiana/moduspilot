@@ -72,7 +72,7 @@ export const habitReminder = inngest.createFunction(
 
               const { text } = await generateText({
                 model: groq('llama-3.3-70b-versatile'),
-                prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief evening habit reminder for ${name}. They still haven't logged: ${incomplete.join(', ')}. Keep it to 1-2 sentences. Be direct and motivating — not preachy. End of day push, make it feel urgent but achievable. No em dashes. No filler.`,
+                prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief evening habit reminder for ${name}. They still haven't logged: ${incomplete.join(', ')}. Keep it to 1-2 sentences. Be direct and motivating — not preachy. End of day push, make it feel urgent but achievable. Address ${name} directly in the second person ("you", "your") — never "we" or "our". No em dashes. No filler.`,
                 maxTokens: 100,
               });
 

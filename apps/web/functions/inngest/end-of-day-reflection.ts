@@ -74,7 +74,7 @@ export const endOfDayReflection = inngest.createFunction(
 
             const { text } = await generateText({
               model: groq('llama-3.3-70b-versatile'),
-              prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief end-of-day reflection for ${name}. 3-4 sentences max. Acknowledge what they got done, call out what slipped without lecturing, and set the frame for tomorrow. Direct, no filler, no em dashes.\n\n${contextLines.join('\n') || 'No task data for today.'}`,
+              prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief end-of-day reflection for ${name}. 3-4 sentences max. Acknowledge what they got done, call out what slipped without lecturing, and set the frame for tomorrow. Address ${name} directly in the second person ("you", "your") — never "we" or "our". Direct, no filler, no em dashes.\n\n${contextLines.join('\n') || 'No task data for today.'}`,
               maxTokens: 200,
             });
 

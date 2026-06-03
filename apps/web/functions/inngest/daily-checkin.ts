@@ -82,7 +82,7 @@ export const dailyCheckin = inngest.createFunction(
 
               const { text } = await generateText({
                 model: groq('llama-3.3-70b-versatile'),
-                prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief midday check-in for ${name}. Keep it to 2-3 sentences. Be direct and energizing — not cheerleader-y. Acknowledge what's on their plate and push them to close out the day strong.\n\n${contextLines.join('\n') || 'No specific tasks due today.'}\n\nDo not use em dashes. No filler phrases.`,
+                prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief midday check-in for ${name}. Keep it to 2-3 sentences. Be direct and energizing — not cheerleader-y. Acknowledge what's on their plate and push them to close out the day strong.\n\n${contextLines.join('\n') || 'No specific tasks due today.'}\n\nAddress ${name} directly in the second person ("you", "your") — never "we" or "our". Do not use em dashes. No filler phrases.`,
                 maxTokens: 150,
               });
 
