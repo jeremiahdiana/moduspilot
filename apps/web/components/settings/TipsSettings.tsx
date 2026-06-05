@@ -82,6 +82,11 @@ const SECTIONS: Section[] = [
         tag: 'Workflow',
       },
       {
+        title: 'Schedule straight from an email',
+        body: 'Paste or forward an email and say "put this on my calendar". MODUS pulls out the date and time and surfaces a calendar hold — approve it and the event lands in Google Calendar.',
+        tag: 'Cross-tool',
+      },
+      {
         title: 'Update goal progress with words',
         body: 'Just say "I\'m about 60% done with my YC application goal" and MODUS will surface an update_goal_progress card with the slider pre-set.',
       },
@@ -89,6 +94,35 @@ const SECTIONS: Section[] = [
         title: 'Tell MODUS who you are',
         body: 'Go to Settings → General → Personal Context. Write 2–5 sentences about your role, how you like to work, and your priorities. MODUS reads this in every conversation.',
         tag: 'Setup tip',
+      },
+    ],
+  },
+  {
+    heading: 'Proactive — MODUS works on its own',
+    icon: '✨',
+    tips: [
+      {
+        title: 'MODUS triages your inbox for you',
+        body: 'Through the day MODUS scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and drops it in chat with a push notification. Approve, edit, or skip — nothing sends until you tap. Turn it off in Settings → Capabilities → Inbox Triage.',
+        tag: 'Automatic',
+      },
+      {
+        title: 'Meeting requests become calendar holds',
+        body: 'When an email proposes a specific date and time, MODUS recognizes the meeting request and surfaces a calendar hold instead of a reply. Approve it and the event is created in your Google Calendar — no copying details by hand.',
+        tag: 'Cross-tool',
+      },
+      {
+        title: 'Pre- and post-meeting briefs',
+        body: 'Before a meeting MODUS sends a sharp brief: what it is likely about, what to have in mind, and one question to be ready for. After it ends, it asks how it went and can turn action items into tasks.',
+      },
+      {
+        title: 'Your morning briefing reads your whole day',
+        body: 'At the time you set (Settings → General), MODUS generates a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox — your top 3, anything overdue, and habits at risk of breaking streak. Turn it off in Settings → Capabilities → Daily Briefing.',
+        tag: 'Daily',
+      },
+      {
+        title: 'It nudges you about people you\'re leaving hanging',
+        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold.',
       },
     ],
   },

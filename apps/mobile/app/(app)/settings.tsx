@@ -108,6 +108,8 @@ export default function SettingsScreen() {
           <NavRow icon="tune" label="Model" onPress={() => router.push('/(app)/model-settings' as never)} />
           <Divider />
           <NavRow icon="psychology" label="Memory" onPress={() => router.push('/(app)/memory' as never)} />
+          <Divider />
+          <NavRow icon="lightbulb-outline" label="Tips & Tricks" onPress={() => router.push('/(app)/tips' as never)} />
         </View>
 
         {/* Capabilities */}
