@@ -1,6 +1,9 @@
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
+import { getAllValidAccessTokens } from '@/lib/google-oauth';
+import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
+import { getActionableThreads } from '@/lib/google-gmail';
 
 function msgId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -89,8 +92,39 @@ export async function GET(req: Request) {
           .sort((a, b) => b.daysSince - a.daysSince)
           .slice(0, 3);
 
+        // Live cross-tool context: today's calendar + unread primary inbox,
+        // merged across every connected Google account. Non-fatal — a briefing
+        // still generates from Firestore data if Google isn't connected/errors.
+        const tz = (userDoc.data()?.settings?.briefingTimezone as string) ?? 'UTC';
+        let schedule: { time: string; title: string }[] = [];
+        let unreadEmails: { from: string; subject: string }[] = [];
+        try {
+          const accounts = await getAllValidAccessTokens(uid);
+          if (accounts.length) {
+            const perAccount = await Promise.all(accounts.map(async ({ token }) => {
+              const [events, threads] = await Promise.all([
+                getTodayEvents(token, tz),
+                getActionableThreads(token, { filter: 'primary' }),
+              ]);
+              return { events, threads };
+            }));
+            schedule = perAccount.flatMap(a => a.events)
+              .filter(e => !e.allDay && e.start)
+              .sort((x, y) => x.start.localeCompare(y.start))
+              .map(e => ({ time: fmtEventTime(e.start, tz), title: e.title }));
+            unreadEmails = perAccount.flatMap(a => a.threads)
+              .filter(t => t.unread && !t.bulk)
+              .slice(0, 5)
+              .map(t => ({ from: t.from, subject: t.subject }));
+          }
+        } catch (e) {
+          console.error(`[daily-briefing] google fetch failed for ${uid}:`, e);
+        }
+
         const briefingData = await generateBriefingData(name, {
           goals, tasks, habits, today, yesterday,
+          schedule: schedule.length ? schedule : undefined,
+          unreadEmails: unreadEmails.length ? unreadEmails : undefined,
           staleContacts: staleContacts.length ? staleContacts : undefined,
           slippedTaskTitles30Days: slippedTaskTitles30Days.length ? slippedTaskTitles30Days : undefined,
           habitRates30Days: habitRates30Days.length ? habitRates30Days : undefined,

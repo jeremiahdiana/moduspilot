@@ -22,6 +22,21 @@ function localHour(timezone: string): number {
   catch { return new Date().getUTCHours(); }
 }
 
+// Current date/time in the user's timezone, so the model can resolve relative
+// dates ("tomorrow", "next Tuesday") into concrete ISO datetimes for calendar holds.
+function nowContext(timezone: string): { label: string; iso: string; time: string } {
+  const now = new Date();
+  try {
+    return {
+      label: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: timezone }),
+      iso: now.toLocaleDateString('en-CA', { timeZone: timezone }),
+      time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }),
+    };
+  } catch {
+    return { label: now.toUTCString(), iso: now.toISOString().slice(0, 10), time: `${now.getUTCHours()}:00` };
+  }
+}
+
 function triagedCol(uid: string) {
   return adminDb.collection('users').doc(uid).collection('triaged_threads');
 }
@@ -82,34 +97,94 @@ export const inboxTriage = inngest.createFunction(
                 const dedupRef = triagedCol(uid).doc(thread.id);
                 if ((await dedupRef.get()).exists) continue;
 
-                const { text: draft } = await generateText({
+                // One model call decides the cross-tool action: a concrete
+                // meeting request becomes a calendar hold (schedule_event), and
+                // everything else becomes a reply draft (send_email).
+                const now = nowContext(tz);
+                const { text: rawJson } = await generateText({
                   model: groq('llama-3.3-70b-versatile'),
-                  prompt: `You are MODUS Pilot, ${name}'s chief of staff. Draft a reply ${name} can send to this email. Write in ${name}'s voice: direct, warm, concise. No subject line, no "Dear", no signature block, no placeholders like [Name] — just the reply body ready to send. 2-5 sentences. No em dashes.\n\n${personalContext ? `About ${name}: ${personalContext}\n` : ''}${goals.length ? `${name}'s current goals: ${goals.join(', ')}\n` : ''}\n--- Email from ${thread.from} ---\nSubject: ${thread.subject}\n\n${(thread.body ?? '').slice(0, 4000)}\n--- end ---\n\nReply body:`,
+                  prompt: `You are MODUS Pilot, ${name}'s chief of staff, triaging an inbound email. Today is ${now.label} (${now.iso}); the current local time is ${now.time}.
+
+Decide what ${name} needs and output ONLY a JSON object (no markdown fences, no prose). Exactly one of:
+{"kind":"meeting","title":"short event title e.g. Call with Jane (Acme)","startDateTime":"YYYY-MM-DDTHH:MM:SS","endDateTime":"YYYY-MM-DDTHH:MM:SS","humanTime":"e.g. Tuesday, June 10 at 2:00 PM"}
+{"kind":"reply","body":"the reply body"}
+
+Use kind=meeting ONLY when the email proposes or requests a meeting/call at an UNAMBIGUOUS date AND time you can pin to a concrete slot:
+- Resolve relative dates ("tomorrow","next Tuesday") against today's date above. Use the proposed local time exactly. Do NOT include a timezone or Z suffix in the datetimes.
+- If only a start time is given, set endDateTime to 30 minutes later.
+- If the time is vague or missing ("sometime next week","are you free?"), use kind=reply instead.
+
+For kind=reply, write the body in ${name}'s voice: direct, warm, concise. No subject line, no "Dear", no signature, no placeholders like [Name]. 2-5 sentences. No em dashes.
+${personalContext ? `\nAbout ${name}: ${personalContext}` : ''}${goals.length ? `\n${name}'s current goals: ${goals.join(', ')}` : ''}
+
+--- Email from ${thread.from} ---
+Subject: ${thread.subject}
+
+${(thread.body ?? '').slice(0, 4000)}
+--- end ---`,
                   maxTokens: 400,
                 });
 
-                const reply = draft.trim();
-                if (!reply) continue;
+                let parsed: { kind?: string; title?: string; startDateTime?: string; endDateTime?: string; humanTime?: string; body?: string } | null = null;
+                try {
+                  parsed = JSON.parse(rawJson.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim());
+                } catch { parsed = null; }
+                if (!parsed) continue;
 
-                const replySubject = /^re:/i.test(thread.subject) ? thread.subject : `Re: ${thread.subject}`;
-                const approvalCard = JSON.stringify({
-                  type: 'send_email',
-                  title: `Reply to ${thread.from}`,
-                  description: `Re: ${thread.subject}`,
-                  payload: {
-                    to: thread.fromAddress,
-                    subject: replySubject,
-                    body: reply,
-                    threadId: thread.id,
-                    from_account: email,
-                  },
-                });
+                let approvalCard: string;
+                let messageText: string;
+                let pushTitle: string;
+                let pushBody: string;
+                let kind: 'meeting' | 'reply';
+                let convoTitle: string;
 
-                const messageText = `**${thread.from}** emailed you${thread.subject ? ` about "${thread.subject}"` : ''} and is waiting on a reply. Here's a draft you can edit and send:\n\n\`\`\`approval\n${approvalCard}\n\`\`\``;
+                if (parsed.kind === 'meeting' && parsed.title && parsed.startDateTime && parsed.endDateTime) {
+                  // Reject unparseable datetimes rather than creating a junk hold.
+                  if (isNaN(new Date(parsed.startDateTime).getTime())) continue;
+                  const human = parsed.humanTime || parsed.startDateTime;
+                  kind = 'meeting';
+                  convoTitle = `Meeting: ${thread.subject || thread.from}`;
+                  approvalCard = JSON.stringify({
+                    type: 'schedule_event',
+                    title: parsed.title,
+                    description: `${human} · from ${thread.from}`,
+                    payload: {
+                      startDateTime: parsed.startDateTime,
+                      endDateTime: parsed.endDateTime,
+                      date: human,
+                      sourceThreadId: thread.id,
+                      sourceFrom: thread.fromAddress,
+                    },
+                  });
+                  messageText = `**${thread.from}** proposed a meeting${thread.subject ? ` about "${thread.subject}"` : ''}: ${human}. Here's a calendar hold you can approve, edit, or skip:\n\n\`\`\`approval\n${approvalCard}\n\`\`\``;
+                  pushTitle = `Meeting with ${thread.from}?`;
+                  pushBody = human;
+                } else {
+                  const reply = (parsed.body ?? '').trim();
+                  if (!reply) continue;
+                  kind = 'reply';
+                  convoTitle = `Reply: ${thread.subject || thread.from}`;
+                  const replySubject = /^re:/i.test(thread.subject) ? thread.subject : `Re: ${thread.subject}`;
+                  approvalCard = JSON.stringify({
+                    type: 'send_email',
+                    title: `Reply to ${thread.from}`,
+                    description: `Re: ${thread.subject}`,
+                    payload: {
+                      to: thread.fromAddress,
+                      subject: replySubject,
+                      body: reply,
+                      threadId: thread.id,
+                      from_account: email,
+                    },
+                  });
+                  messageText = `**${thread.from}** emailed you${thread.subject ? ` about "${thread.subject}"` : ''} and is waiting on a reply. Here's a draft you can edit and send:\n\n\`\`\`approval\n${approvalCard}\n\`\`\``;
+                  pushTitle = `Reply to ${thread.from}?`;
+                  pushBody = reply.slice(0, 120);
+                }
 
                 await Promise.all([
                   adminDb.collection('users').doc(uid).collection('conversations').add({
-                    title: `Reply: ${thread.subject || thread.from}`,
+                    title: convoTitle,
                     createdAt: FieldValue.serverTimestamp(),
                     updatedAt: FieldValue.serverTimestamp(),
                     deleted: false,
@@ -123,13 +198,14 @@ export const inboxTriage = inngest.createFunction(
                     subject: thread.subject,
                     from: thread.from,
                     account: email,
+                    kind,
                     triagedAt: FieldValue.serverTimestamp(),
                   }),
-                  sendPushToUser(uid, `Reply to ${thread.from}?`, reply.slice(0, 120)).catch(() => {}),
+                  sendPushToUser(uid, pushTitle, pushBody).catch(() => {}),
                 ]);
 
                 sent++;
-                console.log(`[inbox-triage] drafted reply for ${uid}: "${thread.subject}" from ${thread.from}`);
+                console.log(`[inbox-triage] ${kind} card for ${uid}: "${thread.subject}" from ${thread.from}`);
               }
             }
           } catch (e) {

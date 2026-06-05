@@ -68,6 +68,7 @@ export async function generateBriefingData(
     today: string;
     yesterday: string;
     schedule?: { time: string; title: string }[];
+    unreadEmails?: { from: string; subject: string }[];
     staleContacts?: { name: string; daysSince: number }[];
     slippedTaskTitles30Days?: string[];
     habitRates30Days?: { title: string; doneOutOf30: number }[];
@@ -103,6 +104,10 @@ export async function generateBriefingData(
   const scheduleText = input.schedule?.length
     ? input.schedule.map(e => `- ${e.time}: ${e.title}`).join('\n')
     : 'No calendar events.';
+
+  const emailsText = input.unreadEmails?.length
+    ? input.unreadEmails.map(e => `- ${e.from}: ${e.subject}`).join('\n')
+    : '';
 
   const staleContactsText = input.staleContacts?.length
     ? input.staleContacts.map(c => `- ${c.name} (${c.daysSince} days ago)`).join('\n')
@@ -143,6 +148,7 @@ Rules:
 - habits: only habits from the input that have active streaks or were done recently. at_risk = streak > 0 and not done today. on_track = streak > 0 and done today. done = completed today.
 - patternCallout: null unless the 30-DAY HISTORY shows a specific, genuine behavioral pattern (a category of tasks repeatedly avoided, a habit with consistently low completion). Name it with counts. Do not invent one if the history is empty.
 - relationshipAlert: if STALE CONTACTS exist, write one punchy line naming the person and days since contact. If multiple, name the most overdue. null if no stale contacts.
+- UNREAD EMAILS: if any exist and one is genuinely important or time-sensitive, you may surface it as a top3 item (source like "Inbox · {sender}") or as the looseEnd. Never invent emails not in the input; ignore the list if nothing looks urgent.
 - schedule: return the calendar events from the input as-is. Empty array if none.
 - Never use em dashes. Never fabricate tasks or goals not in the input.`;
 
@@ -160,7 +166,7 @@ HABITS:
 ${habitsText}
 
 TODAY'S CALENDAR:
-${scheduleText}${patternHistoryText ? `\n\n30-DAY HISTORY (for patternCallout only):\n${patternHistoryText}` : ''}${staleContactsText ? `\n\nSTALE CONTACTS (emailed you, no reply yet):\n${staleContactsText}` : ''}`;
+${scheduleText}${emailsText ? `\n\nUNREAD EMAILS (awaiting reply):\n${emailsText}` : ''}${patternHistoryText ? `\n\n30-DAY HISTORY (for patternCallout only):\n${patternHistoryText}` : ''}${staleContactsText ? `\n\nSTALE CONTACTS (emailed you, no reply yet):\n${staleContactsText}` : ''}`;
 
   const fallback = (): BriefingData => ({
     openingLine: `${todayLabel()} — let's get to it.`,
