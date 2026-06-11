@@ -65,7 +65,7 @@ export default function WelcomeScreen() {
           <View className="mt-8">
             <GradientButton label="Get started" icon="arrow-forward" size="lg" onPress={() => router.push('/onboarding')} />
             <Text className="text-muted text-xs text-center mt-3">
-              30-day free trial · No credit card required
+              3-day free trial · No credit card required
             </Text>
 
             <TouchableOpacity

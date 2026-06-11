@@ -347,7 +347,7 @@ function Traction() {
 /* ─── SLIDE 12 — BUSINESS MODEL ──────────────────────────────── */
 function BusinessModel() {
   const plans = [
-    { name: 'Free', price: '$0', desc: '30-day full trial, then 20 msg/day', highlight: false },
+    { name: 'Free', price: '$0', desc: '3-day full trial, then 20 msg/day', highlight: false },
     { name: 'MODUS', price: '$24/mo', desc: 'Unlimited everything', highlight: true },
     { name: 'PILOT', price: '$59/mo', desc: 'Executives + wearables, CRM, financial data', highlight: false },
   ];

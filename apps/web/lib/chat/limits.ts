@@ -56,7 +56,7 @@ export async function enforceFreeTierLimit(uid: string, userData: Record<string,
   if (isPaid) return null;
 
   // Use modusPilotSignupAt for trial — more reliable than Firebase Auth creation time.
-  // If missing (existing users), set it now so their 30-day trial starts from today.
+  // If missing (existing users), set it now so their 3-day trial starts from today.
   let inTrial = false;
   const rawSignup = userData.modusPilotSignupAt;
   if (rawSignup) {

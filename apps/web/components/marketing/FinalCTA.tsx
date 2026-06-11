@@ -37,7 +37,7 @@ export default function FinalCTA() {
               See how it works
             </a>
           </div>
-          <p className="text-xs text-muted/40 mt-6">30-day free trial · No credit card · Cancel anytime</p>
+          <p className="text-xs text-muted/40 mt-6">3-day free trial · No credit card · Cancel anytime</p>
         </motion.div>
       </div>
     </section>

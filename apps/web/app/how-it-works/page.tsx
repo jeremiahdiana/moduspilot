@@ -450,7 +450,7 @@ export default function HowItWorksPage() {
                 <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
                   <Link href="/login"
                     className="inline-block px-10 py-4 bg-brand text-white font-bold rounded-xl hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all text-base">
-                    Start free — 30 days full access →
+                    Start free — 3 days full access →
                   </Link>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>

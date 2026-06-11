@@ -6,7 +6,7 @@ const PLANS = [
   {
     tier: 'FREE',
     price: '$0',
-    sub: '30-day full trial, then limited. No credit card required.',
+    sub: '3-day full trial, then limited. No credit card required.',
     cta: 'Start Free',
     popular: false,
     features: [

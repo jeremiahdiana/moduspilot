@@ -201,7 +201,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         >
           Set up MODUS — takes 60 sec →
         </motion.button>
-        <p className="text-xs text-muted text-center">30-day free trial · No credit card required</p>
+        <p className="text-xs text-muted text-center">3-day free trial · No credit card required</p>
       </motion.div>
     </div>
   );

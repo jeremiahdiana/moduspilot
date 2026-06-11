@@ -18,7 +18,7 @@ const PLANS: Array<{
     price: '$0',
     period: '',
     features: [
-      '30-day full trial',
+      '3-day full trial',
       '20 messages/day after trial',
       'Goals, tasks, habits',
       'Chat history (90 days)',

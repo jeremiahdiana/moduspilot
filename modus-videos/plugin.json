@@ -1,0 +1,67 @@
+{
+  "name": "MODUS Videos",
+  "description": "Branded video creation suite for MODUS Pilot. Generate app teasers, product ads, explainers, founder pitches, and podcasts with MODUS branding.",
+  "version": "1.0.0",
+  "author": "MODUS Pilot",
+  "license": "MIT",
+  "capabilities": [
+    "video-creation",
+    "branding",
+    "social-media",
+    "marketing"
+  ],
+  "skills": [
+    {
+      "name": "modus-app-teaser",
+      "description": "Create iOS app teaser videos for the App Store with MODUS branding",
+      "path": "skills/app-teaser/SKILL.md"
+    },
+    {
+      "name": "modus-social-ad",
+      "description": "Create TikTok/Instagram product ads with MODUS minimalist style",
+      "path": "skills/social-ad/SKILL.md"
+    },
+    {
+      "name": "modus-explainer",
+      "description": "Create product explainer videos for your website",
+      "path": "skills/explainer/SKILL.md"
+    },
+    {
+      "name": "modus-founder-pitch",
+      "description": "Create founder pitch videos for investors and announcements",
+      "path": "skills/founder-pitch/SKILL.md"
+    },
+    {
+      "name": "modus-podcast",
+      "description": "Create two-host podcast videos for team content",
+      "path": "skills/podcast/SKILL.md"
+    }
+  ],
+  "mcpServers": [],
+  "brandColors": {
+    "primary": "#7C3AED",
+    "primaryLight": "#a78bfa",
+    "primaryDark": "#6d28d9",
+    "accentGradient": ["#a78bfa", "#7c3aed", "#c084fc", "#818cf8", "#7c3aed", "#a78bfa"]
+  },
+  "themes": {
+    "light": {
+      "background": "#FAF9FF",
+      "panel": "#FFFFFF",
+      "border": "#E2DCF4",
+      "text": "#0D0D14",
+      "muted": "#645A7A"
+    },
+    "dark": {
+      "background": "#0A0A0F",
+      "panel": "#111118",
+      "text": "#E8E8F0"
+    }
+  },
+  "metadata": {
+    "keyMessage": "Why pay for a chatbot when you can have a whole system?",
+    "platforms": ["Instagram", "TikTok", "App Store", "Product Website"],
+    "videoStyle": ["professional", "minimalist", "creative"],
+    "targetAudience": "AI-first product users and tech-forward professionals"
+  }
+}

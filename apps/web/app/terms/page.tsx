@@ -46,7 +46,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Subscription and Payment">
-          <p>MODUS offers a free tier with a 30-day full trial, after which free accounts are limited to 20 messages per day. Paid plans (MODUS at $24/mo, PILOT at $59/mo) provide unlimited access and additional features.</p>
+          <p>MODUS offers a free tier with a 3-day full trial, after which free accounts are limited to 20 messages per day. Paid plans (MODUS at $24/mo, PILOT at $59/mo) provide unlimited access and additional features.</p>
           <p>Payments are processed by Stripe. By subscribing you authorize us to charge your payment method on a recurring monthly basis. You may cancel at any time from Settings → Billing. Cancellation takes effect at the end of your current billing period — no refunds for partial months.</p>
           <p>We reserve the right to change pricing with 30 days notice to existing subscribers.</p>
         </Section>

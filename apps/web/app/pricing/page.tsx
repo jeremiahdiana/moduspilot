@@ -48,7 +48,7 @@ const PLANS = [
     tier: 'FREE',
     price: '$0',
     period: '/mo',
-    sub: '30-day full trial, then limited. No credit card required.',
+    sub: '3-day full trial, then limited. No credit card required.',
     cta: 'Start Free',
     href: '/login',
     popular: false,
@@ -131,7 +131,7 @@ const COMPARISONS = [
 
 const FAQS = [
   {
-    q: 'What happens after the 30-day trial?',
+    q: 'What happens after the 3-day trial?',
     a: 'You keep access on the free tier — limited to 20 messages per day and up to 3 active goals. No credit card required to start. Upgrade anytime to unlock everything.',
   },
   {
@@ -239,7 +239,7 @@ export default function PricingPage() {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="flex items-center justify-center gap-6 text-sm text-muted"
             >
-              {['30-day full trial', 'No credit card', 'Cancel anytime'].map(t => (
+              {['3-day full trial', 'No credit card', 'Cancel anytime'].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <span className="text-brand">◆</span>
                   {t}
@@ -492,7 +492,7 @@ export default function PricingPage() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                   className="text-muted text-lg mb-10 max-w-md mx-auto leading-relaxed"
                 >
-                  Start free. No credit card. Cancel anytime.<br />Your first 30 days are fully unlocked.
+                  Start free. No credit card. Cancel anytime.<br />Your first 3 days are fully unlocked.
                 </motion.p>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -521,7 +521,7 @@ export default function PricingPage() {
                   transition={{ duration: 0.5, delay: 0.45 }}
                   className="text-muted text-xs mt-6"
                 >
-                  30-day full trial · No credit card required
+                  3-day full trial · No credit card required
                 </motion.p>
               </div>
             </div>

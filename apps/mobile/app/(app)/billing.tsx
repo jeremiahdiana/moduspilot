@@ -13,7 +13,7 @@ import { haptics } from '@/lib/haptics';
 type Plan = 'free' | 'modus' | 'pilot';
 
 const TIERS: { key: Plan; name: string; price: string; tagline: string; features: string[] }[] = [
-  { key: 'free', name: 'Free', price: '$0', tagline: '30-day full trial, then 20 messages/day', features: ['Core chat + approvals', 'Goals, habits, briefing'] },
+  { key: 'free', name: 'Free', price: '$0', tagline: '3-day full trial, then 20 messages/day', features: ['Core chat + approvals', 'Goals, habits, briefing'] },
   { key: 'modus', name: 'MODUS', price: '$24/mo', tagline: 'Unlimited everything', features: ['Unlimited messages', 'All integrations', 'Proactive briefings'] },
   { key: 'pilot', name: 'PILOT', price: '$59/mo', tagline: 'For founders & executives', features: ['Everything in MODUS', 'Wearables, CRM, financial', 'Priority support'] },
 ];

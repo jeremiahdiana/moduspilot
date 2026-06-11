@@ -367,7 +367,7 @@ export default function LoginPage() {
 
         {/* Trust line below card */}
         <p className="text-center text-muted/40 text-xs mt-5">
-          30-day free trial · No credit card · Cancel anytime
+          3-day free trial · No credit card · Cancel anytime
         </p>
       </motion.div>
     </>

@@ -84,7 +84,7 @@ export default function PaywallModal({ onClose }: Props) {
 
         <div className="text-center mb-6">
           <span className="text-2xl font-black tracking-widest text-brand">MODUS PILOT</span>
-          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Your 30-day trial has ended</p>
+          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Your 3-day trial has ended</p>
         </div>
 
         <h2 className="text-xl font-bold text-text mb-1">Choose your plan</h2>

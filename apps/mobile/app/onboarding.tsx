@@ -246,7 +246,7 @@ function PaywallScreen({
                 <Text className="text-text font-bold text-sm mb-1">Free</Text>
                 <Text className="text-2xl font-display font-black text-text">$0</Text>
                 <Text className="text-muted text-[11px] mt-1 leading-relaxed">
-                  {'20 msg/day\nafter 30d trial'}
+                  {'20 msg/day\nafter 3d trial'}
                 </Text>
                 <View className="mt-3 gap-1.5">
                   <Text className="text-muted text-[11px]">· Core chat</Text>
@@ -276,13 +276,13 @@ function PaywallScreen({
           <AnimatedRow index={10}>
             <View className="gap-3">
               <GradientButton
-                label="Start my 30-day free trial"
+                label="Start my 3-day free trial"
                 onPress={onContinue}
                 size="lg"
                 style={{ alignSelf: 'stretch' }}
               />
               <Text className="text-muted/70 text-[11px] text-center leading-4">
-                Then $24/mo. Cancel anytime. No credit card required.
+                Then $24/mo. Cancel anytime. No credit card needed.
               </Text>
             </View>
           </AnimatedRow>
@@ -718,7 +718,7 @@ export default function OnboardingScreen() {
           )}
 
           <Text className="text-muted/70 text-[11px] text-center px-4 leading-4">
-            30-day free trial · No credit card required
+            3-day free trial · No credit card required
           </Text>
         </View>
       ),
