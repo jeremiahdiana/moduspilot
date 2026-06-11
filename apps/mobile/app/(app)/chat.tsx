@@ -22,6 +22,8 @@ import { Icon, type IconName } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme';
 import { GlassView } from '@/components/ui/Glass';
+import { Logo } from '@/components/ui/Logo';
+import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { DraftOptionsCard } from '@/components/DraftOptionsCard';
@@ -62,18 +64,35 @@ type Scope = {
 type UIMessage = Message & { id: string; image?: string };
 
 let msgCounter = 0;
-function newId() {
-  return `msg_${Date.now()}_${++msgCounter}`;
+function newId() { return `msg_${Date.now()}_${++msgCounter}`; }
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning.' : h < 17 ? 'Good afternoon.' : 'Good evening.';
 }
 
-
-const SKILLS: { icon: IconName; label: string; prompt: string }[] = [
-  { icon: 'calendar-today',  label: 'Plan my week',         prompt: 'Help me plan my week. Ask me what I have going on and build a focused plan.' },
-  { icon: 'mail-outline',    label: 'Write a cold email',   prompt: "Help me write a cold email. Ask me who I'm emailing and what I want to say." },
-  { icon: 'flag',            label: 'Summarize my goals',   prompt: 'Summarize my current goals and tell me where I should be focusing most.' },
-  { icon: 'account-tree',    label: 'Break down a project', prompt: 'Help me break down a project into clear tasks. Ask me what the project is.' },
-  { icon: 'checklist',       label: 'Daily standup',        prompt: "Run a quick daily standup with me. Ask what I did yesterday, what I'm doing today, and if anything is blocking me." },
-  { icon: 'help-outline',    label: 'Help me decide',       prompt: "Help me make a decision. Ask me what I'm deciding between." },
+const SKILL_CATEGORIES: {
+  id: string; icon: IconName; label: string;
+  subs: { icon: IconName; label: string; prompt: string }[];
+}[] = [
+  {
+    id: 'write', icon: 'edit', label: 'Write or edit',
+    subs: [
+      { icon: 'mail-outline',  label: 'Write a cold email',   prompt: "Help me write a cold email. Ask me who I'm emailing and what I want to say." },
+      { icon: 'edit-note',     label: 'Draft a message',      prompt: "Help me draft a message. Ask me who it's for and what I need to say." },
+      { icon: 'help-outline',  label: 'Help me decide',       prompt: "Help me make a decision. Ask me what I'm deciding between." },
+      { icon: 'compress',      label: 'Make this concise',    prompt: 'Help me make something shorter. Paste the text and I\'ll tighten it up.' },
+    ],
+  },
+  {
+    id: 'plan', icon: 'calendar-today', label: 'Plan & organize',
+    subs: [
+      { icon: 'calendar-today', label: 'Plan my week',         prompt: 'Help me plan my week. Ask me what I have going on and build a focused plan.' },
+      { icon: 'checklist',      label: 'Daily standup',        prompt: "Run a quick daily standup with me. Ask what I did yesterday, what I'm doing today, and if anything is blocking me." },
+      { icon: 'account-tree',   label: 'Break down a project', prompt: 'Help me break down a project into clear tasks. Ask me what the project is.' },
+      { icon: 'flag',           label: 'Review my goals',      prompt: 'Summarize my current goals and tell me where I should be focusing most.' },
+    ],
+  },
 ];
 
 function extractTaskItems(text: string): string[] {
@@ -103,6 +122,7 @@ export default function ChatScreen() {
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [scope, setScope] = useState<Scope | null>(null);
+  const [searchMode, setSearchMode] = useState(false);
   const convIdRef = useRef<string | null>(null);
   const scopeRef = useRef<Scope | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -261,9 +281,11 @@ export default function ChatScreen() {
     const text = input.trim();
     if ((!text && !attachedImage) || streaming) return;
     const image = attachedImage;
+    const finalText = searchMode && text ? `Search the web for: ${text}` : text;
     setInput('');
     setAttachedImage(null);
-    void sendMessage(text, image ?? undefined);
+    setSearchMode(false);
+    void sendMessage(finalText, image ?? undefined);
   }
 
   async function sendMessage(text: string, image?: { base64: string; mimeType: string }) {
@@ -418,7 +440,7 @@ export default function ChatScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
           onContentSizeChange={scrollToBottom}
-          ListEmptyComponent={<Greeting onSend={sendMessage} />}
+          ListEmptyComponent={<Greeting onSend={sendMessage} onSearchMode={() => setSearchMode(true)} />}
           renderItem={({ item, index }) => (
             <MessageBubble
               message={item}
@@ -434,6 +456,17 @@ export default function ChatScreen() {
 
         {/* Floating glass input */}
         <View className="px-4 pb-7 pt-1">
+          {searchMode && (
+            <View className="flex-row mb-2">
+              <View className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface border border-brand/40">
+                <Icon name="search" tone="brand" size={14} />
+                <Text className="text-brand text-sm font-medium">Search</Text>
+                <TouchableOpacity onPress={() => setSearchMode(false)} hitSlop={8} activeOpacity={0.7}>
+                  <Icon name="close" tone="muted" size={14} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
           <GlassView radius={28} intensity={50}>
           {attachedImage && (
             <View className="px-3 pt-3 flex-row">
@@ -456,7 +489,7 @@ export default function ChatScreen() {
             <TextInput
               className="flex-1 text-text text-base px-3 py-2.5"
               style={{ maxHeight: 120 }}
-              placeholder={scope ? `Ask about this ${scope.kind}…` : 'Ask MODUS anything…'}
+              placeholder={searchMode ? 'Search the web…' : scope ? `Ask about this ${scope.kind}…` : 'Ask MODUS anything…'}
               placeholderTextColor={c.muted}
               value={input}
               onChangeText={setInput}
@@ -634,20 +667,69 @@ function MessageBubble({
   );
 }
 
-function Greeting({ onSend }: { onSend: (text: string) => void }) {
+function Greeting({ onSend, onSearchMode }: { onSend: (text: string) => void; onSearchMode: () => void }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const expandedCat = SKILL_CATEGORIES.find(c => c.id === expanded) ?? null;
+
   return (
-    <View style={{ flex: 1, minHeight: 420, justifyContent: 'flex-end' }}>
-      {SKILLS.map(skill => (
-        <TouchableOpacity
-          key={skill.label}
-          onPress={() => onSend(skill.prompt)}
-          activeOpacity={0.5}
-          className="flex-row items-center gap-4 px-5 py-4"
-        >
-          <Icon name={skill.icon} tone="muted" size={22} />
-          <Text className="text-text text-[17px]">{skill.label}</Text>
-        </TouchableOpacity>
-      ))}
+    <View style={{ flex: 1, minHeight: 440 }}>
+      {/* Center: logo + greeting */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <Logo width={80} />
+        <View style={{ alignItems: 'center', gap: 6 }}>
+          <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
+            {greeting()}
+          </GradientText>
+          <Text className="text-muted text-base text-center leading-relaxed">
+            {'I\'m MODUS, your AI chief of staff.\nWhat do you want to tackle today?'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Bottom: expanded sub-options OR 3 category rows */}
+      {expanded && expandedCat ? (
+        <View>
+          <View className="flex-row items-center justify-between px-5 pb-2">
+            <Text className="text-text font-semibold text-base">{expandedCat.label}</Text>
+            <TouchableOpacity onPress={() => setExpanded(null)} hitSlop={10} activeOpacity={0.6}>
+              <Icon name="close" tone="muted" size={22} />
+            </TouchableOpacity>
+          </View>
+          {expandedCat.subs.map(sub => (
+            <TouchableOpacity
+              key={sub.label}
+              onPress={() => { setExpanded(null); onSend(sub.prompt); }}
+              activeOpacity={0.5}
+              className="flex-row items-center gap-4 px-5 py-3.5"
+            >
+              <Icon name={sub.icon} tone="muted" size={20} />
+              <Text className="text-text text-[16px]">{sub.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : (
+        <View>
+          {SKILL_CATEGORIES.map(cat => (
+            <TouchableOpacity
+              key={cat.id}
+              onPress={() => setExpanded(cat.id)}
+              activeOpacity={0.5}
+              className="flex-row items-center gap-4 px-5 py-4"
+            >
+              <Icon name={cat.icon} tone="muted" size={22} />
+              <Text className="text-text text-[17px]">{cat.label}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            onPress={onSearchMode}
+            activeOpacity={0.5}
+            className="flex-row items-center gap-4 px-5 py-4"
+          >
+            <Icon name="search" tone="muted" size={22} />
+            <Text className="text-text text-[17px]">Look something up</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
