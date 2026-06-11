@@ -21,6 +21,7 @@ import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { GlassView } from '@/components/ui/Glass';
 import { Logo } from '@/components/ui/Logo';
 import { GradientText } from '@/components/ui/GradientText';
@@ -559,7 +560,7 @@ function MessageBubble({
 
   if (isUser) {
     return (
-      <View className="flex-row justify-end">
+      <Animated.View entering={FadeInUp.duration(200)} className="flex-row justify-end">
         <View
           className="bg-brand overflow-hidden"
           style={{ borderRadius: 18, borderBottomRightRadius: 4, maxWidth: '80%' }}
@@ -573,7 +574,7 @@ function MessageBubble({
             </View>
           ) : null}
         </View>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -586,7 +587,7 @@ function MessageBubble({
   const parts = isStreaming ? null : parseApprovalParts(message.content);
 
   return (
-    <View className="flex-row justify-start">
+    <Animated.View entering={FadeInUp.duration(220)} className="flex-row justify-start">
       <View
         style={{ width: 30, height: 30, alignItems: 'center', justifyContent: 'center', marginRight: 8, marginTop: 4, flexShrink: 0 }}
       >
@@ -663,7 +664,7 @@ function MessageBubble({
           </>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -673,62 +674,72 @@ function Greeting({ onSend, onSearchMode }: { onSend: (text: string) => void; on
 
   return (
     <View style={{ flex: 1, minHeight: 440 }}>
-      {/* Center: logo + greeting */}
+      {/* Center: logo + greeting — each element staggers in */}
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-        <Logo width={80} />
+        <Animated.View entering={FadeIn.duration(400).delay(0)}>
+          <Logo width={80} />
+        </Animated.View>
         <View style={{ alignItems: 'center', gap: 6 }}>
-          <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
-            {greeting()}
-          </GradientText>
-          <Text className="text-muted text-base text-center leading-relaxed">
-            {'I\'m MODUS, your AI chief of staff.\nWhat do you want to tackle today?'}
-          </Text>
+          <Animated.View entering={FadeInDown.duration(340).delay(100)}>
+            <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
+              {greeting()}
+            </GradientText>
+          </Animated.View>
+          <Animated.View entering={FadeInDown.duration(320).delay(200)}>
+            <Text className="text-muted text-base text-center leading-relaxed">
+              {'I\'m MODUS, your AI chief of staff.\nWhat do you want to tackle today?'}
+            </Text>
+          </Animated.View>
         </View>
       </View>
 
-      {/* Bottom: expanded sub-options OR 3 category rows */}
+      {/* Bottom rows — keyed so switching expanded/collapsed re-triggers entrance */}
       {expanded && expandedCat ? (
-        <View>
+        <Animated.View key={`expanded-${expanded}`} entering={FadeInUp.duration(200)}>
           <View className="flex-row items-center justify-between px-5 pb-2">
             <Text className="text-text font-semibold text-base">{expandedCat.label}</Text>
             <TouchableOpacity onPress={() => setExpanded(null)} hitSlop={10} activeOpacity={0.6}>
               <Icon name="close" tone="muted" size={22} />
             </TouchableOpacity>
           </View>
-          {expandedCat.subs.map(sub => (
-            <TouchableOpacity
-              key={sub.label}
-              onPress={() => { setExpanded(null); onSend(sub.prompt); }}
-              activeOpacity={0.5}
-              className="flex-row items-center gap-4 px-5 py-3.5"
-            >
-              <Icon name={sub.icon} tone="muted" size={20} />
-              <Text className="text-text text-[16px]">{sub.label}</Text>
-            </TouchableOpacity>
+          {expandedCat.subs.map((sub, i) => (
+            <Animated.View key={sub.label} entering={FadeInUp.duration(200).delay(i * 40)}>
+              <TouchableOpacity
+                onPress={() => { setExpanded(null); onSend(sub.prompt); }}
+                activeOpacity={0.5}
+                className="flex-row items-center gap-4 px-5 py-3.5"
+              >
+                <Icon name={sub.icon} tone="muted" size={20} />
+                <Text className="text-text text-[16px]">{sub.label}</Text>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
-        </View>
+        </Animated.View>
       ) : (
-        <View>
-          {SKILL_CATEGORIES.map(cat => (
+        <Animated.View key="root-skills" entering={FadeInUp.duration(220)}>
+          {SKILL_CATEGORIES.map((cat, i) => (
+            <Animated.View key={cat.id} entering={FadeInUp.duration(240).delay(260 + i * 55)}>
+              <TouchableOpacity
+                onPress={() => setExpanded(cat.id)}
+                activeOpacity={0.5}
+                className="flex-row items-center gap-4 px-5 py-4"
+              >
+                <Icon name={cat.icon} tone="muted" size={22} />
+                <Text className="text-text text-[17px]">{cat.label}</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+          <Animated.View entering={FadeInUp.duration(240).delay(260 + SKILL_CATEGORIES.length * 55)}>
             <TouchableOpacity
-              key={cat.id}
-              onPress={() => setExpanded(cat.id)}
+              onPress={onSearchMode}
               activeOpacity={0.5}
               className="flex-row items-center gap-4 px-5 py-4"
             >
-              <Icon name={cat.icon} tone="muted" size={22} />
-              <Text className="text-text text-[17px]">{cat.label}</Text>
+              <Icon name="search" tone="muted" size={22} />
+              <Text className="text-text text-[17px]">Look something up</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            onPress={onSearchMode}
-            activeOpacity={0.5}
-            className="flex-row items-center gap-4 px-5 py-4"
-          >
-            <Icon name="search" tone="muted" size={22} />
-            <Text className="text-text text-[17px]">Look something up</Text>
-          </TouchableOpacity>
-        </View>
+          </Animated.View>
+        </Animated.View>
       )}
     </View>
   );
