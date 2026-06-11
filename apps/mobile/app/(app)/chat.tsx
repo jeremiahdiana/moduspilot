@@ -18,12 +18,10 @@ import { db } from '@/lib/firebase';
 import { streamChat, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
-import { Icon } from '@/components/Icon';
+import { Icon, type IconName } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme';
 import { GlassView } from '@/components/ui/Glass';
-import { Logo } from '@/components/ui/Logo';
-import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { DraftOptionsCard } from '@/components/DraftOptionsCard';
@@ -68,18 +66,14 @@ function newId() {
   return `msg_${Date.now()}_${++msgCounter}`;
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? 'Good morning.' : h < 17 ? 'Good afternoon.' : 'Good evening.';
-}
 
-const SKILLS: { icon: string; label: string; prompt: string }[] = [
-  { icon: '📅', label: 'Plan my week', prompt: 'Help me plan my week. Ask me what I have going on and build a focused plan.' },
-  { icon: '✉️', label: 'Write a cold email', prompt: 'Help me write a cold email. Ask me who I\'m emailing and what I want.' },
-  { icon: '🎯', label: 'Summarize my goals', prompt: 'Summarize my current goals and tell me where I should be focusing most.' },
-  { icon: '🧩', label: 'Break down a project', prompt: 'Help me break down a project into clear tasks. Ask me what the project is.' },
-  { icon: '⚡', label: 'Daily standup', prompt: 'Run a quick daily standup with me. Ask what I did yesterday, what I\'m doing today, and if anything is blocking me.' },
-  { icon: '🤔', label: 'Help me decide', prompt: 'Help me make a decision. Ask me what I\'m deciding between.' },
+const SKILLS: { icon: IconName; label: string; prompt: string }[] = [
+  { icon: 'calendar-today',  label: 'Plan my week',         prompt: 'Help me plan my week. Ask me what I have going on and build a focused plan.' },
+  { icon: 'mail-outline',    label: 'Write a cold email',   prompt: "Help me write a cold email. Ask me who I'm emailing and what I want to say." },
+  { icon: 'flag',            label: 'Summarize my goals',   prompt: 'Summarize my current goals and tell me where I should be focusing most.' },
+  { icon: 'account-tree',    label: 'Break down a project', prompt: 'Help me break down a project into clear tasks. Ask me what the project is.' },
+  { icon: 'checklist',       label: 'Daily standup',        prompt: "Run a quick daily standup with me. Ask what I did yesterday, what I'm doing today, and if anything is blocking me." },
+  { icon: 'help-outline',    label: 'Help me decide',       prompt: "Help me make a decision. Ask me what I'm deciding between." },
 ];
 
 function extractTaskItems(text: string): string[] {
@@ -642,32 +636,18 @@ function MessageBubble({
 
 function Greeting({ onSend }: { onSend: (text: string) => void }) {
   return (
-    <View className="flex-1 items-center justify-center gap-5 px-8" style={{ minHeight: 360 }}>
-      <Logo width={92} />
-      <View className="items-center gap-2">
-        <GradientText className="font-black text-4xl tracking-tight" style={{ paddingVertical: 2 }}>
-          {greeting()}
-        </GradientText>
-        <Text className="text-muted text-base text-center leading-relaxed">
-          I'm MODUS, your AI chief of staff.{'\n'}What do you want to tackle today?
-        </Text>
-      </View>
-      <View className="w-full gap-2">
-        <Text className="text-muted text-xs font-semibold uppercase tracking-wider text-center">Skills</Text>
-        <View className="flex-row flex-wrap gap-2 justify-center">
-          {SKILLS.map(skill => (
-            <TouchableOpacity
-              key={skill.label}
-              onPress={() => onSend(skill.prompt)}
-              activeOpacity={0.75}
-              className="flex-row items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface border border-border"
-            >
-              <Text style={{ fontSize: 14 }}>{skill.icon}</Text>
-              <Text className="text-text text-sm font-medium">{skill.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+    <View style={{ flex: 1, minHeight: 420, justifyContent: 'flex-end' }}>
+      {SKILLS.map(skill => (
+        <TouchableOpacity
+          key={skill.label}
+          onPress={() => onSend(skill.prompt)}
+          activeOpacity={0.5}
+          className="flex-row items-center gap-4 px-5 py-4"
+        >
+          <Icon name={skill.icon} tone="muted" size={22} />
+          <Text className="text-text text-[17px]">{skill.label}</Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 }
