@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   doc, onSnapshot, updateDoc, deleteDoc, arrayUnion,
-  collection, query, where, addDoc, orderBy, serverTimestamp,
+  collection, query, where, addDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -101,7 +101,6 @@ export default function ProjectDetail() {
     const q = query(
       collection(db, 'users', user.uid, 'conversations'),
       where('projectId', '==', id),
-      orderBy('updatedAt', 'desc'),
     );
     return onSnapshot(q, snap => {
       const list: ProjectConv[] = snap.docs
@@ -110,7 +109,8 @@ export default function ProjectDetail() {
           id: d.id,
           title: d.data().title ?? 'Chat',
           updatedAt: d.data().updatedAt?.toDate?.() ?? new Date(),
-        }));
+        }))
+        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
       setConvs(list);
 
       // Auto-select the first (most recent) conv if none selected
