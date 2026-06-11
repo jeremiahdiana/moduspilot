@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
 import { View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
@@ -13,6 +13,13 @@ import { registerPush } from '@/lib/push';
 export default function AppLayout() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+
+  const fade = useSharedValue(1);
+  useEffect(() => {
+    fade.value = 0;
+    fade.value = withTiming(1, { duration: 120 });
+  }, [pathname]);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
   // Register for push once signed in, and route notification taps to the
   // relevant screen (briefing by default, chat for check-ins).
@@ -36,7 +43,7 @@ export default function AppLayout() {
       <DrawerProvider>
         <View className="flex-1 bg-bg">
           <AppBackground />
-          <Animated.View key={pathname} style={{ flex: 1 }} entering={FadeIn.duration(180)}>
+          <Animated.View style={[{ flex: 1 }, fadeStyle]}>
             <Stack
               screenOptions={{
                 headerShown: false,
