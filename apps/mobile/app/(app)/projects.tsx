@@ -14,6 +14,39 @@ import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, writeCache } from '@/lib/cache';
 import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete } from '@/components/ui';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRADIENTS } from '@/lib/theme';
+
+function AISection() {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push('/(app)/chat' as never)}
+      className="mt-2 mb-2 rounded-2xl overflow-hidden border border-brand/25"
+    >
+      <LinearGradient
+        colors={['rgba(124,58,237,0.12)', 'rgba(139,92,246,0.06)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}
+      >
+        <LinearGradient
+          colors={GRADIENTS.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Icon name="auto-awesome" color="#fff" size={20} />
+        </LinearGradient>
+        <View style={{ flex: 1 }}>
+          <Text className="text-text font-bold text-[15px]">Ask MODUS</Text>
+          <Text className="text-muted text-xs mt-0.5">Plan, prioritize, and break down your projects with AI</Text>
+        </View>
+        <Icon name="chevron-right" tone="muted" size={20} />
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
 
 interface Project {
   id: string;
@@ -100,19 +133,23 @@ export default function ProjectsScreen() {
           <SkeletonCard />
         </SkeletonList>
       ) : projects.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-4 px-10">
-          <EmptyState
-            icon="folder-open"
-            title="No projects yet"
-            subtitle="Group related work into a project. Tap + to create your first one."
-          />
-          <GradientButton label="New project" icon="add" onPress={addProject} />
+        <View className="flex-1">
+          <View className="px-4"><AISection /></View>
+          <View className="flex-1 items-center justify-center gap-4 px-10">
+            <EmptyState
+              icon="folder-open"
+              title="No projects yet"
+              subtitle="Group related work into a project. Tap + to create your first one."
+            />
+            <GradientButton label="New project" icon="add" onPress={addProject} />
+          </View>
         </View>
       ) : (
         <FlatList
           data={projects}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          ListHeaderComponent={<AISection />}
           showsVerticalScrollIndicator={false}
           renderItem={({ item, index }) => (
             <AnimatedRow index={index}>

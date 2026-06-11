@@ -57,7 +57,7 @@ export default function ModelSettingsScreen() {
     }
   }
 
-  const active = PROVIDERS.find(p => p.key === provider)!;
+  const active = PROVIDERS.find(p => p.key === provider) ?? PROVIDERS[0];
 
   return (
     <SafeAreaView className="flex-1" edges={['top']}>

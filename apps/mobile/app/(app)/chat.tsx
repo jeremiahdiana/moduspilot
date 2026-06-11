@@ -405,7 +405,7 @@ export default function ChatScreen() {
         />
 
         {/* Floating glass input */}
-        <View className="px-4 pb-3 pt-1">
+        <View className="px-4 pb-7 pt-1">
           <GlassView radius={28} intensity={50}>
           {attachedImage && (
             <View className="px-3 pt-3 flex-row">
@@ -441,32 +441,32 @@ export default function ChatScreen() {
               <TouchableOpacity
                 onPress={pickImage}
                 activeOpacity={0.8}
-                className="rounded-2xl items-center justify-center border bg-surface border-border"
-                style={{ width: 44, height: 44 }}
+                className="rounded-xl items-center justify-center border bg-surface border-border"
+                style={{ width: 36, height: 36 }}
               >
-                <Icon name="image" size={22} color={c.muted} />
+                <Icon name="image" size={17} color={c.muted} />
               </TouchableOpacity>
             )}
             {!streaming && (
               <TouchableOpacity
                 onPress={voice.toggle}
                 activeOpacity={0.8}
-                className="rounded-2xl items-center justify-center border bg-surface border-border"
-                style={{ width: 44, height: 44 }}
+                className="rounded-xl items-center justify-center border bg-surface border-border"
+                style={{ width: 36, height: 36 }}
               >
-                <Icon name="mic-none" size={22} color={c.muted} />
+                <Icon name="mic-none" size={17} color={c.muted} />
               </TouchableOpacity>
             )}
             <TouchableOpacity
               onPress={streaming ? stopStreaming : send}
               activeOpacity={0.8}
               className="bg-brand items-center justify-center"
-              style={{ width: 44, height: 44, borderRadius: 16 }}
+              style={{ width: 36, height: 36, borderRadius: 12 }}
             >
               {streaming ? (
-                <View style={{ width: 13, height: 13, backgroundColor: '#fff', borderRadius: 3 }} />
+                <View style={{ width: 11, height: 11, backgroundColor: '#fff', borderRadius: 3 }} />
               ) : (
-                <Icon name="arrow-upward" color="#fff" size={22} />
+                <Icon name="arrow-upward" color="#fff" size={18} />
               )}
             </TouchableOpacity>
           </View>
