@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,32 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withSequence,
+  FadeInDown,
+  FadeInRight,
+  FadeInLeft,
+  FadeOut,
+} from 'react-native-reanimated';
 import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { AuthButtons } from '@/components/AuthButtons';
 import { Icon, type IconName } from '@/components/Icon';
 import { Logo } from '@/components/ui/Logo';
+import { AppBackground } from '@/components/AppBackground';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { GradientText } from '@/components/ui/GradientText';
+import { AnimatedRow } from '@/components/ui/AnimatedRow';
+import { GradientProgressBar } from '@/components/ui/GradientProgressBar';
 import { useThemeColors } from '@/lib/theme';
 
 interface Option { icon: IconName; label: string; desc?: string }
@@ -64,35 +81,56 @@ const TASKS: Option[] = [
   { icon: 'more-horiz', label: 'Other' },
 ];
 
+const PAYWALL_FEATURES: Array<{ icon: IconName; label: string }> = [
+  { icon: 'wb-sunny', label: 'Morning briefing' },
+  { icon: 'inbox', label: 'Inbox triage' },
+  { icon: 'flag', label: 'Goal tracking' },
+  { icon: 'mic', label: 'Voice input' },
+  { icon: 'psychology', label: 'AI chief of staff' },
+];
+
 function OptionCard({ option, selected, onPress, multi }: {
   option: Option; selected: boolean; onPress: () => void; multi?: boolean;
 }) {
   const c = useThemeColors();
+  const scale = useSharedValue(1);
+
+  function handlePress() {
+    scale.value = withSequence(
+      withTiming(0.96, { duration: 60 }),
+      withSpring(1, { damping: 8, stiffness: 200 }),
+    );
+    onPress();
+  }
+
+  const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={onPress}
-      className={`flex-row items-center gap-3 p-3.5 rounded-2xl border ${
-        selected ? 'border-brand bg-surface-2' : 'border-border bg-surface'
-      }`}
-    >
-      <View className={`w-10 h-10 rounded-xl items-center justify-center ${selected ? 'bg-brand/20' : 'bg-surface-2'}`}>
-        <Icon name={option.icon} size={20} color={selected ? c.brand : c.muted} />
-      </View>
-      <View className="flex-1">
-        <Text className={`text-[15px] font-semibold ${selected ? 'text-brand-light' : 'text-text'}`}>
-          {option.label}
-        </Text>
-        {option.desc && <Text className="text-muted text-xs mt-0.5">{option.desc}</Text>}
-      </View>
-      <View
-        className={`items-center justify-center shrink-0 ${multi ? 'w-5 h-5 rounded-md' : 'w-5 h-5 rounded-full'} border-2 ${
-          selected ? 'border-brand bg-brand' : 'border-muted/40'
+    <Pressable onPress={handlePress}>
+      <Animated.View
+        style={cardStyle}
+        className={`flex-row items-center gap-3 p-3.5 rounded-2xl border ${
+          selected ? 'border-brand bg-surface-2' : 'border-border bg-surface'
         }`}
       >
-        {selected && <Icon name="check" color="#fff" size={12} />}
-      </View>
-    </TouchableOpacity>
+        <View className={`w-10 h-10 rounded-xl items-center justify-center ${selected ? 'bg-brand/20' : 'bg-surface-2'}`}>
+          <Icon name={option.icon} size={20} color={selected ? c.brand : c.muted} />
+        </View>
+        <View className="flex-1">
+          <Text className={`text-[15px] font-semibold ${selected ? 'text-brand-light' : 'text-text'}`}>
+            {option.label}
+          </Text>
+          {option.desc && <Text className="text-muted text-xs mt-0.5">{option.desc}</Text>}
+        </View>
+        <View
+          className={`items-center justify-center shrink-0 ${multi ? 'w-5 h-5 rounded-md' : 'w-5 h-5 rounded-full'} border-2 ${
+            selected ? 'border-brand bg-brand' : 'border-muted/40'
+          }`}
+        >
+          {selected && <Icon name="check" color="#fff" size={12} />}
+        </View>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -109,13 +147,166 @@ function OtherInput({ value, onChange }: { value: string; onChange: (v: string) 
   );
 }
 
-type Screen = 'name' | number | 'done';
+function PaywallScreen({
+  name,
+  industry,
+  goals,
+  onContinue,
+  onBack,
+}: {
+  name: string;
+  industry: string;
+  goals: string[];
+  onContinue: () => void;
+  onBack: () => void;
+}) {
+  const c = useThemeColors();
+  return (
+    <View className="flex-1 bg-bg">
+      <AppBackground />
+      <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero */}
+          <Animated.View entering={FadeInDown.delay(0).duration(400)} className="items-center pt-4 pb-6">
+            <View className="mb-4">
+              <Logo width={52} opticalCenter />
+            </View>
+            <GradientText className="text-[30px] font-black leading-tight">
+              Your MODUS is ready
+            </GradientText>
+            <Animated.View entering={FadeInDown.delay(100).duration(350)}>
+              <Text className="text-muted text-sm text-center mt-2 px-4">
+                Personalized for you. Activated the moment you sign up.
+              </Text>
+            </Animated.View>
+          </Animated.View>
+
+          {/* Personalized summary card */}
+          <AnimatedRow index={0}>
+            <View className="bg-surface border border-brand/25 rounded-2xl p-4 mb-5">
+              <Text className="text-brand-light text-[10px] font-bold uppercase tracking-widest mb-3">
+                Built for {name.trim() || 'you'}
+              </Text>
+              <View className="gap-2">
+                {!!industry && (
+                  <View className="flex-row items-center gap-2.5">
+                    <Icon name="work" color={c.brand} size={14} />
+                    <Text className="text-text text-sm">{industry}</Text>
+                  </View>
+                )}
+                {goals.slice(0, 2).map((g, i) => (
+                  <View key={i} className="flex-row items-center gap-2.5">
+                    <Icon name="flag" color={c.brand} size={14} />
+                    <Text className="text-text text-sm flex-1" numberOfLines={1}>{g}</Text>
+                  </View>
+                ))}
+                {!industry && goals.length === 0 && (
+                  <View className="flex-row items-center gap-2.5">
+                    <Icon name="auto-awesome" color={c.brand} size={14} />
+                    <Text className="text-text text-sm">Your AI operating system</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </AnimatedRow>
+
+          {/* Feature list */}
+          <AnimatedRow index={1}>
+            <Text className="text-muted text-[10px] uppercase tracking-widest font-semibold mb-3 px-1">
+              What you get
+            </Text>
+          </AnimatedRow>
+          <View className="gap-2 mb-6">
+            {PAYWALL_FEATURES.map((f, i) => (
+              <AnimatedRow key={f.label} index={i + 2}>
+                <View className="flex-row items-center gap-3 py-1">
+                  <View className="w-8 h-8 rounded-xl bg-brand/15 items-center justify-center">
+                    <Icon name={f.icon} color={c.brand} size={16} />
+                  </View>
+                  <Text className="text-text text-[15px] font-medium flex-1">{f.label}</Text>
+                  <Icon name="check-circle" color={c.brand} size={18} />
+                </View>
+              </AnimatedRow>
+            ))}
+          </View>
+
+          {/* Divider */}
+          <AnimatedRow index={8}>
+            <View className="h-px bg-border mb-5" />
+          </AnimatedRow>
+
+          {/* Plan comparison */}
+          <AnimatedRow index={9}>
+            <View className="flex-row gap-3 mb-6">
+              {/* Free */}
+              <View className="flex-1 bg-surface border border-border rounded-2xl p-4">
+                <Text className="text-text font-bold text-sm mb-1">Free</Text>
+                <Text className="text-2xl font-display font-black text-text">$0</Text>
+                <Text className="text-muted text-[11px] mt-1 leading-relaxed">
+                  {'20 msg/day\nafter 30d trial'}
+                </Text>
+                <View className="mt-3 gap-1.5">
+                  <Text className="text-muted text-[11px]">· Core chat</Text>
+                  <Text className="text-muted text-[11px]">· Goals & habits</Text>
+                </View>
+              </View>
+              {/* MODUS paid */}
+              <View className="flex-1 bg-brand/10 border-2 border-brand rounded-2xl p-4">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-brand-light font-bold text-sm">MODUS</Text>
+                  <View className="bg-brand/20 px-2 py-0.5 rounded-full">
+                    <Text className="text-brand-light text-[9px] font-bold">POPULAR</Text>
+                  </View>
+                </View>
+                <Text className="text-2xl font-display font-black text-text">$24</Text>
+                <Text className="text-muted text-[11px]">/month</Text>
+                <View className="mt-3 gap-1.5">
+                  <Text className="text-text text-[11px]">· Unlimited messages</Text>
+                  <Text className="text-text text-[11px]">· All integrations</Text>
+                  <Text className="text-text text-[11px]">· Proactive briefings</Text>
+                </View>
+              </View>
+            </View>
+          </AnimatedRow>
+
+          {/* CTA */}
+          <AnimatedRow index={10}>
+            <View className="gap-3">
+              <GradientButton
+                label="Start my 30-day free trial"
+                onPress={onContinue}
+                size="lg"
+                style={{ alignSelf: 'stretch' }}
+              />
+              <Text className="text-muted/70 text-[11px] text-center leading-4">
+                Then $24/mo. Cancel anytime. No credit card required.
+              </Text>
+            </View>
+          </AnimatedRow>
+        </ScrollView>
+
+        {/* Back nav */}
+        <View className="px-7 pb-6 pt-3 border-t border-border">
+          <TouchableOpacity onPress={onBack} className="py-2">
+            <Text className="text-muted text-sm">← Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+type Screen = 'name' | number | 'paywall' | 'done';
 const TOTAL = 8;
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>('name');
   const [saving, setSaving] = useState(false);
+  const directionRef = useRef<'forward' | 'back'>('forward');
 
   const [name, setName] = useState('');
   const [employment, setEmployment] = useState('');
@@ -129,6 +320,16 @@ export default function OnboardingScreen() {
   const [thirtyDayGoal, setThirtyDayGoal] = useState('');
   const [taskSystem, setTaskSystem] = useState('');
   const [taskSystemOther, setTaskSystemOther] = useState('');
+
+  function goForward(next: Screen) {
+    directionRef.current = 'forward';
+    setScreen(next);
+  }
+
+  function goBack(prev: Screen) {
+    directionRef.current = 'back';
+    setScreen(prev);
+  }
 
   function toggleGoal(g: string) {
     setGoals(prev => (prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]));
@@ -144,13 +345,10 @@ export default function OnboardingScreen() {
     7: true,
   };
 
-  // Seeds everything the user just answered, then enters the app. Called after
-  // account creation on the final step (uid comes from the fresh sign-in).
   async function seedAndGo(uid: string) {
     setSaving(true);
     setScreen('done');
     try {
-      // Don't clobber a returning user who happened to take the sign-up path.
       const existing = await getDoc(doc(db, 'users', uid));
       if (existing.data()?.onboardingComplete === true) {
         setTimeout(() => router.replace('/(app)/briefing'), 700);
@@ -227,7 +425,6 @@ export default function OnboardingScreen() {
 
       setTimeout(() => router.replace('/(app)/briefing'), 900);
     } catch {
-      // Even if seeding partly fails, don't trap the user on onboarding.
       setTimeout(() => router.replace('/(app)/briefing'), 900);
     }
   }
@@ -236,73 +433,113 @@ export default function OnboardingScreen() {
   if (screen === 'name') {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const previewText = name.trim()
+      ? `${greeting}, ${name.trim()}. I'm MODUS. Let's get to work.`
+      : `${greeting}. I'm MODUS. What are we working on today?`;
     return (
-      <SafeAreaView className="flex-1 bg-bg">
-        <View className="flex-1 px-7 pt-10 justify-between pb-10">
-          <View className="gap-6">
-            <View>
-              <Text className="text-brand-light text-xs font-bold uppercase tracking-widest mb-2">First things first</Text>
-              <Text className="text-3xl font-display font-bold text-text leading-tight">What should{'\n'}MODUS call you?</Text>
-              <Text className="text-muted text-sm mt-2">Your assistant needs a name for you.</Text>
+      <View className="flex-1 bg-bg">
+        <AppBackground />
+        <SafeAreaView className="flex-1">
+          <View className="flex-1 px-7 pt-8 justify-between pb-10">
+            <View className="gap-6">
+              <Animated.View entering={FadeInDown.delay(0).duration(400)} className="items-center mb-1">
+                <Logo width={44} />
+              </Animated.View>
+              <Animated.View entering={FadeInDown.delay(80).duration(380)}>
+                <Text className="text-brand-light text-xs font-bold uppercase tracking-widest mb-2">
+                  First things first
+                </Text>
+                <GradientText className="text-[28px] font-black leading-tight">
+                  {'What should\nMODUS call you?'}
+                </GradientText>
+                <Text className="text-muted text-sm mt-2">Your assistant needs a name for you.</Text>
+              </Animated.View>
+              <Animated.View entering={FadeInDown.delay(180).duration(360)}>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Your first name"
+                  placeholderTextColor="#6b6b80"
+                  autoFocus
+                  className="bg-surface border border-border rounded-2xl px-5 py-4 text-text text-base"
+                />
+              </Animated.View>
+              <Animated.View entering={FadeInDown.delay(260).duration(360)}>
+                <View className="bg-surface border border-border rounded-2xl px-5 py-4">
+                  <Text className="text-muted text-xs mb-1">Live preview</Text>
+                  <Text className="text-text text-sm leading-relaxed">
+                    "{previewText}"
+                  </Text>
+                </View>
+              </Animated.View>
             </View>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Your first name"
-              placeholderTextColor="#6b6b80"
-              autoFocus
-              className="bg-surface border border-border rounded-2xl px-5 py-4 text-text text-base"
-            />
-            <View className="bg-surface border border-border rounded-2xl px-5 py-4">
-              <Text className="text-muted text-xs mb-1">Live preview</Text>
-              <Text className="text-text text-sm leading-relaxed">
-                "{name.trim()
-                  ? `${greeting}, ${name.trim()}. I'm MODUS. Let's get to work.`
-                  : `${greeting}. I'm MODUS. What are we working on today?`}"
-              </Text>
+            <View className="gap-4">
+              <Animated.View entering={FadeInDown.delay(340).duration(360)}>
+                <GradientButton
+                  label="Continue"
+                  icon="arrow-forward"
+                  onPress={() => goForward(1)}
+                  disabled={!name.trim()}
+                  size="lg"
+                  style={{ alignSelf: 'stretch' }}
+                />
+              </Animated.View>
+              <TouchableOpacity onPress={() => router.replace('/(auth)/login')} className="py-1">
+                <Text className="text-muted text-sm text-center">
+                  Already have an account?{' '}
+                  <Text className="text-brand-light font-semibold">Sign in</Text>
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <View className="gap-4">
-            <TouchableOpacity
-              disabled={!name.trim()}
-              activeOpacity={0.85}
-              onPress={() => setScreen(1)}
-              className="bg-brand rounded-2xl py-4 items-center"
-              style={{ opacity: name.trim() ? 1 : 0.4 }}
-            >
-              <Text className="text-white font-bold text-base">Continue →</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.replace('/(auth)/login')} className="py-1">
-              <Text className="text-muted text-sm text-center">
-                Already have an account? <Text className="text-brand-light font-semibold">Sign in</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
   // ── done screen ──
   if (screen === 'done') {
     return (
-      <SafeAreaView className="flex-1 bg-bg items-center justify-center gap-4">
-        <Logo width={84} />
-        <Text className="text-4xl font-display font-bold text-brand tracking-widest">MODUS</Text>
-        <Text className="text-text font-bold text-lg">
-          MODUS is ready{name.trim() ? `, ${name.trim()}` : ''}.
-        </Text>
-        <Text className="text-muted text-sm">Setting up your workspace…</Text>
-        <ActivityIndicator color="#7C3AED" className="mt-2" />
-      </SafeAreaView>
+      <View className="flex-1 bg-bg">
+        <AppBackground />
+        <SafeAreaView className="flex-1 items-center justify-center gap-4">
+          <Logo width={84} opticalCenter />
+          <Text className="text-4xl font-display font-bold text-brand tracking-widest">MODUS</Text>
+          <Text className="text-text font-bold text-lg">
+            MODUS is ready{name.trim() ? `, ${name.trim()}` : ''}.
+          </Text>
+          <Text className="text-muted text-sm">Setting up your workspace…</Text>
+          <ActivityIndicator color="#7C3AED" className="mt-2" />
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ── paywall screen ──
+  if (screen === 'paywall') {
+    const industryLabel = industry === 'Other' ? industryOther.trim() : industry;
+    const goalsArr = goals.map(g => (g === 'Other' ? goalsOther.trim() : g)).filter(Boolean);
+    return (
+      <PaywallScreen
+        name={name}
+        industry={industryLabel}
+        goals={goalsArr}
+        onContinue={() => goForward(8)}
+        onBack={() => goBack(7)}
+      />
     );
   }
 
   // ── step screens ──
   const step = screen as number;
   const isLast = step === TOTAL;
-  const progress = (step / TOTAL) * 100;
   const alreadyAuthed = !!auth.currentUser;
+
+  const entering = directionRef.current === 'forward'
+    ? FadeInRight.duration(280)
+    : FadeInLeft.duration(280);
+
+  const step8Title = name.trim() ? `You're all set, ${name.trim()}.` : "You're all set.";
 
   const config: Record<number, { label: string; title: string; subtitle?: string; body: React.ReactNode }> = {
     1: {
@@ -310,11 +547,15 @@ export default function OnboardingScreen() {
       title: 'What best describes your situation?',
       body: (
         <View className="gap-2">
-          {EMPLOYMENT.map(o => (
-            <View key={o.label}>
-              <OptionCard option={o} selected={employment === o.label} onPress={() => setEmployment(o.label)} />
-              {o.label === 'Other' && employment === 'Other' && <OtherInput value={employmentOther} onChange={setEmploymentOther} />}
-            </View>
+          {EMPLOYMENT.map((o, i) => (
+            <AnimatedRow key={o.label} index={i}>
+              <View>
+                <OptionCard option={o} selected={employment === o.label} onPress={() => setEmployment(o.label)} />
+                {o.label === 'Other' && employment === 'Other' && (
+                  <OtherInput value={employmentOther} onChange={setEmploymentOther} />
+                )}
+              </View>
+            </AnimatedRow>
           ))}
         </View>
       ),
@@ -325,11 +566,15 @@ export default function OnboardingScreen() {
       subtitle: 'Or were in, if between roles.',
       body: (
         <View className="gap-2">
-          {INDUSTRY.map(o => (
-            <View key={o.label}>
-              <OptionCard option={o} selected={industry === o.label} onPress={() => setIndustry(o.label)} />
-              {o.label === 'Other' && industry === 'Other' && <OtherInput value={industryOther} onChange={setIndustryOther} />}
-            </View>
+          {INDUSTRY.map((o, i) => (
+            <AnimatedRow key={o.label} index={i}>
+              <View>
+                <OptionCard option={o} selected={industry === o.label} onPress={() => setIndustry(o.label)} />
+                {o.label === 'Other' && industry === 'Other' && (
+                  <OtherInput value={industryOther} onChange={setIndustryOther} />
+                )}
+              </View>
+            </AnimatedRow>
           ))}
         </View>
       ),
@@ -340,11 +585,15 @@ export default function OnboardingScreen() {
       subtitle: 'Pick all that apply.',
       body: (
         <View className="gap-2">
-          {GOALS.map(o => (
-            <View key={o.label}>
-              <OptionCard option={o} multi selected={goals.includes(o.label)} onPress={() => toggleGoal(o.label)} />
-              {o.label === 'Other' && goals.includes('Other') && <OtherInput value={goalsOther} onChange={setGoalsOther} />}
-            </View>
+          {GOALS.map((o, i) => (
+            <AnimatedRow key={o.label} index={i}>
+              <View>
+                <OptionCard option={o} multi selected={goals.includes(o.label)} onPress={() => toggleGoal(o.label)} />
+                {o.label === 'Other' && goals.includes('Other') && (
+                  <OtherInput value={goalsOther} onChange={setGoalsOther} />
+                )}
+              </View>
+            </AnimatedRow>
           ))}
         </View>
       ),
@@ -354,11 +603,15 @@ export default function OnboardingScreen() {
       title: "What's your biggest challenge right now?",
       body: (
         <View className="gap-2">
-          {CHALLENGE.map(o => (
-            <View key={o.label}>
-              <OptionCard option={o} selected={challenge === o.label} onPress={() => setChallenge(o.label)} />
-              {o.label === 'Other' && challenge === 'Other' && <OtherInput value={challengeOther} onChange={setChallengeOther} />}
-            </View>
+          {CHALLENGE.map((o, i) => (
+            <AnimatedRow key={o.label} index={i}>
+              <View>
+                <OptionCard option={o} selected={challenge === o.label} onPress={() => setChallenge(o.label)} />
+                {o.label === 'Other' && challenge === 'Other' && (
+                  <OtherInput value={challengeOther} onChange={setChallengeOther} />
+                )}
+              </View>
+            </AnimatedRow>
           ))}
         </View>
       ),
@@ -387,11 +640,15 @@ export default function OnboardingScreen() {
       title: 'How do you manage tasks today?',
       body: (
         <View className="gap-2">
-          {TASKS.map(o => (
-            <View key={o.label}>
-              <OptionCard option={o} selected={taskSystem === o.label} onPress={() => setTaskSystem(o.label)} />
-              {o.label === 'Other' && taskSystem === 'Other' && <OtherInput value={taskSystemOther} onChange={setTaskSystemOther} />}
-            </View>
+          {TASKS.map((o, i) => (
+            <AnimatedRow key={o.label} index={i}>
+              <View>
+                <OptionCard option={o} selected={taskSystem === o.label} onPress={() => setTaskSystem(o.label)} />
+                {o.label === 'Other' && taskSystem === 'Other' && (
+                  <OtherInput value={taskSystemOther} onChange={setTaskSystemOther} />
+                )}
+              </View>
+            </AnimatedRow>
           ))}
         </View>
       ),
@@ -428,7 +685,7 @@ export default function OnboardingScreen() {
     },
     8: {
       label: `Step 8 of ${TOTAL} · Save your setup`,
-      title: name.trim() ? `You're all set, ${name.trim()}.` : "You're all set.",
+      title: step8Title,
       subtitle: 'Create your account to save everything and meet MODUS.',
       body: (
         <View className="gap-5">
@@ -447,15 +704,15 @@ export default function OnboardingScreen() {
           </View>
 
           {alreadyAuthed ? (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={saving}
+            <GradientButton
+              label="Finish & launch MODUS"
+              icon="arrow-forward"
               onPress={() => seedAndGo(auth.currentUser!.uid)}
-              className="bg-brand rounded-2xl py-4 items-center"
-              style={{ opacity: saving ? 0.6 : 1 }}
-            >
-              <Text className="text-white font-bold text-base">Finish & launch MODUS →</Text>
-            </TouchableOpacity>
+              disabled={saving}
+              loading={saving}
+              size="lg"
+              style={{ alignSelf: 'stretch' }}
+            />
           ) : (
             <AuthButtons afterSignIn={seedAndGo} />
           )}
@@ -471,48 +728,67 @@ export default function OnboardingScreen() {
   const current = config[step];
 
   return (
-    <SafeAreaView className="flex-1 bg-bg">
-      {/* Progress */}
-      <View className="px-7 pt-4">
-        <View className="h-1 bg-border rounded-full overflow-hidden">
-          <View className="h-full bg-brand rounded-full" style={{ width: `${progress}%` }} />
+    <View className="flex-1 bg-bg">
+      <AppBackground />
+      <SafeAreaView className="flex-1">
+        {/* Logo + progress header */}
+        <View className="items-center pt-5 pb-1">
+          <Logo width={28} />
         </View>
-        <View className="flex-row justify-between mt-2">
-          <Text className="text-muted text-xs">{current.label}</Text>
-          <Text className="text-muted text-xs">{Math.round(progress)}%</Text>
+        <View className="px-7 pt-2 pb-1">
+          <GradientProgressBar progress={(step / TOTAL) * 100} height={4} />
+          <View className="flex-row justify-between mt-2">
+            <Text className="text-muted text-xs">{current.label}</Text>
+            <Text className="text-muted text-xs">{Math.round((step / TOTAL) * 100)}%</Text>
+          </View>
         </View>
-      </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: 28, paddingBottom: 24 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text className="text-2xl font-display font-bold text-text leading-tight">{current.title}</Text>
-        {current.subtitle && <Text className="text-muted text-sm mt-1.5 mb-1">{current.subtitle}</Text>}
-        <View className="mt-5">{current.body}</View>
-      </ScrollView>
-
-      {/* Bottom nav */}
-      <View className="flex-row items-center justify-between px-7 pt-3 pb-8 border-t border-border">
-        <TouchableOpacity
-          onPress={() => setScreen(step === 1 ? 'name' : step - 1)}
-          className="py-2 pr-4"
+        {/* Animated step content — keyed on screen so entering fires on every step change */}
+        <Animated.View
+          key={String(screen)}
+          entering={entering}
+          exiting={FadeOut.duration(150)}
+          className="flex-1"
         >
-          <Text className="text-muted text-sm">← Back</Text>
-        </TouchableOpacity>
-        {!isLast && (
-          <TouchableOpacity
-            disabled={!stepValid[step]}
-            activeOpacity={0.85}
-            onPress={() => setScreen(step + 1)}
-            className="bg-brand rounded-2xl px-7 py-3"
-            style={{ opacity: stepValid[step] ? 1 : 0.4 }}
+          <ScrollView
+            contentContainerStyle={{ padding: 28, paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text className="text-white font-bold text-sm">Continue →</Text>
+            <Animated.View entering={FadeInDown.delay(0).duration(300)}>
+              <GradientText className="text-2xl font-black leading-tight">
+                {current.title}
+              </GradientText>
+              {current.subtitle && (
+                <Text className="text-muted text-sm mt-1.5 mb-1">{current.subtitle}</Text>
+              )}
+            </Animated.View>
+            <View className="mt-5">{current.body}</View>
+          </ScrollView>
+        </Animated.View>
+
+        {/* Bottom nav */}
+        <View className="flex-row items-center justify-between px-7 pt-3 pb-8 border-t border-border">
+          <TouchableOpacity
+            onPress={() => {
+              if (step === 1) goBack('name');
+              else goBack(step - 1);
+            }}
+            className="py-2 pr-4"
+          >
+            <Text className="text-muted text-sm">← Back</Text>
           </TouchableOpacity>
-        )}
-      </View>
-    </SafeAreaView>
+          {!isLast && (
+            <GradientButton
+              label="Continue"
+              icon="arrow-forward"
+              onPress={() => goForward(step === 7 ? 'paywall' : step + 1)}
+              disabled={!stepValid[step]}
+              size="md"
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
