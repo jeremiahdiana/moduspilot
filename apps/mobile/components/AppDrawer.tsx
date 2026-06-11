@@ -9,6 +9,7 @@ import { useThemeColors } from '@/lib/theme';
 import { GradientText } from '@/components/ui/GradientText';
 import { Logo } from '@/components/ui/Logo';
 import { haptics } from '@/lib/haptics';
+import { navDir } from '@/lib/navDirection';
 
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
@@ -52,6 +53,9 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
   function go(href: string) {
     haptics.select();
+    const currentIdx = NAV.findIndex(n => pathname === `/${n.seg}`);
+    const targetIdx  = NAV.findIndex(n => n.href === href);
+    navDir.set(targetIdx >= currentIdx ? 'forward' : 'back');
     close();
     // Let the close animation start before swapping routes.
     setTimeout(() => router.replace(href as never), 60);

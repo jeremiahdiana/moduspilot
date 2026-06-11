@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
 import { View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { FadeInRight, FadeInLeft } from 'react-native-reanimated';
+import { navDir } from '@/lib/navDirection';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
@@ -13,16 +14,6 @@ import { registerPush } from '@/lib/push';
 export default function AppLayout() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-
-  // Fade each screen's content in on navigation. The Stack swaps instantly
-  // (animation: 'none') over the persistent animated background, so there's no
-  // overlap; this gives a clean, alive entrance without two screens colliding.
-  const fade = useSharedValue(0);
-  useEffect(() => {
-    fade.value = 0;
-    fade.value = withTiming(1, { duration: 240, easing: Easing.out(Easing.quad) });
-  }, [pathname]);
-  const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
   // Register for push once signed in, and route notification taps to the
   // relevant screen (briefing by default, chat for check-ins).
@@ -46,7 +37,11 @@ export default function AppLayout() {
       <DrawerProvider>
         <View className="flex-1 bg-bg">
           <AppBackground />
-          <Animated.View style={[{ flex: 1 }, fadeStyle]}>
+          <Animated.View
+            key={pathname}
+            style={{ flex: 1 }}
+            entering={navDir.get() === 'forward' ? FadeInRight.duration(260) : FadeInLeft.duration(260)}
+          >
             <Stack
               screenOptions={{
                 headerShown: false,
