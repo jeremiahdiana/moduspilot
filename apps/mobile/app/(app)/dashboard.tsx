@@ -259,12 +259,10 @@ export default function DashboardScreen() {
           <TouchableOpacity onPress={open} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
             <Icon name="menu" tone="text" size={22} />
           </TouchableOpacity>
-          <View className="flex-row items-center gap-2 bg-surface/70 border border-brand/20 rounded-2xl px-3 py-1.5">
-            <Logo width={30} />
-            <View>
-              <Text className="text-brand font-black tracking-widest text-sm leading-none">MODUS</Text>
-              <Text className="text-muted text-[8px] font-semibold uppercase tracking-widest mt-0.5">pilot</Text>
-            </View>
+          <Logo width={38} />
+          <View className="-ml-0.5">
+            <GradientText className="text-sm font-black tracking-widest leading-none">MODUS</GradientText>
+            <Text className="text-muted text-[8px] font-semibold uppercase tracking-widest mt-0.5">pilot</Text>
           </View>
         </View>
 

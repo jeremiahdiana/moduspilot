@@ -13,7 +13,7 @@ import { API_BASE, getAuthHeader } from './api';
  */
 
 export interface ModelSettings {
-  provider: 'groq' | 'openai' | 'anthropic';
+  provider: 'platform' | 'groq' | 'openai' | 'anthropic';
   model?: string;
   openaiKey?: string;
   anthropicKey?: string;
