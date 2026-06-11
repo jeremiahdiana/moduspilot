@@ -20,9 +20,9 @@ export default function AppLayout() {
     cancelAnimation(opacity);
     cancelAnimation(translateX);
     opacity.value = 0;
-    translateX.value = 10;
-    opacity.value = withTiming(1, { duration: 150 });
-    translateX.value = withTiming(0, { duration: 170, easing: Easing.out(Easing.cubic) });
+    translateX.value = 16;
+    opacity.value = withTiming(1, { duration: 220 });
+    translateX.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.cubic) });
   }, [pathname]);
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
