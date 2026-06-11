@@ -9,6 +9,7 @@ import { AppBackground } from '@/components/AppBackground';
 import { BrandLoader } from '@/components/ui';
 import { SheetsProvider } from '@/components/ui/Sheets';
 import { registerPush } from '@/lib/push';
+import { navSignal } from '@/lib/navSignal';
 
 export default function AppLayout() {
   const { user, loading } = useAuth();
@@ -16,13 +17,25 @@ export default function AppLayout() {
 
   const opacity = useSharedValue(1);
   const translateX = useSharedValue(0);
+
+  // Register fade-out so AppDrawer can pre-fade the current screen
+  // the moment a user taps a nav item, before the route even changes.
+  useEffect(() => {
+    navSignal.register(() => {
+      cancelAnimation(opacity);
+      cancelAnimation(translateX);
+      opacity.value = withTiming(0, { duration: 80 });
+    });
+  }, []);
+
+  // Fade the new screen in once React has rendered it.
   useEffect(() => {
     cancelAnimation(opacity);
     cancelAnimation(translateX);
     opacity.value = 0;
-    translateX.value = 16;
-    opacity.value = withTiming(1, { duration: 220 });
-    translateX.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.cubic) });
+    translateX.value = 12;
+    opacity.value   = withTiming(1, { duration: 200 });
+    translateX.value = withTiming(0, { duration: 230, easing: Easing.out(Easing.cubic) });
   }, [pathname]);
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

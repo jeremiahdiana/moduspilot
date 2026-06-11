@@ -12,6 +12,7 @@ import { useThemeColors } from '@/lib/theme';
 import { GradientText } from '@/components/ui/GradientText';
 import { Logo } from '@/components/ui/Logo';
 import { haptics } from '@/lib/haptics';
+import { navSignal } from '@/lib/navSignal';
 
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
@@ -59,8 +60,12 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
   function go(href: string) {
     haptics.select();
+    navSignal.trigger(); // instantly fade out the current screen content
     close();
-    setTimeout(() => router.replace(href as never), 20);
+    // Wait for the fade-out (80ms) to finish before swapping routes so
+    // there's no visible blank frame between the old screen leaving and
+    // the new screen's fade-in starting.
+    setTimeout(() => router.replace(href as never), 90);
   }
 
   return (
