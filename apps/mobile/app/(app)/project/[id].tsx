@@ -58,6 +58,12 @@ export default function ProjectDetail() {
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const listRef = useRef<FlatList>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    abortRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -168,6 +174,7 @@ export default function ProjectDetail() {
 
     try {
       for await (const chunk of streamChat(apiMsgs, { signal: ctrl.signal, projectContext: ctx })) {
+        if (!mountedRef.current) break;
         setChatMsgs(prev => {
           const next = [...prev];
           const last = next[next.length - 1];
@@ -177,8 +184,10 @@ export default function ProjectDetail() {
         listRef.current?.scrollToEnd({ animated: false });
       }
     } catch { /* abort */ } finally {
-      setStreaming(false);
-      abortRef.current = null;
+      if (mountedRef.current) {
+        setStreaming(false);
+        abortRef.current = null;
+      }
     }
   }
 
@@ -311,7 +320,7 @@ export default function ProjectDetail() {
                   {item.role === 'user' ? (
                     <Text className="text-white text-[15px] leading-6">{item.content}</Text>
                   ) : (
-                    <Markdown content={item.content || '…'} />
+                    <Markdown text={item.content || '…'} />
                   )}
                 </View>
               </View>

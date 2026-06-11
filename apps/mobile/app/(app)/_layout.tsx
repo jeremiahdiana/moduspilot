@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
 import { View } from 'react-native';
-import Animated, { FadeInRight, FadeInLeft } from 'react-native-reanimated';
-import { navDir } from '@/lib/navDirection';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
@@ -37,11 +36,7 @@ export default function AppLayout() {
       <DrawerProvider>
         <View className="flex-1 bg-bg">
           <AppBackground />
-          <Animated.View
-            key={pathname}
-            style={{ flex: 1 }}
-            entering={navDir.get() === 'forward' ? FadeInRight.duration(260) : FadeInLeft.duration(260)}
-          >
+          <Animated.View key={pathname} style={{ flex: 1 }} entering={FadeIn.duration(180)}>
             <Stack
               screenOptions={{
                 headerShown: false,
