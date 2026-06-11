@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { streamChat, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -71,6 +71,27 @@ function newId() {
 function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning.' : h < 17 ? 'Good afternoon.' : 'Good evening.';
+}
+
+const SKILLS: { icon: string; label: string; prompt: string }[] = [
+  { icon: '📅', label: 'Plan my week', prompt: 'Help me plan my week. Ask me what I have going on and build a focused plan.' },
+  { icon: '✉️', label: 'Write a cold email', prompt: 'Help me write a cold email. Ask me who I\'m emailing and what I want.' },
+  { icon: '🎯', label: 'Summarize my goals', prompt: 'Summarize my current goals and tell me where I should be focusing most.' },
+  { icon: '🧩', label: 'Break down a project', prompt: 'Help me break down a project into clear tasks. Ask me what the project is.' },
+  { icon: '⚡', label: 'Daily standup', prompt: 'Run a quick daily standup with me. Ask what I did yesterday, what I\'m doing today, and if anything is blocking me.' },
+  { icon: '🤔', label: 'Help me decide', prompt: 'Help me make a decision. Ask me what I\'m deciding between.' },
+];
+
+function extractTaskItems(text: string): string[] {
+  const tasks: string[] = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/^[-•*+]\s+(.+)/) ?? line.match(/^\d+[.)]\s+(.+)/);
+    if (m) {
+      const t = m[1].trim().replace(/\*\*/g, '').replace(/`/g, '').replace(/^\[.\]\s*/, '');
+      if (t.length > 3 && t.length < 100) tasks.push(t);
+    }
+  }
+  return tasks.slice(0, 5);
 }
 
 export default function ChatScreen() {
@@ -333,6 +354,18 @@ export default function ChatScreen() {
     scrollToBottom();
   }, [persist, scrollToBottom]);
 
+  const handleAddTask = useCallback(async (title: string) => {
+    if (!user) return;
+    haptics.medium();
+    try {
+      await addDoc(collection(db, 'users', user.uid, 'tasks'), {
+        title,
+        done: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch { /* non-fatal */ }
+  }, [user]);
+
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
       <VoiceOverlay state={voice.state} level={voice.level} onStop={voice.toggle} onCancel={voice.cancel} />
@@ -391,13 +424,14 @@ export default function ChatScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
           onContentSizeChange={scrollToBottom}
-          ListEmptyComponent={<Greeting />}
+          ListEmptyComponent={<Greeting onSend={sendMessage} />}
           renderItem={({ item, index }) => (
             <MessageBubble
               message={item}
               isStreaming={streaming && index === messages.length - 1}
               onFollowUp={appendFollowUp}
               onSend={sendMessage}
+              onAddTask={handleAddTask}
               proactive={proactiveKind}
             />
           )}
@@ -482,14 +516,17 @@ function MessageBubble({
   isStreaming,
   onFollowUp,
   onSend,
+  onAddTask,
   proactive,
 }: {
   message: UIMessage;
   isStreaming: boolean;
   onFollowUp: (text: string) => void;
   onSend: (text: string) => void;
+  onAddTask: (title: string) => void;
   proactive?: ProactiveKind | null;
 }) {
+  const [savedTasks, setSavedTasks] = useState<Set<string>>(new Set());
   const c = useThemeColors();
   const isUser = message.role === 'user';
 
@@ -548,30 +585,62 @@ function MessageBubble({
             )}
           </>
         ) : (
-          parts!.map((part, i) =>
-            part.type === 'approval' ? (
-              proactive ? (
-                <ProactiveReveal key={i} accent={PROACTIVE_ACCENT[proactive]} radius={16}>
-                  <ApprovalCard raw={part.value} onFollowUp={onFollowUp} />
-                </ProactiveReveal>
-              ) : (
-                <ApprovalCard key={i} raw={part.value} onFollowUp={onFollowUp} />
-              )
-            ) : part.type === 'draft_options' ? (
-              <DraftOptionsCard key={i} raw={part.value} onSend={onSend} />
-            ) : part.value.trim() ? (
-              <View key={i} className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
-                <Markdown text={part.value.trim()} />
-              </View>
-            ) : null,
-          )
+          <>
+            {parts!.map((part, i) =>
+              part.type === 'approval' ? (
+                proactive ? (
+                  <ProactiveReveal key={i} accent={PROACTIVE_ACCENT[proactive]} radius={16}>
+                    <ApprovalCard raw={part.value} onFollowUp={onFollowUp} />
+                  </ProactiveReveal>
+                ) : (
+                  <ApprovalCard key={i} raw={part.value} onFollowUp={onFollowUp} />
+                )
+              ) : part.type === 'draft_options' ? (
+                <DraftOptionsCard key={i} raw={part.value} onSend={onSend} />
+              ) : part.value.trim() ? (
+                <View key={i} className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
+                  <Markdown text={part.value.trim()} />
+                </View>
+              ) : null,
+            )}
+            {/* Task capture chips — shown when message has bullet/numbered items */}
+            {(() => {
+              const items = extractTaskItems(message.content);
+              if (items.length === 0) return null;
+              return (
+                <View className="gap-1.5 self-start">
+                  <Text className="text-muted text-[10px] font-semibold uppercase tracking-wider px-1">Save as task</Text>
+                  <View className="flex-row flex-wrap gap-1.5">
+                    {items.map(item => {
+                      const saved = savedTasks.has(item);
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          onPress={() => {
+                            if (saved) return;
+                            onAddTask(item);
+                            setSavedTasks(prev => new Set([...prev, item]));
+                          }}
+                          activeOpacity={0.7}
+                          className={`flex-row items-center gap-1 px-2.5 py-1.5 rounded-full border ${saved ? 'border-brand/30 bg-brand/10' : 'border-border bg-surface'}`}
+                        >
+                          <Icon name={saved ? 'check' : 'add'} size={13} color={saved ? '#6366f1' : '#888'} />
+                          <Text className={`text-xs ${saved ? 'text-brand' : 'text-muted'}`} numberOfLines={1} style={{ maxWidth: 180 }}>{item}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })()}
+          </>
         )}
       </View>
     </View>
   );
 }
 
-function Greeting() {
+function Greeting({ onSend }: { onSend: (text: string) => void }) {
   return (
     <View className="flex-1 items-center justify-center gap-5 px-8" style={{ minHeight: 360 }}>
       <Logo width={92} />
@@ -582,6 +651,22 @@ function Greeting() {
         <Text className="text-muted text-base text-center leading-relaxed">
           I'm MODUS, your AI chief of staff.{'\n'}What do you want to tackle today?
         </Text>
+      </View>
+      <View className="w-full gap-2">
+        <Text className="text-muted text-xs font-semibold uppercase tracking-wider text-center">Skills</Text>
+        <View className="flex-row flex-wrap gap-2 justify-center">
+          {SKILLS.map(skill => (
+            <TouchableOpacity
+              key={skill.label}
+              onPress={() => onSend(skill.prompt)}
+              activeOpacity={0.75}
+              className="flex-row items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface border border-border"
+            >
+              <Text style={{ fontSize: 14 }}>{skill.icon}</Text>
+              <Text className="text-text text-sm font-medium">{skill.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
     </View>
   );
