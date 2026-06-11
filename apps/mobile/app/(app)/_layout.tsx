@@ -9,7 +9,6 @@ import { AppBackground } from '@/components/AppBackground';
 import { BrandLoader } from '@/components/ui';
 import { SheetsProvider } from '@/components/ui/Sheets';
 import { registerPush } from '@/lib/push';
-import { navSignal } from '@/lib/navSignal';
 
 export default function AppLayout() {
   const { user, loading } = useAuth();
@@ -17,18 +16,9 @@ export default function AppLayout() {
 
   const opacity = useSharedValue(1);
 
-  // AppDrawer calls this the moment the user taps a nav item so the
-  // current screen fades out before the route even changes — no dead gap.
-  useEffect(() => {
-    navSignal.register(() => {
-      cancelAnimation(opacity);
-      opacity.value = withTiming(0, { duration: 80 });
-    });
-  }, []);
-
-  // Pure opacity fade-in once React has finished rendering the new screen.
-  // No translateX — moving pixels while the JS thread is busy causes dropped
-  // frames (choppiness). Opacity runs through Core Animation at 60/120fps.
+  // Fade in the new screen once React finishes rendering it.
+  // Pure opacity — no translateX. Opacity runs through Core Animation on iOS
+  // and is always 60/120fps regardless of JS thread load.
   useEffect(() => {
     cancelAnimation(opacity);
     opacity.value = 0;
