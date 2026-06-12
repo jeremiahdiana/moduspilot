@@ -60,7 +60,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   function go(href: string) {
     haptics.select();
     close();
-    setTimeout(() => router.replace(href as never), 20);
+    router.replace(href as never);
   }
 
   return (

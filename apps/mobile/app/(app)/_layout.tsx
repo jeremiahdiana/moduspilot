@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
 import { View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, cancelAnimation } from 'react-native-reanimated';
@@ -14,15 +14,15 @@ export default function AppLayout() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
 
-  const opacity = useSharedValue(1);
+  const opacity = useSharedValue(0);
 
-  // Fade in the new screen once React finishes rendering it.
-  // Pure opacity — no translateX. Opacity runs through Core Animation on iOS
-  // and is always 60/120fps regardless of JS thread load.
-  useEffect(() => {
+  // useLayoutEffect fires synchronously before paint — opacity is committed to
+  // 0 before the new screen is shown, so there is no one-frame flash at full
+  // opacity before the fade starts.
+  useLayoutEffect(() => {
     cancelAnimation(opacity);
     opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 180 });
+    opacity.value = withTiming(1, { duration: 160 });
   }, [pathname]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
