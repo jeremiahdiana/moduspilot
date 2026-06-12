@@ -64,7 +64,7 @@ export function useAuthActions(opts?: {
 
   function routeAfterSignIn(needsOnboarding: boolean) {
     if (needsOnboarding) router.replace('/onboarding');
-    else router.replace('/(app)/briefing');
+    else router.replace('/(app)/(tabs)/briefing');
   }
 
   async function finishSignIn(uid: string, displayName: string | null, email: string | null) {
@@ -149,7 +149,7 @@ export function useAuthActions(opts?: {
   // instead of showing a misleading failure. Otherwise surface the real error.
   function handleSignInError(e: unknown, signedIn: boolean) {
     if (signedIn) {
-      router.replace('/(app)/briefing');
+      router.replace('/(app)/(tabs)/briefing');
       return;
     }
     const code = (e as { code?: string })?.code;

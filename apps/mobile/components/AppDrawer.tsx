@@ -16,13 +16,13 @@ import { haptics } from '@/lib/haptics';
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
 const NAV: { label: string; seg: string; href: string; icon: IconName }[] = [
-  { label: 'Dashboard', seg: 'dashboard', href: '/(app)/dashboard', icon: 'dashboard' },
-  { label: 'Briefing',  seg: 'briefing',  href: '/(app)/briefing',  icon: 'wb-sunny' },
-  { label: 'Chat',      seg: 'chat',      href: '/(app)/chat',      icon: 'auto-awesome' },
-  { label: 'Goals',     seg: 'goals',     href: '/(app)/goals',     icon: 'flag' },
-  { label: 'Reminders', seg: 'reminders', href: '/(app)/reminders', icon: 'checklist' },
-  { label: 'Projects',  seg: 'projects',  href: '/(app)/projects',  icon: 'folder' },
-  { label: 'Settings',  seg: 'settings',  href: '/(app)/settings',  icon: 'settings' },
+  { label: 'Dashboard', seg: 'dashboard', href: '/(app)/(tabs)/dashboard', icon: 'dashboard' },
+  { label: 'Briefing',  seg: 'briefing',  href: '/(app)/(tabs)/briefing',  icon: 'wb-sunny' },
+  { label: 'Chat',      seg: 'chat',      href: '/(app)/(tabs)/chat',      icon: 'auto-awesome' },
+  { label: 'Goals',     seg: 'goals',     href: '/(app)/(tabs)/goals',     icon: 'flag' },
+  { label: 'Reminders', seg: 'reminders', href: '/(app)/(tabs)/reminders', icon: 'checklist' },
+  { label: 'Projects',  seg: 'projects',  href: '/(app)/(tabs)/projects',  icon: 'folder' },
+  { label: 'Settings',  seg: 'settings',  href: '/(app)/(tabs)/settings',  icon: 'settings' },
 ];
 
 const DrawerCtx = createContext<{ open: () => void; close: () => void }>({ open: () => {}, close: () => {} });
@@ -62,7 +62,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   function go(href: string) {
     haptics.select();
     close();
-    router.replace(href as never);
+    router.navigate(href as never);
   }
 
   return (

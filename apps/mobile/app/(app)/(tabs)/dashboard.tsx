@@ -290,30 +290,30 @@ export default function DashboardScreen() {
 
         {/* Colored stat pills */}
         <View className="flex-row items-center flex-wrap gap-2 mt-3.5">
-          <Pill value={goals.length} label="active goals" hex={A.brand} tint={TINT.brand} onPress={() => router.push('/(app)/goals' as never)} />
-          <Pill value={dueToday.length} label="due today" hex={A.yellow} tint={TINT.yellow} onPress={() => router.push('/(app)/reminders' as never)} />
+          <Pill value={goals.length} label="active goals" hex={A.brand} tint={TINT.brand} onPress={() => router.push('/(app)/(tabs)/goals' as never)} />
+          <Pill value={dueToday.length} label="due today" hex={A.yellow} tint={TINT.yellow} onPress={() => router.push('/(app)/(tabs)/reminders' as never)} />
           {topStreak > 0 && (
-            <Pill value={topStreak} label="day streak" hex={A.orange} tint={TINT.orange} onPress={() => router.push('/(app)/reminders' as never)} />
+            <Pill value={topStreak} label="day streak" hex={A.orange} tint={TINT.orange} onPress={() => router.push('/(app)/(tabs)/reminders' as never)} />
           )}
           {inbox.length > 0 && (
-            <Pill value={inbox.length} label="unread" hex={A.violet} tint={TINT.violet} onPress={() => router.push('/(app)/briefing' as never)} />
+            <Pill value={inbox.length} label="unread" hex={A.violet} tint={TINT.violet} onPress={() => router.push('/(app)/(tabs)/briefing' as never)} />
           )}
         </View>
 
         {/* Quick actions */}
         <Text className="text-muted/70 text-[11px] mt-5 mb-2">Quick actions</Text>
         <View className="flex-row flex-wrap gap-2">
-          <Chip label="+ Task" icon="add-task" hex={A.yellow} tint={TINT.yellow} href="/(app)/reminders" />
-          <Chip label="+ Goal" icon="flag" hex={A.brand} tint={TINT.brand} href="/(app)/goals" />
-          <Chip label="+ Log habit" icon="local-fire-department" hex={A.orange} tint={TINT.orange} href="/(app)/reminders" />
-          <Chip label="+ Ask MODUS" icon="auto-awesome" hex={A.violet} tint={TINT.violet} href="/(app)/chat" />
+          <Chip label="+ Task" icon="add-task" hex={A.yellow} tint={TINT.yellow} href="/(app)/(tabs)/reminders" />
+          <Chip label="+ Goal" icon="flag" hex={A.brand} tint={TINT.brand} href="/(app)/(tabs)/goals" />
+          <Chip label="+ Log habit" icon="local-fire-department" hex={A.orange} tint={TINT.orange} href="/(app)/(tabs)/reminders" />
+          <Chip label="+ Ask MODUS" icon="auto-awesome" hex={A.violet} tint={TINT.violet} href="/(app)/(tabs)/chat" />
         </View>
 
         {/* Focus card — brand-tinted with medallion (matches web) */}
         {focus && (
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={() => router.push((focus.source === 'briefing' ? '/(app)/briefing' : '/(app)/reminders') as never)}
+            onPress={() => router.push((focus.source === 'briefing' ? '/(app)/(tabs)/briefing' : '/(app)/(tabs)/reminders') as never)}
             className="flex-row items-center gap-4 mt-5 rounded-2xl bg-brand/10 dark:bg-brand/5 border border-brand/30 dark:border-brand/25 px-5 py-4"
           >
             <View className="w-9 h-9 rounded-xl bg-brand/20 dark:bg-brand/15 items-center justify-center">
@@ -331,7 +331,7 @@ export default function DashboardScreen() {
         {/* Sections */}
         <View className="gap-4 mt-6">
           {/* Today's schedule */}
-          <Card title="Today's schedule" icon="event" href="/(app)/briefing">
+          <Card title="Today's schedule" icon="event" href="/(app)/(tabs)/briefing">
             {events.length === 0 ? (
               <CardEmpty text={googleConnected ? 'Nothing scheduled today.' : 'Connect Google in chat to see your schedule.'} />
             ) : (
@@ -345,11 +345,11 @@ export default function DashboardScreen() {
           </Card>
 
           {/* Today's briefing */}
-          <Card title="Today's briefing" icon="notifications" href="/(app)/briefing">
+          <Card title="Today's briefing" icon="notifications" href="/(app)/(tabs)/briefing">
             {!brief ? (
               <CardEmpty text="No briefings yet. They arrive at your scheduled time." />
             ) : (
-              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(app)/briefing' as never)} className="px-4 py-3.5">
+              <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(app)/(tabs)/briefing' as never)} className="px-4 py-3.5">
                 <View className="flex-row items-center gap-2 mb-1.5">
                   {!brief.read && <View className="w-1.5 h-1.5 rounded-full bg-brand" />}
                   <Text className="text-muted text-[11px]">
@@ -364,7 +364,7 @@ export default function DashboardScreen() {
 
           {/* Inbox */}
           {(inbox.length > 0 || !googleConnected) && (
-            <Card title="Inbox" icon="mail-outline" href="/(app)/briefing">
+            <Card title="Inbox" icon="mail-outline" href="/(app)/(tabs)/briefing">
               {inbox.length === 0 ? (
                 <CardEmpty text="Connect Google in chat to see your inbox." />
               ) : (
@@ -372,7 +372,7 @@ export default function DashboardScreen() {
                   <TouchableOpacity
                     key={t.id}
                     activeOpacity={0.8}
-                    onPress={() => router.push('/(app)/briefing' as never)}
+                    onPress={() => router.push('/(app)/(tabs)/briefing' as never)}
                     className={`flex-row items-start gap-3 px-4 py-3 ${i > 0 ? 'border-t border-border' : ''}`}
                   >
                     <View className="w-7 h-7 rounded-full items-center justify-center mt-0.5" style={{ backgroundColor: avatarColor(t.from) }}>
@@ -394,7 +394,7 @@ export default function DashboardScreen() {
           )}
 
           {/* Goals */}
-          <Card title="Goals" icon="flag" href="/(app)/goals">
+          <Card title="Goals" icon="flag" href="/(app)/(tabs)/goals">
             {topGoals.length === 0 ? (
               <CardEmpty text="No active goals. Ask MODUS to set one." />
             ) : (
@@ -419,7 +419,7 @@ export default function DashboardScreen() {
           </Card>
 
           {/* Due today */}
-          <Card title="Due today" icon="check-box" href="/(app)/reminders">
+          <Card title="Due today" icon="check-box" href="/(app)/(tabs)/reminders">
             {dueToday.length === 0 ? (
               <CardEmpty text="Nothing due today. You're clear." />
             ) : (
@@ -427,7 +427,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity
                   key={t.id}
                   activeOpacity={0.8}
-                  onPress={() => router.push('/(app)/reminders' as never)}
+                  onPress={() => router.push('/(app)/(tabs)/reminders' as never)}
                   className={`px-4 py-3.5 flex-row items-center gap-3 ${i > 0 ? 'border-t border-border' : ''}`}
                 >
                   <Icon name="radio-button-unchecked" tone="muted" size={19} />
@@ -440,7 +440,7 @@ export default function DashboardScreen() {
 
           {/* Habits — tap to check in */}
           {habits.length > 0 && (
-            <Card title="Habits" icon="autorenew" href="/(app)/reminders">
+            <Card title="Habits" icon="autorenew" href="/(app)/(tabs)/reminders">
               {habits.slice(0, 5).map((h, i) => {
                 const done = h.completedDates.includes(todayStr());
                 return (

@@ -349,7 +349,7 @@ export default function BriefingScreen() {
   }
   function draftReply(t: InboxThread) {
     const prompt = `Write a draft reply for this email directly in chat — just the reply text. When I say "send it", generate a send_email approval card with threadId: "${t.id}", subject: "Re: ${t.subject}", and body = the draft.\n\nFrom: ${t.from}\nSubject: ${t.subject}\n\n${t.snippet}`;
-    router.push({ pathname: '/(app)/chat', params: { prefill: prompt } });
+    router.push({ pathname: '/(app)/(tabs)/chat', params: { prefill: prompt } });
   }
 
   // Derived
@@ -617,7 +617,7 @@ export default function BriefingScreen() {
             <ProactiveReveal delay={0} accent="#f97316">
               <LabeledCard icon="schedule" color="#f97316" label="Loose end" accent="rgba(249,115,22,0.45)">
                 <Text className="text-text text-[13px] leading-5">{data.looseEnd.text}</Text>
-                <TouchableOpacity onPress={() => router.push('/(app)/reminders' as never)} activeOpacity={0.7} className="mt-3 self-start px-2.5 py-1 rounded-lg border border-border bg-surface">
+                <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/reminders' as never)} activeOpacity={0.7} className="mt-3 self-start px-2.5 py-1 rounded-lg border border-border bg-surface">
                   <Text className="text-muted text-[11px]">Handle now ↗</Text>
                 </TouchableOpacity>
               </LabeledCard>
@@ -678,7 +678,7 @@ export default function BriefingScreen() {
           </LabeledCard>
 
           {/* Ask MODUS */}
-          <TouchableOpacity onPress={() => router.push('/(app)/chat' as never)} activeOpacity={0.85} className="flex-row items-center gap-3 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4 mt-1">
+          <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/chat' as never)} activeOpacity={0.85} className="flex-row items-center gap-3 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4 mt-1">
             <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center"><Icon name="auto-awesome" tone="brand" size={18} /></View>
             <View className="flex-1">
               <Text className="text-text font-semibold text-[15px]">Anything on your mind?</Text>

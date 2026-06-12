@@ -145,7 +145,7 @@ export default function TaskDetail() {
         {/* Ask MODUS — scoped AI for this task */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.push({ pathname: '/(app)/chat', params: { taskId: id } })}
+          onPress={() => router.push({ pathname: '/(app)/(tabs)/chat', params: { taskId: id } })}
           className="flex-row items-center gap-3 rounded-xl bg-brand/5 border border-brand/25 px-4 py-3.5"
         >
           <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center">

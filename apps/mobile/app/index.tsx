@@ -27,6 +27,6 @@ export default function Index() {
   if (!user) return <Redirect href="/(auth)/welcome" />;
   if (onboarded === null) return <Splash />; // waiting on the user-doc check
   return onboarded
-    ? <Redirect href={'/(app)/dashboard' as never} />
+    ? <Redirect href={'/(app)/(tabs)/dashboard' as never} />
     : <Redirect href="/onboarding" />;
 }

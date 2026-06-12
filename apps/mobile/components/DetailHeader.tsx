@@ -7,7 +7,7 @@ export function DetailHeader({ title, right }: { title?: string; right?: React.R
   return (
     <View className="px-4 pt-2 pb-3 flex-row items-center gap-3">
       <TouchableOpacity
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)/chat'))}
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/(app)/(tabs)/chat'))}
         activeOpacity={0.7}
         className="w-10 h-10 items-center justify-center rounded-2xl bg-surface border border-border"
       >

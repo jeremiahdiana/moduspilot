@@ -351,7 +351,7 @@ export default function OnboardingScreen() {
     try {
       const existing = await getDoc(doc(db, 'users', uid));
       if (existing.data()?.onboardingComplete === true) {
-        setTimeout(() => router.replace('/(app)/briefing'), 700);
+        setTimeout(() => router.replace('/(app)/(tabs)/briefing'), 700);
         return;
       }
 
@@ -423,9 +423,9 @@ export default function OnboardingScreen() {
         }).catch(() => {});
       }
 
-      setTimeout(() => router.replace('/(app)/briefing'), 900);
+      setTimeout(() => router.replace('/(app)/(tabs)/briefing'), 900);
     } catch {
-      setTimeout(() => router.replace('/(app)/briefing'), 900);
+      setTimeout(() => router.replace('/(app)/(tabs)/briefing'), 900);
     }
   }
 

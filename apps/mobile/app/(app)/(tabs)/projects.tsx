@@ -21,7 +21,7 @@ function AISection() {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
-      onPress={() => router.push('/(app)/chat' as never)}
+      onPress={() => router.push('/(app)/(tabs)/chat' as never)}
       className="mt-2 mb-2 rounded-2xl overflow-hidden border border-brand/25"
     >
       <LinearGradient

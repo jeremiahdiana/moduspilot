@@ -146,7 +146,7 @@ export default function HabitsScreen() {
             action={{
               label: 'Build a habit with MODUS',
               icon: 'auto-awesome',
-              onPress: () => router.push({ pathname: '/(app)/chat', params: { prefill: 'Help me build a new habit.' } }),
+              onPress: () => router.push({ pathname: '/(app)/(tabs)/chat', params: { prefill: 'Help me build a new habit.' } }),
             }}
           />
         ) : (

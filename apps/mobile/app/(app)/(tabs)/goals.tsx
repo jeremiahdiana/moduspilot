@@ -99,7 +99,7 @@ export default function GoalsScreen() {
             action={{
               label: 'Set a goal with MODUS',
               icon: 'auto-awesome',
-              onPress: () => router.push({ pathname: '/(app)/chat', params: { prefill: 'Help me set a new goal.' } }),
+              onPress: () => router.push({ pathname: '/(app)/(tabs)/chat', params: { prefill: 'Help me set a new goal.' } }),
             }}
           />
         ) : (
