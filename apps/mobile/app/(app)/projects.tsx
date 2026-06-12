@@ -150,6 +150,8 @@ export default function ProjectsScreen() {
           data={projects}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          initialNumToRender={20}
+          removeClippedSubviews={false}
           ListHeaderComponent={<AISection />}
           showsVerticalScrollIndicator={false}
           renderItem={({ item, index }) => (

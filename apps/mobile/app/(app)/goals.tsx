@@ -107,6 +107,8 @@ export default function GoalsScreen() {
           data={goals}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          initialNumToRender={20}
+          removeClippedSubviews={false}
           renderItem={({ item, index }) => <AnimatedRow index={index}><GoalRow goal={item} /></AnimatedRow>}
           showsVerticalScrollIndicator={false}
         />

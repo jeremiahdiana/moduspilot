@@ -154,6 +154,8 @@ export default function HabitsScreen() {
           data={habits}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          initialNumToRender={20}
+          removeClippedSubviews={false}
           renderItem={({ item, index }) => <AnimatedRow index={index}><HabitRow habit={item} onToggle={() => toggleToday(item)} /></AnimatedRow>}
           showsVerticalScrollIndicator={false}
         />

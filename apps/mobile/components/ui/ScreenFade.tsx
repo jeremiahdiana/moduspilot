@@ -1,13 +1,24 @@
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withTiming, Easing,
+} from 'react-native-reanimated';
 
-// Single fade-in on the content container. Fires once per navigation since
-// main screens unmount/remount on router.replace(). One animation on the root
-// is cheap — this masks first-render flash without the JS-thread burst that
-// per-item entering animations cause.
+// Fade (220ms) + micro slide-up (280ms, Material emphasized decelerate).
+// Fires once per navigation — single animation on root, not per list item.
 export function ScreenFade({ children }: { children: React.ReactNode }) {
-  return (
-    <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(240)}>
-      {children}
-    </Animated.View>
-  );
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(10);
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) });
+    translateY.value = withTiming(0, { duration: 300, easing: Easing.bezier(0.05, 0.7, 0.1, 1.0) });
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    flex: 1,
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

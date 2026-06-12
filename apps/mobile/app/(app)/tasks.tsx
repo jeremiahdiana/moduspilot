@@ -167,6 +167,8 @@ export default function TasksScreen() {
           data={ordered}
           keyExtractor={item => item.id}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          initialNumToRender={20}
+          removeClippedSubviews={false}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             open.length > 0 ? <View className="px-1 pb-1"><CountPill label={`${open.length} open`} /></View> : null
