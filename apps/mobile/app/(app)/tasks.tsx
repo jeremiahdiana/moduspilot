@@ -97,7 +97,7 @@ export default function TasksScreen() {
         .map(({ deleted, ...t }) => t);
       setTasks(next);
       setLoading(false);
-      if (next.length > 0) writeCache(`tasks.${user.uid}`, next);
+      writeCache(`tasks.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

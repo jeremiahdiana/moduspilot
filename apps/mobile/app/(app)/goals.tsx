@@ -73,7 +73,7 @@ export default function GoalsScreen() {
         .filter(g => g.status === 'active');
       setGoals(next);
       setLoading(false);
-      if (next.length > 0) writeCache(`goals.${user.uid}`, next);
+      writeCache(`goals.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

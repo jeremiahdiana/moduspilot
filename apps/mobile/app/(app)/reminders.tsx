@@ -163,7 +163,7 @@ export default function RemindersScreen() {
           streak: d.data().streak ?? 0, completedDates: d.data().completedDates ?? [],
           frequency: (d.data().frequency ?? 'daily') as 'daily' | 'weekly',
         }));
-        setHabits(next); if (next.length > 0) writeCache(`rem.habits.${uid}`, next);
+        setHabits(next); writeCache(`rem.habits.${uid}`, next);
       },
       () => {},
     );
@@ -175,7 +175,7 @@ export default function RemindersScreen() {
           done: d.data().done ?? false, deleted: d.data().deleted ?? false,
           dueDate: d.data().dueDate, priority: d.data().priority,
         })).filter(t => !t.deleted);
-        setTasks(next); setLoading(false); if (next.length > 0) writeCache(`rem.tasks.${uid}`, next);
+        setTasks(next); setLoading(false); writeCache(`rem.tasks.${uid}`, next);
       },
       () => setLoading(false),
     );

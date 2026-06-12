@@ -20,6 +20,12 @@ export async function readCache<T>(key: string): Promise<T | null> {
     const raw = await AsyncStorage.getItem(PREFIX + key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as T;
+    // Empty arrays are never useful — they cause empty-state flashes.
+    // Treat them as no-cache and clean up the stale entry.
+    if (Array.isArray(parsed) && parsed.length === 0) {
+      AsyncStorage.removeItem(PREFIX + key).catch(() => {});
+      return null;
+    }
     mem.set(PREFIX + key, parsed);
     return parsed;
   } catch {
@@ -27,8 +33,9 @@ export async function readCache<T>(key: string): Promise<T | null> {
   }
 }
 
-/** Write `value` for `key`. Updates memory immediately, persists to AsyncStorage. */
+/** Write `value` for `key`. Empty arrays are silently ignored — see readCache. */
 export function writeCache<T>(key: string, value: T): void {
+  if (Array.isArray(value) && value.length === 0) return;
   mem.set(PREFIX + key, value);
   AsyncStorage.setItem(PREFIX + key, JSON.stringify(value)).catch(() => {});
 }

@@ -82,7 +82,7 @@ export default function ProjectsScreen() {
         .filter(p => p.status === 'active');
       setProjects(next);
       setLoading(false);
-      if (next.length > 0) writeCache(`projects.${user.uid}`, next);
+      writeCache(`projects.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

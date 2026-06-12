@@ -107,7 +107,7 @@ export default function HabitsScreen() {
       }));
       setHabits(next);
       setLoading(false);
-      if (next.length > 0) writeCache(`habits.${user.uid}`, next);
+      writeCache(`habits.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };
