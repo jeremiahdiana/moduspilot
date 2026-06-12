@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { ProgressRing, AnimatedRow } from '@/components/ui';
 import { EmptyState, CountPill } from '@/components/ui/Common';
 
@@ -47,8 +47,8 @@ function GoalRow({ goal }: { goal: Goal }) {
 
 export default function GoalsScreen() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [goals, setGoals] = useState<Goal[]>(() => readCacheSync<Goal[]>(`goals.${user?.uid ?? ''}`) ?? []);
+  const [loading, setLoading] = useState(() => !readCacheSync(`goals.${user?.uid ?? ''}`));
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }

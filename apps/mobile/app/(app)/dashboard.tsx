@@ -11,7 +11,7 @@ import { Icon, type IconName } from '@/components/Icon';
 import { GradientText } from '@/components/ui/GradientText';
 import { Logo } from '@/components/ui/Logo';
 import { haptics } from '@/lib/haptics';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { fetchInbox, fetchTodayEvents, type InboxThread, type CalEvent } from '@/lib/api';
 
 function greeting() {
@@ -127,14 +127,15 @@ export default function DashboardScreen() {
   const A = accents(colorScheme === 'dark');
   const firstName = user?.displayName?.split(' ')[0] ?? '';
 
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const uid = user?.uid ?? '';
+  const [goals, setGoals] = useState<Goal[]>(() => readCacheSync<Goal[]>(`dash.goals.${uid}`) ?? []);
+  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(`dash.tasks.${uid}`) ?? []);
+  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(`dash.habits.${uid}`) ?? []);
   const [topStreak, setTopStreak] = useState(0);
   const [focus, setFocus] = useState<{ title: string; source: 'briefing' | 'task' } | null>(null);
   const [brief, setBrief] = useState<BriefPreview | null>(null);
-  const [events, setEvents] = useState<CalEvent[]>([]);
-  const [inbox, setInbox] = useState<InboxThread[]>([]);
+  const [events, setEvents] = useState<CalEvent[]>(() => readCacheSync<CalEvent[]>(`dash.events.${uid}`) ?? []);
+  const [inbox, setInbox] = useState<InboxThread[]>(() => readCacheSync<InboxThread[]>(`dash.inbox.${uid}`) ?? []);
   const [googleConnected, setGoogleConnected] = useState(true);
 
   useEffect(() => {

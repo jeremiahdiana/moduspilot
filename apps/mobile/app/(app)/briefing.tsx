@@ -13,7 +13,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon, type IconName } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { Skeleton } from '@/components/Skeleton';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState } from '@/components/ui';
 import { ProactiveReveal } from '@/components/ui/ProactiveReveal';
 import { haptics } from '@/lib/haptics';
@@ -204,14 +204,15 @@ function hostname(url: string) { try { return new URL(url).hostname.replace('www
 export default function BriefingScreen() {
   const { user } = useAuth();
   const c = useThemeColors();
-  const [data, setData] = useState<BriefingData | null>(null);
-  const [date, setDate] = useState<Date | null>(null);
+  const _bc = readCacheSync<{ data: BriefingData; date: string }>(`briefing.${user?.uid ?? ''}`);
+  const [data, setData] = useState<BriefingData | null>(_bc?.data ?? null);
+  const [date, setDate] = useState<Date | null>(_bc ? new Date(_bc.date) : null);
   const [docId, setDocId] = useState<string | null>(null);
   const [energy, setEnergy] = useState<string | null>(null);
   const [completedTop3, setCompletedTop3] = useState<number[]>([]);
   const [customEnergy, setCustomEnergy] = useState('');
   const [allBriefings, setAllBriefings] = useState<BriefingEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!_bc);
   const [refreshing, setRefreshing] = useState(false);
 
   const [speaking, setSpeaking] = useState(false);

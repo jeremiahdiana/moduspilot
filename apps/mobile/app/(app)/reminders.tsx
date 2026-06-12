@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
@@ -137,9 +137,9 @@ export default function RemindersScreen() {
   const { prompt, confirm } = useSheets();
   const todayStr = localDateStr();
 
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(`rem.habits.${user?.uid ?? ''}`) ?? []);
+  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(`rem.tasks.${user?.uid ?? ''}`) ?? []);
+  const [loading, setLoading] = useState(() => !readCacheSync(`rem.tasks.${user?.uid ?? ''}`));
   const [expandedHabit, setExpandedHabit] = useState<string | null>(null);
   const [tab, setTab] = useState<'todo' | 'done'>('todo');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');

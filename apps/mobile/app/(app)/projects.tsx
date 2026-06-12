@@ -12,7 +12,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete } from '@/components/ui';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS } from '@/lib/theme';
@@ -59,8 +59,8 @@ interface Project {
 export default function ProjectsScreen() {
   const { user } = useAuth();
   const { actionSheet, prompt } = useSheets();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>(() => readCacheSync<Project[]>(`projects.${user?.uid ?? ''}`) ?? []);
+  const [loading, setLoading] = useState(() => !readCacheSync(`projects.${user?.uid ?? ''}`));
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }

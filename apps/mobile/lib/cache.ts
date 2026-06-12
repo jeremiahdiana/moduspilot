@@ -1,28 +1,34 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/**
- * Lightweight last-known-data cache backed by AsyncStorage.
- *
- * The React Native Firebase JS SDK only supports an in-memory Firestore cache,
- * so on a cold start every screen would otherwise wait for the network before
- * showing anything. These helpers let a screen paint its previous data
- * immediately (within a few ms of an async read) while the live onSnapshot
- * listener revalidates in the background.
- */
-
 const PREFIX = 'modus.cache.';
 
-/** Read cached value for `key`, or null if absent / unparseable. */
+// In-memory layer: populated by writeCache and warmed by readCache.
+// readCacheSync returns data in 0ms — no async gap on re-visits.
+const mem = new Map<string, unknown>();
+
+/** Synchronous read from the in-memory layer. Returns null if not yet populated. */
+export function readCacheSync<T>(key: string): T | null {
+  const v = mem.get(PREFIX + key);
+  return v !== undefined ? (v as T) : null;
+}
+
+/** Read cached value. Checks memory first (0ms), falls back to AsyncStorage. */
 export async function readCache<T>(key: string): Promise<T | null> {
+  const sync = readCacheSync<T>(key);
+  if (sync !== null) return sync;
   try {
     const raw = await AsyncStorage.getItem(PREFIX + key);
-    return raw ? (JSON.parse(raw) as T) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as T;
+    mem.set(PREFIX + key, parsed);
+    return parsed;
   } catch {
     return null;
   }
 }
 
-/** Write `value` for `key`. Fire-and-forget — never throws. */
+/** Write `value` for `key`. Updates memory immediately, persists to AsyncStorage. */
 export function writeCache<T>(key: string, value: T): void {
+  mem.set(PREFIX + key, value);
   AsyncStorage.setItem(PREFIX + key, JSON.stringify(value)).catch(() => {});
 }
