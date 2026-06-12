@@ -1,9 +1,8 @@
-import Animated, { FadeIn } from 'react-native-reanimated';
+import { View } from 'react-native';
 
+// No entering animation — screens appear instantly with cached data.
+// Entering animations on every list item on every mount caused JS thread
+// overload during navigation. The drawer closing is the visual transition.
 export function AnimatedRow({ index = 0, children }: { index?: number; children: React.ReactNode }) {
-  return (
-    <Animated.View entering={FadeIn.duration(180)}>
-      {children}
-    </Animated.View>
-  );
+  return <View>{children}</View>;
 }

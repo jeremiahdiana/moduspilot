@@ -1,7 +1,6 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
 import { View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, cancelAnimation, Easing } from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
@@ -10,21 +9,15 @@ import { BrandLoader } from '@/components/ui';
 import { SheetsProvider } from '@/components/ui/Sheets';
 import { registerPush } from '@/lib/push';
 
+// Main nav screens: instant swap — the drawer sliding is the only transition.
+// Detail screens (goal/[id], billing, etc.) get the native iOS slide.
+const MAIN_SCREENS = [
+  'dashboard', 'briefing', 'chat', 'goals', 'reminders',
+  'projects', 'settings', 'habits', 'tasks',
+];
+
 export default function AppLayout() {
   const { user, loading } = useAuth();
-  const pathname = usePathname();
-
-  const opacity = useSharedValue(0);
-
-  // Fast fade so the screen is fully visible before the drawer finishes closing.
-  // The drawer IS the transition — this just prevents a hard cut on non-drawer nav.
-  useLayoutEffect(() => {
-    cancelAnimation(opacity);
-    opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 90, easing: Easing.out(Easing.quad) });
-  }, [pathname]);
-
-  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   useEffect(() => {
     if (!user) return;
@@ -45,15 +38,17 @@ export default function AppLayout() {
       <DrawerProvider>
         <View className="flex-1 bg-bg">
           <AppBackground />
-          <Animated.View style={[{ flex: 1 }, fadeStyle]}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: 'transparent' },
-                animation: 'none',
-              }}
-            />
-          </Animated.View>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
+              animation: 'default', // native iOS slide for detail screens (goal/[id], billing, etc.)
+            }}
+          >
+            {MAIN_SCREENS.map(name => (
+              <Stack.Screen key={name} name={name} options={{ animation: 'none' }} />
+            ))}
+          </Stack>
         </View>
       </DrawerProvider>
     </SheetsProvider>
