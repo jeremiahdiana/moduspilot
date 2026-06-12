@@ -11,7 +11,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, CountPill, AnimatedRow, SwipeToDelete, ScreenFade } from '@/components/ui';
+import { EmptyState, CountPill, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
@@ -149,44 +149,45 @@ export default function TasksScreen() {
         }
       />
 
-      {loading ? (
-        <SkeletonList count={6}>
-          <SkeletonHabitRow />
-        </SkeletonList>
-      ) : tasks.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <EmptyState
-            icon="checklist"
-            title="No tasks yet"
-            subtitle="Capture what needs doing, or ask MODUS in chat."
-            action={{ label: 'Add a task', icon: 'add', onPress: addTask }}
+      <FadeReveal
+        loading={loading}
+        skeleton={<SkeletonList count={6}><SkeletonHabitRow /></SkeletonList>}
+      >
+        {tasks.length === 0 ? (
+          <View className="flex-1 items-center justify-center">
+            <EmptyState
+              icon="checklist"
+              title="No tasks yet"
+              subtitle="Capture what needs doing, or ask MODUS in chat."
+              action={{ label: 'Add a task', icon: 'add', onPress: addTask }}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={ordered}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ padding: 16, gap: 12 }}
+            initialNumToRender={20}
+            removeClippedSubviews={false}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              open.length > 0 ? <View className="px-1 pb-1"><CountPill label={`${open.length} open`} /></View> : null
+            }
+            renderItem={({ item, index }) => (
+              <AnimatedRow index={index}>
+                <SwipeToDelete onDelete={() => deleteNow(item)}>
+                  <TaskRow
+                    task={item}
+                    onToggle={() => toggle(item)}
+                    onDelete={() => remove(item)}
+                    onOpen={() => router.push(`/(app)/task/${item.id}`)}
+                  />
+                </SwipeToDelete>
+              </AnimatedRow>
+            )}
           />
-        </View>
-      ) : (
-        <FlatList
-          data={ordered}
-          keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
-          initialNumToRender={20}
-          removeClippedSubviews={false}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            open.length > 0 ? <View className="px-1 pb-1"><CountPill label={`${open.length} open`} /></View> : null
-          }
-          renderItem={({ item, index }) => (
-            <AnimatedRow index={index}>
-              <SwipeToDelete onDelete={() => deleteNow(item)}>
-                <TaskRow
-                  task={item}
-                  onToggle={() => toggle(item)}
-                  onDelete={() => remove(item)}
-                  onOpen={() => router.push(`/(app)/task/${item.id}`)}
-                />
-              </SwipeToDelete>
-            </AnimatedRow>
-          )}
-        />
-      )}
+        )}
+      </FadeReveal>
       </SafeAreaView>
     </ScreenFade>
   );

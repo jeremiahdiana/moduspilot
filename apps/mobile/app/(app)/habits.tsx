@@ -10,7 +10,7 @@ import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, CountPill, AnimatedRow, ScreenFade } from '@/components/ui';
+import { EmptyState, CountPill, AnimatedRow, ScreenFade, FadeReveal } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 
 interface Habit {
@@ -134,32 +134,33 @@ export default function HabitsScreen() {
         right={habits.length > 0 ? <CountPill label={`${doneCount}/${habits.length} today`} /> : undefined}
       />
 
-      {loading ? (
-        <SkeletonList count={5}>
-          <SkeletonHabitRow />
-        </SkeletonList>
-      ) : habits.length === 0 ? (
-        <EmptyState
-          icon="local-fire-department"
-          title="No habits yet"
-          subtitle="Pick something to do daily and MODUS will help you keep the streak."
-          action={{
-            label: 'Build a habit with MODUS',
-            icon: 'auto-awesome',
-            onPress: () => router.push({ pathname: '/(app)/chat', params: { prefill: 'Help me build a new habit.' } }),
-          }}
-        />
-      ) : (
-        <FlatList
-          data={habits}
-          keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
-          initialNumToRender={20}
-          removeClippedSubviews={false}
-          renderItem={({ item, index }) => <AnimatedRow index={index}><HabitRow habit={item} onToggle={() => toggleToday(item)} /></AnimatedRow>}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <FadeReveal
+        loading={loading}
+        skeleton={<SkeletonList count={5}><SkeletonHabitRow /></SkeletonList>}
+      >
+        {habits.length === 0 ? (
+          <EmptyState
+            icon="local-fire-department"
+            title="No habits yet"
+            subtitle="Pick something to do daily and MODUS will help you keep the streak."
+            action={{
+              label: 'Build a habit with MODUS',
+              icon: 'auto-awesome',
+              onPress: () => router.push({ pathname: '/(app)/chat', params: { prefill: 'Help me build a new habit.' } }),
+            }}
+          />
+        ) : (
+          <FlatList
+            data={habits}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ padding: 16, gap: 12 }}
+            initialNumToRender={20}
+            removeClippedSubviews={false}
+            renderItem={({ item, index }) => <AnimatedRow index={index}><HabitRow habit={item} onToggle={() => toggleToday(item)} /></AnimatedRow>}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </FadeReveal>
       </SafeAreaView>
     </ScreenFade>
   );

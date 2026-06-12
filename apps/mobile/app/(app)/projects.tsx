@@ -13,7 +13,7 @@ import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, ScreenFade } from '@/components/ui';
+import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS } from '@/lib/theme';
 
@@ -129,11 +129,11 @@ export default function ProjectsScreen() {
         }
       />
 
-      {loading ? (
-        <SkeletonList count={5}>
-          <SkeletonCard />
-        </SkeletonList>
-      ) : projects.length === 0 ? (
+      <FadeReveal
+        loading={loading}
+        skeleton={<SkeletonList count={5}><SkeletonCard /></SkeletonList>}
+      >
+        {projects.length === 0 ? (
         <View className="flex-1">
           <View className="px-4"><AISection /></View>
           <View className="flex-1 items-center justify-center gap-4 px-10">
@@ -178,7 +178,8 @@ export default function ProjectsScreen() {
             </AnimatedRow>
           )}
         />
-      )}
+        )}
+      </FadeReveal>
       </SafeAreaView>
     </ScreenFade>
   );

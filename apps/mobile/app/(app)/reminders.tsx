@@ -11,7 +11,7 @@ import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { useSheets } from '@/components/ui/Sheets';
-import { ScreenFade } from '@/components/ui';
+import { ScreenFade, FadeReveal } from '@/components/ui';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 
@@ -255,9 +255,10 @@ export default function RemindersScreen() {
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader title="Reminders" />
 
-      {loading ? (
-        <SkeletonList count={6}><SkeletonHabitRow /></SkeletonList>
-      ) : (
+      <FadeReveal
+        loading={loading}
+        skeleton={<SkeletonList count={6}><SkeletonHabitRow /></SkeletonList>}
+      >
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
           <Text className="text-muted text-sm -mt-1 mb-6">Habits and tasks — everything you need to show up for today.</Text>
 
@@ -446,7 +447,7 @@ export default function RemindersScreen() {
             </View>
           )}
         </ScrollView>
-      )}
+      </FadeReveal>
       </SafeAreaView>
     </ScreenFade>
   );
