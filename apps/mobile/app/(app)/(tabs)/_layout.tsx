@@ -4,7 +4,10 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={() => null}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{
+        headerShown: false,
+        sceneStyle: { backgroundColor: 'transparent' },
+      }}
     />
   );
 }
