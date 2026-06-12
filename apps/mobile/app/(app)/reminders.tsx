@@ -251,7 +251,8 @@ export default function RemindersScreen() {
     : [{ label: 'Completed', color: '#6b6b80', tasks: visibleTasks }];
 
   return (
-    <SafeAreaView className="flex-1" edges={['top']}>
+    <ScreenFade>
+      <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader title="Reminders" />
 
       {loading ? (

@@ -114,7 +114,8 @@ export default function ProjectsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1" edges={['top']}>
+    <ScreenFade>
+      <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Projects"
         right={
