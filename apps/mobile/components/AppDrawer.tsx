@@ -43,13 +43,15 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
   const open = useCallback(() => {
     setIsOpen(true);
-    slideX.value   = withTiming(0,    { duration: 210, easing: Easing.out(Easing.cubic) });
-    backdrop.value = withTiming(1,    { duration: 200 });
+    // Material "emphasized decelerate" — fast start, gentle settle into place
+    slideX.value   = withTiming(0,    { duration: 300, easing: Easing.bezier(0.05, 0.7, 0.1, 1.0) });
+    backdrop.value = withTiming(1,    { duration: 280, easing: Easing.out(Easing.cubic) });
   }, [slideX, backdrop]);
 
   const close = useCallback(() => {
-    slideX.value   = withTiming(-WIDTH, { duration: 170, easing: Easing.in(Easing.quad) });
-    backdrop.value = withTiming(0,      { duration: 160 }, (finished) => {
+    // Material "emphasized accelerate" — smooth pickup, decisive exit
+    slideX.value   = withTiming(-WIDTH, { duration: 240, easing: Easing.bezier(0.3, 0, 0.8, 0.15) });
+    backdrop.value = withTiming(0,      { duration: 220, easing: Easing.in(Easing.cubic) }, (finished) => {
       if (finished) runOnJS(setIsOpen)(false);
     });
   }, [slideX, backdrop]);

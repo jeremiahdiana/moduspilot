@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect } from 'react';
 import { Stack, Redirect, router, usePathname } from 'expo-router';
 import { View } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, cancelAnimation } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, cancelAnimation, Easing } from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerProvider } from '@/components/AppDrawer';
@@ -16,13 +16,12 @@ export default function AppLayout() {
 
   const opacity = useSharedValue(0);
 
-  // useLayoutEffect fires synchronously before paint — opacity is committed to
-  // 0 before the new screen is shown, so there is no one-frame flash at full
-  // opacity before the fade starts.
+  // Fast fade so the screen is fully visible before the drawer finishes closing.
+  // The drawer IS the transition — this just prevents a hard cut on non-drawer nav.
   useLayoutEffect(() => {
     cancelAnimation(opacity);
     opacity.value = 0;
-    opacity.value = withTiming(1, { duration: 160 });
+    opacity.value = withTiming(1, { duration: 90, easing: Easing.out(Easing.quad) });
   }, [pathname]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
