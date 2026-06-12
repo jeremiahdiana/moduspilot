@@ -43,15 +43,13 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
   const open = useCallback(() => {
     setIsOpen(true);
-    // Material "emphasized decelerate" — fast start, gentle settle into place
-    slideX.value   = withTiming(0,    { duration: 300, easing: Easing.bezier(0.05, 0.7, 0.1, 1.0) });
-    backdrop.value = withTiming(1,    { duration: 280, easing: Easing.out(Easing.cubic) });
+    slideX.value   = withTiming(0, { duration: 350, easing: Easing.bezier(0.05, 0.7, 0.1, 1.0) });
+    backdrop.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) });
   }, [slideX, backdrop]);
 
   const close = useCallback(() => {
-    // Material "emphasized accelerate" — smooth pickup, decisive exit
-    slideX.value   = withTiming(-WIDTH, { duration: 240, easing: Easing.bezier(0.3, 0, 0.8, 0.15) });
-    backdrop.value = withTiming(0,      { duration: 220, easing: Easing.in(Easing.cubic) }, (finished) => {
+    slideX.value   = withTiming(-WIDTH, { duration: 280, easing: Easing.bezier(0.4, 0, 0.6, 1) });
+    backdrop.value = withTiming(0,      { duration: 260, easing: Easing.out(Easing.cubic) }, (finished) => {
       if (finished) runOnJS(setIsOpen)(false);
     });
   }, [slideX, backdrop]);
@@ -61,8 +59,10 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
   function go(href: string) {
     haptics.select();
-    close();
+    // Navigate first so the screen renders under the drawer during the close animation.
+    // By the time the drawer finishes sliding, content is already painted (or nearly so).
     router.navigate(href as never);
+    close();
   }
 
   return (
