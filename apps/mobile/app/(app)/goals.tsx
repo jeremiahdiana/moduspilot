@@ -56,7 +56,7 @@ export default function GoalsScreen() {
 
     // Paint last-known goals instantly while the live listener revalidates.
     readCache<Goal[]>(`goals.${user.uid}`).then(cached => {
-      if (alive && cached) { setGoals(cached); setLoading(false); }
+      if (alive && cached && cached.length > 0) { setGoals(cached); setLoading(false); }
     });
 
     const q = query(collection(db, 'users', user.uid, 'goals'), orderBy('createdAt', 'desc'));
@@ -73,7 +73,7 @@ export default function GoalsScreen() {
         .filter(g => g.status === 'active');
       setGoals(next);
       setLoading(false);
-      writeCache(`goals.${user.uid}`, next);
+      if (next.length > 0) writeCache(`goals.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

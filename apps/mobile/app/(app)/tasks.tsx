@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow, SwipeToDelete } from '@/components/ui';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
@@ -71,15 +71,15 @@ function TaskRow({ task, onToggle, onDelete, onOpen }: { task: Task; onToggle: (
 export default function TasksScreen() {
   const { user } = useAuth();
   const { prompt, confirm } = useSheets();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(`tasks.${user?.uid ?? ''}`) ?? []);
+  const [loading, setLoading] = useState(() => !readCacheSync(`tasks.${user?.uid ?? ''}`));
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     let alive = true;
 
     readCache<Task[]>(`tasks.${user.uid}`).then(cached => {
-      if (alive && cached) { setTasks(cached); setLoading(false); }
+      if (alive && cached && cached.length > 0) { setTasks(cached); setLoading(false); }
     });
 
     const q = query(collection(db, 'users', user.uid, 'tasks'), orderBy('createdAt', 'desc'));
@@ -97,7 +97,7 @@ export default function TasksScreen() {
         .map(({ deleted, ...t }) => t);
       setTasks(next);
       setLoading(false);
-      writeCache(`tasks.${user.uid}`, next);
+      if (next.length > 0) writeCache(`tasks.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
-import { readCache, writeCache } from '@/lib/cache';
+import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 
@@ -85,15 +85,15 @@ function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
 
 export default function HabitsScreen() {
   const { user } = useAuth();
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(`habits.${user?.uid ?? ''}`) ?? []);
+  const [loading, setLoading] = useState(() => !readCacheSync(`habits.${user?.uid ?? ''}`));
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     let alive = true;
 
     readCache<Habit[]>(`habits.${user.uid}`).then(cached => {
-      if (alive && cached) { setHabits(cached); setLoading(false); }
+      if (alive && cached && cached.length > 0) { setHabits(cached); setLoading(false); }
     });
 
     const q = query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'desc'));
@@ -107,7 +107,7 @@ export default function HabitsScreen() {
       }));
       setHabits(next);
       setLoading(false);
-      writeCache(`habits.${user.uid}`, next);
+      if (next.length > 0) writeCache(`habits.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

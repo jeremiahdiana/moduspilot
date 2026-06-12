@@ -67,7 +67,7 @@ export default function ProjectsScreen() {
     let alive = true;
 
     readCache<Project[]>(`projects.${user.uid}`).then(cached => {
-      if (alive && cached) { setProjects(cached); setLoading(false); }
+      if (alive && cached && cached.length > 0) { setProjects(cached); setLoading(false); }
     });
 
     const q = query(collection(db, 'users', user.uid, 'projects'), orderBy('createdAt', 'desc'));
@@ -82,7 +82,7 @@ export default function ProjectsScreen() {
         .filter(p => p.status === 'active');
       setProjects(next);
       setLoading(false);
-      writeCache(`projects.${user.uid}`, next);
+      if (next.length > 0) writeCache(`projects.${user.uid}`, next);
     }, () => setLoading(false));
 
     return () => { alive = false; unsub(); };

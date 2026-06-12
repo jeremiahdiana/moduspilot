@@ -152,8 +152,8 @@ export default function RemindersScreen() {
     const uid = user.uid;
     let alive = true;
 
-    readCache<Habit[]>(`rem.habits.${uid}`).then(cd => { if (alive && cd) setHabits(cd); });
-    readCache<Task[]>(`rem.tasks.${uid}`).then(cd => { if (alive && cd) { setTasks(cd); setLoading(false); } });
+    readCache<Habit[]>(`rem.habits.${uid}`).then(cd => { if (alive && cd && cd.length > 0) setHabits(cd); });
+    readCache<Task[]>(`rem.tasks.${uid}`).then(cd => { if (alive && cd && cd.length > 0) { setTasks(cd); setLoading(false); } });
 
     const unsubH = onSnapshot(
       query(collection(db, 'users', uid, 'habits'), orderBy('createdAt', 'desc')),
@@ -163,7 +163,7 @@ export default function RemindersScreen() {
           streak: d.data().streak ?? 0, completedDates: d.data().completedDates ?? [],
           frequency: (d.data().frequency ?? 'daily') as 'daily' | 'weekly',
         }));
-        setHabits(next); writeCache(`rem.habits.${uid}`, next);
+        setHabits(next); if (next.length > 0) writeCache(`rem.habits.${uid}`, next);
       },
       () => {},
     );
@@ -175,7 +175,7 @@ export default function RemindersScreen() {
           done: d.data().done ?? false, deleted: d.data().deleted ?? false,
           dueDate: d.data().dueDate, priority: d.data().priority,
         })).filter(t => !t.deleted);
-        setTasks(next); setLoading(false); writeCache(`rem.tasks.${uid}`, next);
+        setTasks(next); setLoading(false); if (next.length > 0) writeCache(`rem.tasks.${uid}`, next);
       },
       () => setLoading(false),
     );
