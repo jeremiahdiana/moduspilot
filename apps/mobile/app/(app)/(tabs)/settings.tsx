@@ -6,6 +6,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { API_BASE, getAuthHeader } from '@/lib/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { ScreenFade } from '@/components/ui';
 import { Icon, type IconName } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors, useThemeToggle } from '@/lib/theme';
@@ -61,7 +62,7 @@ export default function SettingsScreen() {
   }
 
   return (
-
+    <ScreenFade>
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader title="Settings" />
 
@@ -163,7 +164,7 @@ export default function SettingsScreen() {
        </View>
       </ScrollView>
       </SafeAreaView>
-
+    </ScreenFade>
   );
 }
 

@@ -11,7 +11,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, CountPill, AnimatedRow, SwipeToDelete, FadeReveal } from '@/components/ui';
+import { EmptyState, CountPill, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
@@ -134,7 +134,7 @@ export default function TasksScreen() {
   const ordered = [...open, ...done];
 
   return (
-
+    <ScreenFade>
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Tasks"
@@ -189,6 +189,6 @@ export default function TasksScreen() {
         )}
       </FadeReveal>
       </SafeAreaView>
-
+    </ScreenFade>
   );
 }

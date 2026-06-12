@@ -22,6 +22,7 @@ import { Icon, type IconName } from '@/components/Icon';
 import { Markdown } from '@/components/Markdown';
 import { useThemeColors } from '@/lib/theme';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { ScreenFade } from '@/components/ui';
 import { GlassView } from '@/components/ui/Glass';
 import { Logo } from '@/components/ui/Logo';
 import { GradientText } from '@/components/ui/GradientText';
@@ -384,7 +385,7 @@ export default function ChatScreen() {
   }, [user]);
 
   return (
-
+    <ScreenFade>
       <SafeAreaView className="flex-1" edges={['top']}>
       <VoiceOverlay state={voice.state} level={voice.level} onStop={voice.toggle} onCancel={voice.cancel} />
       {/* Top bar — hamburger + new chat + history. Centered ambient mark signals
@@ -537,7 +538,7 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
       </SafeAreaView>
-
+    </ScreenFade>
   );
 }
 
