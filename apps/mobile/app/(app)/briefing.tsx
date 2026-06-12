@@ -14,7 +14,7 @@ import { Icon, type IconName } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { Skeleton } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, ScreenFade } from '@/components/ui';
 import { ProactiveReveal } from '@/components/ui/ProactiveReveal';
 import { haptics } from '@/lib/haptics';
 import {
@@ -369,7 +369,8 @@ export default function BriefingScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1" edges={['top']}>
+    <ScreenFade>
+      <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Briefing"
         right={data && Speech ? (
@@ -687,6 +688,7 @@ export default function BriefingScreen() {
           </TouchableOpacity>
         </ScrollView>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenFade>
   );
 }

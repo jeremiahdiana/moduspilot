@@ -8,3 +8,4 @@ export { GradientProgressBar } from './GradientProgressBar';
 export { EmptyState, CountPill } from './Common';
 export { AnimatedRow } from './AnimatedRow';
 export { SwipeToDelete } from './SwipeToDelete';
+export { ScreenFade } from './ScreenFade';

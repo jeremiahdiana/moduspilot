@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { ProgressRing, AnimatedRow } from '@/components/ui';
+import { ProgressRing, AnimatedRow, ScreenFade } from '@/components/ui';
 import { EmptyState, CountPill } from '@/components/ui/Common';
 
 interface Goal {
@@ -80,7 +80,8 @@ export default function GoalsScreen() {
   }, [user]);
 
   return (
-    <SafeAreaView className="flex-1" edges={['top']}>
+    <ScreenFade>
+      <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Goals"
         right={goals.length > 0 ? <CountPill label={`${goals.length} active`} /> : undefined}
@@ -110,6 +111,7 @@ export default function GoalsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenFade>
   );
 }

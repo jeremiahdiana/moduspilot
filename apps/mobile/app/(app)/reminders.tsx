@@ -11,6 +11,7 @@ import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { useSheets } from '@/components/ui/Sheets';
+import { ScreenFade } from '@/components/ui';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 
@@ -445,6 +446,7 @@ export default function RemindersScreen() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenFade>
   );
 }

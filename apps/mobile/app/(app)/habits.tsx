@@ -10,7 +10,7 @@ import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, CountPill, AnimatedRow } from '@/components/ui';
+import { EmptyState, CountPill, AnimatedRow, ScreenFade } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 
 interface Habit {
@@ -127,7 +127,8 @@ export default function HabitsScreen() {
   const doneCount = habits.filter(h => h.completedDates.includes(today)).length;
 
   return (
-    <SafeAreaView className="flex-1" edges={['top']}>
+    <ScreenFade>
+      <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Habits"
         right={habits.length > 0 ? <CountPill label={`${doneCount}/${habits.length} today`} /> : undefined}
@@ -157,6 +158,7 @@ export default function HabitsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenFade>
   );
 }

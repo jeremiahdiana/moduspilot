@@ -13,7 +13,7 @@ import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete } from '@/components/ui';
+import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, ScreenFade } from '@/components/ui';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS } from '@/lib/theme';
 
@@ -176,6 +176,7 @@ export default function ProjectsScreen() {
           )}
         />
       )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenFade>
   );
 }
