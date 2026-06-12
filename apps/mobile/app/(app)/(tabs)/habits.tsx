@@ -1,25 +1,17 @@
-import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useHabits } from '@/hooks/useCollections';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
-import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow, ScreenFade, FadeReveal } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
-
-interface Habit {
-  id: string;
-  title: string;
-  streak: number;
-  completedDates: string[];
-  frequency: 'daily' | 'weekly';
-}
+import type { Habit } from '@/lib/types';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -85,33 +77,7 @@ function HabitRow({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
 
 export default function HabitsScreen() {
   const { user } = useAuth();
-  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(`habits.${user?.uid ?? ''}`) ?? []);
-  const [loading, setLoading] = useState(() => !readCacheSync(`habits.${user?.uid ?? ''}`));
-
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    let alive = true;
-
-    readCache<Habit[]>(`habits.${user.uid}`).then(cached => {
-      if (alive && cached && cached.length > 0) { setHabits(cached); setLoading(false); }
-    });
-
-    const q = query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const next = snap.docs.map(d => ({
-        id: d.id,
-        title: d.data().title ?? 'Untitled',
-        streak: d.data().streak ?? 0,
-        completedDates: d.data().completedDates ?? [],
-        frequency: (d.data().frequency ?? 'daily') as 'daily' | 'weekly',
-      }));
-      setHabits(next);
-      setLoading(false);
-      writeCache(`habits.${user.uid}`, next);
-    }, () => setLoading(false));
-
-    return () => { alive = false; unsub(); };
-  }, [user]);
+  const { data: habits, loading } = useHabits(user?.uid);
 
   async function toggleToday(habit: Habit) {
     if (!user) return;

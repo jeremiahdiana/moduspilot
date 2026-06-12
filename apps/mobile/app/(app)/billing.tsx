@@ -9,8 +9,7 @@ import { Icon } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
 import { startCheckout, openBillingPortal } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
-
-type Plan = 'free' | 'modus' | 'pilot';
+import type { Plan } from '@/lib/types';
 
 const TIERS: { key: Plan; name: string; price: string; tagline: string; features: string[] }[] = [
   { key: 'free', name: 'Free', price: '$0', tagline: '3-day full trial, then 20 messages/day', features: ['Core chat + approvals', 'Goals, habits, briefing'] },
@@ -20,7 +19,7 @@ const TIERS: { key: Plan; name: string; price: string; tagline: string; features
 
 export default function BillingScreen() {
   const c = useThemeColors();
-  const [plan, setPlan] = useState<Plan>('free');
+  const [plan, setPlan] = useState<NonNullable<Plan>>('free');
   const [busy, setBusy] = useState<Plan | 'portal' | null>(null);
 
   useEffect(() => {

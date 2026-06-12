@@ -13,7 +13,9 @@ import { Logo } from '@/components/ui/Logo';
 import { ScreenFade } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
+import { CK } from '@/lib/cacheKeys';
 import { fetchInbox, fetchTodayEvents, type InboxThread, type CalEvent } from '@/lib/api';
+import type { Goal, Task, Habit } from '@/lib/types';
 
 function greeting() {
   const h = new Date().getHours();
@@ -40,11 +42,7 @@ function avatarColor(name: string) {
   return colors[Math.abs(h) % colors.length];
 }
 
-interface Goal { id: string; title: string; progress: number; status: string; deleted?: boolean; dueDate?: string }
-interface Task { id: string; title: string; done: boolean; deleted?: boolean; dueDate?: string; priority?: 'high' | 'medium' | 'low' }
-
 const PRIORITY_DOT: Record<string, string> = { high: '#ef4444', medium: '#f59e0b', low: '#6b6b80' };
-interface Habit { id: string; title: string; streak: number; completedDates: string[] }
 interface BriefPreview { preview: string; createdAt: Date; read: boolean }
 
 // Web's animated headline gradient stops. The light stops are deeper violets —
@@ -129,14 +127,14 @@ export default function DashboardScreen() {
   const firstName = user?.displayName?.split(' ')[0] ?? '';
 
   const uid = user?.uid ?? '';
-  const [goals, setGoals] = useState<Goal[]>(() => readCacheSync<Goal[]>(`dash.goals.${uid}`) ?? []);
-  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(`dash.tasks.${uid}`) ?? []);
-  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(`dash.habits.${uid}`) ?? []);
+  const [goals, setGoals] = useState<Goal[]>(() => readCacheSync<Goal[]>(CK.goals(uid)) ?? []);
+  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(CK.tasks(uid)) ?? []);
+  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(CK.habits(uid)) ?? []);
   const [topStreak, setTopStreak] = useState(0);
   const [focus, setFocus] = useState<{ title: string; source: 'briefing' | 'task' } | null>(null);
   const [brief, setBrief] = useState<BriefPreview | null>(null);
-  const [events, setEvents] = useState<CalEvent[]>(() => readCacheSync<CalEvent[]>(`dash.events.${uid}`) ?? []);
-  const [inbox, setInbox] = useState<InboxThread[]>(() => readCacheSync<InboxThread[]>(`dash.inbox.${uid}`) ?? []);
+  const [events, setEvents] = useState<CalEvent[]>(() => readCacheSync<CalEvent[]>(CK.events(uid)) ?? []);
+  const [inbox, setInbox] = useState<InboxThread[]>(() => readCacheSync<InboxThread[]>(CK.inbox(uid)) ?? []);
   const [googleConnected, setGoogleConnected] = useState(true);
 
   useEffect(() => {
@@ -144,11 +142,11 @@ export default function DashboardScreen() {
     const uid = user.uid;
     let alive = true;
 
-    readCache<Goal[]>(`dash.goals.${uid}`).then(c => { if (alive && c) setGoals(c); });
-    readCache<Task[]>(`dash.tasks.${uid}`).then(c => { if (alive && c) setTasks(c); });
-    readCache<Habit[]>(`dash.habits.${uid}`).then(c => { if (alive && c) setHabits(c); });
-    readCache<CalEvent[]>(`dash.events.${uid}`).then(c => { if (alive && c) setEvents(c); });
-    readCache<InboxThread[]>(`dash.inbox.${uid}`).then(c => { if (alive && c) setInbox(c); });
+    readCache<Goal[]>(CK.goals(uid)).then(c => { if (alive && c) setGoals(c); });
+    readCache<Task[]>(CK.tasks(uid)).then(c => { if (alive && c) setTasks(c); });
+    readCache<Habit[]>(CK.habits(uid)).then(c => { if (alive && c) setHabits(c); });
+    readCache<CalEvent[]>(CK.events(uid)).then(c => { if (alive && c) setEvents(c); });
+    readCache<InboxThread[]>(CK.inbox(uid)).then(c => { if (alive && c) setInbox(c); });
 
     const unsubGoals = onSnapshot(
       query(collection(db, 'users', uid, 'goals'), orderBy('createdAt', 'desc')),
@@ -157,7 +155,7 @@ export default function DashboardScreen() {
           .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', progress: d.data().progress ?? 0, status: d.data().status ?? 'active', deleted: d.data().deleted, dueDate: d.data().dueDate }))
           .filter(g => g.status === 'active' && !g.deleted);
         setGoals(next);
-        writeCache(`dash.goals.${uid}`, next);
+        writeCache(CK.goals(uid), next);
       },
       () => {},
     );
@@ -169,7 +167,7 @@ export default function DashboardScreen() {
           .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', done: d.data().done ?? false, deleted: d.data().deleted, dueDate: d.data().dueDate, priority: d.data().priority }))
           .filter(t => !t.done && !t.deleted);
         setTasks(next);
-        writeCache(`dash.tasks.${uid}`, next);
+        writeCache(CK.tasks(uid), next);
       },
       () => {},
     );
@@ -182,10 +180,11 @@ export default function DashboardScreen() {
           title: d.data().title ?? 'Untitled',
           streak: d.data().streak ?? 0,
           completedDates: d.data().completedDates ?? [],
+          frequency: (d.data().frequency ?? 'daily') as Habit['frequency'],
         }));
         setHabits(next);
         setTopStreak(next.reduce((m, h) => Math.max(m, h.streak), 0));
-        writeCache(`dash.habits.${uid}`, next);
+        writeCache(CK.habits(uid), next);
       },
       () => {},
     );
@@ -212,13 +211,13 @@ export default function DashboardScreen() {
       if (!alive) return;
       setEvents(r.events);
       if (r.notConnected) setGoogleConnected(false);
-      else writeCache(`dash.events.${uid}`, r.events);
+      else writeCache(CK.events(uid), r.events);
     });
     fetchInbox('primary').then(r => {
       if (!alive) return;
       setInbox(r.threads);
       if (r.notConnected) setGoogleConnected(false);
-      else writeCache(`dash.inbox.${uid}`, r.threads);
+      else writeCache(CK.inbox(uid), r.threads);
     });
 
     return () => { alive = false; unsubGoals(); unsubTasks(); unsubHabits(); unsubBriefing(); };

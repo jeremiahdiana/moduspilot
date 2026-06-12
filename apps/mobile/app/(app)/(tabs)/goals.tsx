@@ -1,25 +1,14 @@
-import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useGoals } from '@/hooks/useCollections';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
-import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { ProgressRing, AnimatedRow, ScreenFade, FadeReveal } from '@/components/ui';
 import { EmptyState, CountPill } from '@/components/ui/Common';
-
-interface Goal {
-  id: string;
-  title: string;
-  progress: number;
-  dueDate?: string;
-  status: string;
-  description?: string;
-}
+import type { Goal } from '@/lib/types';
 
 function GoalRow({ goal }: { goal: Goal }) {
   return (
@@ -47,37 +36,7 @@ function GoalRow({ goal }: { goal: Goal }) {
 
 export default function GoalsScreen() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>(() => readCacheSync<Goal[]>(`goals.${user?.uid ?? ''}`) ?? []);
-  const [loading, setLoading] = useState(() => !readCacheSync(`goals.${user?.uid ?? ''}`));
-
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    let alive = true;
-
-    // Paint last-known goals instantly while the live listener revalidates.
-    readCache<Goal[]>(`goals.${user.uid}`).then(cached => {
-      if (alive && cached && cached.length > 0) { setGoals(cached); setLoading(false); }
-    });
-
-    const q = query(collection(db, 'users', user.uid, 'goals'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const next = snap.docs
-        .map(d => ({
-          id: d.id,
-          title: d.data().title ?? 'Untitled',
-          progress: d.data().progress ?? 0,
-          dueDate: d.data().dueDate,
-          status: d.data().status ?? 'active',
-          description: d.data().description,
-        }))
-        .filter(g => g.status === 'active');
-      setGoals(next);
-      setLoading(false);
-      writeCache(`goals.${user.uid}`, next);
-    }, () => setLoading(false));
-
-    return () => { alive = false; unsub(); };
-  }, [user]);
+  const { data: goals, loading } = useGoals(user?.uid);
 
   return (
     <ScreenFade>

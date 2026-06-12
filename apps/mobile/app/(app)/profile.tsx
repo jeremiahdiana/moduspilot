@@ -10,9 +10,8 @@ import { DetailHeader } from '@/components/DetailHeader';
 import { Icon, type IconName } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { haptics } from '@/lib/haptics';
-
-type Plan = 'free' | 'modus' | 'pilot';
-const PLAN_LABEL: Record<Plan, string> = { free: 'Free', modus: 'MODUS', pilot: 'PILOT' };
+import type { Plan } from '@/lib/types';
+const PLAN_LABEL: Record<NonNullable<Plan>, string> = { free: 'Free', modus: 'MODUS', pilot: 'PILOT' };
 
 const PROVIDER: Record<string, { label: string; icon: IconName }> = {
   'google.com': { label: 'Google', icon: 'mail' },
@@ -32,7 +31,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 export default function ProfileScreen() {
   const { user } = useAuth();
   const { prompt } = useSheets();
-  const [plan, setPlan] = useState<Plan>('free');
+  const [plan, setPlan] = useState<NonNullable<Plan>>('free');
   const [activeGoals, setActiveGoals] = useState(0);
   const [tasksDone, setTasksDone] = useState(0);
   const [topStreak, setTopStreak] = useState(0);

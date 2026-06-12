@@ -10,14 +10,7 @@ import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
-
-interface Task {
-  title: string;
-  description?: string;
-  done: boolean;
-  dueDate?: string;
-  priority?: 'high' | 'medium' | 'low';
-}
+import type { Task } from '@/lib/types';
 
 const PRIORITIES: { key: 'high' | 'medium' | 'low'; label: string; color: string }[] = [
   { key: 'high', label: 'High', color: '#ef4444' },
@@ -38,6 +31,7 @@ export default function TaskDetail() {
       const d = snap.data();
       if (!d || d.deleted) { setTask(null); return; }
       setTask({
+        id: id ?? '',
         title: d.title ?? 'Untitled',
         description: d.description,
         done: d.done ?? false,

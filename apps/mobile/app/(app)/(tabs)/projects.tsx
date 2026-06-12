@@ -1,21 +1,18 @@
-import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  collection, onSnapshot, query, orderBy,
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
-} from 'firebase/firestore';
+import { addDoc, updateDoc, deleteDoc, doc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useProjects } from '@/hooks/useCollections';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
-import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS } from '@/lib/theme';
+import type { Project } from '@/lib/types';
 
 function AISection() {
   return (
@@ -48,45 +45,10 @@ function AISection() {
   );
 }
 
-interface Project {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  createdAt?: { toDate?: () => Date };
-}
-
 export default function ProjectsScreen() {
   const { user } = useAuth();
   const { actionSheet, prompt } = useSheets();
-  const [projects, setProjects] = useState<Project[]>(() => readCacheSync<Project[]>(`projects.${user?.uid ?? ''}`) ?? []);
-  const [loading, setLoading] = useState(() => !readCacheSync(`projects.${user?.uid ?? ''}`));
-
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    let alive = true;
-
-    readCache<Project[]>(`projects.${user.uid}`).then(cached => {
-      if (alive && cached && cached.length > 0) { setProjects(cached); setLoading(false); }
-    });
-
-    const q = query(collection(db, 'users', user.uid, 'projects'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const next = snap.docs
-        .map(d => ({
-          id: d.id,
-          title: d.data().title ?? 'Untitled',
-          description: d.data().description,
-          status: d.data().status ?? 'active',
-        }))
-        .filter(p => p.status === 'active');
-      setProjects(next);
-      setLoading(false);
-      writeCache(`projects.${user.uid}`, next);
-    }, () => setLoading(false));
-
-    return () => { alive = false; unsub(); };
-  }, [user]);
+  const { data: projects, loading } = useProjects(user?.uid);
 
   async function addProject() {
     if (!user) return;

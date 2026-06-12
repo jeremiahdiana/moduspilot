@@ -1,34 +1,29 @@
-import { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import {
-  collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, serverTimestamp,
-} from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useTasks } from '@/hooks/useCollections';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
-import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { EmptyState, CountPill, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
-
-interface Task {
-  id: string;
-  title: string;
-  done: boolean;
-  dueDate?: string;
-  priority?: 'high' | 'medium' | 'low';
-}
+import type { Task } from '@/lib/types';
 
 const PRIORITY_COLOR: Record<string, string> = {
   high: '#ef4444', medium: '#f59e0b', low: '#8b8ba0',
 };
 
-function TaskRow({ task, onToggle, onDelete, onOpen }: { task: Task; onToggle: () => void; onDelete: () => void; onOpen: () => void }) {
+function TaskRow({ task, onToggle, onDelete, onOpen }: {
+  task: Task;
+  onToggle: () => void;
+  onDelete: () => void;
+  onOpen: () => void;
+}) {
   const c = useThemeColors();
   return (
     <TouchableOpacity
@@ -71,37 +66,7 @@ function TaskRow({ task, onToggle, onDelete, onOpen }: { task: Task; onToggle: (
 export default function TasksScreen() {
   const { user } = useAuth();
   const { prompt, confirm } = useSheets();
-  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(`tasks.${user?.uid ?? ''}`) ?? []);
-  const [loading, setLoading] = useState(() => !readCacheSync(`tasks.${user?.uid ?? ''}`));
-
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    let alive = true;
-
-    readCache<Task[]>(`tasks.${user.uid}`).then(cached => {
-      if (alive && cached && cached.length > 0) { setTasks(cached); setLoading(false); }
-    });
-
-    const q = query(collection(db, 'users', user.uid, 'tasks'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const next = snap.docs
-        .map(d => ({
-          id: d.id,
-          title: d.data().title ?? 'Untitled',
-          done: d.data().done ?? false,
-          dueDate: d.data().dueDate,
-          priority: d.data().priority,
-          deleted: d.data().deleted ?? false,
-        }))
-        .filter(t => !t.deleted)
-        .map(({ deleted, ...t }) => t);
-      setTasks(next);
-      setLoading(false);
-      writeCache(`tasks.${user.uid}`, next);
-    }, () => setLoading(false));
-
-    return () => { alive = false; unsub(); };
-  }, [user]);
+  const { data: tasks, loading } = useTasks(user?.uid);
 
   async function addTask() {
     if (!user) return;

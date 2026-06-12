@@ -1,23 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, serverTimestamp,
-} from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { useHabits, useTasks } from '@/hooks/useCollections';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon } from '@/components/Icon';
 import { SkeletonList, SkeletonHabitRow } from '@/components/Skeleton';
-import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { useSheets } from '@/components/ui/Sheets';
 import { ScreenFade, FadeReveal } from '@/components/ui';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
-
-// ── Types (match web reminders page) ─────────────────────────────────────────
-interface Habit { id: string; title: string; description?: string; streak: number; completedDates: string[]; frequency: 'daily' | 'weekly'; }
-interface Task { id: string; title: string; description?: string; done: boolean; deleted: boolean; dueDate?: string; priority?: 'high' | 'medium' | 'low'; }
+import type { Habit, Task } from '@/lib/types';
 
 const PRIORITY_BAND: Record<string, string> = { high: '#f87171', medium: '#facc15', low: '#6b6b80' };
 const PRIORITY_TEXT: Record<string, string> = { high: '#f87171', medium: '#facc15', low: '#6b6b80' };
@@ -138,50 +133,16 @@ export default function RemindersScreen() {
   const { prompt, confirm } = useSheets();
   const todayStr = localDateStr();
 
-  const [habits, setHabits] = useState<Habit[]>(() => readCacheSync<Habit[]>(`rem.habits.${user?.uid ?? ''}`) ?? []);
-  const [tasks, setTasks] = useState<Task[]>(() => readCacheSync<Task[]>(`rem.tasks.${user?.uid ?? ''}`) ?? []);
-  const [loading, setLoading] = useState(() => !readCacheSync(`rem.tasks.${user?.uid ?? ''}`));
+  const { data: habits, loading: habitsLoading } = useHabits(user?.uid);
+  const { data: tasks, loading: tasksLoading } = useTasks(user?.uid);
+  const loading = habitsLoading || tasksLoading;
+
   const [expandedHabit, setExpandedHabit] = useState<string | null>(null);
   const [tab, setTab] = useState<'todo' | 'done'>('todo');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [quickAdd, setQuickAdd] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
   const prevDone = useRef(0);
-
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    const uid = user.uid;
-    let alive = true;
-
-    readCache<Habit[]>(`rem.habits.${uid}`).then(cd => { if (alive && cd && cd.length > 0) setHabits(cd); });
-    readCache<Task[]>(`rem.tasks.${uid}`).then(cd => { if (alive && cd && cd.length > 0) { setTasks(cd); setLoading(false); } });
-
-    const unsubH = onSnapshot(
-      query(collection(db, 'users', uid, 'habits'), orderBy('createdAt', 'desc')),
-      snap => {
-        const next = snap.docs.map(d => ({
-          id: d.id, title: d.data().title ?? 'Untitled', description: d.data().description,
-          streak: d.data().streak ?? 0, completedDates: d.data().completedDates ?? [],
-          frequency: (d.data().frequency ?? 'daily') as 'daily' | 'weekly',
-        }));
-        setHabits(next); writeCache(`rem.habits.${uid}`, next);
-      },
-      () => {},
-    );
-    const unsubT = onSnapshot(
-      query(collection(db, 'users', uid, 'tasks'), orderBy('createdAt', 'desc')),
-      snap => {
-        const next = snap.docs.map(d => ({
-          id: d.id, title: d.data().title ?? 'Untitled', description: d.data().description,
-          done: d.data().done ?? false, deleted: d.data().deleted ?? false,
-          dueDate: d.data().dueDate, priority: d.data().priority,
-        })).filter(t => !t.deleted);
-        setTasks(next); setLoading(false); writeCache(`rem.tasks.${uid}`, next);
-      },
-      () => setLoading(false),
-    );
-    return () => { alive = false; unsubH(); unsubT(); };
-  }, [user]);
 
   const doneToday = habits.filter(h => h.completedDates.includes(todayStr)).length;
   const totalHabits = habits.length;

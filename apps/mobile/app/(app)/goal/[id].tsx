@@ -14,9 +14,10 @@ import { ProgressRing } from '@/components/ui';
 import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
+import type { Task } from '@/lib/types';
 
 interface Note { id: string; content: string; date: string; }
-interface Goal {
+interface GoalDetail {
   title: string;
   description?: string;
   progress: number;
@@ -24,7 +25,6 @@ interface Goal {
   dueDate?: string;
   notes: Note[];
 }
-interface GoalTask { id: string; title: string; done: boolean; }
 
 const QUICK = [0, 25, 50, 75, 100];
 
@@ -33,8 +33,8 @@ export default function GoalDetail() {
   const { user } = useAuth();
   const c = useThemeColors();
   const { actionSheet, prompt, confirm } = useSheets();
-  const [goal, setGoal] = useState<Goal | null>(null);
-  const [tasks, setTasks] = useState<GoalTask[]>([]);
+  const [goal, setGoal] = useState<GoalDetail | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -58,8 +58,8 @@ export default function GoalDetail() {
     const q = query(collection(db, 'users', user.uid, 'tasks'), where('goalId', '==', id));
     return onSnapshot(q, snap => {
       setTasks(snap.docs
-        .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', done: d.data().done ?? false }))
-        .filter(t => !(t as { deleted?: boolean }).deleted));
+        .map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', done: d.data().done ?? false, deleted: d.data().deleted ?? false }))
+        .filter(t => !t.deleted));
     });
   }, [user, id]);
 
@@ -102,7 +102,7 @@ export default function GoalDetail() {
     }).catch(() => {});
   }
 
-  function toggleTask(t: GoalTask) {
+  function toggleTask(t: Task) {
     if (!user) return;
     updateDoc(doc(db, 'users', user.uid, 'tasks', t.id), { done: !t.done }).catch(() => {});
   }
