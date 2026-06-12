@@ -13,7 +13,7 @@ import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
-import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
+import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, FadeReveal } from '@/components/ui';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GRADIENTS } from '@/lib/theme';
 
@@ -114,7 +114,7 @@ export default function ProjectsScreen() {
   }
 
   return (
-    <ScreenFade>
+
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Projects"
@@ -181,6 +181,6 @@ export default function ProjectsScreen() {
         )}
       </FadeReveal>
       </SafeAreaView>
-    </ScreenFade>
+
   );
 }

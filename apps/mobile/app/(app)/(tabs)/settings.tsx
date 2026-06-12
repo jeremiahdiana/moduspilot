@@ -8,7 +8,6 @@ import { API_BASE, getAuthHeader } from '@/lib/api';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon, type IconName } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
-import { ScreenFade } from '@/components/ui';
 import { useThemeColors, useThemeToggle } from '@/lib/theme';
 import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/settings';
 
@@ -62,7 +61,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScreenFade>
+
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader title="Settings" />
 
@@ -164,7 +163,7 @@ export default function SettingsScreen() {
        </View>
       </ScrollView>
       </SafeAreaView>
-    </ScreenFade>
+
   );
 }
 

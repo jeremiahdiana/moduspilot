@@ -10,7 +10,6 @@ import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
 import { GradientText } from '@/components/ui/GradientText';
 import { Logo } from '@/components/ui/Logo';
-import { ScreenFade } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import { readCache, readCacheSync, writeCache } from '@/lib/cache';
 import { fetchInbox, fetchTodayEvents, type InboxThread, type CalEvent } from '@/lib/api';
@@ -254,7 +253,7 @@ export default function DashboardScreen() {
   const briefIsToday = brief ? brief.createdAt >= new Date(new Date().setHours(0, 0, 0, 0)) : false;
 
   return (
-    <ScreenFade>
+
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         {/* Top bar — hamburger + logo + wordmark (matches web nav) */}
@@ -468,6 +467,6 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
       </SafeAreaView>
-    </ScreenFade>
+
   );
 }
