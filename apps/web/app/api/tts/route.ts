@@ -12,14 +12,17 @@ export async function POST(req: Request) {
   if (authResult instanceof Response) return authResult;
   const { uid } = authResult;
 
-  if (!process.env.OPENAI_API_KEY) {
-    return Response.json({ error: 'TTS not available' }, { status: 503 });
-  }
-
   const today = new Date().toISOString().slice(0, 10);
   const userRef = adminDb.collection('users').doc(uid);
   const snap = await userRef.get();
   const d = snap.data() ?? {};
+
+  // Prefer user's BYOK OpenAI key (same account their money is on), fall back to server key.
+  const openaiKey = (d.settings?.modelSettings?.openaiKey as string | undefined)?.trim()
+    || process.env.OPENAI_API_KEY;
+  if (!openaiKey) {
+    return Response.json({ error: 'No OpenAI key available. Add one in Settings → AI Model.' }, { status: 503 });
+  }
 
   if (d.ttsDate === today && (d.ttsCount ?? 0) >= MAX_PER_DAY) {
     return Response.json({ error: 'Rate limit exceeded' }, { status: 429 });
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
   const res = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${openaiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ model: 'tts-1', input: text, voice }),
