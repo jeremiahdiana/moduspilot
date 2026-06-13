@@ -154,7 +154,10 @@ export async function fetchTTS(text: string, voice = 'onyx'): Promise<string> {
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ text, voice }),
   });
-  if (!res.ok) throw new Error(`TTS request failed (${res.status})`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error ?? `TTS request failed (${res.status})`);
+  }
   const { audio } = await res.json() as { audio: string };
   const uri = `${cacheDirectory}modus-tts.mp3`;
   await writeAsStringAsync(uri, audio, { encoding: EncodingType.Base64 });

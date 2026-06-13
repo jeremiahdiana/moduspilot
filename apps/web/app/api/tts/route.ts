@@ -46,8 +46,9 @@ export async function POST(req: Request) {
   });
 
   if (!res.ok) {
-    console.error('[tts] OpenAI error', res.status, await res.text().catch(() => ''));
-    return Response.json({ error: 'TTS generation failed' }, { status: 500 });
+    const detail = await res.text().catch(() => '');
+    console.error('[tts] OpenAI error', res.status, detail);
+    return Response.json({ error: `OpenAI ${res.status}: ${detail}` }, { status: 500 });
   }
 
   const buffer = await res.arrayBuffer();
