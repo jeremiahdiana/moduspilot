@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Linking } from 'react-native';
+import { Alert, View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
@@ -256,8 +256,11 @@ export default function BriefingScreen() {
       player.replace(uri);
       player.play();
       setSpeaking(true);
-    } catch {
+    } catch (e) {
       setSpeaking(false);
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      console.error('[TTS]', msg);
+      Alert.alert('Voice unavailable', msg);
     } finally {
       setTtsLoading(false);
     }
