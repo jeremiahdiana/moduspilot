@@ -32,6 +32,7 @@ export interface UserSettings {
   customStyle?: string;
   capabilities?: Capabilities;
   modelSettings?: ModelSettings;
+  ttsVoice?: string;
 }
 
 export interface Memory {

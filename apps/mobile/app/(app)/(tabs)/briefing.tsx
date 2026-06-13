@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,9 @@ import {
   collection, query, orderBy, limit, getDocs, doc, updateDoc, onSnapshot, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useAuth } from '@/hooks/useAuth';
+import { getSettings } from '@/lib/settings';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Icon, type IconName } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
@@ -18,15 +20,10 @@ import { EmptyState, ScreenFade } from '@/components/ui';
 import { ProactiveReveal } from '@/components/ui/ProactiveReveal';
 import { haptics } from '@/lib/haptics';
 import {
-  fetchInbox, fetchTodayEvents, fetchNews, fetchWeather,
+  fetchInbox, fetchTodayEvents, fetchNews, fetchWeather, fetchTTS,
   type InboxThread, type CalEvent, type NewsItem, type Weather,
 } from '@/lib/api';
 
-// expo-speech is a NATIVE module — load lazily so a JS reload before a native
-// rebuild doesn't crash with "Cannot find native module 'ExpoSpeech'".
-const Speech: typeof import('expo-speech') | null = (() => {
-  try { return require('expo-speech'); } catch { return null; }
-})();
 
 interface Top3Item { task: string; source: string }
 interface BriefingHabit { name: string; streak: number; status: 'at_risk' | 'on_track' | 'done' }
@@ -215,27 +212,56 @@ export default function BriefingScreen() {
   const [loading, setLoading] = useState(!_bc);
   const [refreshing, setRefreshing] = useState(false);
 
+  const player = useAudioPlayer();
+  const playerStatus = useAudioPlayerStatus(player);
   const [speaking, setSpeaking] = useState(false);
+  const [ttsLoading, setTtsLoading] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState('onyx');
+  const ttsAbort = useRef(false);
+
+  // Auto-detect natural end of playback
+  useEffect(() => {
+    if (playerStatus.didJustFinish) setSpeaking(false);
+  }, [playerStatus.didJustFinish]);
+
+  // Load user's chosen voice
+  useEffect(() => {
+    if (!user) return;
+    getSettings(user.uid).then(s => { if (s.ttsVoice) setTtsVoice(s.ttsVoice); });
+  }, [user?.uid]);
+
+  // Stop playback on unmount
+  useEffect(() => () => { try { player.pause(); } catch {} }, []);
 
   function applyBriefing(b: BriefingEntry) {
     setData(b.data); setDate(b.date); setDocId(b.id);
     setEnergy(b.energy); setCompletedTop3(b.completedTop3);
   }
 
-  function toggleSpeech() {
-    if (!Speech) return;
-    if (speaking) { Speech.stop(); setSpeaking(false); return; }
+  async function toggleSpeech() {
+    if (speaking || ttsLoading) {
+      ttsAbort.current = true;
+      try { player.pause(); } catch {}
+      setSpeaking(false);
+      setTtsLoading(false);
+      return;
+    }
     if (!data) return;
     haptics.select();
-    setSpeaking(true);
-    Speech.speak(briefingToSpeech(data), {
-      rate: 0.97,
-      onDone: () => setSpeaking(false),
-      onStopped: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
-    });
+    ttsAbort.current = false;
+    setTtsLoading(true);
+    try {
+      const uri = await fetchTTS(briefingToSpeech(data), ttsVoice);
+      if (ttsAbort.current) return;
+      player.replace(uri);
+      player.play();
+      setSpeaking(true);
+    } catch {
+      setSpeaking(false);
+    } finally {
+      setTtsLoading(false);
+    }
   }
-  useEffect(() => () => { Speech?.stop(); }, []);
 
   // Live + integration data
   const [tasks, setTasks] = useState<LiveTask[]>([]);
@@ -373,9 +399,13 @@ export default function BriefingScreen() {
       <SafeAreaView className="flex-1" edges={['top']}>
       <ScreenHeader
         title="Briefing"
-        right={data && Speech ? (
+        right={data ? (
           <TouchableOpacity onPress={toggleSpeech} activeOpacity={0.7} className="w-10 h-10 items-center justify-center rounded-xl bg-surface border border-border">
-            <Icon name={speaking ? 'stop' : 'volume-up'} tone={speaking ? 'brand' : 'muted'} size={20} />
+            <Icon
+              name={ttsLoading ? 'hourglass-empty' : speaking ? 'stop' : 'volume-up'}
+              tone={speaking || ttsLoading ? 'brand' : 'muted'}
+              size={20}
+            />
           </TouchableOpacity>
         ) : undefined}
       />

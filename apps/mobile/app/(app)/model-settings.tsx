@@ -12,6 +12,15 @@ import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/
 
 type Provider = 'platform' | 'openai' | 'anthropic';
 
+const TTS_VOICES: { id: string; name: string; desc: string }[] = [
+  { id: 'onyx',    name: 'Onyx',    desc: 'Deep and authoritative — default for MODUS' },
+  { id: 'alloy',   name: 'Alloy',   desc: 'Neutral and balanced' },
+  { id: 'echo',    name: 'Echo',    desc: 'Warm and natural' },
+  { id: 'fable',   name: 'Fable',   desc: 'Expressive and articulate' },
+  { id: 'nova',    name: 'Nova',    desc: 'Clear and energetic' },
+  { id: 'shimmer', name: 'Shimmer', desc: 'Soft and thoughtful' },
+];
+
 const PLATFORM_MODELS = [
   {
     id: 'llama-3.3-70b-versatile',
@@ -63,6 +72,7 @@ export default function ModelSettingsScreen() {
   const [settings, setSettings] = useState<UserSettings>({});
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot'>('free');
   const [saving, setSaving] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState('onyx');
 
   // Platform model selection
   const [platformModel, setPlatformModel] = useState('llama-3.3-70b-versatile');
@@ -86,6 +96,7 @@ export default function ModelSettingsScreen() {
 
     getSettings(uid).then(s => {
       setSettings(s);
+      if (s.ttsVoice) setTtsVoice(s.ttsVoice);
       const m = s.modelSettings;
       if (!m) return;
       const byokKeys = ['openai', 'anthropic'];
@@ -134,7 +145,7 @@ export default function ModelSettingsScreen() {
       } else {
         ms = { provider: 'platform', model: platformModel };
       }
-      await saveSettings(uid, settings, { modelSettings: ms });
+      await saveSettings(uid, settings, { modelSettings: ms, ttsVoice });
       router.back();
     } finally {
       setSaving(false);
@@ -280,6 +291,40 @@ export default function ModelSettingsScreen() {
               />
             </View>
           )}
+
+          {/* TTS Voice */}
+          <View className="gap-3">
+            <View className="gap-0.5">
+              <Text className="text-text font-semibold text-sm">MODUS Voice</Text>
+              <Text className="text-muted text-xs">The voice MODUS uses to read your briefing aloud.</Text>
+            </View>
+            <View className="flex-row flex-wrap gap-2">
+              {TTS_VOICES.map(v => {
+                const selected = ttsVoice === v.id;
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    onPress={() => setTtsVoice(v.id)}
+                    activeOpacity={0.8}
+                    style={{ width: '47%' }}
+                    className={`p-4 rounded-2xl border ${selected ? 'border-brand/50 bg-brand/5' : 'border-border bg-surface'}`}
+                  >
+                    <View className="flex-row items-center justify-between mb-1">
+                      <Text className={`font-semibold text-sm ${selected ? 'text-brand' : 'text-text'}`}>{v.name}</Text>
+                      <View
+                        style={{
+                          width: 14, height: 14, borderRadius: 7, borderWidth: 2,
+                          borderColor: selected ? c.brand : c.border,
+                          backgroundColor: selected ? c.brand : 'transparent',
+                        }}
+                      />
+                    </View>
+                    <Text className="text-muted text-xs leading-4">{v.desc}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
 
           <GradientButton
             label={saving ? 'Saving…' : 'Save'}

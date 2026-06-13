@@ -1,4 +1,9 @@
 import { auth } from './firebase';
+import {
+  cacheDirectory,
+  writeAsStringAsync,
+  EncodingType,
+} from 'expo-file-system/legacy';
 
 // expo-location is a NATIVE module. Require it lazily inside a try/catch so a
 // JS reload before a native rebuild degrades to IP geolocation instead of
@@ -133,6 +138,27 @@ export async function fetchWeather(): Promise<Weather | null> {
   } catch {
     return null;
   }
+}
+
+// ── Text-to-speech (OpenAI TTS via /api/tts) ─────────────────────────────────
+
+/**
+ * Generates speech from text using the server-side OpenAI TTS endpoint,
+ * writes the mp3 to the device cache, and returns the local file URI.
+ * Use expo-audio's useAudioPlayer to play the returned URI.
+ */
+export async function fetchTTS(text: string, voice = 'onyx'): Promise<string> {
+  const headers = await getAuthHeader();
+  const res = await fetch(`${API_BASE}/api/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify({ text, voice }),
+  });
+  if (!res.ok) throw new Error(`TTS request failed (${res.status})`);
+  const { audio } = await res.json() as { audio: string };
+  const uri = `${cacheDirectory}modus-tts.mp3`;
+  await writeAsStringAsync(uri, audio, { encoding: EncodingType.Base64 });
+  return uri;
 }
 
 export async function* streamChat(
