@@ -251,7 +251,11 @@ export default function BriefingScreen() {
     ttsAbort.current = false;
     setTtsLoading(true);
     try {
-      const uri = await fetchTTS(briefingToSpeech(data), ttsVoice);
+      // Read voice fresh so a settings change takes effect without needing a screen reload.
+      const latestVoice = user
+        ? await getSettings(user.uid).then(s => s.ttsVoice || 'onyx')
+        : ttsVoice;
+      const uri = await fetchTTS(briefingToSpeech(data), latestVoice);
       if (ttsAbort.current) return;
       player.replace(uri);
       player.play();
