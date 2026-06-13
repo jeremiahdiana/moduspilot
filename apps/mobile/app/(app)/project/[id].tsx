@@ -71,10 +71,16 @@ export default function ProjectDetail() {
   const [chatMsgs, setChatMsgs]     = useState<ChatMsg[]>([])
   const [chatInput, setChatInput]   = useState('')
   const [streaming, setStreaming]   = useState(false)
-  const abortRef   = useRef<AbortController | null>(null)
-  const listRef    = useRef<FlatList>(null)
-  const mountedRef = useRef(true)
-  const savingRef  = useRef(false)
+  const abortRef    = useRef<AbortController | null>(null)
+  const listRef     = useRef<FlatList>(null)
+  const mountedRef  = useRef(true)
+  const savingRef   = useRef(false)
+  const chatMsgsRef = useRef<ChatMsg[]>([])
+  const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null)
+
+  useEffect(() => {
+    chatMsgsRef.current = chatMsgs
+  }, [chatMsgs])
 
   useEffect(() => () => {
     mountedRef.current = false
@@ -135,7 +141,10 @@ export default function ProjectDetail() {
       } else {
         setChatMsgs(stored.map(m => ({ id: m.id || newId(), role: m.role as ChatMsg['role'], content: m.content })))
       }
-    } catch { setChatMsgs([]) }
+    } catch (e) {
+      console.error('[openConv]', e)
+      if (mountedRef.current) setChatMsgs([{ id: '0', role: 'assistant', content: 'Failed to load conversation. Pull to retry.' }])
+    }
   }
 
   async function newChat() {
@@ -175,20 +184,23 @@ export default function ProjectDetail() {
       setActiveConvId(convId)
     }
 
+    // Capture messages BEFORE state update — this is the correct history to send
+    const apiMsgs: Message[] = [
+      ...chatMsgsRef.current.filter(m => m.id !== '0').map(m => ({ role: m.role as Message['role'], content: m.content })),
+      { role: 'user', content: trimmed },
+    ]
+
     const userMsg: ChatMsg = { id: newId(), role: 'user', content: trimmed }
     const asstMsg: ChatMsg = { id: newId(), role: 'assistant', content: '' }
     let current: ChatMsg[] = []
-    setChatMsgs(prev => { current = [...prev, userMsg, asstMsg]; return current })
+    setChatMsgs(prev => { current = [...prev, userMsg, asstMsg]; chatMsgsRef.current = current; return current })
+    setStreamingMsgId(asstMsg.id)
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80)
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
     setStreaming(true)
 
-    const apiMsgs: Message[] = [
-      ...chatMsgs.filter(m => m.id !== '0').map(m => ({ role: m.role as Message['role'], content: m.content })),
-      { role: 'user', content: trimmed },
-    ]
     const ctx: ProjectContext = { id: id!, title: project.title, description: project.description }
 
     try {
@@ -199,12 +211,25 @@ export default function ProjectDetail() {
           const last = next[next.length - 1]
           if (last?.role === 'assistant') next[next.length - 1] = { ...last, content: last.content + chunk }
           current = next
+          chatMsgsRef.current = next
           return next
         })
         listRef.current?.scrollToEnd({ animated: false })
       }
-    } catch { } finally {
-      if (mountedRef.current) { setStreaming(false); abortRef.current = null; persist(current, convId) }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError' && mountedRef.current) {
+        setChatMsgs(prev => {
+          const next = [...prev]
+          const last = next[next.length - 1]
+          if (last?.role === 'assistant' && !last.content) {
+            next[next.length - 1] = { ...last, content: 'Something went wrong. Please try again.' }
+            current = next
+          }
+          return next
+        })
+      }
+    } finally {
+      if (mountedRef.current) { setStreaming(false); setStreamingMsgId(null); abortRef.current = null; persist(current, convId) }
     }
   }
 
@@ -489,18 +514,24 @@ export default function ProjectDetail() {
                 contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 8 }}
                 onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
                 showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                  <View className={`flex-row ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <View
-                      className={`rounded-2xl px-4 py-3 ${item.role === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-surface border border-border rounded-tl-sm'}`}
-                      style={{ maxWidth: '85%' }}
-                    >
-                      {item.role === 'user'
-                        ? <Text className="text-white text-[15px] leading-6">{item.content}</Text>
-                        : <Markdown text={item.content || '…'} />}
+                renderItem={({ item }) => {
+                  const isTyping = streaming && item.id === streamingMsgId && !item.content
+                  return (
+                    <View className={`flex-row ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <View
+                        className={`rounded-2xl px-4 py-3 ${item.role === 'user' ? 'bg-brand rounded-tr-sm' : 'bg-surface border border-border rounded-tl-sm'}`}
+                        style={{ maxWidth: '85%' }}
+                      >
+                        {item.role === 'user'
+                          ? <Text className="text-white text-[15px] leading-6">{item.content}</Text>
+                          : isTyping
+                            ? <Text className="text-muted text-base tracking-widest">· · ·</Text>
+                            : <Markdown text={item.content || 'Something went wrong. Try again.'} />
+                        }
+                      </View>
                     </View>
-                  </View>
-                )}
+                  )
+                }}
               />
               {chatMsgs.filter(m => m.role === 'user').length === 0 && (
                 <View className="flex-row flex-wrap gap-2 px-4 pb-2">
