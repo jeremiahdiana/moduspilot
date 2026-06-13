@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Pressable, Dimensions, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
@@ -41,14 +41,6 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   const slideX   = useSharedValue(-WIDTH);
   const backdrop = useSharedValue(0);
 
-  // Queued navigation to fire after the drawer fully closes (eliminates flash through the sliding panel).
-  const afterCloseRef = useRef<(() => void) | null>(null);
-  const runAfterClose = useCallback(() => {
-    const fn = afterCloseRef.current;
-    afterCloseRef.current = null;
-    fn?.();
-  }, []);
-
   const open = useCallback(() => {
     setIsOpen(true);
     slideX.value   = withTiming(0, { duration: 350, easing: Easing.bezier(0.05, 0.7, 0.1, 1.0) });
@@ -56,22 +48,20 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   }, [slideX, backdrop]);
 
   const close = useCallback(() => {
-    slideX.value   = withTiming(-WIDTH, { duration: 280, easing: Easing.bezier(0.4, 0, 0.6, 1) }, (finished) => {
-      if (finished) runOnJS(runAfterClose)();
-    });
-    backdrop.value = withTiming(0, { duration: 260, easing: Easing.out(Easing.cubic) }, (finished) => {
+    slideX.value   = withTiming(-WIDTH, { duration: 280, easing: Easing.bezier(0.4, 0, 0.6, 1) });
+    backdrop.value = withTiming(0,      { duration: 260, easing: Easing.out(Easing.cubic) }, (finished) => {
       if (finished) runOnJS(setIsOpen)(false);
     });
-  }, [slideX, backdrop, runAfterClose]);
+  }, [slideX, backdrop]);
 
   const slideStyle    = useAnimatedStyle(() => ({ transform: [{ translateX: slideX.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value }));
 
   function go(href: string) {
     haptics.select();
-    // Navigate AFTER the drawer is fully closed so the screen switch is hidden behind the sliding panel.
-    // lazy={false} in the Tabs layout ensures all screens are pre-rendered — no mount delay on arrival.
-    afterCloseRef.current = () => router.navigate(href as never);
+    // Navigate first so the screen renders under the drawer during the close animation.
+    // By the time the drawer finishes sliding, content is already painted (or nearly so).
+    router.navigate(href as never);
     close();
   }
 
