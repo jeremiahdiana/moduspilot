@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { auth } from '@/lib/firebase';
 import type { UserSettings } from '@/hooks/useUserSettings';
 
@@ -71,28 +71,6 @@ interface Props {
 export default function CapabilitiesSettings({ settings, plan, saving, onSave }: Props) {
   const isPaid = plan === 'modus' || plan === 'pilot';
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [triageState, setTriageState] = useState<'idle' | 'loading' | 'done'>('idle');
-  const [triageMsg, setTriageMsg] = useState('');
-  const triageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const runTriage = async () => {
-    if (triageState === 'loading') return;
-    setTriageState('loading');
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/triage/trigger', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setTriageMsg(data.message ?? 'Done');
-    } catch {
-      setTriageMsg('Something went wrong');
-    }
-    setTriageState('done');
-    if (triageTimer.current) clearTimeout(triageTimer.current);
-    triageTimer.current = setTimeout(() => setTriageState('idle'), 4000);
-  };
 
   const handleToggle = (key: keyof UserSettings['capabilities'], val: boolean) => {
     onSave({ capabilities: { ...settings.capabilities, [key]: val } });
@@ -143,18 +121,9 @@ export default function CapabilitiesSettings({ settings, plan, saving, onSave }:
                 </div>
                 <p className="text-xs text-muted leading-relaxed">{cap.desc}</p>
                 {cap.key === 'inboxTriage' && settings.capabilities.inboxTriage && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <button
-                      onClick={runTriage}
-                      disabled={triageState === 'loading'}
-                      className="text-xs font-medium px-3 py-1.5 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-colors disabled:opacity-50"
-                    >
-                      {triageState === 'loading' ? 'Scanning inbox…' : 'Run now'}
-                    </button>
-                    {triageState === 'done' && (
-                      <span className="text-xs text-muted">{triageMsg}</span>
-                    )}
-                  </div>
+                  <p className="text-[11px] text-muted mt-1.5">
+                    Trigger manually from <a href="/briefing" className="text-brand hover:underline">Briefing → Inbox</a>.
+                  </p>
                 )}
               </div>
               <Toggle

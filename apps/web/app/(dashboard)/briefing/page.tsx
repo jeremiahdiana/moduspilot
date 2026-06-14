@@ -313,10 +313,14 @@ function ActionQueueCard({ items, onDoneTask, onLogHabit }: {
   );
 }
 
-function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange, onConnectGoogle, onDraftReply }: {
+function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange, onConnectGoogle, onDraftReply,
+  accounts, triageAccount, onTriageAccountChange, triageState, triageResult, onTriage }: {
   threads: GmailThread[]; connected: boolean; filter: 'primary' | 'all'; loading: boolean;
   onFilterChange: (f: 'primary' | 'all') => void;
   onConnectGoogle: () => void; onDraftReply: (t: GmailThread) => void;
+  accounts: string[]; triageAccount: string | null; onTriageAccountChange: (a: string | null) => void;
+  triageState: 'idle' | 'loading' | 'done'; triageResult: { created: number; message: string } | null;
+  onTriage: (account?: string) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -359,8 +363,40 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">{threads.length} unread</span>
           )}
         </div>
-        <FilterToggle />
+        <div className="flex items-center gap-2">
+          <FilterToggle />
+          <button
+            onClick={() => onTriage(triageAccount ?? undefined)}
+            disabled={triageState === 'loading'}
+            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-colors disabled:opacity-50"
+          >
+            {triageState === 'loading' ? 'Scanning…' : 'Triage inbox'}
+          </button>
+        </div>
       </div>
+      {accounts.length > 1 && (
+        <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-border/50">
+          <span className="text-[10px] text-muted mr-1">Account:</span>
+          <button
+            onClick={() => onTriageAccountChange(null)}
+            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${triageAccount === null ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text'}`}
+          >All</button>
+          {accounts.map(a => (
+            <button key={a}
+              onClick={() => onTriageAccountChange(a)}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors truncate max-w-[140px] ${triageAccount === a ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text'}`}
+            >{a}</button>
+          ))}
+        </div>
+      )}
+      {triageResult && triageState === 'done' && (
+        <div className={`flex items-center justify-between px-5 py-2.5 border-b border-border/50 text-[11px] ${triageResult.created > 0 ? 'bg-brand/5 text-brand' : 'text-muted'}`}>
+          <span>{triageResult.message}</span>
+          {triageResult.created > 0 && (
+            <a href="/chat" className="font-semibold underline underline-offset-2">View drafts →</a>
+          )}
+        </div>
+      )}
       {threads.length === 0 ? (
         <div className="px-5 py-4 space-y-1">
           <p className="text-xs text-muted">{filter === 'primary' ? 'No unread primary emails in 48h.' : 'No unread emails in 48h.'}</p>
@@ -1048,6 +1084,10 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const [emailFilter, setEmailFilter] = useState<'primary' | 'all'>('primary');
   const [gmailLoading, setGmailLoading] = useState(true);
   const [newsLoading, setNewsLoading] = useState(true);
+  const [gmailAccounts, setGmailAccounts] = useState<string[]>([]);
+  const [triageAccount, setTriageAccount] = useState<string | null>(null);
+  const [triageState, setTriageState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [triageResult, setTriageResult] = useState<{ created: number; message: string } | null>(null);
 
   // Live Firestore: habits + due task count
   const [habits, setHabits] = useState<{ id: string; title: string; streak: number; done: boolean; completedDates: string[] }[]>([]);
@@ -1074,6 +1114,32 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
       .then(r => r.json()).then(d => { setGmailThreads(d.threads ?? []); setGmailConnected(d.connected ?? false); })
       .catch(() => {}).finally(() => setGmailLoading(false));
   }, [authToken, emailFilter]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    fetch('/api/google/status', { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json()).then(d => setGmailAccounts((d.accounts ?? []).map((a: { email: string }) => a.email)))
+      .catch(() => {});
+  }, [authToken]);
+
+  const runTriage = async (account?: string) => {
+    if (!authToken || triageState === 'loading') return;
+    setTriageState('loading');
+    setTriageResult(null);
+    try {
+      const res = await fetch('/api/triage/trigger', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(account ? { account } : {}),
+      });
+      const data = await res.json();
+      setTriageResult({ created: data.created ?? 0, message: data.message ?? 'Done' });
+    } catch {
+      setTriageResult({ created: 0, message: 'Something went wrong' });
+    }
+    setTriageState('done');
+    setTimeout(() => setTriageState('idle'), 5000);
+  };
 
   useEffect(() => {
     if (!authToken) return;
@@ -1346,7 +1412,9 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
               })()}
               <FadeCard delay={0.10}>
                 <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter} loading={gmailLoading}
-                  onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply} />
+                  onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply}
+                  accounts={gmailAccounts} triageAccount={triageAccount} onTriageAccountChange={setTriageAccount}
+                  triageState={triageState} triageResult={triageResult} onTriage={runTriage} />
               </FadeCard>
               {data.looseEnd && (
                 <FadeCard delay={0.15}><LooseEndCard text={data.looseEnd.text} onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)} /></FadeCard>

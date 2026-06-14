@@ -40,13 +40,24 @@ export async function POST(req: NextRequest) {
       .where('status', '==', 'active').get(),
   ]);
 
+  const body = await req.json().catch(() => ({}));
+  const accountFilter: string | null = body.account ?? null;
+
   const data = userDoc.data() ?? {};
-  const accounts = await getAllValidAccessTokens(uid);
-  if (!accounts.length) {
+  const allAccounts = await getAllValidAccessTokens(uid);
+  if (!allAccounts.length) {
     return NextResponse.json({ created: 0, message: 'No Google account connected' });
   }
 
-  const ownEmails = new Set(accounts.map(a => a.email.toLowerCase()));
+  const accounts = accountFilter
+    ? allAccounts.filter(a => a.email.toLowerCase() === accountFilter.toLowerCase())
+    : allAccounts;
+
+  if (!accounts.length) {
+    return NextResponse.json({ created: 0, message: `Account ${accountFilter} not found or not connected` });
+  }
+
+  const ownEmails = new Set(allAccounts.map(a => a.email.toLowerCase()));
   const name = (data.displayName as string | undefined)?.split(' ')[0] || 'there';
   const personalContext = (data.settings?.personalContext as string | undefined)?.slice(0, 1500) ?? '';
   const tz = (data.settings?.briefingTimezone as string | undefined) ?? 'UTC';
