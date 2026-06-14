@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
   if (auth instanceof Response) return auth;
   const { uid } = auth;
 
+  const debug = new URL(req.url).searchParams.get('debug') === '1';
+
   const [userDoc, goalsSnap] = await Promise.all([
     adminDb.collection('users').doc(uid).get(),
     adminDb.collection('users').doc(uid).collection('goals')
@@ -51,21 +53,25 @@ export async function POST(req: NextRequest) {
   const goals = goalsSnap.docs.filter(d => !d.data().deleted).map(d => d.data().title as string).slice(0, 3);
   const triagedCol = adminDb.collection('users').doc(uid).collection('triaged_threads');
   let created = 0;
+  const debugLog: { account: string; threads: { id: string; subject: string; from: string; skipped?: string }[] }[] = [];
 
   for (const { email, token } of accounts) {
     if (created >= MAX_PER_RUN) break;
     const threads = await getActionableThreads(token, { filter: 'primary' });
+    const debugThreads: { id: string; subject: string; from: string; skipped?: string }[] = [];
+    if (debug) debugLog.push({ account: email, threads: debugThreads });
 
     for (const thread of threads) {
       if (created >= MAX_PER_RUN) break;
-      if (!thread.unread) continue;
-      if (ownEmails.has(thread.fromAddress.toLowerCase())) continue;
-      if (thread.bulk) continue;
-      if (AUTOMATED_SENDER.test(thread.fromAddress) || AUTOMATED_SENDER.test(thread.from)) continue;
-      if ((thread.body ?? '').trim().length < 20) continue;
+      const skip = (reason: string) => { if (debug) debugThreads.push({ id: thread.id, subject: thread.subject, from: thread.fromAddress, skipped: reason }); };
+      if (!thread.unread) { skip('not unread'); continue; }
+      if (ownEmails.has(thread.fromAddress.toLowerCase())) { skip('own account'); continue; }
+      if (thread.bulk) { skip('bulk/newsletter'); continue; }
+      if (AUTOMATED_SENDER.test(thread.fromAddress) || AUTOMATED_SENDER.test(thread.from)) { skip('automated sender'); continue; }
+      if ((thread.body ?? '').trim().length < 20) { skip(`body too short (${(thread.body ?? '').trim().length} chars)`); continue; }
 
       const dedupRef = triagedCol.doc(thread.id);
-      if ((await dedupRef.get()).exists) continue;
+      if ((await dedupRef.get()).exists) { skip('already triaged'); continue; }
 
       const now = nowContext(tz);
       let rawJson = '';
@@ -158,5 +164,6 @@ ${(thread.body ?? '').slice(0, 4000)}
     }
   }
 
+  if (debug) return NextResponse.json({ created, debug: debugLog });
   return NextResponse.json({ created, message: created > 0 ? `${created} draft${created > 1 ? 's' : ''} created` : 'No new emails to triage' });
 }
