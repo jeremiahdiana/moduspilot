@@ -24,6 +24,8 @@ export interface Capabilities {
   voiceInput?: boolean;
   dailyBriefing?: boolean;
   vectorMemory?: boolean;
+  inboxTriage?: boolean;
+  relationshipNurture?: boolean;
 }
 
 export interface UserSettings {

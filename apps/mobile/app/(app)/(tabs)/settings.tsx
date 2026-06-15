@@ -25,7 +25,7 @@ export default function SettingsScreen() {
     if (uid) getSettings(uid).then(setSettings);
   }, [uid]);
 
-  async function toggleCapability(key: 'webSearch' | 'voiceInput', value: boolean) {
+  async function toggleCapability(key: keyof import('@/lib/settings').Capabilities, value: boolean) {
     if (!uid) return;
     setSettings(s => ({ ...s, capabilities: { ...s.capabilities, [key]: value } }));
     const next = await saveSettings(uid, settings, { capabilities: { [key]: value } });
@@ -126,6 +126,30 @@ export default function SettingsScreen() {
             icon="mic-none" label="Voice input" sub="Mic button in chat"
             value={settings.capabilities?.voiceInput !== false}
             onChange={v => toggleCapability('voiceInput', v)} brand={c.brand} border={c.border}
+          />
+          <Divider />
+          <ToggleRow
+            icon="wb-sunny" label="Daily briefing" sub="Morning brief with your priorities"
+            value={!!settings.capabilities?.dailyBriefing}
+            onChange={v => toggleCapability('dailyBriefing', v)} brand={c.brand} border={c.border}
+          />
+          <Divider />
+          <ToggleRow
+            icon="memory" label="Vector memory" sub="Recall context across sessions"
+            value={!!settings.capabilities?.vectorMemory}
+            onChange={v => toggleCapability('vectorMemory', v)} brand={c.brand} border={c.border}
+          />
+          <Divider />
+          <ToggleRow
+            icon="inbox" label="Inbox triage" sub="Draft replies to emails waiting on you"
+            value={!!settings.capabilities?.inboxTriage}
+            onChange={v => toggleCapability('inboxTriage', v)} brand={c.brand} border={c.border}
+          />
+          <Divider />
+          <ToggleRow
+            icon="people-outline" label="Relationship follow-ups" sub="Reconnect with people you've drifted from"
+            value={!!settings.capabilities?.relationshipNurture}
+            onChange={v => toggleCapability('relationshipNurture', v)} brand={c.brand} border={c.border}
           />
         </View>
 

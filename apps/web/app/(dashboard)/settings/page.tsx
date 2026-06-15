@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -135,43 +136,53 @@ function SettingsContent() {
       {/* Content */}
       <main className="flex-1 overflow-y-auto py-6 px-4 md:py-8 md:px-8">
         <div className="max-w-2xl">
-          {activeTab === 'general' && (
-            <GeneralSettings settings={settings} saving={saving} onSave={saveSettings} />
-          )}
-          {activeTab === 'account' && (
-            <AccountSettings user={user} />
-          )}
-          {activeTab === 'privacy' && (
-            <PrivacySettings settings={settings} saving={saving} onSave={saveSettings} />
-          )}
-          {activeTab === 'billing' && (
-            <BillingSettings plan={plan} />
-          )}
-          {activeTab === 'usage' && (
-            <UsageSettings plan={plan} usage={usage} onUpgrade={() => setTab('billing')} />
-          )}
-          {activeTab === 'capabilities' && (
-            <CapabilitiesSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
-          )}
-          {activeTab === 'connectors' && (
-            <ConnectorsSettings user={user} />
-          )}
-          {activeTab === 'memory' && (
-            <MemorySettings
-              settings={settings}
-              memories={memories}
-              saving={saving}
-              onSave={saveSettings}
-              onAdd={addMemory}
-              onDelete={deleteMemory}
-            />
-          )}
-          {activeTab === 'model' && (
-            <ModelSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
-          )}
-          {activeTab === 'tips' && (
-            <TipsSettings />
-          )}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              {activeTab === 'general' && (
+                <GeneralSettings settings={settings} saving={saving} onSave={saveSettings} />
+              )}
+              {activeTab === 'account' && (
+                <AccountSettings user={user} />
+              )}
+              {activeTab === 'privacy' && (
+                <PrivacySettings settings={settings} saving={saving} onSave={saveSettings} />
+              )}
+              {activeTab === 'billing' && (
+                <BillingSettings plan={plan} />
+              )}
+              {activeTab === 'usage' && (
+                <UsageSettings plan={plan} usage={usage} onUpgrade={() => setTab('billing')} />
+              )}
+              {activeTab === 'capabilities' && (
+                <CapabilitiesSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
+              )}
+              {activeTab === 'connectors' && (
+                <ConnectorsSettings user={user} />
+              )}
+              {activeTab === 'memory' && (
+                <MemorySettings
+                  settings={settings}
+                  memories={memories}
+                  saving={saving}
+                  onSave={saveSettings}
+                  onAdd={addMemory}
+                  onDelete={deleteMemory}
+                />
+              )}
+              {activeTab === 'model' && (
+                <ModelSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
+              )}
+              {activeTab === 'tips' && (
+                <TipsSettings />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>
