@@ -17,22 +17,76 @@ interface Props {
   onSave: (updates: Partial<UserSettings>) => Promise<void>;
 }
 
-const PLATFORM_MODELS = [
+const BRAINS = [
   {
     id: 'llama-3.3-70b-versatile',
-    name: 'MODUS',
-    tagline: 'Fast & Creative',
-    description: 'Great for brainstorming, writing, and everyday tasks. Instant responses.',
-    badge: 'Default',
-    badgeColor: 'bg-brand/10 text-brand',
+    name: 'Llama 3.3',
+    provider: 'Meta · Groq',
+    tagline: 'Fast & always available',
+    description: 'Great for everyday tasks, brainstorming, and writing. Zero latency.',
+    badge: 'Free',
+    badgeColor: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'MODUS 2.0',
-    tagline: 'Smarter & More Capable',
-    description: 'Deeper reasoning, sharper analysis, and more nuanced responses for complex work.',
-    badge: 'Pro',
+    id: 'gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    tagline: 'Balanced & reliable',
+    description: "OpenAI's best multimodal model. Handles text, images, and complex reasoning.",
+    badge: 'MODUS+',
     badgeColor: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'] as string[],
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet',
+    provider: 'Anthropic',
+    tagline: 'Exceptional writing & analysis',
+    description: 'Best for nuanced writing, editing, and thorough analysis. Low hallucination rate.',
+    badge: 'MODUS+',
+    badgeColor: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'] as string[],
+  },
+  {
+    id: 'claude-opus-4-8',
+    name: 'Claude Opus',
+    provider: 'Anthropic',
+    tagline: 'Most capable',
+    description: "Anthropic's most intelligent model. For the hardest tasks that demand deep reasoning.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
+  {
+    id: 'o4-mini',
+    name: 'o4-mini',
+    provider: 'OpenAI',
+    tagline: 'Advanced reasoning',
+    description: "OpenAI's compact reasoning model. Excels at math, code, and logical problem-solving.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'Google',
+    tagline: 'Multimodal powerhouse',
+    description: "Google's frontier model with massive context window and strong multimodal abilities.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
+  {
+    id: 'grok-3',
+    name: 'Grok 3',
+    provider: 'xAI',
+    tagline: 'Real-time knowledge',
+    description: "xAI's model trained on real-time data. Sharp reasoning and up-to-date information.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
   },
 ];
 
@@ -40,50 +94,58 @@ const BYOK_PROVIDERS = [
   {
     id: 'openai' as const,
     name: 'OpenAI',
-    description: 'Use your own OpenAI API key for full control over usage and billing.',
-    badge: 'BYOK',
+    description: 'Use your own OpenAI subscription — full control over usage and billing.',
+    badge: 'Your key',
     badgeColor: 'bg-blue-500/10 text-blue-400',
     models: [
       { id: 'gpt-4o',      label: 'GPT-4o',      sub: 'Most capable' },
-      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', sub: 'Faster & cheaper' },
+      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', sub: 'Faster & lighter' },
     ],
     keyField: 'openaiKey' as const,
-    keyPlaceholder: 'sk-proj-...',
+    keyPlaceholder: 'sk-proj-…',
     docsUrl: 'https://platform.openai.com/api-keys',
   },
   {
     id: 'anthropic' as const,
     name: 'Anthropic',
-    description: 'Use your own Anthropic API key to power MODUS with Claude.',
-    badge: 'BYOK',
-    badgeColor: 'bg-violet-500/10 text-violet-400',
+    description: 'Use your own Anthropic subscription to power MODUS with Claude.',
+    badge: 'Your key',
+    badgeColor: 'bg-blue-500/10 text-blue-400',
     models: [
       { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6', sub: 'Best quality' },
       { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',  sub: 'Fastest' },
     ],
     keyField: 'anthropicKey' as const,
-    keyPlaceholder: 'sk-ant-...',
+    keyPlaceholder: 'sk-ant-…',
     docsUrl: 'https://console.anthropic.com/settings/keys',
   },
 ];
+
+function RadioDot({ selected }: { selected: boolean }) {
+  return (
+    <div className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${
+      selected ? 'border-brand bg-brand' : 'border-border'
+    }`} />
+  );
+}
 
 export default function ModelSettings({ settings, plan, saving, onSave }: Props) {
   const raw = (settings as unknown as { modelSettings?: ModelConfig }).modelSettings;
   const rawProvider = raw?.provider ?? 'platform';
   const isPaid = plan === 'modus' || plan === 'pilot';
+  const isPilot = plan === 'pilot';
 
-  // Platform model selection (only applies when provider === 'platform')
-  const [platformModel, setPlatformModel] = useState(
-    raw?.model && !raw.model.startsWith('gpt') && !raw.model.startsWith('claude')
-      ? raw.model
-      : raw?.model === 'gpt-4o-mini' ? 'gpt-4o-mini' : 'llama-3.3-70b-versatile'
-  );
+  const initialPlatformModel = (() => {
+    if (!raw?.model || rawProvider !== 'platform') return 'llama-3.3-70b-versatile';
+    const brain = BRAINS.find(b => b.id === raw.model);
+    if (!brain) return 'llama-3.3-70b-versatile';
+    if (!brain.plans.includes(plan)) return 'llama-3.3-70b-versatile';
+    return raw.model;
+  })();
 
-  // BYOK state
-  const byokProviders = BYOK_PROVIDERS.map(p => p.id) as string[];
-  const isByok = byokProviders.includes(rawProvider);
+  const [platformModel, setPlatformModel] = useState(initialPlatformModel);
   const [byokProvider, setByokProvider] = useState<'openai' | 'anthropic' | null>(
-    isByok ? (rawProvider as 'openai' | 'anthropic') : null
+    ['openai', 'anthropic'].includes(rawProvider) ? (rawProvider as 'openai' | 'anthropic') : null
   );
   const [byokModel, setByokModel] = useState(raw?.model ?? '');
   const [openaiKey, setOpenaiKey] = useState(raw?.openaiKey ?? '');
@@ -93,24 +155,29 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
 
   const selectedByok = BYOK_PROVIDERS.find(p => p.id === byokProvider) ?? null;
 
-  function handlePlatformModelSelect(modelId: string) {
-    if (!isPaid) return;
-    setPlatformModel(modelId);
+  function selectBrain(id: string) {
+    const brain = BRAINS.find(b => b.id === id)!;
+    if (!brain.plans.includes(plan)) return;
+    setPlatformModel(id);
     setByokProvider(null);
     setSaved(false);
   }
 
-  function handleByokSelect(p: 'openai' | 'anthropic') {
-    setByokProvider(prev => prev === p ? null : p);
-    const prov = BYOK_PROVIDERS.find(x => x.id === p)!;
-    setByokModel(prov.models[0].id);
+  function toggleByok(key: 'openai' | 'anthropic') {
+    if (byokProvider === key) {
+      setByokProvider(null);
+    } else {
+      setByokProvider(key);
+      const prov = BYOK_PROVIDERS.find(p => p.id === key)!;
+      setByokModel(prev => prev || prov.models[0].id);
+    }
     setSaved(false);
   }
 
   async function handleSave() {
     let modelSettings: ModelConfig;
     if (byokProvider && selectedByok) {
-      modelSettings = { provider: byokProvider, model: byokModel };
+      modelSettings = { provider: byokProvider, model: byokModel || selectedByok.models[0].id };
       if (byokProvider === 'openai' && openaiKey.trim()) modelSettings.openaiKey = openaiKey.trim();
       if (byokProvider === 'anthropic' && anthropicKey.trim()) modelSettings.anthropicKey = anthropicKey.trim();
     } else {
@@ -122,98 +189,98 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
     setTimeout(() => setSaved(false), 2500);
   }
 
-  const needsKey = !!byokProvider;
   const keyValue = byokProvider === 'openai' ? openaiKey : anthropicKey;
   const setKeyValue = byokProvider === 'openai' ? setOpenaiKey : setAnthropicKey;
-  const canSave = !needsKey || keyValue.trim().length > 10;
+  const canSave = !byokProvider || keyValue.trim().length > 10;
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold text-text mb-1">AI Model</h2>
-        <p className="text-sm text-muted">Choose which AI powers your MODUS.</p>
+        <h2 className="text-lg font-semibold text-text mb-1">Your Brain</h2>
+        <p className="text-sm text-muted">Choose the AI that powers MODUS. Your memory, inbox triage, and integrations stay consistent no matter which Brain you pick.</p>
       </div>
 
-      {/* Platform model selector */}
+      {/* Platform Brains */}
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-text">MODUS Models</p>
-        <div className="grid gap-3">
-          {PLATFORM_MODELS.map(m => {
-            const isSelected = !byokProvider && platformModel === m.id;
-            const locked = !isPaid;
+        <p className="text-sm font-semibold text-text">Platform Brains</p>
+        <div className="grid gap-2.5">
+          {BRAINS.map(brain => {
+            const locked = !brain.plans.includes(plan);
+            const isSelected = !byokProvider && platformModel === brain.id;
             return (
               <button
-                key={m.id}
-                onClick={() => handlePlatformModelSelect(m.id)}
+                key={brain.id}
+                onClick={() => selectBrain(brain.id)}
                 disabled={locked}
-                className={`text-left p-5 rounded-xl border transition-all ${
+                className={`text-left p-4 rounded-xl border transition-all ${
                   locked
-                    ? 'border-border bg-panel opacity-60 cursor-not-allowed'
+                    ? 'border-border bg-panel opacity-50 cursor-not-allowed'
                     : isSelected
                     ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
-                    : 'border-border bg-panel hover:border-brand/20'
+                    : 'border-border bg-panel hover:border-brand/20 cursor-pointer'
                 }`}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-text">{m.name}</span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${m.badgeColor}`}>{m.badge}</span>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <span className={`text-sm font-semibold ${isSelected ? 'text-brand' : 'text-text'}`}>{brain.name}</span>
+                      <span className="text-xs text-muted">{brain.provider}</span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${brain.badgeColor}`}>{brain.badge}</span>
                       {locked && (
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted/10 text-muted">
-                          🔒 Locked
+                          {brain.badge === 'PILOT' ? 'PILOT only' : 'Locked'}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs font-medium text-text/70 mb-0.5">{m.tagline}</p>
-                    <p className="text-xs text-muted">{m.description}</p>
+                    <p className="text-xs font-medium text-text/70 mb-0.5">{brain.tagline}</p>
+                    <p className="text-xs text-muted leading-relaxed">{brain.description}</p>
                   </div>
-                  {!locked && (
-                    <div className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 transition-colors ${
-                      isSelected ? 'border-brand bg-brand' : 'border-border'
-                    }`} />
-                  )}
+                  {!locked && <RadioDot selected={isSelected} />}
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* Free user upgrade CTA */}
         {!isPaid && (
           <p className="text-xs text-muted text-center pt-1">
-            Best for productivity —{' '}
-            <span className="text-brand font-medium">upgrade to MODUS</span>
-            {' '}to unlock model selection.
+            <span className="text-brand font-medium">Upgrade to MODUS</span> to unlock GPT-4o and Claude Sonnet.{' '}
+            <span className="text-brand font-medium">PILOT</span> unlocks all 7.
+          </p>
+        )}
+        {isPaid && !isPilot && (
+          <p className="text-xs text-muted text-center pt-1">
+            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3.
           </p>
         )}
       </div>
 
-      {/* BYOK section */}
+      {/* BYOK */}
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-text">Bring Your Own Key</p>
-        <div className="grid gap-3">
+        <div>
+          <p className="text-sm font-semibold text-text">Use your own subscription</p>
+          <p className="text-xs text-muted mt-0.5">Have your own OpenAI or Anthropic key? It overrides your platform Brain.</p>
+        </div>
+        <div className="grid gap-2.5">
           {BYOK_PROVIDERS.map(p => (
             <button
               key={p.id}
-              onClick={() => handleByokSelect(p.id)}
-              className={`text-left p-5 rounded-xl border transition-all ${
+              onClick={() => toggleByok(p.id)}
+              className={`text-left p-4 rounded-xl border transition-all ${
                 byokProvider === p.id
                   ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
                   : 'border-border bg-panel hover:border-brand/20'
               }`}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-text">{p.name}</span>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={`text-sm font-semibold ${byokProvider === p.id ? 'text-brand' : 'text-text'}`}>{p.name}</span>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.badgeColor}`}>{p.badge}</span>
                   </div>
                   <p className="text-xs text-muted">{p.description}</p>
                 </div>
-                <div className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 transition-colors ${
-                  byokProvider === p.id ? 'border-brand bg-brand' : 'border-border'
-                }`} />
+                <RadioDot selected={byokProvider === p.id} />
               </div>
             </button>
           ))}
@@ -222,7 +289,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
 
       {/* BYOK model picker */}
       {byokProvider && selectedByok && (
-        <div className="bg-panel border border-border rounded-xl p-5 space-y-3">
+        <div className="bg-panel border border-border rounded-xl p-4 space-y-3">
           <p className="text-sm font-semibold text-text">Model</p>
           <div className="grid grid-cols-2 gap-2">
             {selectedByok.models.map(m => (
@@ -234,16 +301,16 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
                 }`}
               >
                 <p className="text-sm font-medium text-text">{m.label}</p>
-                <p className="text-xs text-muted">{m.sub}</p>
+                <p className="text-xs text-muted mt-0.5">{m.sub}</p>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* BYOK API key input */}
-      {needsKey && selectedByok && (
-        <div className="bg-panel border border-border rounded-xl p-5 space-y-3">
+      {/* BYOK key input */}
+      {byokProvider && selectedByok && (
+        <div className="bg-panel border border-border rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-text">{selectedByok.name} API Key</p>
             {selectedByok.docsUrl && (
@@ -252,7 +319,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
               </a>
             )}
           </div>
-          <p className="text-xs text-muted">Stored privately in your account, only used to make requests on your behalf.</p>
+          <p className="text-xs text-muted">Stored privately on your account. Only used to make requests on your behalf.</p>
           <div className="flex gap-2">
             <input
               type={showKey[byokProvider] ? 'text' : 'password'}
@@ -275,7 +342,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          disabled={saving || !canSave || !isPaid}
+          disabled={saving || !canSave}
           className="px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand/90 transition-colors disabled:opacity-40"
         >
           {saving ? 'Saving…' : saved ? (
@@ -283,9 +350,9 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12"/></svg>
               Saved
             </span>
-          ) : 'Save Model Settings'}
+          ) : 'Save Brain'}
         </button>
-        {needsKey && !keyValue && (
+        {byokProvider && !keyValue.trim() && (
           <p className="text-xs text-muted">Add your API key to save.</p>
         )}
       </div>

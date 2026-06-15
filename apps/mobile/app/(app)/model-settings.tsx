@@ -21,23 +21,76 @@ const TTS_VOICES: { id: string; name: string; desc: string }[] = [
   { id: 'shimmer', name: 'Shimmer', desc: 'Soft and thoughtful' },
 ];
 
-const PLATFORM_MODELS = [
+const BRAINS = [
   {
     id: 'llama-3.3-70b-versatile',
-    name: 'MODUS',
-    tagline: 'Fast & Creative',
-    desc: 'Great for brainstorming, writing, and everyday tasks. Instant responses.',
-    badge: 'Default',
-    badgeClass: 'bg-brand/10 text-brand',
+    name: 'Llama 3.3',
+    provider: 'Meta · Groq',
+    tagline: 'Fast & always available',
+    desc: 'Great for everyday tasks, brainstorming, and writing. Zero latency.',
+    badge: 'Free',
+    badgeClass: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'],
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'MODUS 2.0',
-    tagline: 'Smarter & More Capable',
-    desc: 'Deeper reasoning, sharper analysis, and more nuanced responses for complex work.',
-    badge: 'Pro',
+    id: 'gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    tagline: 'Balanced & reliable',
+    desc: "OpenAI's best multimodal model. Handles text, images, and complex reasoning.",
+    badge: 'MODUS+',
     badgeClass: 'bg-violet-500/10 text-violet-400',
-    requiresPaid: true,
+    plans: ['modus', 'pilot'],
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet',
+    provider: 'Anthropic',
+    tagline: 'Exceptional writing & analysis',
+    desc: 'Best for nuanced writing, editing, and thorough analysis.',
+    badge: 'MODUS+',
+    badgeClass: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'],
+  },
+  {
+    id: 'claude-opus-4-8',
+    name: 'Claude Opus',
+    provider: 'Anthropic',
+    tagline: 'Most capable',
+    desc: "Anthropic's most intelligent model. For the hardest tasks.",
+    badge: 'PILOT',
+    badgeClass: 'bg-brand/10 text-brand',
+    plans: ['pilot'],
+  },
+  {
+    id: 'o4-mini',
+    name: 'o4-mini',
+    provider: 'OpenAI',
+    tagline: 'Advanced reasoning',
+    desc: "OpenAI's compact reasoning model. Math, code, logical problem-solving.",
+    badge: 'PILOT',
+    badgeClass: 'bg-brand/10 text-brand',
+    plans: ['pilot'],
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'Google',
+    tagline: 'Multimodal powerhouse',
+    desc: "Google's frontier model with massive context and strong multimodal abilities.",
+    badge: 'PILOT',
+    badgeClass: 'bg-brand/10 text-brand',
+    plans: ['pilot'],
+  },
+  {
+    id: 'grok-3',
+    name: 'Grok 3',
+    provider: 'xAI',
+    tagline: 'Real-time knowledge',
+    desc: "xAI's model trained on real-time data. Sharp reasoning and current information.",
+    badge: 'PILOT',
+    badgeClass: 'bg-brand/10 text-brand',
+    plans: ['pilot'],
   },
 ];
 
@@ -48,7 +101,7 @@ const BYOK_PROVIDERS: { key: 'openai' | 'anthropic'; name: string; desc: string;
     desc: 'Use your own OpenAI API key for full control over usage and billing.',
     models: [
       { id: 'gpt-4o', label: 'GPT-4o', sub: 'Most capable' },
-      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', sub: 'Faster & cheaper' },
+      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', sub: 'Faster & lighter' },
     ],
     keyField: 'openaiKey',
     placeholder: 'sk-proj-…',
@@ -66,7 +119,7 @@ const BYOK_PROVIDERS: { key: 'openai' | 'anthropic'; name: string; desc: string;
   },
 ];
 
-export default function ModelSettingsScreen() {
+export default function BrainScreen() {
   const c = useThemeColors();
   const uid = currentUid();
   const [settings, setSettings] = useState<UserSettings>({});
@@ -74,48 +127,42 @@ export default function ModelSettingsScreen() {
   const [saving, setSaving] = useState(false);
   const [ttsVoice, setTtsVoice] = useState('onyx');
 
-  // Platform model selection
   const [platformModel, setPlatformModel] = useState('llama-3.3-70b-versatile');
-
-  // BYOK state
   const [byokProvider, setByokProvider] = useState<'openai' | 'anthropic' | null>(null);
   const [byokModel, setByokModel] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
 
   const isPaid = plan === 'modus' || plan === 'pilot';
+  const isPilot = plan === 'pilot';
 
   useEffect(() => {
     if (!uid) return;
-
-    // Load plan directly from the user doc (not the settings sub-object)
     const unsub = onSnapshot(doc(db, 'users', uid), snap => {
       const p = snap.data()?.plan as string | undefined;
       setPlan(p === 'modus' || p === 'pilot' ? p : 'free');
     });
-
     getSettings(uid).then(s => {
       setSettings(s);
       if (s.ttsVoice) setTtsVoice(s.ttsVoice);
       const m = s.modelSettings;
       if (!m) return;
-      const byokKeys = ['openai', 'anthropic'];
-      if (byokKeys.includes(m.provider)) {
-        setByokProvider(m.provider as 'openai' | 'anthropic');
-        setByokModel(m.model ?? BYOK_PROVIDERS.find(p => p.key === m.provider)!.models[0].id);
+      if (m.provider === 'openai' || m.provider === 'anthropic') {
+        setByokProvider(m.provider);
+        const prov = BYOK_PROVIDERS.find(p => p.key === m.provider)!;
+        setByokModel(m.model ?? prov.models[0].id);
       } else {
-        // platform or groq (legacy) → map to platform model
-        const knownPlatform = PLATFORM_MODELS.find(pm => pm.id === m.model);
-        setPlatformModel(knownPlatform?.id ?? 'llama-3.3-70b-versatile');
+        const brain = BRAINS.find(b => b.id === m.model);
+        setPlatformModel(brain?.id ?? 'llama-3.3-70b-versatile');
       }
       setOpenaiKey(m.openaiKey ?? '');
       setAnthropicKey(m.anthropicKey ?? '');
     });
-
     return unsub;
   }, [uid]);
 
-  function selectPlatformModel(id: string) {
+  function selectBrain(id: string, planList: string[]) {
+    if (!planList.includes(plan)) return;
     setPlatformModel(id);
     setByokProvider(null);
   }
@@ -159,47 +206,50 @@ export default function ModelSettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
-      <DetailHeader title="AI Model" />
+      <DetailHeader title="Brain" />
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 20 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* MODUS Models section */}
+          {/* Platform Brains */}
           <View className="gap-3">
-            <Text className="text-text font-semibold text-sm">MODUS Models</Text>
-            {PLATFORM_MODELS.map(m => {
-              const locked = m.requiresPaid && !isPaid;
-              const selected = !byokProvider && platformModel === m.id;
+            <Text className="text-text font-semibold text-sm">Platform Brains</Text>
+            {BRAINS.map(brain => {
+              const locked = !brain.plans.includes(plan);
+              const selected = !byokProvider && platformModel === brain.id;
               return (
                 <TouchableOpacity
-                  key={m.id}
-                  onPress={() => !locked && selectPlatformModel(m.id)}
+                  key={brain.id}
+                  onPress={() => selectBrain(brain.id, brain.plans)}
                   activeOpacity={locked ? 1 : 0.8}
-                  className={`rounded-2xl p-5 border ${
-                    locked ? 'border-border bg-surface opacity-60' :
+                  className={`rounded-2xl p-4 border ${
+                    locked ? 'border-border bg-surface opacity-50' :
                     selected ? 'border-brand/50 bg-brand/5' : 'border-border bg-surface'
                   }`}
                 >
-                  <View className="flex-row items-start justify-between gap-4">
+                  <View className="flex-row items-center justify-between gap-3">
                     <View className="flex-1">
-                      <View className="flex-row items-center gap-2 mb-1 flex-wrap">
-                        <Text className={`font-semibold text-sm ${selected ? 'text-brand' : 'text-text'}`}>{m.name}</Text>
-                        <View className={`px-2 py-0.5 rounded-full ${m.badgeClass}`}>
-                          <Text className={`text-[10px] font-semibold ${m.badgeClass.split(' ')[1]}`}>{m.badge}</Text>
+                      <View className="flex-row items-center gap-2 mb-0.5 flex-wrap">
+                        <Text className={`font-semibold text-sm ${selected ? 'text-brand' : 'text-text'}`}>{brain.name}</Text>
+                        <Text className="text-muted text-xs">{brain.provider}</Text>
+                        <View className={`px-2 py-0.5 rounded-full ${brain.badgeClass}`}>
+                          <Text className={`text-[10px] font-semibold ${brain.badgeClass.split(' ')[1]}`}>{brain.badge}</Text>
                         </View>
                         {locked && (
                           <View className="px-2 py-0.5 rounded-full bg-surface-2 border border-border">
-                            <Text className="text-muted text-[10px] font-semibold">Upgrade to unlock</Text>
+                            <Text className="text-muted text-[10px] font-semibold">
+                              {brain.badge === 'PILOT' ? 'PILOT only' : 'Locked'}
+                            </Text>
                           </View>
                         )}
                       </View>
-                      <Text className="text-muted text-xs font-medium mb-0.5">{m.tagline}</Text>
-                      <Text className="text-muted text-xs leading-4">{m.desc}</Text>
+                      <Text className="text-muted text-xs font-medium mb-0.5">{brain.tagline}</Text>
+                      <Text className="text-muted text-xs leading-4">{brain.desc}</Text>
                     </View>
                     {!locked && (
                       <View
-                        className="mt-0.5 shrink-0"
+                        className="shrink-0"
                         style={{
                           width: 16, height: 16, borderRadius: 8, borderWidth: 2,
                           borderColor: selected ? c.brand : c.border,
@@ -214,14 +264,23 @@ export default function ModelSettingsScreen() {
 
             {!isPaid && (
               <Text className="text-muted text-xs text-center">
-                Upgrade to <Text className="text-brand font-medium">MODUS</Text> to unlock model selection.
+                Upgrade to <Text className="text-brand font-medium">MODUS</Text> to unlock GPT-4o and Claude Sonnet.{' '}
+                <Text className="text-brand font-medium">PILOT</Text> unlocks all 7.
+              </Text>
+            )}
+            {isPaid && !isPilot && (
+              <Text className="text-muted text-xs text-center">
+                Upgrade to <Text className="text-brand font-medium">PILOT</Text> to unlock Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3.
               </Text>
             )}
           </View>
 
-          {/* BYOK section */}
+          {/* BYOK */}
           <View className="gap-3">
-            <Text className="text-text font-semibold text-sm">Bring Your Own Key</Text>
+            <View className="gap-0.5">
+              <Text className="text-text font-semibold text-sm">Use your own subscription</Text>
+              <Text className="text-muted text-xs">Have your own OpenAI or Anthropic key? It overrides your platform Brain.</Text>
+            </View>
             {BYOK_PROVIDERS.map(p => {
               const active = byokProvider === p.key;
               return (
@@ -229,20 +288,20 @@ export default function ModelSettingsScreen() {
                   key={p.key}
                   onPress={() => toggleByok(p.key)}
                   activeOpacity={0.8}
-                  className={`rounded-2xl p-5 border ${active ? 'border-brand/50 bg-brand/5' : 'border-border bg-surface'}`}
+                  className={`rounded-2xl p-4 border ${active ? 'border-brand/50 bg-brand/5' : 'border-border bg-surface'}`}
                 >
-                  <View className="flex-row items-start justify-between gap-4">
+                  <View className="flex-row items-center justify-between gap-4">
                     <View className="flex-1">
-                      <View className="flex-row items-center gap-2 mb-1">
+                      <View className="flex-row items-center gap-2 mb-0.5">
                         <Text className={`font-semibold text-sm ${active ? 'text-brand' : 'text-text'}`}>{p.name}</Text>
                         <View className="px-2 py-0.5 rounded-full bg-blue-500/10">
-                          <Text className="text-blue-400 text-[10px] font-semibold">BYOK</Text>
+                          <Text className="text-blue-400 text-[10px] font-semibold">Your key</Text>
                         </View>
                       </View>
                       <Text className="text-muted text-xs leading-4">{p.desc}</Text>
                     </View>
                     <View
-                      className="mt-0.5 shrink-0"
+                      className="shrink-0"
                       style={{
                         width: 16, height: 16, borderRadius: 8, borderWidth: 2,
                         borderColor: active ? c.brand : c.border,
@@ -257,7 +316,7 @@ export default function ModelSettingsScreen() {
 
           {/* BYOK model picker */}
           {byokProvider && selectedByok && (
-            <View className="bg-surface border border-border rounded-2xl p-5 gap-3">
+            <View className="bg-surface border border-border rounded-2xl p-4 gap-3">
               <Text className="text-text font-semibold text-sm">Model</Text>
               <View className="flex-row flex-wrap gap-2">
                 {selectedByok.models.map(m => (
@@ -276,9 +335,9 @@ export default function ModelSettingsScreen() {
 
           {/* BYOK API key */}
           {byokProvider && selectedByok && (
-            <View className="bg-surface border border-border rounded-2xl p-5 gap-3">
+            <View className="bg-surface border border-border rounded-2xl p-4 gap-3">
               <Text className="text-text font-semibold text-sm">{selectedByok.name} API Key</Text>
-              <Text className="text-muted text-xs">Stored privately on your account, only used to make requests on your behalf.</Text>
+              <Text className="text-muted text-xs">Stored privately on your account. Only used to make requests on your behalf.</Text>
               <TextInput
                 value={keyValue}
                 onChangeText={setKeyValue}

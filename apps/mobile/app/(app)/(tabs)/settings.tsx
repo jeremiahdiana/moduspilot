@@ -107,7 +107,7 @@ export default function SettingsScreen() {
         <View className="bg-surface border border-border rounded-xl overflow-hidden">
           <NavRow icon="person-outline" label="Personal context" onPress={() => router.push('/(app)/personal-context' as never)} />
           <Divider />
-          <NavRow icon="tune" label="Model" onPress={() => router.push('/(app)/model-settings' as never)} />
+          <NavRow icon="tune" label="Brain" onPress={() => router.push('/(app)/model-settings' as never)} />
           <Divider />
           <NavRow icon="psychology" label="Memory" onPress={() => router.push('/(app)/memory' as never)} />
           <Divider />
