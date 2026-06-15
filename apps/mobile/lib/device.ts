@@ -1,20 +1,26 @@
 import { Platform } from 'react-native';
-import * as Contacts from 'expo-contacts';
-import * as MediaLibrary from 'expo-media-library';
-import * as DocumentPicker from 'expo-document-picker';
+
+// All native packages are loaded dynamically so this file doesn't crash
+// in a dev build that was compiled before the packages were installed.
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
 
 export async function requestContactsPermission(): Promise<boolean> {
   if (Platform.OS !== 'ios') return false;
-  const { status } = await Contacts.requestPermissionsAsync();
-  return status === 'granted';
+  try {
+    const Contacts = await import('expo-contacts');
+    const { status } = await Contacts.requestPermissionsAsync();
+    return status === 'granted';
+  } catch { return false; }
 }
 
 export async function getContactsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
   if (Platform.OS !== 'ios') return 'denied';
-  const { status } = await Contacts.getPermissionsAsync();
-  return status as 'granted' | 'denied' | 'undetermined';
+  try {
+    const Contacts = await import('expo-contacts');
+    const { status } = await Contacts.getPermissionsAsync();
+    return status as 'granted' | 'denied' | 'undetermined';
+  } catch { return 'undetermined'; }
 }
 
 export interface SimpleContact {
@@ -25,34 +31,44 @@ export interface SimpleContact {
 }
 
 export async function getContacts(): Promise<SimpleContact[]> {
-  const { status } = await Contacts.getPermissionsAsync();
-  if (status !== 'granted') return [];
-  const { data } = await Contacts.getContactsAsync({
-    fields: [Contacts.Fields.Name, Contacts.Fields.Emails, Contacts.Fields.PhoneNumbers],
-    sort: Contacts.SortTypes.FirstName,
-  });
-  return data
-    .filter(c => c.name)
-    .map(c => ({
-      id: c.id ?? `${c.name}-${Math.random()}`,
-      name: c.name!,
-      email: c.emails?.[0]?.email,
-      phone: c.phoneNumbers?.[0]?.number,
-    }));
+  if (Platform.OS !== 'ios') return [];
+  try {
+    const Contacts = await import('expo-contacts');
+    const { status } = await Contacts.getPermissionsAsync();
+    if (status !== 'granted') return [];
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.Name, Contacts.Fields.Emails, Contacts.Fields.PhoneNumbers],
+      sort: Contacts.SortTypes.FirstName,
+    });
+    return data
+      .filter(c => c.name)
+      .map(c => ({
+        id: c.id ?? `${c.name}-${Math.random()}`,
+        name: c.name!,
+        email: c.emails?.[0]?.email,
+        phone: c.phoneNumbers?.[0]?.number,
+      }));
+  } catch { return []; }
 }
 
 // ── Photos / Media Library ────────────────────────────────────────────────────
 
 export async function requestPhotosPermission(): Promise<boolean> {
   if (Platform.OS !== 'ios') return false;
-  const { status } = await MediaLibrary.requestPermissionsAsync();
-  return status === 'granted';
+  try {
+    const MediaLibrary = await import('expo-media-library');
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    return status === 'granted';
+  } catch { return false; }
 }
 
 export async function getPhotosPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
   if (Platform.OS !== 'ios') return 'denied';
-  const { status } = await MediaLibrary.getPermissionsAsync();
-  return status as 'granted' | 'denied' | 'undetermined';
+  try {
+    const MediaLibrary = await import('expo-media-library');
+    const { status } = await MediaLibrary.getPermissionsAsync();
+    return status as 'granted' | 'denied' | 'undetermined';
+  } catch { return 'undetermined'; }
 }
 
 export interface PhotoAsset {
@@ -65,21 +81,25 @@ export interface PhotoAsset {
 }
 
 export async function getRecentPhotos(limit = 20): Promise<PhotoAsset[]> {
-  const { status } = await MediaLibrary.getPermissionsAsync();
-  if (status !== 'granted') return [];
-  const { assets } = await MediaLibrary.getAssetsAsync({
-    first: limit,
-    mediaType: MediaLibrary.MediaType.photo,
-    sortBy: MediaLibrary.SortBy.creationTime,
-  });
-  return assets.map(a => ({
-    id: a.id,
-    uri: a.uri,
-    filename: a.filename,
-    createdAt: a.creationTime,
-    width: a.width,
-    height: a.height,
-  }));
+  if (Platform.OS !== 'ios') return [];
+  try {
+    const MediaLibrary = await import('expo-media-library');
+    const { status } = await MediaLibrary.getPermissionsAsync();
+    if (status !== 'granted') return [];
+    const { assets } = await MediaLibrary.getAssetsAsync({
+      first: limit,
+      mediaType: MediaLibrary.MediaType.photo,
+      sortBy: MediaLibrary.SortBy.creationTime,
+    });
+    return assets.map(a => ({
+      id: a.id,
+      uri: a.uri,
+      filename: a.filename,
+      createdAt: a.creationTime,
+      width: a.width,
+      height: a.height,
+    }));
+  } catch { return []; }
 }
 
 // ── Document / File Picker ────────────────────────────────────────────────────
@@ -92,19 +112,22 @@ export interface PickedFile {
 }
 
 export async function pickFile(types: string[] = ['*/*']): Promise<PickedFile | null> {
-  const result = await DocumentPicker.getDocumentAsync({
-    type: types,
-    copyToCacheDirectory: true,
-    multiple: false,
-  });
-  if (result.canceled || !result.assets?.length) return null;
-  const asset = result.assets[0];
-  return {
-    name: asset.name,
-    uri: asset.uri,
-    mimeType: asset.mimeType ?? null,
-    size: asset.size,
-  };
+  try {
+    const DocumentPicker = await import('expo-document-picker');
+    const result = await DocumentPicker.getDocumentAsync({
+      type: types,
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets?.length) return null;
+    const asset = result.assets[0];
+    return {
+      name: asset.name,
+      uri: asset.uri,
+      mimeType: asset.mimeType ?? null,
+      size: asset.size,
+    };
+  } catch { return null; }
 }
 
 export async function pickTextFile(): Promise<{ name: string; content: string } | null> {
@@ -133,7 +156,6 @@ export async function initHealth(): Promise<boolean> {
   if (Platform.OS !== 'ios') return false;
   if (healthInitialized) return true;
   try {
-    // Dynamic import so this module doesn't crash on Android
     const AppleHealthKit = (await import('react-native-health')).default;
     const { Permissions } = AppleHealthKit.Constants;
     return new Promise(resolve => {
