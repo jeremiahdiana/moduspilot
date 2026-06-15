@@ -157,6 +157,8 @@ export async function initHealth(): Promise<boolean> {
   if (healthInitialized) return true;
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
+    // Native module isn't compiled into the current dev build — bail gracefully
+    if (!AppleHealthKit || typeof AppleHealthKit.initHealthKit !== 'function') return false;
     const { Permissions } = AppleHealthKit.Constants;
     return new Promise(resolve => {
       AppleHealthKit.initHealthKit(
@@ -182,6 +184,7 @@ export async function getHealthData(): Promise<HealthData> {
   if (Platform.OS !== 'ios') return empty;
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
+    if (!AppleHealthKit || typeof AppleHealthKit.getStepCount !== 'function') return empty;
     const now = new Date().toISOString();
 
     const steps: number | null = await new Promise(resolve => {
