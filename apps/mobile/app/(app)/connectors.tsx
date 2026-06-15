@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { router } from 'expo-router';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon, type IconName } from '@/components/Icon';
 import { useThemeColors } from '@/lib/theme';
@@ -11,10 +12,15 @@ import {
   fetchConnectorStatus, connectProvider, disconnectProvider,
   type ConnectorStatus, type ConnectorProvider,
 } from '@/lib/api';
+import {
+  requestContactsPermission, getContactsPermissionStatus,
+  requestPhotosPermission, getPhotosPermissionStatus,
+  initHealth, pickTextFile,
+} from '@/lib/device';
 
 interface Row { label: string; sub: string; key: Record<string, string> }
 
-const META: { provider: ConnectorProvider; name: string; icon: IconName; color: string; desc: string }[] = [
+const CLOUD_META: { provider: ConnectorProvider; name: string; icon: IconName; color: string; desc: string }[] = [
   { provider: 'google', name: 'Google', icon: 'mail-outline', color: '#ea4335', desc: 'Gmail, Calendar & Drive' },
   { provider: 'notion', name: 'Notion', icon: 'description', color: '#7c3aed', desc: 'Pages & databases' },
   { provider: 'slack', name: 'Slack', icon: 'tag', color: '#e01e5a', desc: 'Channels & messages' },
@@ -28,17 +34,30 @@ function rowsFor(p: ConnectorProvider, s: ConnectorStatus): Row[] {
   return s.github.map(a => ({ label: a.name || a.login, sub: `@${a.login}`, key: { login: a.login } }));
 }
 
+type PermStatus = 'granted' | 'denied' | 'undetermined' | 'loading';
+
 export default function ConnectorsScreen() {
   const c = useThemeColors();
   const { confirm } = useSheets();
   const [status, setStatus] = useState<ConnectorStatus | null>(null);
   const [busy, setBusy] = useState<ConnectorProvider | null>(null);
 
+  // Device permission states
+  const [contactsPerm, setContactsPerm] = useState<PermStatus>('loading');
+  const [photosPerm, setPhotosPerm] = useState<PermStatus>('loading');
+  const [healthPerm, setHealthPerm] = useState<PermStatus>('loading');
+
   const load = useCallback(async () => {
     try { setStatus(await fetchConnectorStatus()); } catch { /* keep last */ }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    getContactsPermissionStatus().then(s => setContactsPerm(s));
+    getPhotosPermissionStatus().then(s => setPhotosPerm(s));
+    initHealth().then(ok => setHealthPerm(ok ? 'granted' : 'undetermined'));
+  }, []);
 
   async function connect(p: ConnectorProvider) {
     if (busy) return;
@@ -47,7 +66,7 @@ export default function ConnectorsScreen() {
     try {
       const url = await connectProvider(p);
       await WebBrowser.openBrowserAsync(url);
-      await load(); // refresh after the user finishes consent + closes the browser
+      await load();
     } catch {
       Alert.alert('Connect failed', 'Could not start the connection. Please try again.');
     } finally {
@@ -67,6 +86,91 @@ export default function ConnectorsScreen() {
     }
   }
 
+  async function grantContacts() {
+    haptics.medium();
+    const granted = await requestContactsPermission();
+    if (granted) {
+      setContactsPerm('granted');
+      haptics.success();
+    } else {
+      setContactsPerm('denied');
+      Alert.alert('Permission denied', 'To enable contacts, go to Settings → MODUS → Contacts.', [
+        { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }
+
+  async function grantPhotos() {
+    haptics.medium();
+    const granted = await requestPhotosPermission();
+    if (granted) {
+      setPhotosPerm('granted');
+      haptics.success();
+    } else {
+      setPhotosPerm('denied');
+      Alert.alert('Permission denied', 'To enable photos, go to Settings → MODUS → Photos.', [
+        { text: 'Open Settings', onPress: () => Linking.openURL('app-settings:') },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }
+
+  async function grantHealth() {
+    haptics.medium();
+    const ok = await initHealth();
+    if (ok) {
+      setHealthPerm('granted');
+      haptics.success();
+    } else {
+      setHealthPerm('denied');
+      Alert.alert('Permission denied', 'To enable health data, go to Health app → Sharing → MODUS.', [
+        { text: 'Open Health', onPress: () => Linking.openURL('x-apple-health://') },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }
+
+  async function shareFile() {
+    haptics.medium();
+    const file = await pickTextFile();
+    if (!file) return;
+    const preview = file.content.slice(0, 2000);
+    const prompt = `I'm sharing a file with you: "${file.name}"\n\n${preview}${file.content.length > 2000 ? '\n\n[File truncated — ask me to share more if needed]' : ''}`;
+    router.push({ pathname: '/(app)/(tabs)/chat', params: { prefill: prompt } });
+  }
+
+  function DeviceRow({
+    icon, color, label, desc, perm, onGrant,
+  }: {
+    icon: IconName; color: string; label: string; desc: string;
+    perm: PermStatus; onGrant: () => void;
+  }) {
+    return (
+      <View className="flex-row items-center gap-3 px-4 py-4">
+        <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: color + '22' }}>
+          <Icon name={icon} size={18} color={color} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-text font-semibold text-[14px]">{label}</Text>
+          <Text className="text-muted text-xs">{desc}</Text>
+        </View>
+        {perm === 'loading' ? (
+          <ActivityIndicator color={c.muted} size="small" />
+        ) : perm === 'granted' ? (
+          <View className="flex-row items-center gap-1.5">
+            <Icon name="check-circle" tone="brand" size={15} />
+            <Text className="text-brand text-[12px] font-semibold">On</Text>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={onGrant} activeOpacity={0.8} className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10">
+            <Text className="text-brand text-[12px] font-semibold">Enable</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1" edges={['top']}>
       <DetailHeader title="Connectors" />
@@ -74,49 +178,100 @@ export default function ConnectorsScreen() {
         {!status ? (
           <View className="items-center py-16"><ActivityIndicator color={c.brand} /></View>
         ) : (
-          <View className="gap-4">
-            {META.map(m => {
-              const rows = rowsFor(m.provider, status);
-              return (
-                <View key={m.provider} className="bg-surface border border-border rounded-2xl overflow-hidden">
-                  <View className="flex-row items-center gap-3 px-4 py-3.5">
-                    <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: m.color + '22' }}>
-                      <Icon name={m.icon} size={18} color={m.color} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-text font-semibold text-[15px]">{m.name}</Text>
-                      <Text className="text-muted text-xs">{m.desc}</Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => connect(m.provider)}
-                      disabled={!!busy}
-                      activeOpacity={0.8}
-                      className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10 dark:bg-brand/5"
-                    >
-                      {busy === m.provider ? <ActivityIndicator color={c.brand} size="small" /> : (
-                        <Text className="text-brand text-[12px] font-semibold">{rows.length ? 'Add' : 'Connect'}</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {rows.map((r, i) => (
-                    <View key={i} className="flex-row items-center gap-3 px-4 py-3 border-t border-border">
-                      <Icon name="check-circle" tone="brand" size={16} />
-                      <View className="flex-1">
-                        <Text className="text-text text-[13px] font-medium" numberOfLines={1}>{r.label}</Text>
-                        <Text className="text-muted text-[11px]">{r.sub}</Text>
+          <View className="gap-5">
+            {/* Cloud integrations */}
+            <View>
+              <Text className="text-muted text-[11px] font-bold uppercase tracking-wider mb-3 px-1">Cloud</Text>
+              <View className="gap-3">
+                {CLOUD_META.map(m => {
+                  const rows = rowsFor(m.provider, status);
+                  return (
+                    <View key={m.provider} className="bg-surface border border-border rounded-2xl overflow-hidden">
+                      <View className="flex-row items-center gap-3 px-4 py-3.5">
+                        <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: m.color + '22' }}>
+                          <Icon name={m.icon} size={18} color={m.color} />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-text font-semibold text-[15px]">{m.name}</Text>
+                          <Text className="text-muted text-xs">{m.desc}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => connect(m.provider)}
+                          disabled={!!busy}
+                          activeOpacity={0.8}
+                          className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10 dark:bg-brand/5"
+                        >
+                          {busy === m.provider ? <ActivityIndicator color={c.brand} size="small" /> : (
+                            <Text className="text-brand text-[12px] font-semibold">{rows.length ? 'Add' : 'Connect'}</Text>
+                          )}
+                        </TouchableOpacity>
                       </View>
-                      <TouchableOpacity onPress={() => disconnect(m.provider, m.name, r.key)} activeOpacity={0.7} hitSlop={8}>
-                        <Text className="text-red-400 text-[12px] font-medium">Disconnect</Text>
-                      </TouchableOpacity>
+                      {rows.map((r, i) => (
+                        <View key={i} className="flex-row items-center gap-3 px-4 py-3 border-t border-border">
+                          <Icon name="check-circle" tone="brand" size={16} />
+                          <View className="flex-1">
+                            <Text className="text-text text-[13px] font-medium" numberOfLines={1}>{r.label}</Text>
+                            <Text className="text-muted text-[11px]">{r.sub}</Text>
+                          </View>
+                          <TouchableOpacity onPress={() => disconnect(m.provider, m.name, r.key)} activeOpacity={0.7} hitSlop={8}>
+                            <Text className="text-red-400 text-[12px] font-medium">Disconnect</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
-              );
-            })}
+                  );
+                })}
+              </View>
+            </View>
 
-            <Text className="text-muted text-xs text-center px-4 leading-5 mt-1">
-              Connecting opens a secure sign-in. After you approve and close it, your accounts appear here.
+            {/* On This Device */}
+            <View>
+              <Text className="text-muted text-[11px] font-bold uppercase tracking-wider mb-3 px-1">On This Device</Text>
+              <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+                <DeviceRow
+                  icon="people-outline"
+                  color="#3b82f6"
+                  label="Contacts"
+                  desc="Relationship tracking & follow-up nudges"
+                  perm={contactsPerm}
+                  onGrant={grantContacts}
+                />
+                <View className="h-px bg-border ml-16" />
+                <DeviceRow
+                  icon="favorite-border"
+                  color="#f43f5e"
+                  label="Health"
+                  desc="Steps & sleep in your morning briefing"
+                  perm={healthPerm}
+                  onGrant={grantHealth}
+                />
+                <View className="h-px bg-border ml-16" />
+                <DeviceRow
+                  icon="photo-library"
+                  color="#f59e0b"
+                  label="Photos"
+                  desc="Attach & reference photos in chat"
+                  perm={photosPerm}
+                  onGrant={grantPhotos}
+                />
+                <View className="h-px bg-border ml-16" />
+                <View className="flex-row items-center gap-3 px-4 py-4">
+                  <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: '#10b98122' }}>
+                    <Icon name="folder-open" size={18} color="#10b981" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-text font-semibold text-[14px]">Files & Notes</Text>
+                    <Text className="text-muted text-xs">Share Obsidian notes, docs, or any text file</Text>
+                  </View>
+                  <TouchableOpacity onPress={shareFile} activeOpacity={0.8} className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10">
+                    <Text className="text-brand text-[12px] font-semibold">Browse</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <Text className="text-muted text-xs text-center px-4 leading-5">
+              Connecting opens a secure sign-in. Device permissions are managed in iOS Settings.
             </Text>
           </View>
         )}

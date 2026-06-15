@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Linking } from 'react-native';
+import { Alert, Platform, View, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
@@ -23,6 +23,7 @@ import {
   fetchInbox, fetchTodayEvents, fetchNews, fetchWeather, fetchTTS,
   type InboxThread, type CalEvent, type NewsItem, type Weather,
 } from '@/lib/api';
+import { initHealth, getHealthData, type HealthData } from '@/lib/device';
 
 
 interface Top3Item { task: string; source: string }
@@ -285,6 +286,7 @@ export default function BriefingScreen() {
   const [newsLoading, setNewsLoading] = useState(true);
   const [newsPickerOpen, setNewsPickerOpen] = useState(false);
   const [weather, setWeather] = useState<Weather | null>(null);
+  const [health, setHealth] = useState<HealthData | null>(null);
 
   async function load() {
     if (!user) { setLoading(false); return; }
@@ -332,6 +334,12 @@ export default function BriefingScreen() {
 
     fetchTodayEvents().then(r => { if (alive) setEvents(r.events); });
     fetchWeather().then(w => { if (alive) setWeather(w); });
+
+    if (Platform.OS === 'ios') {
+      initHealth().then(available => {
+        if (available && alive) getHealthData().then(h => { if (alive) setHealth(h); });
+      });
+    }
 
     return () => { alive = false; unsubT(); unsubH(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -478,6 +486,33 @@ export default function BriefingScreen() {
               </View>
             </View>
           </View>
+
+          {/* Health today */}
+          {health && (health.steps !== null || health.sleep !== null) && (
+            <LabeledCard icon="directions-walk" color="#10b981" label="Health today">
+              <View className="gap-2">
+                {health.steps !== null && (
+                  <View>
+                    <View className="flex-row items-center justify-between mb-1">
+                      <Text className="text-text text-[13px] font-medium">{health.steps.toLocaleString()} steps</Text>
+                      <Text className="text-muted text-xs">{Math.round((health.steps / 10000) * 100)}% of goal</Text>
+                    </View>
+                    <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(16,185,129,0.15)' }}>
+                      <View style={{ width: `${Math.min(100, (health.steps / 10000) * 100)}%` }} className="h-full rounded-full bg-emerald-500" />
+                    </View>
+                  </View>
+                )}
+                {health.sleep && (
+                  <Text className="text-text text-[13px]">
+                    Sleep — <Text className="font-semibold" style={{ color: '#10b981' }}>{health.sleep.hours}h {health.sleep.minutes}m</Text>
+                  </Text>
+                )}
+                {health.heartRate && (
+                  <Text className="text-muted text-xs">Heart rate — {health.heartRate} bpm</Text>
+                )}
+              </View>
+            </LabeledCard>
+          )}
 
           {/* Mission today */}
           {data.top3?.[0]?.task && (

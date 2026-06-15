@@ -17,8 +17,6 @@ interface Section {
   tips: Tip[];
 }
 
-// Kept in sync with apps/web/components/settings/TipsSettings.tsx. The mobile app
-// is not in the turbo workspace, so the content is intentionally duplicated.
 const SECTIONS: Section[] = [
   {
     heading: 'Using MODUS AI',
@@ -48,6 +46,35 @@ const SECTIONS: Section[] = [
         body: 'Settings → Personal context. Write 2–5 sentences about your role, how you like to work, and your priorities. MODUS reads this in every conversation.',
         tag: 'Setup tip',
       },
+      {
+        title: 'Update goal progress with words',
+        body: 'Just say "I\'m about 60% done with my launch goal" and MODUS will surface an update card with the slider pre-set.',
+      },
+    ],
+  },
+  {
+    heading: 'Your Brain — AI model selection',
+    icon: '🧠',
+    tips: [
+      {
+        title: 'Switch your AI in Settings → Brain',
+        body: 'MODUS runs on multiple AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-4o and Claude Sonnet unlock on MODUS plan. Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3 unlock on PILOT.',
+        tag: 'Feature',
+      },
+      {
+        title: 'All features work on every Brain',
+        body: 'Your memory, inbox triage, approval cards, and integrations work identically no matter which Brain you pick. The Brain only changes which AI model answers your chat messages.',
+      },
+      {
+        title: 'Use your own API key',
+        body: 'Have your own OpenAI or Anthropic subscription? Settings → Brain → "Use your own subscription". Your key overrides the platform Brain and routes chat directly through your account.',
+        tag: 'BYOK',
+      },
+      {
+        title: 'Pick Claude for writing, GPT-4o for general use',
+        body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-4o is great for general tasks, images, and code. Try both on MODUS plan and see which fits your workflow.',
+        tag: 'Pro tip',
+      },
     ],
   },
   {
@@ -56,31 +83,61 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'MODUS triages your inbox for you',
-        body: 'Through the day MODUS scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and sends it to you with a push notification. Approve, edit, or skip — nothing sends until you tap. Turn it off in the web app under Capabilities → Inbox Triage.',
+        body: 'MODUS scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and pushes it to you. Approve, edit, or skip — nothing sends until you tap. Enable in Settings → Capabilities → Inbox Triage.',
         tag: 'Automatic',
       },
       {
         title: 'Meeting requests become calendar holds',
-        body: 'When an email proposes a specific date and time, MODUS recognizes the meeting request and surfaces a calendar hold instead of a reply. Approve it and the event is created in your Google Calendar — no copying details by hand.',
+        body: 'When an email proposes a specific date and time, MODUS recognizes it and surfaces a calendar hold instead of a reply. Approve it and the event is created in Google Calendar.',
         tag: 'Cross-tool',
       },
       {
-        title: 'Pre- and post-meeting briefs',
-        body: 'Before a meeting MODUS sends a sharp brief: what it is likely about, what to have in mind, and one question to be ready for. After it ends, it asks how it went and can turn action items into tasks.',
-      },
-      {
         title: 'Your morning briefing reads your whole day',
-        body: 'At the time you set, MODUS builds a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox — your top 3, anything overdue, and habits at risk. Open the Briefing tab each morning.',
+        body: 'At the time you set, MODUS builds a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox — your top 3, anything overdue, and habits at risk. Enable in Settings → Capabilities → Daily Briefing.',
         tag: 'Daily',
       },
       {
-        title: 'It nudges you about people you\'re leaving hanging',
-        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold.',
+        title: 'Relationship follow-up nudges',
+        body: 'MODUS notices contacts who emailed you and never got a reply, and flags them so relationships don\'t go cold. Enable in Settings → Capabilities → Relationship Follow-ups.',
+      },
+      {
+        title: 'Pre- and post-meeting briefs',
+        body: 'Before a meeting MODUS sends a sharp brief: what it\'s likely about, what to have in mind, and one question to be ready for. After it ends, it asks how it went and can turn action items into tasks.',
       },
     ],
   },
   {
-    heading: 'Integrations',
+    heading: 'Phone integrations',
+    icon: '📱',
+    tips: [
+      {
+        title: 'Health data in your briefing',
+        body: 'Enable Health in Settings → Connectors → On This Device. MODUS will show your step count and last night\'s sleep in your morning briefing so you can calibrate how hard to push that day.',
+        tag: 'Setup',
+      },
+      {
+        title: 'Share files and Obsidian notes',
+        body: 'Go to Settings → Connectors → Files & Notes → Browse. Pick any text or markdown file from iCloud Drive (including your Obsidian vault). MODUS opens a chat with the file contents ready to discuss.',
+        tag: 'Files',
+      },
+      {
+        title: 'Contacts for relationship context',
+        body: 'Enable Contacts in Settings → Connectors. MODUS uses your contact list to surface relationship nudges and recognize names when drafting emails.',
+        tag: 'Setup',
+      },
+      {
+        title: 'Share anything to MODUS from another app',
+        body: 'In any app (WhatsApp, Messages, Safari), copy the content you want to share, then open MODUS chat and paste it. MODUS can read, summarize, reply to, or act on any text you bring in.',
+        tag: 'Workflow',
+      },
+      {
+        title: 'Attach photos in chat',
+        body: 'Tap the image icon in chat to attach a photo from your library. MODUS can describe, analyze, or act on images — useful for receipts, screenshots, whiteboards, or anything visual.',
+      },
+    ],
+  },
+  {
+    heading: 'Cloud integrations',
     icon: '🔌',
     tips: [
       {
@@ -89,22 +146,30 @@ const SECTIONS: Section[] = [
         tag: 'Setup',
       },
       {
+        title: 'Multi-account Gmail',
+        body: 'Connect multiple Google accounts. When you approve a send_email card, MODUS lets you pick which account to send from.',
+      },
+      {
         title: 'Ask MODUS to connect from chat',
-        body: 'If you haven\'t connected an integration, just ask MODUS to use it ("show me my emails"). It drops a connect card in the chat so you don\'t have to dig through settings.',
+        body: 'Haven\'t connected an integration yet? Just ask MODUS to use it ("show me my emails"). It drops a connect card in chat so you don\'t have to dig through settings.',
+      },
+      {
+        title: 'Notion, Slack, GitHub',
+        body: 'Settings → Connectors. Connect Notion for pages and databases, Slack for channels and messages, GitHub for repos and issues. MODUS can read and reference all of these in chat.',
       },
     ],
   },
   {
     heading: 'Memory',
-    icon: '🧠',
+    icon: '💾',
     tips: [
       {
         title: 'MODUS builds a profile of you over time',
-        body: 'With "Generate memory from chat" enabled (Settings → Memory), MODUS extracts key facts from your conversations — your preferences, recurring goals, communication style.',
+        body: 'With "Generate memory from chat" enabled (Settings → Memory), MODUS extracts key facts from your conversations — your preferences, recurring goals, communication style — and recalls them in future sessions.',
       },
       {
         title: 'Add memories manually',
-        body: 'Settings → Memory → Add. Useful for things like "I work across Pacific and Eastern time", "My launch date is June 1", "My co-founder is Alex".',
+        body: 'Settings → Memory → Add. Useful for: "I work across Pacific and Eastern time", "My launch date is June 1", "My co-founder is Alex".',
         tag: 'Pro tip',
       },
     ],
@@ -115,12 +180,31 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Let MODUS build your plan',
-        body: 'On any goal, ask MODUS to generate a milestone checklist tailored to your goal and timeframe. Your progress % then updates automatically as you check milestones off.',
+        body: 'On any goal, ask MODUS to generate a milestone checklist tailored to your goal and timeframe. Progress % updates automatically as you check milestones off.',
         tag: 'AI',
       },
       {
         title: 'Use goal chats to think, not just track',
-        body: 'Each goal has its own MODUS chat with full context on that goal. Use it to think out loud: "what\'s blocking me?", "help me plan next steps", "reflect on this week".',
+        body: 'Each goal has its own MODUS chat with full context. Use it to think out loud: "what\'s blocking me?", "help me plan next steps", "reflect on this week".',
+      },
+      {
+        title: 'Log habits from Briefing',
+        body: 'The Briefing tab shows habits at risk of breaking streak. Tap "Log it" next to any habit to mark it done for today without leaving the briefing view.',
+      },
+    ],
+  },
+  {
+    heading: 'MODUS Voice',
+    icon: '🎙️',
+    tips: [
+      {
+        title: 'Listen to your briefing',
+        body: 'Tap the speaker icon in the top-right of the Briefing tab to have MODUS read your morning brief aloud. Pick your preferred voice in Settings → Brain → MODUS Voice.',
+        tag: 'Audio',
+      },
+      {
+        title: 'Speak instead of type',
+        body: 'Tap the mic button in chat to dictate your message. Enable voice input in Settings → Capabilities → Voice Input.',
       },
     ],
   },

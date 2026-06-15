@@ -36,34 +36,6 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    heading: 'Milestones & Goals',
-    icon: '🎯',
-    tips: [
-      {
-        title: 'Edit a milestone inline',
-        body: 'Click any milestone title in a goal detail page to edit it in place. Enter saves, Escape cancels. The × that appears on hover deletes it.',
-        tag: 'Click to edit',
-      },
-      {
-        title: 'Let MODUS build your plan',
-        body: 'Hit "✦ Generate plan" on any goal and MODUS will create a milestone checklist tailored to your goal title and timeframe. You can regenerate any time.',
-        tag: 'AI',
-      },
-      {
-        title: 'Progress syncs from milestones',
-        body: 'When milestones exist, your progress % is calculated automatically as you check them off. No manual slider needed.',
-      },
-      {
-        title: 'Log wins, blockers, and ideas',
-        body: 'Open the Notes tab on any goal. Tag each note as a Win, Blocker, Idea, or Reflection — then filter to see just blockers when you\'re stuck, or just wins when you need a boost.',
-      },
-      {
-        title: 'Link habits to goals',
-        body: 'In the Habits tab of a goal, link any habit you\'ve already created. You\'ll see streaks alongside the goal so you can see which daily actions are actually moving the needle.',
-      },
-    ],
-  },
-  {
     heading: 'Using MODUS AI',
     icon: '🤖',
     tips: [
@@ -98,6 +70,31 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    heading: 'Your Brain — AI model selection',
+    icon: '🧠',
+    tips: [
+      {
+        title: 'Switch your AI in Settings → Brain',
+        body: 'MODUS runs on 7 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-4o and Claude Sonnet unlock on MODUS ($24/mo). Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3 unlock on PILOT ($59/mo).',
+        tag: 'Feature',
+      },
+      {
+        title: 'All features work on every Brain',
+        body: 'Your memory, inbox triage, approval cards, and integrations work identically no matter which Brain you pick. The Brain only changes which AI model answers your chat messages.',
+      },
+      {
+        title: 'Use your own API key',
+        body: 'Have your own OpenAI or Anthropic subscription? Settings → Brain → "Use your own subscription". Your key overrides the platform Brain and routes chat directly through your account.',
+        tag: 'BYOK',
+      },
+      {
+        title: 'Pick Claude for writing, GPT-4o for general use',
+        body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-4o handles images and code well. o4-mini is best for math and logic. Try a few and see what fits your workflow.',
+        tag: 'Pro tip',
+      },
+    ],
+  },
+  {
     heading: 'Proactive — MODUS works on its own',
     icon: '✨',
     tips: [
@@ -121,8 +118,8 @@ const SECTIONS: Section[] = [
         tag: 'Daily',
       },
       {
-        title: 'It nudges you about people you\'re leaving hanging',
-        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold.',
+        title: 'Relationship follow-up nudges',
+        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold. Enable in Settings → Capabilities → Relationship Follow-ups.',
       },
     ],
   },
@@ -136,18 +133,28 @@ const SECTIONS: Section[] = [
         tag: 'Setup',
       },
       {
+        title: 'Multi-account Gmail',
+        body: 'If you have multiple Google accounts connected, MODUS will let you pick which inbox to send from when you approve a send_email card.',
+      },
+      {
         title: 'Ask MODUS to connect from chat',
         body: 'If you haven\'t connected an integration, just ask MODUS to use it ("show me my emails"). It will drop a connect card in the chat so you don\'t have to go to settings.',
       },
       {
-        title: 'Multi-account Gmail',
-        body: 'If you have multiple Google accounts connected, MODUS will let you pick which inbox to send from when you approve a send_email card.',
+        title: 'On iOS — health, contacts, and files',
+        body: 'In the MODUS iOS app, go to Settings → Connectors → On This Device to enable Health (steps + sleep in your briefing), Contacts (for relationship tracking), Photos, and Files (including Obsidian notes via iCloud Drive).',
+        tag: 'iOS',
+      },
+      {
+        title: 'Share files to MODUS on iOS',
+        body: 'In the iOS app: Settings → Connectors → Files & Notes → Browse. Pick any text or Markdown file from iCloud Drive. MODUS opens a chat with the file contents ready to discuss — great for Obsidian notes, meeting transcripts, or strategy docs.',
+        tag: 'iOS',
       },
     ],
   },
   {
     heading: 'Memory',
-    icon: '🧠',
+    icon: '💾',
     tips: [
       {
         title: 'MODUS builds a profile of you over time',
@@ -165,6 +172,34 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    heading: 'Goals & Milestones',
+    icon: '🎯',
+    tips: [
+      {
+        title: 'Edit a milestone inline',
+        body: 'Click any milestone title in a goal detail page to edit it in place. Enter saves, Escape cancels. The × that appears on hover deletes it.',
+        tag: 'Click to edit',
+      },
+      {
+        title: 'Let MODUS build your plan',
+        body: 'Hit "✦ Generate plan" on any goal and MODUS will create a milestone checklist tailored to your goal title and timeframe. You can regenerate any time.',
+        tag: 'AI',
+      },
+      {
+        title: 'Progress syncs from milestones',
+        body: 'When milestones exist, your progress % is calculated automatically as you check them off. No manual slider needed.',
+      },
+      {
+        title: 'Use goal chats to think, not just track',
+        body: 'Each goal has its own MODUS chat. Use it to think out loud: "what\'s blocking me on this?", "help me plan next steps", "reflect on what I shipped this week". MODUS has full context on the goal.',
+      },
+      {
+        title: 'Log wins, blockers, and ideas',
+        body: 'Open the Notes tab on any goal. Tag each note as a Win, Blocker, Idea, or Reflection — then filter to see just blockers when you\'re stuck, or just wins when you need a boost.',
+      },
+    ],
+  },
+  {
     heading: 'Optimizing your workflow',
     icon: '⚡',
     tips: [
@@ -174,22 +209,18 @@ const SECTIONS: Section[] = [
         tag: 'Daily habit',
       },
       {
-        title: 'Use goal chats to think, not just track',
-        body: 'Each goal has its own MODUS chat. Use it to think out loud: "what\'s blocking me on this?", "help me plan next steps", "reflect on what I shipped this week". MODUS has full context on the goal.',
-      },
-      {
         title: 'Create multiple chat threads per goal',
         body: 'Hit "+ New" in a goal\'s chat tabs to start a focused thread (e.g., one for strategy, one for blockers). Double-click the tab to rename it.',
         tag: 'Pro tip',
       },
       {
-        title: 'Use the Explore tab for AI-generated prompts',
-        body: 'The Explore tab on each goal shows AI-generated questions specific to that goal. Tap one to open a new thread pre-seeded with that question.',
-      },
-      {
-        title: 'Set up response style',
+        title: 'Set up your response style',
         body: 'Settings → General → Response Style. Choose Direct, Concise, Strategic, Coach, or Supportive — or write your own. This changes how MODUS communicates with you across every conversation.',
         tag: 'Personalization',
+      },
+      {
+        title: 'Trigger inbox triage manually',
+        body: 'Go to Briefing → Inbox and tap "Triage inbox". MODUS will immediately scan your email and generate draft replies for emails waiting on you — without waiting for the hourly cron.',
       },
     ],
   },
