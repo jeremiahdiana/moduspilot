@@ -30,8 +30,15 @@
               "modus",
               "com.googleusercontent.apps.208739557361-tl9n4r3t8gku6qcen09l4b0uscoo1c3m"
             ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "modus",
+              "com.googleusercontent.apps.208739557361-tl9n4r3t8gku6qcen09l4b0uscoo1c3m"
+            ]
           }
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
@@ -79,13 +86,6 @@
         }
       ],
       "expo-document-picker",
-      [
-        "react-native-health",
-        {
-          "NSHealthShareUsageDescription": "Allow MODUS to read your steps and sleep data for your morning briefing.",
-          "NSHealthUpdateUsageDescription": "MODUS does not write to your health data."
-        }
-      ],
       "expo-notifications"
     ],
     "experiments": {

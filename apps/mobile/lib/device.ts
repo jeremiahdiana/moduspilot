@@ -1,21 +1,26 @@
-import { Platform, NativeModules } from 'react-native';
+import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
-// requireOptionalNativeModule checks expo-modules-core's native registry (not the legacy
-// NativeModules bridge) and returns null instead of throwing — so Metro's guardedLoadModule
-// is never triggered and no error overlay appears when a module isn't compiled in.
-const _contacts = Platform.OS === 'ios' ? requireOptionalNativeModule('ExpoContactsNext') : null;
-const _media = Platform.OS === 'ios' ? requireOptionalNativeModule('ExpoMediaLibraryNext') : null;
-const _docs = requireOptionalNativeModule('ExpoDocumentPicker');
-// react-native-health uses the legacy bridge, not expo-modules-core
-const _health = Platform.OS === 'ios' ? (NativeModules.RCTAppleHealthKit ?? null) : null;
+// Safe module-level availability checks — requireOptionalNativeModule returns null
+// without throwing when a native module isn't compiled into the binary.
+let _contacts: unknown = null;
+let _media: unknown = null;
+let _docs: unknown = null;
+try {
+  _contacts = Platform.OS === 'ios' ? requireOptionalNativeModule('ExpoContactsNext') : null;
+  _media = Platform.OS === 'ios' ? requireOptionalNativeModule('ExpoMediaLibraryNext') : null;
+  _docs = requireOptionalNativeModule('ExpoDocumentPicker');
+} catch {
+  // keep all null — features gracefully disabled
+}
 
-// Exported so screens can render correct UI without attempting permission calls
+// health is unavailable until react-native-health is replaced with a
+// new-architecture compatible HealthKit library
 export const nativeAvailable = {
   contacts: _contacts !== null,
   photos: _media !== null,
   files: _docs !== null,
-  health: _health !== null,
+  health: false,
 };
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
@@ -159,6 +164,8 @@ export async function pickTextFile(): Promise<{ name: string; content: string } 
 }
 
 // ── HealthKit ─────────────────────────────────────────────────────────────────
+// react-native-health is incompatible with React Native new architecture (Expo SDK 56+).
+// Stubbed out until replaced with a new-arch compatible library.
 
 export interface HealthData {
   steps: number | null;
@@ -166,79 +173,7 @@ export interface HealthData {
   heartRate: number | null;
 }
 
-let healthInitialized = false;
-
-export async function initHealth(): Promise<boolean> {
-  if (!nativeAvailable.health) return false;
-  if (healthInitialized) return true;
-  try {
-    const AppleHealthKit = (await import('react-native-health')).default;
-    if (!AppleHealthKit || typeof AppleHealthKit.initHealthKit !== 'function') return false;
-    const { Permissions } = AppleHealthKit.Constants;
-    return new Promise(resolve => {
-      AppleHealthKit.initHealthKit(
-        {
-          permissions: {
-            read: [Permissions.StepCount, Permissions.SleepAnalysis, Permissions.HeartRate],
-            write: [],
-          },
-        },
-        (err: Error | null) => {
-          if (!err) healthInitialized = true;
-          resolve(!err);
-        },
-      );
-    });
-  } catch {
-    return false;
-  }
-}
-
+export async function initHealth(): Promise<boolean> { return false; }
 export async function getHealthData(): Promise<HealthData> {
-  const empty: HealthData = { steps: null, sleep: null, heartRate: null };
-  if (!nativeAvailable.health) return empty;
-  try {
-    const AppleHealthKit = (await import('react-native-health')).default;
-    if (!AppleHealthKit || typeof AppleHealthKit.getStepCount !== 'function') return empty;
-    const now = new Date().toISOString();
-
-    const steps: number | null = await new Promise(resolve => {
-      AppleHealthKit.getStepCount({ date: now, includeManuallyAdded: true }, (err: Error | null, r: { value: number }) => {
-        resolve(err ? null : r.value);
-      });
-    });
-
-    const sleep: { hours: number; minutes: number } | null = await new Promise(resolve => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(18, 0, 0, 0);
-      AppleHealthKit.getSleepSamples(
-        { startDate: yesterday.toISOString(), endDate: now },
-        (err: Error | null, results: { value: string; startDate: string; endDate: string }[]) => {
-          if (err || !results?.length) { resolve(null); return; }
-          const asleepMs = results
-            .filter(r => r.value !== 'INBED' && r.value !== 'AWAKE')
-            .reduce((sum, r) => sum + (new Date(r.endDate).getTime() - new Date(r.startDate).getTime()), 0);
-          if (!asleepMs) { resolve(null); return; }
-          const totalMins = Math.round(asleepMs / 60000);
-          resolve({ hours: Math.floor(totalMins / 60), minutes: totalMins % 60 });
-        },
-      );
-    });
-
-    const heartRate: number | null = await new Promise(resolve => {
-      const start = new Date();
-      start.setDate(start.getDate() - 1);
-      AppleHealthKit.getHeartRateSamples(
-        { startDate: start.toISOString(), endDate: now, limit: 1, ascending: false },
-        (err: Error | null, results: { value: number }[]) => {
-          resolve(err || !results?.length ? null : Math.round(results[0].value));
-        },
-      );
-    });
-
-    return { steps, sleep, heartRate };
-  } catch {
-    return empty;
-  }
+  return { steps: null, sleep: null, heartRate: null };
 }
