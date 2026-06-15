@@ -13,6 +13,7 @@ import {
   type ConnectorStatus, type ConnectorProvider,
 } from '@/lib/api';
 import {
+  nativeAvailable,
   requestContactsPermission, getContactsPermissionStatus,
   requestPhotosPermission, getPhotosPermissionStatus,
   initHealth, pickTextFile,
@@ -34,7 +35,7 @@ function rowsFor(p: ConnectorProvider, s: ConnectorStatus): Row[] {
   return s.github.map(a => ({ label: a.name || a.login, sub: `@${a.login}`, key: { login: a.login } }));
 }
 
-type PermStatus = 'granted' | 'denied' | 'undetermined' | 'loading';
+type PermStatus = 'granted' | 'denied' | 'undetermined' | 'loading' | 'unavailable';
 
 export default function ConnectorsScreen() {
   const c = useThemeColors();
@@ -54,9 +55,21 @@ export default function ConnectorsScreen() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    getContactsPermissionStatus().then(s => setContactsPerm(s));
-    getPhotosPermissionStatus().then(s => setPhotosPerm(s));
-    initHealth().then(ok => setHealthPerm(ok ? 'granted' : 'undetermined'));
+    if (nativeAvailable.contacts) {
+      getContactsPermissionStatus().then(s => setContactsPerm(s));
+    } else {
+      setContactsPerm('unavailable');
+    }
+    if (nativeAvailable.photos) {
+      getPhotosPermissionStatus().then(s => setPhotosPerm(s));
+    } else {
+      setPhotosPerm('unavailable');
+    }
+    if (nativeAvailable.health) {
+      initHealth().then(ok => setHealthPerm(ok ? 'granted' : 'undetermined'));
+    } else {
+      setHealthPerm('unavailable');
+    }
   }, []);
 
   async function connect(p: ConnectorProvider) {
@@ -87,6 +100,7 @@ export default function ConnectorsScreen() {
   }
 
   async function grantContacts() {
+    if (!nativeAvailable.contacts) return;
     haptics.medium();
     const granted = await requestContactsPermission();
     if (granted) {
@@ -102,6 +116,7 @@ export default function ConnectorsScreen() {
   }
 
   async function grantPhotos() {
+    if (!nativeAvailable.photos) return;
     haptics.medium();
     const granted = await requestPhotosPermission();
     if (granted) {
@@ -117,6 +132,7 @@ export default function ConnectorsScreen() {
   }
 
   async function grantHealth() {
+    if (!nativeAvailable.health) return;
     haptics.medium();
     const ok = await initHealth();
     if (ok) {
@@ -161,6 +177,10 @@ export default function ConnectorsScreen() {
           <View className="flex-row items-center gap-1.5">
             <Icon name="check-circle" tone="brand" size={15} />
             <Text className="text-brand text-[12px] font-semibold">On</Text>
+          </View>
+        ) : perm === 'unavailable' ? (
+          <View className="px-3 py-1.5 rounded-lg bg-border/50">
+            <Text className="text-muted text-[12px] font-semibold">Needs build</Text>
           </View>
         ) : (
           <TouchableOpacity onPress={onGrant} activeOpacity={0.8} className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10">
@@ -263,9 +283,15 @@ export default function ConnectorsScreen() {
                     <Text className="text-text font-semibold text-[14px]">Files & Notes</Text>
                     <Text className="text-muted text-xs">Share Obsidian notes, docs, or any text file</Text>
                   </View>
-                  <TouchableOpacity onPress={shareFile} activeOpacity={0.8} className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10">
-                    <Text className="text-brand text-[12px] font-semibold">Browse</Text>
-                  </TouchableOpacity>
+                  {nativeAvailable.files ? (
+                    <TouchableOpacity onPress={shareFile} activeOpacity={0.8} className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10">
+                      <Text className="text-brand text-[12px] font-semibold">Browse</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View className="px-3 py-1.5 rounded-lg bg-border/50">
+                      <Text className="text-muted text-[12px] font-semibold">Needs build</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>

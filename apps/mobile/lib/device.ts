@@ -1,16 +1,27 @@
 import { Platform, NativeModules } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
-// In Metro dev mode, dynamic import() still triggers guardedLoadModule which
-// reports missing-native-module errors to the overlay even when caught.
-// Checking NativeModules first prevents the import from being attempted at all.
-function hasNative(name: string): boolean {
-  return name in NativeModules;
-}
+// requireOptionalNativeModule checks expo-modules-core's native registry (not the legacy
+// NativeModules bridge) and returns null instead of throwing — so Metro's guardedLoadModule
+// is never triggered and no error overlay appears when a module isn't compiled in.
+const _contacts = Platform.OS === 'ios' ? requireOptionalNativeModule('ExpoContactsNext') : null;
+const _media = Platform.OS === 'ios' ? requireOptionalNativeModule('ExpoMediaLibraryNext') : null;
+const _docs = requireOptionalNativeModule('ExpoDocumentPicker');
+// react-native-health uses the legacy bridge, not expo-modules-core
+const _health = Platform.OS === 'ios' ? (NativeModules.RCTAppleHealthKit ?? null) : null;
+
+// Exported so screens can render correct UI without attempting permission calls
+export const nativeAvailable = {
+  contacts: _contacts !== null,
+  photos: _media !== null,
+  files: _docs !== null,
+  health: _health !== null,
+};
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
 
 export async function requestContactsPermission(): Promise<boolean> {
-  if (Platform.OS !== 'ios' || !hasNative('ExpoContactsNext')) return false;
+  if (!nativeAvailable.contacts) return false;
   try {
     const Contacts = await import('expo-contacts');
     const { status } = await Contacts.requestPermissionsAsync();
@@ -19,7 +30,7 @@ export async function requestContactsPermission(): Promise<boolean> {
 }
 
 export async function getContactsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
-  if (Platform.OS !== 'ios' || !hasNative('ExpoContactsNext')) return 'undetermined';
+  if (!nativeAvailable.contacts) return 'undetermined';
   try {
     const Contacts = await import('expo-contacts');
     const { status } = await Contacts.getPermissionsAsync();
@@ -35,7 +46,7 @@ export interface SimpleContact {
 }
 
 export async function getContacts(): Promise<SimpleContact[]> {
-  if (Platform.OS !== 'ios' || !hasNative('ExpoContactsNext')) return [];
+  if (!nativeAvailable.contacts) return [];
   try {
     const Contacts = await import('expo-contacts');
     const { status } = await Contacts.getPermissionsAsync();
@@ -58,7 +69,7 @@ export async function getContacts(): Promise<SimpleContact[]> {
 // ── Photos / Media Library ────────────────────────────────────────────────────
 
 export async function requestPhotosPermission(): Promise<boolean> {
-  if (Platform.OS !== 'ios' || !hasNative('ExpoMediaLibraryNext')) return false;
+  if (!nativeAvailable.photos) return false;
   try {
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -67,7 +78,7 @@ export async function requestPhotosPermission(): Promise<boolean> {
 }
 
 export async function getPhotosPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
-  if (Platform.OS !== 'ios' || !hasNative('ExpoMediaLibraryNext')) return 'undetermined';
+  if (!nativeAvailable.photos) return 'undetermined';
   try {
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.getPermissionsAsync();
@@ -85,7 +96,7 @@ export interface PhotoAsset {
 }
 
 export async function getRecentPhotos(limit = 20): Promise<PhotoAsset[]> {
-  if (Platform.OS !== 'ios' || !hasNative('ExpoMediaLibraryNext')) return [];
+  if (!nativeAvailable.photos) return [];
   try {
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.getPermissionsAsync();
@@ -116,8 +127,7 @@ export interface PickedFile {
 }
 
 export async function pickFile(types: string[] = ['*/*']): Promise<PickedFile | null> {
-  // expo-document-picker uses ExpoDocumentPicker or ExpoDocumentPickerNext depending on version
-  if (!hasNative('ExpoDocumentPicker') && !hasNative('ExpoDocumentPickerNext')) return null;
+  if (!nativeAvailable.files) return null;
   try {
     const DocumentPicker = await import('expo-document-picker');
     const result = await DocumentPicker.getDocumentAsync({
@@ -159,7 +169,7 @@ export interface HealthData {
 let healthInitialized = false;
 
 export async function initHealth(): Promise<boolean> {
-  if (Platform.OS !== 'ios' || !hasNative('RCTAppleHealthKit')) return false;
+  if (!nativeAvailable.health) return false;
   if (healthInitialized) return true;
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
@@ -186,7 +196,7 @@ export async function initHealth(): Promise<boolean> {
 
 export async function getHealthData(): Promise<HealthData> {
   const empty: HealthData = { steps: null, sleep: null, heartRate: null };
-  if (Platform.OS !== 'ios' || !hasNative('RCTAppleHealthKit')) return empty;
+  if (!nativeAvailable.health) return empty;
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
     if (!AppleHealthKit || typeof AppleHealthKit.getStepCount !== 'function') return empty;
