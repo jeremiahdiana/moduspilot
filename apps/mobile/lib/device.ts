@@ -1,12 +1,16 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 
-// All native packages are loaded dynamically so this file doesn't crash
-// in a dev build that was compiled before the packages were installed.
+// In Metro dev mode, dynamic import() still triggers guardedLoadModule which
+// reports missing-native-module errors to the overlay even when caught.
+// Checking NativeModules first prevents the import from being attempted at all.
+function hasNative(name: string): boolean {
+  return name in NativeModules;
+}
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
 
 export async function requestContactsPermission(): Promise<boolean> {
-  if (Platform.OS !== 'ios') return false;
+  if (Platform.OS !== 'ios' || !hasNative('ExpoContactsNext')) return false;
   try {
     const Contacts = await import('expo-contacts');
     const { status } = await Contacts.requestPermissionsAsync();
@@ -15,7 +19,7 @@ export async function requestContactsPermission(): Promise<boolean> {
 }
 
 export async function getContactsPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
-  if (Platform.OS !== 'ios') return 'denied';
+  if (Platform.OS !== 'ios' || !hasNative('ExpoContactsNext')) return 'undetermined';
   try {
     const Contacts = await import('expo-contacts');
     const { status } = await Contacts.getPermissionsAsync();
@@ -31,7 +35,7 @@ export interface SimpleContact {
 }
 
 export async function getContacts(): Promise<SimpleContact[]> {
-  if (Platform.OS !== 'ios') return [];
+  if (Platform.OS !== 'ios' || !hasNative('ExpoContactsNext')) return [];
   try {
     const Contacts = await import('expo-contacts');
     const { status } = await Contacts.getPermissionsAsync();
@@ -54,7 +58,7 @@ export async function getContacts(): Promise<SimpleContact[]> {
 // ── Photos / Media Library ────────────────────────────────────────────────────
 
 export async function requestPhotosPermission(): Promise<boolean> {
-  if (Platform.OS !== 'ios') return false;
+  if (Platform.OS !== 'ios' || !hasNative('ExpoMediaLibraryNext')) return false;
   try {
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -63,7 +67,7 @@ export async function requestPhotosPermission(): Promise<boolean> {
 }
 
 export async function getPhotosPermissionStatus(): Promise<'granted' | 'denied' | 'undetermined'> {
-  if (Platform.OS !== 'ios') return 'denied';
+  if (Platform.OS !== 'ios' || !hasNative('ExpoMediaLibraryNext')) return 'undetermined';
   try {
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.getPermissionsAsync();
@@ -81,7 +85,7 @@ export interface PhotoAsset {
 }
 
 export async function getRecentPhotos(limit = 20): Promise<PhotoAsset[]> {
-  if (Platform.OS !== 'ios') return [];
+  if (Platform.OS !== 'ios' || !hasNative('ExpoMediaLibraryNext')) return [];
   try {
     const MediaLibrary = await import('expo-media-library');
     const { status } = await MediaLibrary.getPermissionsAsync();
@@ -112,6 +116,8 @@ export interface PickedFile {
 }
 
 export async function pickFile(types: string[] = ['*/*']): Promise<PickedFile | null> {
+  // expo-document-picker uses ExpoDocumentPicker or ExpoDocumentPickerNext depending on version
+  if (!hasNative('ExpoDocumentPicker') && !hasNative('ExpoDocumentPickerNext')) return null;
   try {
     const DocumentPicker = await import('expo-document-picker');
     const result = await DocumentPicker.getDocumentAsync({
@@ -153,11 +159,10 @@ export interface HealthData {
 let healthInitialized = false;
 
 export async function initHealth(): Promise<boolean> {
-  if (Platform.OS !== 'ios') return false;
+  if (Platform.OS !== 'ios' || !hasNative('RCTAppleHealthKit')) return false;
   if (healthInitialized) return true;
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
-    // Native module isn't compiled into the current dev build — bail gracefully
     if (!AppleHealthKit || typeof AppleHealthKit.initHealthKit !== 'function') return false;
     const { Permissions } = AppleHealthKit.Constants;
     return new Promise(resolve => {
@@ -181,7 +186,7 @@ export async function initHealth(): Promise<boolean> {
 
 export async function getHealthData(): Promise<HealthData> {
   const empty: HealthData = { steps: null, sleep: null, heartRate: null };
-  if (Platform.OS !== 'ios') return empty;
+  if (Platform.OS !== 'ios' || !hasNative('RCTAppleHealthKit')) return empty;
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
     if (!AppleHealthKit || typeof AppleHealthKit.getStepCount !== 'function') return empty;
