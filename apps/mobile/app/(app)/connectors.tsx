@@ -18,7 +18,8 @@ import {
   requestPhotosPermission, getPhotosPermissionStatus,
   initHealth, pickTextFile,
 } from '@/lib/device';
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 interface Row { label: string; sub: string; key: Record<string, string> }
@@ -42,6 +43,7 @@ type PermStatus = 'granted' | 'denied' | 'undetermined' | 'loading' | 'unavailab
 export default function ConnectorsScreen() {
   const c = useThemeColors();
   const { confirm } = useSheets();
+  const { user } = useAuth();
   const [status, setStatus] = useState<ConnectorStatus | null>(null);
   const [busy, setBusy] = useState<ConnectorProvider | null>(null);
 
@@ -74,10 +76,11 @@ export default function ConnectorsScreen() {
     }
   }, []);
 
-  // Sync contacts whenever permission is confirmed granted (covers already-granted case)
+  // Sync contacts when BOTH permission is granted AND auth is ready (guards against race condition
+  // where getContactsPermissionStatus resolves before onAuthStateChanged fires)
   useEffect(() => {
-    if (contactsPerm === 'granted') syncContactsToFirestore();
-  }, [contactsPerm]);
+    if (contactsPerm === 'granted' && user?.uid) syncContactsToFirestore(user.uid);
+  }, [contactsPerm, user?.uid]);
 
   async function connect(p: ConnectorProvider) {
     if (busy) return;
@@ -106,9 +109,7 @@ export default function ConnectorsScreen() {
     }
   }
 
-  async function syncContactsToFirestore() {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+  async function syncContactsToFirestore(uid: string) {
     try {
       const contacts = await getContacts();
       const BATCH_SIZE = 500;
@@ -139,7 +140,7 @@ export default function ConnectorsScreen() {
     if (granted) {
       setContactsPerm('granted');
       haptics.success();
-      syncContactsToFirestore();
+      if (user?.uid) syncContactsToFirestore(user.uid);
     } else {
       setContactsPerm('denied');
       Alert.alert('Permission denied', 'To enable contacts, go to Settings → MODUS → Contacts.', [
