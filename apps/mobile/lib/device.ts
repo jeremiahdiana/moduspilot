@@ -63,7 +63,7 @@ export async function getContacts(): Promise<SimpleContact[]> {
     return data
       .filter(c => c.name)
       .map(c => ({
-        id: c.id ?? `${c.name}-${Math.random()}`,
+        id: c.id ?? `${c.name.replace(/\s+/g, '_')}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         name: c.name!,
         email: c.emails?.[0]?.email,
         phone: c.phoneNumbers?.[0]?.number,

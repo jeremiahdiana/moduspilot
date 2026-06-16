@@ -99,9 +99,9 @@ function LabeledCard({ icon, color, label, accent, right, children }: {
 }
 
 const ENERGY_OPTS = [
-  { key: 'fully_charged', label: 'Fully charged', emoji: '🔋' },
-  { key: 'okay', label: 'Okay', emoji: '😐' },
-  { key: 'running_low', label: 'Running low', emoji: '😴' },
+  { key: 'fully_charged', label: 'Fully charged' },
+  { key: 'okay', label: 'Okay' },
+  { key: 'running_low', label: 'Running low' },
 ];
 const ENERGY_CONFIRM: Record<string, string> = {
   fully_charged: 'front-load your hardest work.',
@@ -406,7 +406,7 @@ export default function BriefingScreen() {
   const energyOpt = ENERGY_OPTS.find(o => o.key === energy);
   const needsAttention = [
     ...overdueTasks.map(t => ({ id: t.id, kind: 'task' as const, title: t.title, sub: t.dueDate === today ? 'Due today' : `Overdue · ${t.dueDate}` })),
-    ...atRiskHabits.map(h => ({ id: h.id, kind: 'habit' as const, title: h.title, sub: `${h.streak}🔥 streak at risk`, habit: h })),
+    ...atRiskHabits.map(h => ({ id: h.id, kind: 'habit' as const, title: h.title, sub: `${h.streak}d streak at risk`, habit: h })),
   ];
 
   return (
@@ -558,7 +558,7 @@ export default function BriefingScreen() {
           <LabeledCard icon="bolt" color="#f59e0b" label="Energy check">
             {energy ? (
               <>
-                <Text className="text-text text-sm font-medium mb-1">{energyOpt ? `${energyOpt.emoji} ${energyOpt.label}` : energy}</Text>
+                <Text className="text-text text-sm font-medium mb-1">{energyOpt ? energyOpt.label : energy}</Text>
                 <Text className="text-muted text-xs">MODUS will {ENERGY_CONFIRM[energy] ?? 'keep this in mind.'}</Text>
               </>
             ) : (
@@ -567,7 +567,7 @@ export default function BriefingScreen() {
                 <View className="flex-row flex-wrap gap-1.5">
                   {ENERGY_OPTS.map(o => (
                     <TouchableOpacity key={o.key} onPress={() => selectEnergy(o.key)} activeOpacity={0.7} className="px-3 py-1.5 rounded-lg border border-border bg-surface">
-                      <Text className="text-text text-xs">{o.emoji} {o.label}</Text>
+                      <Text className="text-text text-xs">{o.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -751,7 +751,7 @@ export default function BriefingScreen() {
 
           {/* Ask MODUS */}
           <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/chat' as never)} activeOpacity={0.85} className="flex-row items-center gap-3 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4 mt-1">
-            <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center"><Icon name="auto-awesome" tone="brand" size={18} /></View>
+            <View className="w-9 h-9 rounded-xl bg-brand/15 items-center justify-center"><Icon name="chat-bubble-outline" tone="brand" size={18} /></View>
             <View className="flex-1">
               <Text className="text-text font-semibold text-[15px]">Anything on your mind?</Text>
               <Text className="text-muted text-xs mt-0.5">Add a task, ask what you missed, or talk it through</Text>

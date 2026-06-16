@@ -67,12 +67,12 @@ export default function SettingsScreen() {
       <ScreenHeader title="Settings" />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
-       <View className="gap-4">
+       <View className="gap-3">
         {/* Account info → profile */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => router.push('/(app)/profile' as never)}
-          className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3.5"
+          className="bg-surface border border-border rounded-xl px-4 py-3 flex-row items-center gap-3.5"
         >
           {user?.photoURL ? (
             <Image source={{ uri: user.photoURL }} style={{ width: 52, height: 52, borderRadius: 26 }} />
@@ -90,21 +90,10 @@ export default function SettingsScreen() {
           <Icon name="chevron-right" tone="muted" size={20} />
         </TouchableOpacity>
 
-        {/* Appearance */}
-        <View className="bg-surface border border-border rounded-xl px-4 py-3.5 flex-row items-center gap-3">
-          <Icon name={isDark ? 'dark-mode' : 'light-mode'} tone="muted" size={22} />
-          <Text className="text-text font-medium flex-1">Dark mode</Text>
-          <Switch
-            value={isDark}
-            onValueChange={setDark}
-            trackColor={{ true: c.brand, false: c.border }}
-            thumbColor="#ffffff"
-            ios_backgroundColor={c.border}
-          />
-        </View>
-
         {/* Preferences */}
         <View className="bg-surface border border-border rounded-xl overflow-hidden">
+          <ToggleRow icon={isDark ? 'dark-mode' : 'light-mode'} label="Dark mode" value={isDark} onChange={setDark} brand={c.brand} border={c.border} />
+          <Divider />
           <NavRow icon="person-outline" label="Personal context" onPress={() => router.push('/(app)/personal-context' as never)} />
           <Divider />
           <NavRow icon="tune" label="Brain" onPress={() => router.push('/(app)/model-settings' as never)} />
@@ -207,14 +196,14 @@ function NavRow({ icon, label, onPress }: { icon: IconName; label: string; onPre
 }
 
 function ToggleRow({ icon, label, sub, value, onChange, brand, border }: {
-  icon: IconName; label: string; sub: string; value: boolean; onChange: (v: boolean) => void; brand: string; border: string;
+  icon: IconName; label: string; sub?: string; value: boolean; onChange: (v: boolean) => void; brand: string; border: string;
 }) {
   return (
-    <View className="flex-row items-center gap-3.5 px-4 py-3.5">
+    <View className="flex-row items-center gap-3.5 px-4 py-3">
       <Icon name={icon} tone="muted" size={22} />
       <View className="flex-1">
         <Text className="text-text font-medium text-[15px]">{label}</Text>
-        <Text className="text-muted text-xs">{sub}</Text>
+        {sub ? <Text className="text-muted text-xs">{sub}</Text> : null}
       </View>
       <Switch value={value} onValueChange={onChange} trackColor={{ true: brand, false: border }} thumbColor="#ffffff" ios_backgroundColor={border} />
     </View>

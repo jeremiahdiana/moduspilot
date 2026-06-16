@@ -14,10 +14,12 @@ import {
 } from '@/lib/api';
 import {
   nativeAvailable,
-  requestContactsPermission, getContactsPermissionStatus,
+  requestContactsPermission, getContactsPermissionStatus, getContacts,
   requestPhotosPermission, getPhotosPermissionStatus,
   initHealth, pickTextFile,
 } from '@/lib/device';
+import { auth, db } from '@/lib/firebase';
+import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 interface Row { label: string; sub: string; key: Record<string, string> }
 
@@ -72,6 +74,11 @@ export default function ConnectorsScreen() {
     }
   }, []);
 
+  // Sync contacts whenever permission is confirmed granted (covers already-granted case)
+  useEffect(() => {
+    if (contactsPerm === 'granted') syncContactsToFirestore();
+  }, [contactsPerm]);
+
   async function connect(p: ConnectorProvider) {
     if (busy) return;
     haptics.medium();
@@ -99,6 +106,32 @@ export default function ConnectorsScreen() {
     }
   }
 
+  async function syncContactsToFirestore() {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    try {
+      const contacts = await getContacts();
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
+        const chunk = contacts.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+        for (const c of chunk) {
+          const ref = doc(db, 'users', uid, 'contacts', c.id);
+          batch.set(ref, {
+            name: c.name,
+            ...(c.email ? { email: c.email } : {}),
+            ...(c.phone ? { phone: c.phone } : {}),
+            source: 'device',
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error('[contacts] sync failed:', e);
+    }
+  }
+
   async function grantContacts() {
     if (!nativeAvailable.contacts) return;
     haptics.medium();
@@ -106,6 +139,7 @@ export default function ConnectorsScreen() {
     if (granted) {
       setContactsPerm('granted');
       haptics.success();
+      syncContactsToFirestore();
     } else {
       setContactsPerm('denied');
       Alert.alert('Permission denied', 'To enable contacts, go to Settings → MODUS → Contacts.', [

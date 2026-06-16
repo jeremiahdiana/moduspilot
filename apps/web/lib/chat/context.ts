@@ -7,6 +7,7 @@
  * are reproduced verbatim from the original route.
  */
 import { queryMemory } from '@/lib/pinecone';
+import { adminDb } from '@/lib/firebase-admin';
 import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getActionableThreads, type GmailThread } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime, type CalendarEvent } from '@/lib/google-calendar';
@@ -28,10 +29,10 @@ export function needsCalendarCtx(q: string): boolean {
   return /\b(calendar|schedule|meeting|event|appointment|today|tomorrow|this week|next week|when am i|busy|free time)\b/i.test(q);
 }
 export function needsNotionCtx(q: string): boolean {
-  return /\bnotion\b/i.test(q);
+  return /\b(notion|notion page|notion doc|notion database|obsidian)\b/i.test(q);
 }
 export function needsSlackCtx(q: string): boolean {
-  return /\bslack\b/i.test(q);
+  return /\b(slack|slack channel|in slack|the channel|team chat)\b/i.test(q);
 }
 export function needsGithubCtx(q: string): boolean {
   return /\b(github|pull request|\bpr\b|issue|repo|commit|branch|merge|code review)\b/i.test(q);
@@ -200,6 +201,33 @@ export async function fetchConnectorData(
     ]);
   } catch { /* non-fatal */ }
   return { connectorBlock, notionBlock, slackBlock, githubBlock };
+}
+
+// ── Device contacts (synced from iOS address book) ───────────────────────────
+export async function fetchContactsBlock(uid: string): Promise<string> {
+  try {
+    const snap = await adminDb
+      .collection('users').doc(uid)
+      .collection('contacts')
+      .limit(500)
+      .get();
+    if (snap.empty) return '';
+    const names = snap.docs
+      .map(d => {
+        const data = d.data() as { name?: string; email?: string };
+        if (!data.name) return null;
+        // Strip newlines and control characters to prevent prompt injection
+        const safeName = data.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80);
+        const safeEmail = data.email ? data.email.replace(/[\r\n\t<>]/g, '').slice(0, 100) : null;
+        if (!safeName) return null;
+        return safeEmail ? `${safeName} (${safeEmail})` : safeName;
+      })
+      .filter(Boolean)
+      .join(', ');
+    if (!names) return '';
+    const block = `\n\nKNOWN CONTACTS (from user's address book — reference by name when they mention someone):\n${names}`;
+    return block.slice(0, 3200);
+  } catch { return ''; }
 }
 
 // ── Pinned project resources (live data scoped to a project) ─────────────────

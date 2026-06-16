@@ -304,8 +304,8 @@ export default function DashboardScreen() {
         <View className="flex-row flex-wrap gap-2">
           <Chip label="+ Task" icon="add-task" hex={A.yellow} tint={TINT.yellow} href="/(app)/(tabs)/reminders" />
           <Chip label="+ Goal" icon="flag" hex={A.brand} tint={TINT.brand} href="/(app)/(tabs)/goals" />
-          <Chip label="+ Log habit" icon="local-fire-department" hex={A.orange} tint={TINT.orange} href="/(app)/(tabs)/reminders" />
-          <Chip label="+ Ask MODUS" icon="auto-awesome" hex={A.violet} tint={TINT.violet} href="/(app)/(tabs)/chat" />
+          <Chip label="+ Log habit" icon="check-circle" hex={A.orange} tint={TINT.orange} href="/(app)/(tabs)/reminders" />
+          <Chip label="+ Ask MODUS" icon="chat-bubble-outline" hex={A.violet} tint={TINT.violet} href="/(app)/(tabs)/chat" />
         </View>
 
         {/* Focus card — brand-tinted with medallion (matches web) */}

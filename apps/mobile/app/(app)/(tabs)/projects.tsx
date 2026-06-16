@@ -10,37 +10,20 @@ import { Icon } from '@/components/Icon';
 import { useSheets } from '@/components/ui/Sheets';
 import { SkeletonList, SkeletonCard } from '@/components/Skeleton';
 import { EmptyState, GradientButton, AnimatedRow, SwipeToDelete, ScreenFade, FadeReveal } from '@/components/ui';
-import { LinearGradient } from 'expo-linear-gradient';
-import { GRADIENTS } from '@/lib/theme';
 import type { Project } from '@/lib/types';
 
 function AISection() {
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.8}
       onPress={() => router.push('/(app)/(tabs)/chat' as never)}
-      className="mt-2 mb-2 rounded-2xl overflow-hidden border border-brand/25"
+      className="mb-2 bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl px-4 py-3.5 flex-row items-center gap-3.5"
     >
-      <LinearGradient
-        colors={['rgba(124,58,237,0.12)', 'rgba(139,92,246,0.06)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}
-      >
-        <LinearGradient
-          colors={GRADIENTS.brand}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Icon name="auto-awesome" color="#fff" size={20} />
-        </LinearGradient>
-        <View style={{ flex: 1 }}>
-          <Text className="text-text font-bold text-[15px]">Ask MODUS</Text>
-          <Text className="text-muted text-xs mt-0.5">Plan, prioritize, and break down your projects with AI</Text>
-        </View>
-        <Icon name="chevron-right" tone="muted" size={20} />
-      </LinearGradient>
+      <View className="w-9 h-9 rounded-xl bg-brand/10 items-center justify-center">
+        <Icon name="chat-bubble-outline" tone="brand" size={18} />
+      </View>
+      <Text className="text-text font-medium text-[15px] flex-1">Ask MODUS</Text>
+      <Icon name="chevron-right" tone="muted" size={20} />
     </TouchableOpacity>
   );
 }

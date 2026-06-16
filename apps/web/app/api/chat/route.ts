@@ -23,6 +23,7 @@ import {
   fetchDriveBlock,
   fetchConnectorData,
   fetchProjectResources,
+  fetchContactsBlock,
 } from '@/lib/chat/context';
 import {
   buildUserContextBlock,
@@ -172,11 +173,15 @@ export async function POST(req: Request) {
     let notionBlock = '';
     let slackBlock = '';
     let githubBlock = '';
+    let contactsBlock = '';
     if (uid) {
-      ({ connectorBlock, notionBlock, slackBlock, githubBlock } = await fetchConnectorData(uid, queryText));
+      [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock] = await Promise.all([
+        fetchConnectorData(uid, queryText),
+        fetchContactsBlock(uid),
+      ]);
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;

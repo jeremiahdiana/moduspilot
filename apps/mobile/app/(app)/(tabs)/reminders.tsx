@@ -221,8 +221,6 @@ export default function RemindersScreen() {
         skeleton={<SkeletonList count={6}><SkeletonHabitRow /></SkeletonList>}
       >
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
-          <Text className="text-muted text-sm -mt-1 mb-6">Habits and tasks — everything you need to show up for today.</Text>
-
           {showCelebration && (
             <View className="mb-6 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex-row items-center gap-3">
               <Text className="text-xl">🎉</Text>
@@ -243,7 +241,7 @@ export default function RemindersScreen() {
                 </View>
                 {topStreak > 0 && (
                   <View className="px-2 py-0.5 rounded-full bg-orange-500/10">
-                    <Text className="text-[10px] font-bold" style={{ color: '#fb923c' }}>{topStreak}🔥 best</Text>
+                    <Text className="text-[10px] font-bold" style={{ color: '#fb923c' }}>{topStreak}d best</Text>
                   </View>
                 )}
               </>
@@ -279,7 +277,7 @@ export default function RemindersScreen() {
                           {h.title}
                         </Text>
                       </TouchableOpacity>
-                      <Text className="text-text text-xs font-semibold">{h.streak}🔥</Text>
+                      <Text className="text-muted text-xs">{h.streak}d</Text>
                       <Text className="text-muted text-xs">{stats.monthPct}%</Text>
                       <TouchableOpacity onPress={() => setExpandedHabit(expanded ? null : h.id)} hitSlop={8}>
                         <Icon name={expanded ? 'expand-less' : 'expand-more'} tone="muted" size={20} />
@@ -322,33 +320,39 @@ export default function RemindersScreen() {
           </View>
 
           {/* Tabs + priority filter */}
-          <View className="flex-row items-center gap-2 mb-5 flex-wrap">
-            <View className="flex-row bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-lg p-1 gap-1">
-              {(['todo', 'done'] as const).map(t => (
-                <TouchableOpacity key={t} onPress={() => { haptics.select(); setTab(t); }} className={`px-4 py-1.5 rounded-md ${tab === t ? 'bg-brand' : ''} flex-row items-center gap-1.5`}>
-                  <Text className={`text-sm font-medium ${tab === t ? 'text-white' : 'text-muted'}`}>{t === 'todo' ? 'To Do' : 'Done'}</Text>
-                  {t === 'todo' && allOverdue.length > 0 && (
-                    <View className="px-1.5 rounded-full" style={{ backgroundColor: '#ef4444' }}>
-                      <Text className="text-white text-[10px] font-bold">{allOverdue.length}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
+          <View className="gap-3 mb-5">
+            <View className="flex-row items-center">
+              <View className="flex-row bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-lg p-1 gap-1">
+                {(['todo', 'done'] as const).map(t => (
+                  <TouchableOpacity key={t} onPress={() => { haptics.select(); setTab(t); }} className={`px-4 py-1.5 rounded-md ${tab === t ? 'bg-brand' : ''} flex-row items-center gap-1.5`}>
+                    <Text className={`text-sm font-medium ${tab === t ? 'text-white' : 'text-muted'}`}>{t === 'todo' ? 'To Do' : 'Done'}</Text>
+                    {t === 'todo' && allOverdue.length > 0 && (
+                      <View className="px-1.5 rounded-full" style={{ backgroundColor: '#ef4444' }}>
+                        <Text className="text-white text-[10px] font-bold">{allOverdue.length}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-            {tab === 'todo' && PRIORITY_FILTERS.map(p => {
-              const active = priorityFilter === p;
-              const tint = p === 'high' ? '#f87171' : p === 'medium' ? '#facc15' : p === 'low' ? c.muted : c.brand;
-              return (
-                <TouchableOpacity
-                  key={p}
-                  onPress={() => { haptics.select(); setPriorityFilter(p); }}
-                  className="px-3 py-1.5 rounded-lg border"
-                  style={{ borderColor: active ? tint : c.border, backgroundColor: active ? tint + '1a' : 'transparent' }}
-                >
-                  <Text className="text-xs font-medium capitalize" style={{ color: active ? tint : c.muted }}>{p === 'all' ? 'All' : p}</Text>
-                </TouchableOpacity>
-              );
-            })}
+            {tab === 'todo' && (
+              <View className="flex-row items-center gap-1.5">
+                {PRIORITY_FILTERS.map(p => {
+                  const active = priorityFilter === p;
+                  const tint = p === 'high' ? '#f87171' : p === 'medium' ? '#facc15' : p === 'low' ? c.muted : c.brand;
+                  return (
+                    <TouchableOpacity
+                      key={p}
+                      onPress={() => { haptics.select(); setPriorityFilter(p); }}
+                      className="px-3 py-1 rounded-full border"
+                      style={{ borderColor: active ? tint : c.border, backgroundColor: active ? tint + '18' : 'transparent' }}
+                    >
+                      <Text className="text-[11px] font-medium capitalize" style={{ color: active ? tint : c.muted }}>{p === 'all' ? 'All' : p}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
 
           {visibleTasks.length === 0 ? (
