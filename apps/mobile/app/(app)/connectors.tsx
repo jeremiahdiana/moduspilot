@@ -131,6 +131,9 @@ export default function ConnectorsScreen() {
             name: c.name,
             ...(c.email ? { email: c.email } : {}),
             ...(c.phone ? { phone: c.phone } : {}),
+            ...(c.company ? { company: c.company } : {}),
+            ...(c.jobTitle ? { jobTitle: c.jobTitle } : {}),
+            ...(c.birthday ? { birthday: c.birthday } : {}),
             source: 'device',
             updatedAt: serverTimestamp(),
           }, { merge: true });

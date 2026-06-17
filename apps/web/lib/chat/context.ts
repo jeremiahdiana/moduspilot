@@ -204,6 +204,8 @@ export async function fetchConnectorData(
 }
 
 // ── Device contacts (synced from iOS address book) ───────────────────────────
+const SERVICE_RE = /\b(bank|credit|debit|insurance|support|service|customer|balance|inquiry|1-?800|chase|wells\s?fargo|citi|amex|american\s?express|verizon|at&t|t-mobile|sprint|apple|amazon|google|irs|dmv|911|aaa|usps|ups|fedex|hulu|netflix|spotify|walmart|target|cvs|walgreens|costco|comcast|xfinity)\b/i;
+
 export async function fetchContactsBlock(uid: string, enabled = true): Promise<string> {
   if (!enabled) return '';
   try {
@@ -213,21 +215,58 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
       .limit(500)
       .get();
     if (snap.empty) return '';
-    const names = snap.docs
-      .map(d => {
-        const data = d.data() as { name?: string; email?: string };
-        if (!data.name) return null;
-        // Strip newlines and control characters to prevent prompt injection
-        const safeName = data.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80);
-        const safeEmail = data.email ? data.email.replace(/[\r\n\t<>]/g, '').slice(0, 100) : null;
-        if (!safeName) return null;
-        return safeEmail ? `${safeName} (${safeEmail})` : safeName;
-      })
-      .filter(Boolean)
-      .join(', ');
-    if (!names) return '';
-    const block = `\n\nKNOWN CONTACTS (from user's address book — reference by name when they mention someone):\n${names}`;
-    return block.slice(0, 3200);
+
+    const today = new Date();
+    const todayMonth = today.getMonth() + 1;
+    const todayDay = today.getDate();
+
+    type RawDoc = { name?: string; email?: string; phone?: string; company?: string; jobTitle?: string; birthday?: { month: number; day: number; year?: number } };
+
+    const personal: string[] = [];
+    const professional: string[] = [];
+    const services: string[] = [];
+
+    for (const d of snap.docs) {
+      const data = d.data() as RawDoc;
+      if (!data.name) continue;
+      const name = data.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80);
+      if (!name) continue;
+      const email = data.email ? data.email.replace(/[\r\n\t<>]/g, '').slice(0, 100) : null;
+      const company = data.company ? data.company.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80) : null;
+      const jobTitle = data.jobTitle ? data.jobTitle.replace(/[\r\n\t]/g, ' ').trim().slice(0, 60) : null;
+
+      // Birthday — flag if within 7 days (rolling, handles year-end wrap)
+      let birthdayTag = '';
+      if (data.birthday?.month && data.birthday?.day) {
+        const { month, day } = data.birthday;
+        const bdayThisYear = new Date(today.getFullYear(), month - 1, day);
+        if (bdayThisYear < today) bdayThisYear.setFullYear(today.getFullYear() + 1);
+        const daysUntil = Math.round((bdayThisYear.getTime() - today.getTime()) / 86400000);
+        if (daysUntil <= 7) birthdayTag = ` 🎂 birthday in ${daysUntil === 0 ? 'today' : `${daysUntil}d`}`;
+      }
+
+      if (SERVICE_RE.test(name) || (!email && !company && /^\+?[\d\s\-().]{7,}$/.test(name))) {
+        services.push(`[Service] ${name}${email ? ` (${email})` : ''}`);
+      } else if (company) {
+        const title = jobTitle ? ` · ${jobTitle}` : '';
+        const emailPart = email ? ` (${email})` : '';
+        professional.push(`${name} @ ${company}${title}${emailPart}${birthdayTag}`);
+      } else {
+        personal.push(`${name}${email ? ` (${email})` : ''}${birthdayTag}`);
+      }
+    }
+
+    const total = personal.length + professional.length + services.length;
+    if (total === 0) return '';
+
+    const lines: string[] = [
+      `\n\nKNOWN CONTACTS (${total} total — use naturally when the user mentions someone; never recite the full list unprompted):`,
+    ];
+    if (personal.length > 0) lines.push(`\nPersonal (${personal.length}):\n${personal.join(', ')}`);
+    if (professional.length > 0) lines.push(`\nProfessional (${professional.length}):\n${professional.join('\n')}`);
+    if (services.length > 0) lines.push(`\nServices (${services.length}):\n${services.join(', ')}`);
+
+    return lines.join('').slice(0, 6000);
   } catch { return ''; }
 }
 

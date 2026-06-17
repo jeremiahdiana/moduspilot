@@ -48,6 +48,9 @@ export interface SimpleContact {
   name: string;
   email?: string;
   phone?: string;
+  company?: string;
+  jobTitle?: string;
+  birthday?: { month: number; day: number; year?: number };
 }
 
 export async function getContacts(): Promise<SimpleContact[]> {
@@ -57,9 +60,19 @@ export async function getContacts(): Promise<SimpleContact[]> {
     const { status } = await getPermissionsAsync();
     if (status !== 'granted') return [];
     // getContactsAsync was removed in expo-contacts SDK 56 — use Contact.getAllDetails instead
-    type RawContact = { id?: string; fullName?: string; givenName?: string; familyName?: string; emails?: Array<{ address?: string }>; phones?: Array<{ number?: string }> };
+    type RawContact = {
+      id?: string;
+      fullName?: string; givenName?: string; familyName?: string;
+      emails?: Array<{ address?: string }>;
+      phones?: Array<{ number?: string }>;
+      company?: string;
+      jobTitle?: string;
+      birthday?: { month: number; day: number; year?: number };
+    };
     const data = await Contact.getAllDetails(
-      [ContactField.GIVEN_NAME, ContactField.FAMILY_NAME, ContactField.FULL_NAME, ContactField.EMAILS, ContactField.PHONES],
+      [ContactField.GIVEN_NAME, ContactField.FAMILY_NAME, ContactField.FULL_NAME,
+       ContactField.EMAILS, ContactField.PHONES,
+       ContactField.COMPANY, ContactField.JOB_TITLE, ContactField.BIRTHDAY],
     ) as RawContact[];
     const results: SimpleContact[] = [];
     for (const c of data) {
@@ -73,6 +86,9 @@ export async function getContacts(): Promise<SimpleContact[]> {
       const phone = c.phones?.[0]?.number;
       if (email) contact.email = email;
       if (phone) contact.phone = phone;
+      if (c.company) contact.company = c.company;
+      if (c.jobTitle) contact.jobTitle = c.jobTitle;
+      if (c.birthday?.month && c.birthday?.day) contact.birthday = { month: c.birthday.month, day: c.birthday.day, year: c.birthday.year };
       results.push(contact);
     }
     return results;
