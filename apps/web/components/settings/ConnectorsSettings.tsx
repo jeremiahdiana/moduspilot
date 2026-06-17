@@ -41,6 +41,17 @@ function SlackIcon() {
   );
 }
 
+function ContactsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+
 function GitHubIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -105,6 +116,7 @@ export default function ConnectorsSettings({ user }: Props) {
   const [slackAccounts, setSlackAccounts] = useState<SlackAccount[]>([]);
   const [githubAccounts, setGithubAccounts] = useState<GitHubAccount[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([]);
+  const [contactCount, setContactCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
@@ -123,17 +135,19 @@ export default function ConnectorsSettings({ user }: Props) {
   useEffect(() => {
     user.getIdToken().then(async token => {
       try {
-        const [googleRes, connRes, mcpRes] = await Promise.all([
+        const [googleRes, connRes, mcpRes, contactsRes] = await Promise.all([
           fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/mcp/list', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/contacts/count', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        const [googleData, connData, mcpData] = await Promise.all([googleRes.json(), connRes.json(), mcpRes.json()]);
+        const [googleData, connData, mcpData, contactsData] = await Promise.all([googleRes.json(), connRes.json(), mcpRes.json(), contactsRes.json()]);
         setGoogleAccounts(googleData.accounts ?? []);
         setNotionAccounts(connData.notion ?? []);
         setSlackAccounts(connData.slack ?? []);
         setGithubAccounts(connData.github ?? []);
         setMcpServers(mcpData.servers ?? []);
+        setContactCount(contactsData.count ?? 0);
       } catch { /* non-fatal */ }
       finally { setLoading(false); }
     });
@@ -463,6 +477,28 @@ export default function ConnectorsSettings({ user }: Props) {
             connectLabel="Connect GitHub"
             onClick={() => connectService('/api/auth/github/connect', 'github')}
           />
+        </div>
+      </ConnectorCard>
+
+      {/* ── Contacts ── */}
+      <ConnectorCard
+        icon={<ContactsIcon />}
+        label="Contacts"
+        subtitle="iOS address book"
+        loading={loading}
+        connectedCount={contactCount}
+        connectedLabel={`${contactCount} contact${contactCount !== 1 ? 's' : ''} synced`}
+      >
+        <div className="px-6 py-5 space-y-3">
+          {contactCount === 0 && (
+            <p className="text-xs text-muted/70 border border-border rounded-lg px-3 py-2 italic">
+              Open the MODUS iOS app → Connectors → Contacts to start syncing.
+            </p>
+          )}
+          <p className="text-xs text-muted">
+            MODUS reads your device contacts so it can reference people by name in chat.
+            New contacts sync automatically each time you open the iOS app.
+          </p>
         </div>
       </ConnectorCard>
 
