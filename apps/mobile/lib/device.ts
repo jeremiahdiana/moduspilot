@@ -53,21 +53,29 @@ export interface SimpleContact {
 export async function getContacts(): Promise<SimpleContact[]> {
   if (!nativeAvailable.contacts) return [];
   try {
-    const Contacts = await import('expo-contacts');
-    const { status } = await Contacts.getPermissionsAsync();
+    const { Contact, ContactField, getPermissionsAsync } = await import('expo-contacts');
+    const { status } = await getPermissionsAsync();
     if (status !== 'granted') return [];
-    const { data } = await Contacts.getContactsAsync({
-      fields: [Contacts.Fields.Name, Contacts.Fields.Emails, Contacts.Fields.PhoneNumbers],
-      sort: Contacts.SortTypes.FirstName,
-    });
-    return data
-      .filter(c => c.name)
-      .map(c => ({
-        id: c.id ?? `${c.name.replace(/\s+/g, '_')}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: c.name!,
-        email: c.emails?.[0]?.email,
-        phone: c.phoneNumbers?.[0]?.number,
-      }));
+    // getContactsAsync was removed in expo-contacts SDK 56 — use Contact.getAllDetails instead
+    type RawContact = { id?: string; fullName?: string; givenName?: string; familyName?: string; emails?: Array<{ address?: string }>; phones?: Array<{ number?: string }> };
+    const data = await Contact.getAllDetails(
+      [ContactField.GIVEN_NAME, ContactField.FAMILY_NAME, ContactField.FULL_NAME, ContactField.EMAILS, ContactField.PHONES],
+    ) as RawContact[];
+    const results: SimpleContact[] = [];
+    for (const c of data) {
+      const name = c.fullName ?? [c.givenName, c.familyName].filter(Boolean).join(' ');
+      if (!name) continue;
+      const contact: SimpleContact = {
+        id: c.id ?? `${name.replace(/\s+/g, '_')}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name,
+      };
+      const email = c.emails?.[0]?.address;
+      const phone = c.phones?.[0]?.number;
+      if (email) contact.email = email;
+      if (phone) contact.phone = phone;
+      results.push(contact);
+    }
+    return results;
   } catch { return []; }
 }
 

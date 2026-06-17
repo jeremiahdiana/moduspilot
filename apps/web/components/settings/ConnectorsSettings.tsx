@@ -137,7 +137,6 @@ export default function ConnectorsSettings({ user }: Props) {
   const [githubAccounts, setGithubAccounts] = useState<GitHubAccount[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([]);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
-  const [togglingDevice, setTogglingDevice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
@@ -317,20 +316,6 @@ export default function ConnectorsSettings({ user }: Props) {
       setMcpServers(prev => prev.filter(s => s.id !== serverId));
     } catch { setError('Failed to remove server'); }
     finally { setMcpRemoving(null); }
-  }
-
-  async function toggleDeviceAccess(key: string, enabled: boolean) {
-    setTogglingDevice(key);
-    try {
-      const token = await user.getIdToken();
-      await fetch('/api/mobile/access', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, enabled }),
-      });
-      setDeviceStatus(prev => prev ? { ...prev, [key]: { ...prev[key as keyof DeviceStatus], enabled } } : prev);
-    } catch { setError('Failed to update. Try again.'); }
-    finally { setTogglingDevice(null); }
   }
 
   async function disconnectGitHub(login: string) {
@@ -524,27 +509,21 @@ export default function ConnectorsSettings({ user }: Props) {
             label="Contacts"
             desc={deviceStatus?.contacts.count ? `${deviceStatus.contacts.count} contacts synced · relationship tracking` : 'Relationship tracking & follow-up nudges'}
             item={deviceStatus?.contacts ?? null}
-            toggling={togglingDevice === 'contacts'}
             loading={loading}
-            onToggle={enabled => toggleDeviceAccess('contacts', enabled)}
           />
           <DeviceRow
             icon={<HealthIcon />}
             label="Health"
             desc="Steps & sleep data in your morning briefing"
             item={deviceStatus?.health ?? null}
-            toggling={togglingDevice === 'health'}
             loading={loading}
-            onToggle={enabled => toggleDeviceAccess('health', enabled)}
           />
           <DeviceRow
             icon={<PhotosIcon />}
             label="Photos"
             desc="Attach & reference photos in chat"
             item={deviceStatus?.photos ?? null}
-            toggling={togglingDevice === 'photos'}
             loading={loading}
-            onToggle={enabled => toggleDeviceAccess('photos', enabled)}
           />
         </div>
         <p className="text-xs text-muted mt-3 px-1">
@@ -787,20 +766,6 @@ function InitialAvatar({ seed }: { seed: string }) {
   );
 }
 
-function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={() => !disabled && onChange(!checked)}
-      disabled={disabled}
-      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors duration-200 disabled:opacity-50 focus:outline-none ${checked ? 'bg-brand border-brand' : 'bg-bg border-border'}`}
-    >
-      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 my-auto ${checked ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
-    </button>
-  );
-}
-
 function PermBadge({ permission }: { permission: string | null }) {
   if (!permission) return <span className="text-xs text-muted">Open iOS app to sync</span>;
   if (permission === 'granted') return (
@@ -817,14 +782,12 @@ function PermBadge({ permission }: { permission: string | null }) {
   return <span className="text-xs text-muted">Not granted on iOS</span>;
 }
 
-function DeviceRow({ icon, label, desc, item, toggling, loading, onToggle }: {
+function DeviceRow({ icon, label, desc, item, loading }: {
   icon: React.ReactNode;
   label: string;
   desc: string;
-  item: { permission: string | null; enabled: boolean } | null;
-  toggling: boolean;
+  item: { permission: string | null } | null;
   loading: boolean;
-  onToggle: (enabled: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-4 px-6 py-4">
@@ -834,23 +797,14 @@ function DeviceRow({ icon, label, desc, item, toggling, loading, onToggle }: {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-text">{label}</p>
         <p className="text-xs text-muted">{desc}</p>
-        <div className="mt-1">
-          {loading ? (
-            <span className="text-xs text-muted/50">Loading…</span>
-          ) : (
-            <PermBadge permission={item?.permission ?? null} />
-          )}
-        </div>
       </div>
-      {loading ? (
-        <div className="w-9 h-5 rounded-full bg-border animate-pulse" />
-      ) : (
-        <Toggle
-          checked={item?.enabled ?? true}
-          onChange={onToggle}
-          disabled={toggling}
-        />
-      )}
+      <div className="shrink-0">
+        {loading ? (
+          <div className="w-20 h-5 rounded-full bg-border animate-pulse" />
+        ) : (
+          <PermBadge permission={item?.permission ?? null} />
+        )}
+      </div>
     </div>
   );
 }
