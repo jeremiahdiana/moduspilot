@@ -204,7 +204,8 @@ export async function fetchConnectorData(
 }
 
 // ── Device contacts (synced from iOS address book) ───────────────────────────
-export async function fetchContactsBlock(uid: string): Promise<string> {
+export async function fetchContactsBlock(uid: string, enabled = true): Promise<string> {
+  if (!enabled) return '';
   try {
     const snap = await adminDb
       .collection('users').doc(uid)

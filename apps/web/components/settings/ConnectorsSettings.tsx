@@ -9,6 +9,8 @@ interface NotionAccount { workspaceId: string; workspaceName: string; workspaceI
 interface SlackAccount { teamId: string; teamName: string; connectedAt: string | null; }
 interface GitHubAccount { login: string; name: string | null; avatarUrl: string; connectedAt: string | null; }
 interface McpServerEntry { id: string; name: string; url: string; authHeader?: string; createdAt: string; }
+interface DeviceItem { count?: number; permission: string | null; enabled: boolean; }
+interface DeviceStatus { contacts: DeviceItem; health: DeviceItem; photos: DeviceItem; }
 
 interface Props { user: User }
 
@@ -37,6 +39,24 @@ function SlackIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
       <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
+    </svg>
+  );
+}
+
+function HealthIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  );
+}
+
+function PhotosIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
     </svg>
   );
 }
@@ -116,7 +136,8 @@ export default function ConnectorsSettings({ user }: Props) {
   const [slackAccounts, setSlackAccounts] = useState<SlackAccount[]>([]);
   const [githubAccounts, setGithubAccounts] = useState<GitHubAccount[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerEntry[]>([]);
-  const [contactCount, setContactCount] = useState(0);
+  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
+  const [togglingDevice, setTogglingDevice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
@@ -135,19 +156,19 @@ export default function ConnectorsSettings({ user }: Props) {
   useEffect(() => {
     user.getIdToken().then(async token => {
       try {
-        const [googleRes, connRes, mcpRes, contactsRes] = await Promise.all([
+        const [googleRes, connRes, mcpRes, deviceRes] = await Promise.all([
           fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/mcp/list', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/api/contacts/count', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/mobile/status', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
-        const [googleData, connData, mcpData, contactsData] = await Promise.all([googleRes.json(), connRes.json(), mcpRes.json(), contactsRes.json()]);
+        const [googleData, connData, mcpData, deviceData] = await Promise.all([googleRes.json(), connRes.json(), mcpRes.json(), deviceRes.json()]);
         setGoogleAccounts(googleData.accounts ?? []);
         setNotionAccounts(connData.notion ?? []);
         setSlackAccounts(connData.slack ?? []);
         setGithubAccounts(connData.github ?? []);
         setMcpServers(mcpData.servers ?? []);
-        setContactCount(contactsData.count ?? 0);
+        setDeviceStatus(deviceData);
       } catch { /* non-fatal */ }
       finally { setLoading(false); }
     });
@@ -296,6 +317,20 @@ export default function ConnectorsSettings({ user }: Props) {
       setMcpServers(prev => prev.filter(s => s.id !== serverId));
     } catch { setError('Failed to remove server'); }
     finally { setMcpRemoving(null); }
+  }
+
+  async function toggleDeviceAccess(key: string, enabled: boolean) {
+    setTogglingDevice(key);
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/mobile/access', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, enabled }),
+      });
+      setDeviceStatus(prev => prev ? { ...prev, [key]: { ...prev[key as keyof DeviceStatus], enabled } } : prev);
+    } catch { setError('Failed to update. Try again.'); }
+    finally { setTogglingDevice(null); }
   }
 
   async function disconnectGitHub(login: string) {
@@ -480,27 +515,42 @@ export default function ConnectorsSettings({ user }: Props) {
         </div>
       </ConnectorCard>
 
-      {/* ── Contacts ── */}
-      <ConnectorCard
-        icon={<ContactsIcon />}
-        label="Contacts"
-        subtitle="iOS address book"
-        loading={loading}
-        connectedCount={contactCount}
-        connectedLabel={`${contactCount} contact${contactCount !== 1 ? 's' : ''} synced`}
-      >
-        <div className="px-6 py-5 space-y-3">
-          {contactCount === 0 && (
-            <p className="text-xs text-muted/70 border border-border rounded-lg px-3 py-2 italic">
-              Open the MODUS iOS app → Connectors → Contacts to start syncing.
-            </p>
-          )}
-          <p className="text-xs text-muted">
-            MODUS reads your device contacts so it can reference people by name in chat.
-            New contacts sync automatically each time you open the iOS app.
-          </p>
+      {/* ── On This Device ── */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">On This Device</h3>
+        <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
+          <DeviceRow
+            icon={<ContactsIcon />}
+            label="Contacts"
+            desc={deviceStatus?.contacts.count ? `${deviceStatus.contacts.count} contacts synced · relationship tracking` : 'Relationship tracking & follow-up nudges'}
+            item={deviceStatus?.contacts ?? null}
+            toggling={togglingDevice === 'contacts'}
+            loading={loading}
+            onToggle={enabled => toggleDeviceAccess('contacts', enabled)}
+          />
+          <DeviceRow
+            icon={<HealthIcon />}
+            label="Health"
+            desc="Steps & sleep data in your morning briefing"
+            item={deviceStatus?.health ?? null}
+            toggling={togglingDevice === 'health'}
+            loading={loading}
+            onToggle={enabled => toggleDeviceAccess('health', enabled)}
+          />
+          <DeviceRow
+            icon={<PhotosIcon />}
+            label="Photos"
+            desc="Attach & reference photos in chat"
+            item={deviceStatus?.photos ?? null}
+            toggling={togglingDevice === 'photos'}
+            loading={loading}
+            onToggle={enabled => toggleDeviceAccess('photos', enabled)}
+          />
         </div>
-      </ConnectorCard>
+        <p className="text-xs text-muted mt-3 px-1">
+          Permission is managed in iOS Settings. Disable to stop MODUS from using that data even if permission is granted.
+        </p>
+      </div>
 
       {/* Custom MCP */}
       <div className="bg-panel border border-border rounded-xl overflow-hidden">
@@ -733,6 +783,74 @@ function InitialAvatar({ seed }: { seed: string }) {
   return (
     <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center`}>
       <span className="text-xs font-bold text-white">{seed[0]?.toUpperCase() ?? '?'}</span>
+    </div>
+  );
+}
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors duration-200 disabled:opacity-50 focus:outline-none ${checked ? 'bg-brand border-brand' : 'bg-bg border-border'}`}
+    >
+      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 my-auto ${checked ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
+    </button>
+  );
+}
+
+function PermBadge({ permission }: { permission: string | null }) {
+  if (!permission) return <span className="text-xs text-muted">Open iOS app to sync</span>;
+  if (permission === 'granted') return (
+    <span className="flex items-center gap-1 text-xs font-medium text-emerald-400">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />Enabled on iOS
+    </span>
+  );
+  if (permission === 'denied') return (
+    <span className="flex items-center gap-1 text-xs font-medium text-red-400">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-400" />Denied on iOS
+    </span>
+  );
+  if (permission === 'unavailable') return <span className="text-xs text-muted">Not available</span>;
+  return <span className="text-xs text-muted">Not granted on iOS</span>;
+}
+
+function DeviceRow({ icon, label, desc, item, toggling, loading, onToggle }: {
+  icon: React.ReactNode;
+  label: string;
+  desc: string;
+  item: { permission: string | null; enabled: boolean } | null;
+  toggling: boolean;
+  loading: boolean;
+  onToggle: (enabled: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-4 px-6 py-4">
+      <div className="w-9 h-9 rounded-xl bg-bg border border-border flex items-center justify-center shrink-0 text-text">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-text">{label}</p>
+        <p className="text-xs text-muted">{desc}</p>
+        <div className="mt-1">
+          {loading ? (
+            <span className="text-xs text-muted/50">Loading…</span>
+          ) : (
+            <PermBadge permission={item?.permission ?? null} />
+          )}
+        </div>
+      </div>
+      {loading ? (
+        <div className="w-9 h-5 rounded-full bg-border animate-pulse" />
+      ) : (
+        <Toggle
+          checked={item?.enabled ?? true}
+          onChange={onToggle}
+          disabled={toggling}
+        />
+      )}
     </div>
   );
 }

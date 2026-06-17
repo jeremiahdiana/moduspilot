@@ -20,7 +20,7 @@ import {
 } from '@/lib/device';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
-import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface Row { label: string; sub: string; key: Record<string, string> }
 
@@ -75,6 +75,15 @@ export default function ConnectorsScreen() {
       setHealthPerm('unavailable');
     }
   }, []);
+
+  // Write iOS permission status to Firestore so the web UI can display it accurately
+  useEffect(() => {
+    if (!user?.uid) return;
+    if (contactsPerm === 'loading' || photosPerm === 'loading' || healthPerm === 'loading') return;
+    setDoc(doc(db, 'users', user.uid), {
+      mobilePermissions: { contacts: contactsPerm, health: healthPerm, photos: photosPerm },
+    }, { merge: true }).catch(e => console.error('[permissions] write failed:', e));
+  }, [contactsPerm, photosPerm, healthPerm, user?.uid]);
 
   // Sync contacts when BOTH permission is granted AND auth is ready (guards against race condition
   // where getContactsPermissionStatus resolves before onAuthStateChanged fires)

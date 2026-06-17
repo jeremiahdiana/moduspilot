@@ -177,7 +177,7 @@ export async function POST(req: Request) {
     if (uid) {
       [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock] = await Promise.all([
         fetchConnectorData(uid, queryText),
-        fetchContactsBlock(uid),
+        fetchContactsBlock(uid, userData.settings?.deviceAccess?.contacts !== false),
       ]);
     }
 
