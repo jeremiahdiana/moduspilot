@@ -32,22 +32,24 @@ function Ico({ d, d2, className }: { d: string; d2?: string; className?: string 
 }
 
 const ICONS = {
-  dashboard:  'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
-  briefing:   'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9',
-  briefing2:  'M13.73 21a2 2 0 01-3.46 0',
-  chat:       'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
-  projects:   'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
-  goals:      'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9',
-  reminders:  'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
-  settings:   'M12 2a10 10 0 110 20A10 10 0 0112 2zm0 5v5l3 3',
+  dashboard:   'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+  briefing:    'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9',
+  briefing2:   'M13.73 21a2 2 0 01-3.46 0',
+  chat:        'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
+  projects:    'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
+  goals:       'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9',
+  reminders:   'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  connections: 'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71',
+  settings:    'M12 2a10 10 0 110 20A10 10 0 0112 2zm0 5v5l3 3',
 } as const;
 
 const NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' as const },
-  { href: '/chat',      label: 'Chat',      icon: 'chat'      as const },
-  { href: '/projects',  label: 'Projects',  icon: 'projects'  as const },
-  { href: '/goals',     label: 'Goals',     icon: 'goals'     as const },
-  { href: '/reminders', label: 'Reminders', icon: 'reminders' as const },
+  { href: '/dashboard',   label: 'Dashboard',   icon: 'dashboard'   as const },
+  { href: '/chat',        label: 'Chat',        icon: 'chat'        as const },
+  { href: '/projects',    label: 'Projects',    icon: 'projects'    as const },
+  { href: '/goals',       label: 'Goals',       icon: 'goals'       as const },
+  { href: '/reminders',   label: 'Reminders',   icon: 'reminders'   as const },
+  { href: '/connections', label: 'Connections', icon: 'connections' as const },
 ];
 
 function BriefingNavLink({ pathname }: { pathname: string }) {

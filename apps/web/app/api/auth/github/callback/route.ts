@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (error || !code || !state) {
-    return Response.redirect(`${appUrl}/settings?tab=connectors&error=github_denied`);
+    return Response.redirect(`${appUrl}/connections&error=github_denied`);
   }
 
   try {
@@ -23,9 +23,9 @@ export async function GET(req: Request) {
     if (origin === 'chat') {
       return Response.redirect(`${appUrl}/chat?connected=github`);
     }
-    return Response.redirect(`${appUrl}/settings?tab=connectors&connected=github`);
+    return Response.redirect(`${appUrl}/connections&connected=github`);
   } catch (e) {
     console.error('[github/callback]', e);
-    return Response.redirect(`${appUrl}/settings?tab=connectors&error=github_failed`);
+    return Response.redirect(`${appUrl}/connections&error=github_failed`);
   }
 }

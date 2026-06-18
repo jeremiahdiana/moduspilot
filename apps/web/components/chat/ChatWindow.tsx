@@ -5,9 +5,36 @@ import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
 import { motion } from 'framer-motion';
+
+interface ConnectedServices {
+  google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
+}
+
+function getSmartPrompts(svc: ConnectedServices): string[] {
+  const prompts: string[] = [];
+  if (svc.google)   prompts.push("What's on my calendar today?", "Any important emails?");
+  if (svc.notion)   prompts.push("Search my Notion notes");
+  if (svc.slack)    prompts.push("Catch me up on Slack");
+  if (svc.github)   prompts.push("What are my open pull requests?");
+  if (svc.contacts) prompts.push("Who do I know at [company]?");
+  if (prompts.length === 0) {
+    return ["Help me plan my day", "Draft a message", "Think through a decision", "Set a goal"];
+  }
+  return prompts.slice(0, 4);
+}
+
+function ServiceBadge({ label }: { label: string }) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-muted">
+      <span className="w-1.5 h-1.5 rounded-full bg-green-400/70" />
+      {label}
+    </span>
+  );
+}
 
 interface Props {
   conversationId: string | null;
@@ -41,6 +68,7 @@ export default function ChatWindow({
   briefingTimezone,
 }: Props) {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
+  const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
   const inputAreaRef = useRef<HTMLTextAreaElement>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const prevLoadingRef = useRef(false);
@@ -55,6 +83,28 @@ export default function ChatWindow({
     });
     return unsub;
   }, []);
+
+  // Fetch connector status once when empty state is visible — drives smart prompts
+  useEffect(() => {
+    if (!authToken || isGuest || messages.length > 0) return;
+    let cancelled = false;
+    Promise.all([
+      fetch('/api/google/status',     { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json()).catch(() => ({})),
+      fetch('/api/connectors/status', { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json()).catch(() => ({})),
+      fetch('/api/mobile/status',     { headers: { Authorization: `Bearer ${authToken}` } }).then(r => r.json()).catch(() => ({})),
+    ]).then(([g, c, m]) => {
+      if (cancelled) return;
+      setConnectedServices({
+        google:   (g.accounts?.length  ?? 0) > 0,
+        notion:   (c.notion?.length    ?? 0) > 0,
+        slack:    (c.slack?.length     ?? 0) > 0,
+        github:   (c.github?.length    ?? 0) > 0,
+        contacts: (m.contacts?.count   ?? 0) > 0,
+      });
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authToken, isGuest]);
 
   const [chatError, setChatError] = useState<string | null>(null);
 
@@ -171,20 +221,20 @@ export default function ChatWindow({
             transition={{ type: 'spring', stiffness: 200, damping: 24 }}
             className="flex flex-col items-center justify-center mt-20 gap-5"
           >
-            {/* Glowing avatar with float */}
+            {/* Glowing avatar */}
             <div className="relative">
               <motion.div
                 className="absolute inset-0 rounded-2xl bg-brand/25 blur-xl"
                 animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.15, 1] }}
                 transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
               />
-              <motion.div
-                className="relative w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center float"
-              >
+              <motion.div className="relative w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center float">
                 <Image src="/logo.png" alt="MODUS" width={28} height={28} className="opacity-80 dark:hidden" />
                 <Image src="/logo-dark.png" alt="MODUS" width={28} height={28} className="opacity-80 hidden dark:block" />
               </motion.div>
             </div>
+
+            {/* Title */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -196,6 +246,51 @@ export default function ChatWindow({
                 {isGuest ? 'Sign in to save your conversations.' : 'Your chief of staff. Ready when you are.'}
               </p>
             </motion.div>
+
+            {/* Smart prompt chips */}
+            {!isGuest && connectedServices && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, type: 'spring', stiffness: 220, damping: 24 }}
+                className="flex flex-wrap gap-2 justify-center max-w-sm"
+              >
+                {getSmartPrompts(connectedServices).map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => { setInput(prompt); setTimeout(() => inputAreaRef.current?.focus(), 50); }}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Connected services strip */}
+            {!isGuest && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.42 }}
+                className="flex items-center gap-3 flex-wrap justify-center"
+              >
+                {connectedServices && Object.values(connectedServices).some(Boolean) ? (
+                  <>
+                    {connectedServices.google   && <ServiceBadge label="Google" />}
+                    {connectedServices.notion   && <ServiceBadge label="Notion" />}
+                    {connectedServices.slack    && <ServiceBadge label="Slack" />}
+                    {connectedServices.github   && <ServiceBadge label="GitHub" />}
+                    {connectedServices.contacts && <ServiceBadge label="Contacts" />}
+                    <Link href="/connections" className="text-xs text-muted hover:text-text transition-colors">Manage →</Link>
+                  </>
+                ) : connectedServices !== null ? (
+                  <Link href="/connections" className="text-xs text-muted hover:text-brand transition-colors">
+                    Connect your tools →
+                  </Link>
+                ) : null}
+              </motion.div>
+            )}
           </motion.div>
         )}
         {messages.map((m, idx) => (

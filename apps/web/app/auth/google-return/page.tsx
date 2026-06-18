@@ -18,7 +18,7 @@ export default function GoogleReturnPage() {
       router.replace(
         origin === 'onboarding'
           ? '/onboarding?error=google_failed'
-          : '/settings?tab=connectors&error=google_failed'
+          : '/connections?error=google_failed'
       );
     };
 
@@ -29,7 +29,7 @@ export default function GoogleReturnPage() {
         if (origin === 'onboarding') {
           router.replace(`/onboarding?connected=${encodeURIComponent(email)}`);
         } else {
-          router.replace(`/settings?tab=connectors&connected=${encodeURIComponent(email)}`);
+          router.replace(`/connections?connected=${encodeURIComponent(email)}`);
         }
       })
       .catch(onError);

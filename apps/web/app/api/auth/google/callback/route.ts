@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     if (origin === 'onboarding') {
       return Response.redirect(`${appUrl}/onboarding?error=google_denied`);
     }
-    return Response.redirect(`${appUrl}/settings?tab=connectors&error=google_denied`);
+    return Response.redirect(`${appUrl}/connections&error=google_denied`);
   }
 
   try {
@@ -57,13 +57,13 @@ export async function GET(req: Request) {
     if (origin === 'onboarding') {
       return Response.redirect(`${appUrl}/onboarding?connected=${encodeURIComponent(email)}`);
     }
-    return Response.redirect(`${appUrl}/settings?tab=connectors&connected=${encodeURIComponent(email)}`);
+    return Response.redirect(`${appUrl}/connections&connected=${encodeURIComponent(email)}`);
   } catch (e) {
     console.error('[google/callback]', e);
     const origin = originFromState(state);
     if (origin === 'onboarding') {
       return Response.redirect(`${appUrl}/onboarding?error=google_failed`);
     }
-    return Response.redirect(`${appUrl}/settings?tab=connectors&error=google_failed`);
+    return Response.redirect(`${appUrl}/connections&error=google_failed`);
   }
 }

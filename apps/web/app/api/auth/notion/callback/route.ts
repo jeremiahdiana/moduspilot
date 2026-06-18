@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (error || !code || !state) {
-    return Response.redirect(`${appUrl}/settings?tab=connectors&error=notion_denied`);
+    return Response.redirect(`${appUrl}/connections&error=notion_denied`);
   }
 
   try {
@@ -22,9 +22,9 @@ export async function GET(req: Request) {
     if (origin === 'chat') {
       return Response.redirect(`${appUrl}/chat?connected=notion`);
     }
-    return Response.redirect(`${appUrl}/settings?tab=connectors&connected=notion`);
+    return Response.redirect(`${appUrl}/connections&connected=notion`);
   } catch (e) {
     console.error('[notion/callback]', e);
-    return Response.redirect(`${appUrl}/settings?tab=connectors&error=notion_failed`);
+    return Response.redirect(`${appUrl}/connections&error=notion_failed`);
   }
 }
