@@ -333,7 +333,7 @@ export default function ConnectorsSettings({ user }: Props) {
   });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 flex items-center justify-between gap-3">
           <span>{error}</span>
@@ -345,7 +345,8 @@ export default function ConnectorsSettings({ user }: Props) {
         </div>
       )}
 
-      {/* ── Integrations ── */}
+      <div className="grid lg:grid-cols-[1fr_300px] lg:gap-8 gap-6 items-start">
+      {/* ── Left column: Integrations ── */}
       <SectionGroup label="Integrations">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
           {/* Google */}
@@ -463,7 +464,8 @@ export default function ConnectorsSettings({ user }: Props) {
         </div>
       </SectionGroup>
 
-      {/* ── On This Device ── */}
+      {/* ── Right column: Device + Custom ── */}
+      <div className="space-y-6">
       <SectionGroup label="On This Device">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
           {/* Contacts */}
@@ -693,6 +695,8 @@ export default function ConnectorsSettings({ user }: Props) {
           </AnimatePresence>
         </div>
       </SectionGroup>
+      </div>{/* end right column */}
+      </div>{/* end grid */}
     </div>
   );
 }

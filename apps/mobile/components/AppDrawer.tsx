@@ -20,9 +20,10 @@ const NAV: { label: string; seg: string; href: string; icon: IconName }[] = [
   { label: 'Briefing',  seg: 'briefing',  href: '/(app)/(tabs)/briefing',  icon: 'wb-sunny' },
   { label: 'Chat',      seg: 'chat',      href: '/(app)/(tabs)/chat',      icon: 'auto-awesome' },
   { label: 'Goals',     seg: 'goals',     href: '/(app)/(tabs)/goals',     icon: 'flag' },
-  { label: 'Reminders', seg: 'reminders', href: '/(app)/(tabs)/reminders', icon: 'checklist' },
-  { label: 'Projects',  seg: 'projects',  href: '/(app)/(tabs)/projects',  icon: 'folder' },
-  { label: 'Settings',  seg: 'settings',  href: '/(app)/(tabs)/settings',  icon: 'settings' },
+  { label: 'Reminders',    seg: 'reminders',  href: '/(app)/(tabs)/reminders',  icon: 'checklist' },
+  { label: 'Projects',     seg: 'projects',   href: '/(app)/(tabs)/projects',   icon: 'folder' },
+  { label: 'Connections',  seg: 'connectors', href: '/(app)/connectors',        icon: 'hub' },
+  { label: 'Settings',     seg: 'settings',   href: '/(app)/(tabs)/settings',   icon: 'settings' },
 ];
 
 const DrawerCtx = createContext<{ open: () => void; close: () => void }>({ open: () => {}, close: () => {} });
