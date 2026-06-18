@@ -303,6 +303,16 @@ export default function ConnectorsScreen() {
                   perm={contactsPerm}
                   onGrant={grantContacts}
                 />
+                {contactsPerm === 'granted' && (
+                  <TouchableOpacity
+                    onPress={() => router.push('/(app)/contacts-manage' as never)}
+                    activeOpacity={0.7}
+                    className="flex-row items-center justify-between px-4 py-3 bg-brand/5"
+                  >
+                    <Text className="text-brand text-[13px] font-medium ml-12">Manage contacts & categories</Text>
+                    <Icon name="chevron-right" size={16} color={c.brand} />
+                  </TouchableOpacity>
+                )}
                 <View className="h-px bg-border ml-16" />
                 <DeviceRow
                   icon="favorite-border"

@@ -11,6 +11,7 @@ interface GitHubAccount { login: string; name: string | null; avatarUrl: string;
 interface McpServerEntry { id: string; name: string; url: string; authHeader?: string; createdAt: string; }
 interface DeviceItem { count?: number; permission: string | null; enabled: boolean; }
 interface DeviceStatus { contacts: DeviceItem; health: DeviceItem; photos: DeviceItem; }
+interface ContactEntry { id: string; name: string; email: string | null; phone: string | null; company: string | null; userCategory: string | null; }
 
 interface Props { user: User }
 
@@ -141,6 +142,11 @@ export default function ConnectorsSettings({ user }: Props) {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const [contactsList, setContactsList] = useState<ContactEntry[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactsSearch, setContactsSearch] = useState('');
+  const [contactsSaving, setContactsSaving] = useState<string | null>(null);
 
   // MCP form state
   const [mcpFormOpen, setMcpFormOpen] = useState(false);
@@ -280,6 +286,36 @@ export default function ConnectorsSettings({ user }: Props) {
     } finally {
       setMcpTesting(false);
     }
+  }
+
+  async function loadContacts() {
+    setContactsLoading(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/contacts', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setContactsList(data.contacts ?? []);
+    } catch { /* non-fatal */ }
+    finally { setContactsLoading(false); }
+  }
+
+  async function setContactCategory(id: string, category: string | null) {
+    setContactsSaving(id);
+    try {
+      const token = await user.getIdToken();
+      await fetch(`/api/contacts/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userCategory: category }),
+      });
+      setContactsList(prev => prev.map(c => c.id === id ? { ...c, userCategory: category } : c));
+    } catch { /* non-fatal */ }
+    finally { setContactsSaving(null); }
+  }
+
+  function toggleContactsPanel() {
+    if (!contactsOpen && contactsList.length === 0) loadContacts();
+    setContactsOpen(o => !o);
   }
 
   async function saveMcpServer() {
@@ -504,13 +540,99 @@ export default function ConnectorsSettings({ user }: Props) {
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">On This Device</h3>
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
-          <DeviceRow
-            icon={<ContactsIcon />}
-            label="Contacts"
-            desc={deviceStatus?.contacts.count ? `${deviceStatus.contacts.count} contacts synced · relationship tracking` : 'Relationship tracking & follow-up nudges'}
-            item={deviceStatus?.contacts ?? null}
-            loading={loading}
-          />
+          {/* Contacts row — expandable manage panel */}
+          <div>
+            <div className="flex items-center gap-4 px-6 py-4">
+              <div className="w-9 h-9 rounded-xl bg-bg border border-border flex items-center justify-center shrink-0 text-text">
+                <ContactsIcon />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text">Contacts</p>
+                <p className="text-xs text-muted">
+                  {deviceStatus?.contacts.count ? `${deviceStatus.contacts.count} contacts synced · relationship tracking` : 'Relationship tracking & follow-up nudges'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                {loading ? (
+                  <div className="w-20 h-5 rounded-full bg-border animate-pulse" />
+                ) : (
+                  <>
+                    <PermBadge permission={deviceStatus?.contacts.permission ?? null} />
+                    {(deviceStatus?.contacts.count ?? 0) > 0 && (
+                      <button
+                        onClick={toggleContactsPanel}
+                        className="text-xs font-medium text-brand hover:underline"
+                      >
+                        {contactsOpen ? 'Close' : 'Manage'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            {contactsOpen && (
+              <div className="border-t border-border px-6 py-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Search contacts…"
+                  value={contactsSearch}
+                  onChange={e => setContactsSearch(e.target.value)}
+                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-brand"
+                />
+                {contactsLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="max-h-80 overflow-y-auto space-y-1">
+                    {contactsList
+                      .filter(c => {
+                        const q = contactsSearch.toLowerCase();
+                        return !q || c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.company?.toLowerCase().includes(q);
+                      })
+                      .map(c => {
+                        const sub = [c.company, c.email ?? c.phone].filter(Boolean).join(' · ');
+                        const saving = contactsSaving === c.id;
+                        return (
+                          <div key={c.id} className={`flex items-start gap-3 py-2 ${c.userCategory === 'excluded' ? 'opacity-40' : ''}`}>
+                            <div className="flex-1 min-w-0 pt-0.5">
+                              <p className={`text-sm font-medium text-text truncate ${c.userCategory === 'excluded' ? 'line-through' : ''}`}>{c.name}</p>
+                              {sub && <p className="text-xs text-muted truncate">{sub}</p>}
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {saving && <div className="w-3 h-3 border border-brand border-t-transparent rounded-full animate-spin mr-1" />}
+                              {(['personal', 'professional', 'service', 'excluded'] as const).map(cat => (
+                                <button
+                                  key={cat}
+                                  disabled={saving}
+                                  onClick={() => setContactCategory(c.id, c.userCategory === cat ? null : cat)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors capitalize ${
+                                    c.userCategory === cat
+                                      ? cat === 'excluded'
+                                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                        : 'bg-brand/20 text-brand border border-brand/30'
+                                      : 'bg-bg border border-border text-muted hover:text-text'
+                                  }`}
+                                >
+                                  {cat === 'excluded' ? 'Exclude' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {contactsList.filter(c => {
+                      const q = contactsSearch.toLowerCase();
+                      return !q || c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.company?.toLowerCase().includes(q);
+                    }).length === 0 && (
+                      <p className="text-xs text-muted text-center py-4">No contacts match</p>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-muted pt-1">Re-open the iOS app to refresh company and job data. Click a category to override — click again to revert to auto-detection.</p>
+              </div>
+            )}
+          </div>
           <DeviceRow
             icon={<HealthIcon />}
             label="Health"

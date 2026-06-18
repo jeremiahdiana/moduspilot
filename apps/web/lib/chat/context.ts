@@ -204,8 +204,6 @@ export async function fetchConnectorData(
 }
 
 // ── Device contacts (synced from iOS address book) ───────────────────────────
-const SERVICE_RE = /\b(bank|credit|debit|insurance|support|service|customer|balance|inquiry|1-?800|chase|wells\s?fargo|citi|amex|american\s?express|verizon|at&t|t-mobile|sprint|apple|amazon|google|irs|dmv|911|aaa|usps|ups|fedex|hulu|netflix|spotify|walmart|target|cvs|walgreens|costco|comcast|xfinity)\b/i;
-
 export async function fetchContactsBlock(uid: string, enabled = true): Promise<string> {
   if (!enabled) return '';
   try {
@@ -217,10 +215,13 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
     if (snap.empty) return '';
 
     const today = new Date();
-    const todayMonth = today.getMonth() + 1;
-    const todayDay = today.getDate();
 
-    type RawDoc = { name?: string; email?: string; phone?: string; company?: string; jobTitle?: string; birthday?: { month: number; day: number; year?: number } };
+    type RawDoc = {
+      name?: string; email?: string; phone?: string;
+      company?: string; jobTitle?: string;
+      birthday?: { month: number; day: number; year?: number };
+      userCategory?: 'personal' | 'professional' | 'service' | 'excluded';
+    };
 
     const personal: string[] = [];
     const professional: string[] = [];
@@ -231,6 +232,10 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
       if (!data.name) continue;
       const name = data.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80);
       if (!name) continue;
+
+      // User-set exclusion: skip entirely
+      if (data.userCategory === 'excluded') continue;
+
       const email = data.email ? data.email.replace(/[\r\n\t<>]/g, '').slice(0, 100) : null;
       const company = data.company ? data.company.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80) : null;
       const jobTitle = data.jobTitle ? data.jobTitle.replace(/[\r\n\t]/g, ' ').trim().slice(0, 60) : null;
@@ -245,12 +250,16 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
         if (daysUntil <= 7) birthdayTag = ` 🎂 birthday in ${daysUntil === 0 ? 'today' : `${daysUntil}d`}`;
       }
 
-      if (SERVICE_RE.test(name) || (!email && !company && /^\+?[\d\s\-().]{7,}$/.test(name))) {
+      // Category: userCategory overrides auto-detection
+      const isPhoneOnly = !email && !company && /^\+?[\d\s\-().]{7,}$/.test(name) && !/[a-zA-Z]/.test(name);
+      const category = data.userCategory ?? (company ? 'professional' : isPhoneOnly ? 'service' : 'personal');
+
+      if (category === 'service') {
         services.push(`[Service] ${name}${email ? ` (${email})` : ''}`);
-      } else if (company) {
+      } else if (category === 'professional') {
         const title = jobTitle ? ` · ${jobTitle}` : '';
         const emailPart = email ? ` (${email})` : '';
-        professional.push(`${name} @ ${company}${title}${emailPart}${birthdayTag}`);
+        professional.push(`${name}${company ? ` @ ${company}` : ''}${title}${emailPart}${birthdayTag}`);
       } else {
         personal.push(`${name}${email ? ` (${email})` : ''}${birthdayTag}`);
       }
@@ -260,7 +269,7 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
     if (total === 0) return '';
 
     const lines: string[] = [
-      `\n\nKNOWN CONTACTS (${total} total — use naturally when the user mentions someone; never recite the full list unprompted):`,
+      `\n\nKNOWN CONTACTS (${total} total — reference by name in conversation; if asked to list contacts, reply with group counts and offer to search for a specific person — never output the full list):`,
     ];
     if (personal.length > 0) lines.push(`\nPersonal (${personal.length}):\n${personal.join(', ')}`);
     if (professional.length > 0) lines.push(`\nProfessional (${professional.length}):\n${professional.join('\n')}`);
