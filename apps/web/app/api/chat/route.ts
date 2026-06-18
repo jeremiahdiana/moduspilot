@@ -24,6 +24,7 @@ import {
   fetchConnectorData,
   fetchProjectResources,
   fetchContactsBlock,
+  fetchContactEmailMap,
 } from '@/lib/chat/context';
 import {
   buildUserContextBlock,
@@ -137,7 +138,11 @@ export async function POST(req: Request) {
     let gmailBlock = '';
     let calendarBlock = '';
     if (uid && (wantsEmail || wantsCalendar)) {
-      ({ gmailBlock, calendarBlock } = await fetchGoogleData(uid, userData, { wantsEmail, wantsCalendar, briefingTimezone }));
+      const contactsEnabled = userData.settings?.deviceAccess?.contacts !== false;
+      // Build contact map first (~50ms Firestore read) so Gmail threads can be annotated with known contact names.
+      // This is sequential by necessity but adds negligible time vs the Gmail API which takes up to 5s.
+      const contactEmailMap = contactsEnabled ? await fetchContactEmailMap(uid) : new Map();
+      ({ gmailBlock, calendarBlock } = await fetchGoogleData(uid, userData, { wantsEmail, wantsCalendar, briefingTimezone, contactEmailMap }));
     }
 
     // User capabilities (stored under settings.capabilities)

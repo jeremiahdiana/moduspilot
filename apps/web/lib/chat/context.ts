@@ -21,6 +21,27 @@ import { getRecentSlackActivity } from '@/lib/slack-data';
 import { getGitHubWorkItems } from '@/lib/github-data';
 import type { ProjectContext } from './prompt';
 
+// ── Contact email cross-reference types ──────────────────────────────────────
+export interface ContactEmailEntry {
+  name: string;
+  company?: string;
+  category: 'personal' | 'professional' | 'service' | 'excluded';
+}
+
+// Normalize email for reliable matching across aliases:
+// - Gmail strips dots from local part (john.doe = johndoe)
+// - Gmail strips plus-addressing (user+tag = user)
+// - All domains: lowercase + trim
+function normalizeEmail(email: string): string {
+  const [local, domain] = email.toLowerCase().trim().split('@');
+  if (!domain) return email.toLowerCase().trim();
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    const noPlus = local.split('+')[0];
+    return `${noPlus.replace(/\./g, '')}@${domain}`;
+  }
+  return `${local.split('+')[0]}@${domain}`;
+}
+
 // ── Intent detection ─────────────────────────────────────────────────────────
 export function needsEmailCtx(q: string): boolean {
   return /\b(emails?|mails?|inbox|reply|draft|send|unread|threads?|gmail|message from|wrote|missed)\b/i.test(q);
@@ -62,9 +83,9 @@ export async function fetchGoogleData(
   uid: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userData: Record<string, any>,
-  opts: { wantsEmail: boolean; wantsCalendar: boolean; briefingTimezone: string },
+  opts: { wantsEmail: boolean; wantsCalendar: boolean; briefingTimezone: string; contactEmailMap?: Map<string, ContactEmailEntry> },
 ): Promise<{ gmailBlock: string; calendarBlock: string }> {
-  const { wantsEmail, wantsCalendar, briefingTimezone } = opts;
+  const { wantsEmail, wantsCalendar, briefingTimezone, contactEmailMap } = opts;
   let gmailBlock = '';
   let calendarBlock = '';
   // Hard 5s timeout so a slow Gmail API can never kill the whole response
@@ -90,9 +111,22 @@ export async function fetchGoogleData(
           .filter(t => { if (seenIds.has(t.id)) return false; seenIds.add(t.id); return true; });
         if (threads.length > 0) {
           gmailBlock = '\n\nINBOX (last 10 days — Gmail IS connected; this is the complete list available. Do NOT suggest connecting Gmail or checking inbox — you already have it. Never invent emails not listed here):\n' +
-            threads.slice(0, 10).map((t, i) =>
-              `${i + 1}. threadId: ${t.id}\n   From: ${t.from} <${t.fromAddress}>\n   Reply-to address: ${t.fromAddress}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`
-            ).join('\n\n');
+            threads.slice(0, 10).map((t, i) => {
+              // Cross-reference sender with user's contacts
+              const contact = contactEmailMap?.get(normalizeEmail(t.fromAddress));
+              let fromDisplay: string;
+              if (!contact || contact.category === 'excluded') {
+                // Unknown sender or excluded contact — show Gmail's display name as-is
+                fromDisplay = `${t.from} <${t.fromAddress}>`;
+              } else if (contact.category === 'service') {
+                fromDisplay = `${contact.name} [Service] <${t.fromAddress}>`;
+              } else {
+                const catLabel = contact.category === 'professional' ? 'Professional' : 'Personal';
+                const companyPart = contact.company ? ` @ ${contact.company}` : '';
+                fromDisplay = `${contact.name}${companyPart} [${catLabel}] <${t.fromAddress}>`;
+              }
+              return `${i + 1}. threadId: ${t.id}\n   From: ${fromDisplay}\n   Reply-to address: ${t.fromAddress}\n   Subject: ${t.subject}\n   Body: ${t.body ? t.body.slice(0, 600) : t.snippet}`;
+            }).join('\n\n');
         } else if (wantsEmail) {
           gmailBlock = '\n\nINBOX: Gmail IS connected but no emails found in the last 10 days. Do NOT suggest connecting Gmail — it is already connected.';
         }
@@ -204,6 +238,35 @@ export async function fetchConnectorData(
 }
 
 // ── Device contacts (synced from iOS address book) ───────────────────────────
+
+// Builds a lightweight email → contact map for Gmail sender cross-referencing.
+// Called only when an email-relevant query is detected — separate from fetchContactsBlock
+// so we don't double-fetch on non-email queries.
+export async function fetchContactEmailMap(uid: string): Promise<Map<string, ContactEmailEntry>> {
+  const map = new Map<string, ContactEmailEntry>();
+  try {
+    const snap = await adminDb.collection('users').doc(uid).collection('contacts').limit(500).get();
+    for (const d of snap.docs) {
+      const data = d.data() as {
+        name?: string; email?: string; company?: string;
+        userCategory?: 'personal' | 'professional' | 'service' | 'excluded';
+      };
+      if (!data.name || !data.email) continue;
+      const rawEmail = data.email.replace(/[\r\n\t<>]/g, '').trim();
+      if (!rawEmail) continue;
+      const key = normalizeEmail(rawEmail);
+      const isPhoneOnly = !data.company && /^\+?[\d\s\-().]{7,}$/.test(data.name) && !/[a-zA-Z]/.test(data.name);
+      const category = data.userCategory ?? (data.company ? 'professional' : isPhoneOnly ? 'service' : 'personal');
+      map.set(key, {
+        name: data.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80),
+        company: data.company ? data.company.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80) : undefined,
+        category,
+      });
+    }
+  } catch { /* non-fatal — map stays empty, Gmail shows without annotations */ }
+  return map;
+}
+
 export async function fetchContactsBlock(uid: string, enabled = true): Promise<string> {
   if (!enabled) return '';
   try {
