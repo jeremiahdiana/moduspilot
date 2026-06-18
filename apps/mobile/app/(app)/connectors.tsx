@@ -246,42 +246,51 @@ export default function ConnectorsScreen() {
           <View className="items-center py-16"><ActivityIndicator color={c.brand} /></View>
         ) : (
           <View className="gap-5">
-            {/* Cloud integrations */}
+            {/* Cloud integrations — single unified list */}
             <View>
-              <Text className="text-muted text-[11px] font-bold uppercase tracking-wider mb-3 px-1">Cloud</Text>
-              <View className="gap-3">
-                {CLOUD_META.map(m => {
+              <Text className="text-muted text-[11px] font-bold uppercase tracking-wider mb-2 px-1">Integrations</Text>
+              <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+                {CLOUD_META.map((m, idx) => {
                   const rows = rowsFor(m.provider, status);
                   return (
-                    <View key={m.provider} className="bg-surface border border-border rounded-2xl overflow-hidden">
-                      <View className="flex-row items-center gap-3 px-4 py-3.5">
-                        <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: m.color + '22' }}>
-                          <Icon name={m.icon} size={18} color={m.color} />
+                    <View key={m.provider}>
+                      {idx > 0 && <View className="h-px bg-border" />}
+                      <View className="flex-row items-center gap-3 px-4 py-3">
+                        <View className="w-8 h-8 rounded-xl items-center justify-center border border-border/60" style={{ backgroundColor: m.color + '14' }}>
+                          <Icon name={m.icon} size={16} color={m.color} />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-text font-semibold text-[15px]">{m.name}</Text>
-                          <Text className="text-muted text-xs">{m.desc}</Text>
+                          <Text className="text-text font-semibold text-[14px]">{m.name}</Text>
+                          <Text className="text-muted text-[11px]">{m.desc}</Text>
                         </View>
+                        {rows.length > 0 && (
+                          <View className="flex-row items-center gap-1 mr-2">
+                            <View className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <Text className="text-emerald-400 text-[11px] font-medium">{rows.length}</Text>
+                          </View>
+                        )}
                         <TouchableOpacity
                           onPress={() => connect(m.provider)}
                           disabled={!!busy}
                           activeOpacity={0.8}
-                          className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10 dark:bg-brand/5"
                         >
-                          {busy === m.provider ? <ActivityIndicator color={c.brand} size="small" /> : (
-                            <Text className="text-brand text-[12px] font-semibold">{rows.length ? 'Add' : 'Connect'}</Text>
-                          )}
+                          {busy === m.provider
+                            ? <ActivityIndicator color={c.brand} size="small" />
+                            : <Text className="text-brand text-[12px] font-semibold">{rows.length ? '+ Add' : 'Connect'}</Text>
+                          }
                         </TouchableOpacity>
                       </View>
                       {rows.map((r, i) => (
-                        <View key={i} className="flex-row items-center gap-3 px-4 py-3 border-t border-border">
-                          <Icon name="check-circle" tone="brand" size={16} />
-                          <View className="flex-1">
-                            <Text className="text-text text-[13px] font-medium" numberOfLines={1}>{r.label}</Text>
-                            <Text className="text-muted text-[11px]">{r.sub}</Text>
+                        <View key={i} className="flex-row items-center gap-2.5 pl-11 pr-4 py-2 border-t border-border/50" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
+                          <View className="w-5 h-5 rounded-full bg-emerald-400/15 items-center justify-center shrink-0">
+                            <Icon name="check-circle" tone="brand" size={12} />
                           </View>
-                          <TouchableOpacity onPress={() => disconnect(m.provider, m.name, r.key)} activeOpacity={0.7} hitSlop={8}>
-                            <Text className="text-red-400 text-[12px] font-medium">Disconnect</Text>
+                          <View className="flex-1">
+                            <Text className="text-text text-[12px] font-medium" numberOfLines={1}>{r.label}</Text>
+                            <Text className="text-muted text-[10px]">{r.sub}</Text>
+                          </View>
+                          <TouchableOpacity onPress={() => disconnect(m.provider, m.name, r.key)} activeOpacity={0.7} hitSlop={10}>
+                            <Text className="text-muted text-[11px]">Remove</Text>
                           </TouchableOpacity>
                         </View>
                       ))}
@@ -293,7 +302,7 @@ export default function ConnectorsScreen() {
 
             {/* On This Device */}
             <View>
-              <Text className="text-muted text-[11px] font-bold uppercase tracking-wider mb-3 px-1">On This Device</Text>
+              <Text className="text-muted text-[11px] font-bold uppercase tracking-wider mb-2 px-1">On This Device</Text>
               <View className="bg-surface border border-border rounded-2xl overflow-hidden">
                 <DeviceRow
                   icon="people-outline"
@@ -307,13 +316,14 @@ export default function ConnectorsScreen() {
                   <TouchableOpacity
                     onPress={() => router.push('/(app)/contacts-manage' as never)}
                     activeOpacity={0.7}
-                    className="flex-row items-center justify-between px-4 py-3 bg-brand/5"
+                    className="flex-row items-center pl-11 pr-4 py-2.5 border-t border-border/50"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}
                   >
-                    <Text className="text-brand text-[13px] font-medium ml-12">Manage contacts & categories</Text>
-                    <Icon name="chevron-right" size={16} color={c.brand} />
+                    <Text className="text-brand text-[12px] font-medium flex-1">Manage contacts & categories</Text>
+                    <Icon name="chevron-right" size={14} color={c.brand} />
                   </TouchableOpacity>
                 )}
-                <View className="h-px bg-border ml-16" />
+                <View className="h-px bg-border" />
                 <DeviceRow
                   icon="favorite-border"
                   color="#f43f5e"
@@ -322,7 +332,7 @@ export default function ConnectorsScreen() {
                   perm={healthPerm}
                   onGrant={grantHealth}
                 />
-                <View className="h-px bg-border ml-16" />
+                <View className="h-px bg-border" />
                 <DeviceRow
                   icon="photo-library"
                   color="#f59e0b"
@@ -331,31 +341,26 @@ export default function ConnectorsScreen() {
                   perm={photosPerm}
                   onGrant={grantPhotos}
                 />
-                <View className="h-px bg-border ml-16" />
-                <View className="flex-row items-center gap-3 px-4 py-4">
-                  <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: '#10b98122' }}>
-                    <Icon name="folder-open" size={18} color="#10b981" />
+                <View className="h-px bg-border" />
+                <View className="flex-row items-center gap-3 px-4 py-3">
+                  <View className="w-8 h-8 rounded-xl items-center justify-center border border-border/60" style={{ backgroundColor: '#10b98114' }}>
+                    <Icon name="folder-open" size={16} color="#10b981" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-text font-semibold text-[14px]">Files & Notes</Text>
-                    <Text className="text-muted text-xs">Share Obsidian notes, docs, or any text file</Text>
+                    <Text className="text-muted text-[11px]">Share notes, docs, or any text file</Text>
                   </View>
                   {nativeAvailable.files ? (
-                    <TouchableOpacity onPress={shareFile} activeOpacity={0.8} className="px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/10">
+                    <TouchableOpacity onPress={shareFile} activeOpacity={0.8}>
                       <Text className="text-brand text-[12px] font-semibold">Browse</Text>
                     </TouchableOpacity>
                   ) : (
-                    <View className="px-3 py-1.5 rounded-lg bg-border/50">
-                      <Text className="text-muted text-[12px] font-semibold">Needs build</Text>
-                    </View>
+                    <Text className="text-muted text-[11px]">Needs build</Text>
                   )}
                 </View>
               </View>
+              <Text className="text-muted text-[11px] mt-2 px-1">Permissions managed in iOS Settings → MODUS.</Text>
             </View>
-
-            <Text className="text-muted text-xs text-center px-4 leading-5">
-              Connecting opens a secure sign-in. Device permissions are managed in iOS Settings.
-            </Text>
           </View>
         )}
       </ScrollView>
