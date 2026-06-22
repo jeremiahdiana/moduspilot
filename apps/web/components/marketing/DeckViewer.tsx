@@ -47,10 +47,9 @@ export default function DeckViewer({ slides, label }: DeckViewerProps) {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden select-none" onClick={handleClick}>
-      {/* Ambient background */}
+      {/* Ambient background — flat, restrained, single soft vignette */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(124,58,237,0.12),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(255,255,255,0.04),transparent_60%)]" />
       </div>
 
       {/* Top bar */}
