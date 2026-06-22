@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -14,11 +14,17 @@ export default function DeckViewer({ slides, label }: DeckViewerProps) {
   const [current, setCurrent] = useState(0);
   const [dir, setDir] = useState(1);
   const total = slides.length;
+  const lockedRef = useRef(false);
 
   const go = useCallback((idx: number) => {
-    if (idx < 0 || idx >= total) return;
+    if (idx < 0 || idx >= total || lockedRef.current) return;
+    lockedRef.current = true;
     setDir(idx > current ? 1 : -1);
     setCurrent(idx);
+    // Matches the 0.35s exit + 0.35s enter transition below — blocks
+    // further navigation until AnimatePresence settles, so a fast
+    // double-click/key-repeat can't get queued past and skip a slide.
+    setTimeout(() => { lockedRef.current = false; }, 700);
   }, [current, total]);
 
   const next = useCallback(() => go(current + 1), [current, go]);
