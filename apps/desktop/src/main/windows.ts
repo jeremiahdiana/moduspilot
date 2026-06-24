@@ -1,51 +1,81 @@
-import { BrowserWindow } from 'electron';
-import path from 'path';
+import { BrowserWindow, app, shell } from 'electron';
 import log from 'electron-log';
-import { startLocalServer } from './localServer';
 
-let bridgeWindow: BrowserWindow | null = null;
+// The desktop app is just the real MODUS web app in a native window. The user
+// signs in here once; the background sync agent pulls a fresh Firebase ID token
+// from this signed-in page (window.__modusGetToken__, exposed by the web app
+// when it sees the "MODUSDesktop" user agent) to authenticate its uploads.
+//
+// Enter at /login, not / (which is the marketing homepage): /login shows the
+// sign-in form when signed out and auto-redirects to /dashboard when a
+// persisted session exists — so the desktop always lands in the actual app.
+const MODUS_URL = 'https://moduspilot.com/login';
 
-export async function createBridgeWindow(): Promise<BrowserWindow> {
-  if (bridgeWindow) return bridgeWindow;
+let mainWindow: BrowserWindow | null = null;
 
-  bridgeWindow = new BrowserWindow({
+export async function createMainWindow(): Promise<BrowserWindow> {
+  if (mainWindow) return mainWindow;
+
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 820,
+    minWidth: 880,
+    minHeight: 600,
     show: false,
-    webPreferences: {
-      // bridge.js runs as a preload script (not a <script src> page tag) so Node's
-      // module system wraps it properly (module/exports/require all work) — a plain
-      // browser script tag loading tsc's CommonJS output throws "exports is not defined".
-      // contextIsolation:false shares preload's `window.modus*` globals with the page,
-      // which is what main's executeJavaScript() calls below evaluate against.
-      preload: path.join(__dirname, '../bridge/bridge.js'),
-      contextIsolation: false,
-      // Default preload sandbox only allows a small built-in module allowlist —
-      // blocks `require('firebase/app')`. Safe to disable here: this window only
-      // ever loads our own trusted local bridge/index.html, never remote content.
-      sandbox: false,
-    },
+    title: 'MODUS',
+    // Loading our own remote web app — keep Electron's secure defaults
+    // (contextIsolation on, nodeIntegration off). The sync agent reads the
+    // token via webContents.executeJavaScript against the page's main world,
+    // so no preload or node exposure to remote content is needed.
+    webPreferences: {},
   });
 
-  // signInWithPopup opens the Google consent screen via window.open(), which
-  // Electron denies by default. Explicitly allow it for this trusted window.
-  bridgeWindow.webContents.setWindowOpenHandler(() => ({ action: 'allow' }));
+  // Tell the web app it's running inside the desktop shell so it exposes
+  // window.__modusGetToken__. setUserAgent (vs a loadURL option) persists the
+  // marker across in-app SPA navigations and all subsequent requests.
+  const ua = `${mainWindow.webContents.getUserAgent()} MODUSDesktop/0.2`;
+  mainWindow.webContents.setUserAgent(ua);
 
-  // Tray app has no visible terminal for users — forward the bridge renderer's
-  // console (including preload errors) into the same electron-log file.
-  bridgeWindow.webContents.on('console-message', (_e, _level, message, line, sourceId) => {
-    log.info(`[bridge-console] ${message} (${sourceId}:${line})`);
+  // Firebase signInWithPopup (Google/Apple) opens an OAuth window via
+  // window.open — allow those in-app; send any other external link to the
+  // system browser instead of opening a rogue window.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/accounts\.google\.com|appleid\.apple\.com|firebaseapp\.com|moduspilot\.com|__\/auth/.test(url)) {
+      return { action: 'allow' };
+    }
+    shell.openExternal(url);
+    return { action: 'deny' };
   });
-  bridgeWindow.webContents.on('preload-error', (_e, preloadPath, error) => {
-    log.error(`[bridge-preload-error] ${preloadPath}`, error);
+
+  mainWindow.once('ready-to-show', () => mainWindow?.show());
+
+  // Closing the window keeps the app alive in the tray (background sync keeps
+  // running). Only a real Quit (sets isQuitting) actually tears it down.
+  mainWindow.on('close', (e) => {
+    if (!(app as unknown as { isQuitting?: boolean }).isQuitting) {
+      e.preventDefault();
+      mainWindow?.hide();
+    }
+  });
+  mainWindow.on('closed', () => { mainWindow = null; });
+
+  // Forward the web app's console into the tray app's log file for debugging.
+  mainWindow.webContents.on('console-message', (_e, _level, message, line, sourceId) => {
+    log.info(`[web-console] ${message} (${sourceId}:${line})`);
   });
 
-  const port = await startLocalServer();
-  log.info(`[bridge] local auth server listening on http://localhost:${port}`);
-  await bridgeWindow.loadURL(`http://localhost:${port}/`);
-
-  return bridgeWindow;
+  await mainWindow.loadURL(MODUS_URL);
+  log.info('[window] loaded MODUS web app');
+  return mainWindow;
 }
 
-export function getBridgeWindow(): BrowserWindow {
-  if (!bridgeWindow) throw new Error('Bridge window not created yet');
-  return bridgeWindow;
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindow;
+}
+
+export function showMainWindow(): void {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }

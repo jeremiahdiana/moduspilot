@@ -4,7 +4,6 @@ directories:
   output: out
 files:
   - dist/**/*
-  - src/bridge/index.html
   - assets/**/*
 mac:
   category: public.app-category.productivity

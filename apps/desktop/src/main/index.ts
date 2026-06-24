@@ -1,48 +1,63 @@
 import { app } from 'electron';
 import log from 'electron-log';
-import { createBridgeWindow, getBridgeWindow } from './windows';
-import { createTray, setCurrentUser, syncIfReady } from './tray';
+import { createMainWindow, getMainWindow, showMainWindow } from './windows';
+import { createTray, setSignedIn, runSync } from './tray';
 import { startScheduler } from './sync/scheduler';
+import { initLaunchAtLogin } from './settings';
+import { getAuthState } from './sync/ingest';
 
-const SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes — Phase 0 has no UI to configure this yet.
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background sync cadence
+const AUTH_POLL_MS = 60 * 1000;          // how often we re-check sign-in state
 
 log.initialize();
 log.info('[main] starting MODUS Desktop');
 
-app.whenReady().then(async () => {
-  if (process.platform === 'darwin') {
-    app.dock?.hide();
-  }
+// Single instance — a second launch just focuses the existing window.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => showMainWindow());
 
-  await createBridgeWindow();
+  app.whenReady().then(async () => {
+    initLaunchAtLogin();
+    await createMainWindow();
+    createTray();
+    log.info('[main] MODUS Desktop ready');
 
-  createTray();
-  log.info('[main] MODUS Desktop ready (tray-only, no Dock icon)');
+    // Reflect sign-in state in the tray, and kick a sync the moment the user
+    // transitions from signed-out to signed-in (instead of waiting for the next
+    // scheduler tick). getAuthState reads the token from the signed-in window.
+    let wasSignedIn = false;
+    const refreshAuth = async (): Promise<void> => {
+      const { signedIn, email } = await getAuthState();
+      setSignedIn(signedIn, email);
+      if (signedIn && !wasSignedIn) {
+        runSync().catch((err) => log.error('[sync] post-login sync failed', err));
+      }
+      wasSignedIn = signedIn;
+    };
 
-  // Restore an existing session on relaunch. Firebase Auth persists the session
-  // in the bridge window's IndexedDB (stable across restarts now that the local
-  // server uses a fixed port). modusWaitForUser awaits authStateReady() so we
-  // don't race Firebase's async session restore (see bridge.ts).
-  try {
-    const existingUser = await getBridgeWindow().webContents.executeJavaScript('window.modusWaitForUser()');
-    if (existingUser) {
-      log.info('[auth] restored existing session for', existingUser.uid);
-      setCurrentUser(existingUser);
-      // Sync once immediately on launch — otherwise a freshly-opened app sits
-      // idle until the first scheduler tick (up to SYNC_INTERVAL_MS later).
-      syncIfReady().catch((err) => log.error('[sync] startup sync failed', err));
-    } else {
-      log.info('[auth] no persisted session — waiting for sign-in');
-    }
-  } catch (err) {
-    log.error('[auth] failed to check existing session', err);
-  }
+    // Give the web app a few seconds to load + restore its session, then start
+    // polling auth and the periodic sync.
+    setTimeout(() => { refreshAuth().catch((err) => log.error('[auth] refresh failed', err)); }, 4000);
+    setInterval(() => { refreshAuth().catch((err) => log.error('[auth] refresh failed', err)); }, AUTH_POLL_MS);
 
-  startScheduler(SYNC_INTERVAL_MS, () => {
-    syncIfReady().catch((err) => log.error('[sync] scheduled sync failed', err));
+    startScheduler(SYNC_INTERVAL_MS, () => {
+      runSync().catch((err) => log.error('[sync] scheduled sync failed', err));
+    });
   });
-});
 
-app.on('window-all-closed', () => {
-  // Tray app — the only window is the hidden bridge window; never quit on close.
-});
+  // Clicking the dock icon (app is not quit, just window hidden) reopens it.
+  app.on('activate', () => {
+    if (getMainWindow()) showMainWindow();
+    else createMainWindow().catch((err) => log.error('[main] re-create window failed', err));
+  });
+
+  app.on('before-quit', () => {
+    (app as unknown as { isQuitting?: boolean }).isQuitting = true;
+  });
+
+  // Tray app: closing the window hides it (handled in windows.ts), so this is a
+  // no-op guard — never quit just because no window is visible.
+  app.on('window-all-closed', () => { /* keep running in the tray */ });
+}
