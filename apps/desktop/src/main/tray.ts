@@ -1,4 +1,4 @@
-import { Tray, Menu, app, shell } from 'electron';
+import { Tray, Menu, app, shell, type MenuItem } from 'electron';
 import path from 'path';
 import log from 'electron-log';
 import { getBridgeWindow } from './windows';
@@ -142,6 +142,12 @@ function rebuildMenu(): void {
         enabled: false,
       },
       { type: 'separator' },
+      {
+        label: 'Launch at login',
+        type: 'checkbox',
+        checked: app.getLoginItemSettings().openAtLogin,
+        click: handleToggleLaunchAtLogin,
+      },
       { label: 'Write test doc', enabled: signedIn, click: handleWriteTestDoc },
       { type: 'separator' },
       { label: 'Quit', click: () => app.quit() },
@@ -155,6 +161,9 @@ async function handleSignIn(): Promise<void> {
     const user = (await win.webContents.executeJavaScript('window.modusSignIn()')) as SignedInUser | null;
     currentUser = user;
     log.info('[auth] signed in', user?.uid);
+    // Sync right away on first sign-in instead of waiting for the next
+    // scheduler tick (up to 15 min). No-ops cleanly if FDA isn't granted yet.
+    if (user) syncIfReady().catch((err) => log.error('[sync] post-sign-in sync failed', err));
   } catch (err) {
     log.error('[auth] sign-in failed', err);
   }
@@ -201,4 +210,13 @@ async function handleSyncMessagesNow(): Promise<void> {
 async function handleGrantFullDiskAccess(): Promise<void> {
   await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
   log.info('[sync] opened Full Disk Access settings pane');
+}
+
+// Electron toggles the checkbox's `checked` state before firing click, so the
+// passed-in menuItem already reflects the desired new value. openAtLogin makes
+// macOS auto-launch the agent on boot so background syncs keep running without
+// the user reopening it each time.
+function handleToggleLaunchAtLogin(menuItem: MenuItem): void {
+  app.setLoginItemSettings({ openAtLogin: menuItem.checked });
+  log.info('[startup] launch at login set to', menuItem.checked);
 }

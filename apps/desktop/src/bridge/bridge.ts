@@ -24,6 +24,7 @@ declare global {
     modusSignIn: () => Promise<SignedInUser | null>;
     modusSignOut: () => Promise<void>;
     modusGetUser: () => Promise<SignedInUser | null>;
+    modusWaitForUser: () => Promise<SignedInUser | null>;
     modusWriteTestDoc: (uid: string) => Promise<boolean>;
     modusWriteNotes: (uid: string, records: NoteRecord[]) => Promise<number>;
     modusWriteMessages: (uid: string, records: ConversationRecord[]) => Promise<number>;
@@ -46,6 +47,16 @@ window.modusSignOut = async () => {
 };
 
 window.modusGetUser = async () => {
+  return toPlainUser(auth.currentUser);
+};
+
+// Firebase restores a persisted session from IndexedDB *asynchronously* after
+// the page loads — auth.currentUser is null until that completes. Reading it
+// synchronously on relaunch (as modusGetUser does) races the restore and
+// almost always sees null. authStateReady() resolves once the initial auth
+// state is settled, so this is the correct way to recover a saved session.
+window.modusWaitForUser = async () => {
+  await auth.authStateReady();
   return toPlainUser(auth.currentUser);
 };
 

@@ -4,6 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import log from 'electron-log';
+import { buildContactLookup } from './appleContacts';
 import type { ConversationRecord } from '../../shared/types';
 
 const CHAT_DB_PATH = path.join(os.homedir(), 'Library/Messages/chat.db');
@@ -176,6 +177,11 @@ export function readRecentMessages(): ConversationRecord[] {
        WHERE chj.chat_id = ?`
     );
 
+    // Best-effort phone/email → contact-name lookup from the local Contacts DB.
+    // Returns an empty lookup (resolve → null) if Contacts can't be read, so
+    // transcripts just fall back to raw handle IDs rather than failing.
+    const contacts = buildContactLookup();
+
     const records: ConversationRecord[] = [];
     for (const chat of chats) {
       const rows = messageStmt.all(chat.chatRowId, MESSAGES_PER_CHAT) as RawMessageRow[];
@@ -191,14 +197,18 @@ export function readRecentMessages(): ConversationRecord[] {
           }
         }
         if (!text) continue;
-        const sender = row.isFromMe ? 'You' : (row.handleId ?? 'Unknown');
+        const sender = row.isFromMe
+          ? 'You'
+          : (row.handleId ? (contacts.resolve(row.handleId) ?? row.handleId) : 'Unknown');
         lines.push(`${sender}: ${text}`);
       }
       if (lines.length === 0) continue;
 
       let title = chat.displayName;
       if (!title) {
-        const participants = (participantStmt.all(chat.chatRowId) as { id: string }[]).map((p) => p.id);
+        const participants = (participantStmt.all(chat.chatRowId) as { id: string }[]).map(
+          (p) => contacts.resolve(p.id) ?? p.id
+        );
         title = participants.length > 0 ? participants.join(', ') : chat.chatIdentifier;
       }
 
