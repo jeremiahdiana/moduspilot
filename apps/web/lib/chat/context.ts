@@ -351,10 +351,13 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
 export async function fetchNotesBlock(uid: string, enabled = true): Promise<string> {
   if (!enabled) return '';
   try {
+    // Order by the note's actual edit time (modifiedAt), not Firestore's sync
+    // time (updatedAt) — a bulk sync writes many notes within the same instant,
+    // so updatedAt alone can't surface the most recently *edited* notes.
     const snap = await adminDb
       .collection('users').doc(uid)
       .collection('notes')
-      .orderBy('updatedAt', 'desc')
+      .orderBy('modifiedAt', 'desc')
       .limit(10)
       .get();
     if (snap.empty) return '';

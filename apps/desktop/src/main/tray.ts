@@ -1,13 +1,15 @@
-import { Tray, Menu, app, dialog } from 'electron';
+import { Tray, Menu, app, shell } from 'electron';
 import path from 'path';
 import log from 'electron-log';
 import { getBridgeWindow } from './windows';
-import { syncTextFolder } from './sync/textFolderSync';
+import { readAppleNotes, isFullDiskAccessGranted, FullDiskAccessError } from './sync/appleNotesSync';
 import type { SignedInUser } from '../shared/types';
 
 let tray: Tray | null = null;
 let currentUser: SignedInUser | null = null;
-let currentFolder: string | null = null;
+let lastSyncAt: Date | null = null;
+let lastSyncCount = 0;
+let syncing = false;
 
 export function createTray(): void {
   const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
@@ -25,20 +27,57 @@ export function setCurrentUser(user: SignedInUser | null): void {
   rebuildMenu();
 }
 
-export function getCurrentFolder(): string | null {
-  return currentFolder;
+// Used by the scheduler tick in index.ts — syncs silently if signed in and
+// Full Disk Access is already granted, no-ops otherwise.
+export async function syncIfReady(): Promise<void> {
+  if (!currentUser || !isFullDiskAccessGranted()) return;
+  await runSync();
 }
 
-// Used by the scheduler tick in index.ts — syncs silently if both a signed-in
-// user and a chosen folder exist, no-ops otherwise (e.g. before first setup).
-export async function syncIfReady(): Promise<void> {
-  if (!currentUser || !currentFolder) return;
-  await syncTextFolder(getBridgeWindow(), currentUser.uid, currentFolder);
+async function runSync(): Promise<void> {
+  if (!currentUser || syncing) return;
+  syncing = true;
+  rebuildMenu();
+  try {
+    const records = readAppleNotes();
+    if (records.length === 0) {
+      log.info('[sync] no Apple Notes found to sync');
+    } else {
+      const written = (await getBridgeWindow().webContents.executeJavaScript(
+        `window.modusWriteNotes(${JSON.stringify(currentUser.uid)}, ${JSON.stringify(records)})`
+      )) as number;
+      log.info(`[sync] wrote ${written} Apple Note(s)`);
+      lastSyncCount = written;
+    }
+    lastSyncAt = new Date();
+  } catch (err) {
+    if (err instanceof FullDiskAccessError) {
+      log.error('[sync] Full Disk Access not granted');
+    } else {
+      log.error('[sync] Apple Notes sync failed', err);
+    }
+  } finally {
+    syncing = false;
+    rebuildMenu();
+  }
 }
 
 function rebuildMenu(): void {
   if (!tray) return;
   const signedIn = !!currentUser;
+  const fdaGranted = isFullDiskAccessGranted();
+
+  let syncLabel: string;
+  if (!signedIn) {
+    syncLabel = 'Sync Apple Notes (sign in first)';
+  } else if (!fdaGranted) {
+    syncLabel = 'Grant Full Disk Access…';
+  } else if (syncing) {
+    syncLabel = 'Syncing…';
+  } else {
+    syncLabel = 'Sync Apple Notes now';
+  }
+
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
@@ -51,11 +90,16 @@ function rebuildMenu(): void {
         : { label: 'Sign in with Google', click: handleSignIn },
       { type: 'separator' },
       {
-        label: currentFolder ? `Notes folder: ${path.basename(currentFolder)}` : 'Choose notes folder…',
-        enabled: signedIn,
-        click: handleChooseFolder,
+        label: syncLabel,
+        enabled: signedIn && !syncing,
+        click: fdaGranted ? handleSyncNow : handleGrantFullDiskAccess,
       },
-      { label: 'Sync now', enabled: signedIn && !!currentFolder, click: handleSyncNow },
+      {
+        label: lastSyncAt
+          ? `Last synced ${lastSyncAt.toLocaleTimeString()} (${lastSyncCount} note${lastSyncCount === 1 ? '' : 's'})`
+          : 'Not synced yet',
+        enabled: false,
+      },
       { type: 'separator' },
       { label: 'Write test doc', enabled: signedIn, click: handleWriteTestDoc },
       { type: 'separator' },
@@ -101,22 +145,14 @@ async function handleWriteTestDoc(): Promise<void> {
   }
 }
 
-async function handleChooseFolder(): Promise<void> {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory'],
-    title: 'Choose a folder of .md/.txt notes to sync',
-  });
-  if (result.canceled || result.filePaths.length === 0) return;
-  currentFolder = result.filePaths[0];
-  log.info('[sync] notes folder set to', currentFolder);
-  rebuildMenu();
+async function handleSyncNow(): Promise<void> {
+  await runSync();
 }
 
-async function handleSyncNow(): Promise<void> {
-  if (!currentUser || !currentFolder) return;
-  try {
-    await syncTextFolder(getBridgeWindow(), currentUser.uid, currentFolder);
-  } catch (err) {
-    log.error('[sync] manual sync failed', err);
-  }
+// No programmatic request API exists for Full Disk Access (unlike Contacts/
+// Camera) — deep-link straight to the right System Settings pane and let the
+// user grant it manually, then retry sync.
+async function handleGrantFullDiskAccess(): Promise<void> {
+  await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
+  log.info('[sync] opened Full Disk Access settings pane');
 }

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
-import { initializeFirestore, doc, setDoc, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
+import { initializeFirestore, doc, setDoc, writeBatch, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { NoteRecord, SignedInUser } from '../shared/types';
 
 // Same Firebase project as apps/web and apps/mobile. These are the public
@@ -68,6 +68,7 @@ window.modusWriteNotes = async (uid: string, records: NoteRecord[]) => {
       body: r.body,
       folder: r.folder ?? null,
       source: r.source,
+      modifiedAt: r.modifiedAt != null ? Timestamp.fromMillis(r.modifiedAt) : null,
       updatedAt: serverTimestamp(),
     });
   }
