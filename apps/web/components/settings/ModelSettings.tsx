@@ -1,14 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { UserSettings } from '@/hooks/useUserSettings';
-
-interface ModelConfig {
-  provider: 'platform' | 'openai' | 'anthropic';
-  model: string;
-  openaiKey?: string;
-  anthropicKey?: string;
-}
+import type { UserSettings, ModelConfig } from '@/hooks/useUserSettings';
 
 interface Props {
   settings: UserSettings;
@@ -130,7 +123,7 @@ function RadioDot({ selected }: { selected: boolean }) {
 }
 
 export default function ModelSettings({ settings, plan, saving, onSave }: Props) {
-  const raw = (settings as unknown as { modelSettings?: ModelConfig }).modelSettings;
+  const raw = settings.modelSettings;
   const rawProvider = raw?.provider ?? 'platform';
   const isPaid = plan === 'modus' || plan === 'pilot';
   const isPilot = plan === 'pilot';

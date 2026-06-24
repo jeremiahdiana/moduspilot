@@ -5,6 +5,13 @@ import { doc, getDoc, setDoc, collection, getDocs, addDoc, deleteDoc, serverTime
 import { db } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 
+export interface ModelConfig {
+  provider: 'platform' | 'openai' | 'anthropic';
+  model: string;
+  openaiKey?: string;
+  anthropicKey?: string;
+}
+
 export interface UserSettings {
   personalContext: string;
   responseStyle: 'normal' | 'concise' | 'formal' | 'learning' | 'explanatory' | 'custom';
@@ -15,6 +22,7 @@ export interface UserSettings {
   briefingHour: number;       // UTC hour (0-23) when daily briefing fires
   briefingTimezone: string;   // IANA timezone string e.g. "America/New_York"
   reflectionHour: number;     // Local hour (0-23) when end-of-day reflection fires
+  modelSettings?: ModelConfig;
   capabilities: {
     dailyBriefing: boolean;
     voiceInput: boolean;
