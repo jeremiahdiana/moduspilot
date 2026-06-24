@@ -15,7 +15,7 @@ const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function resolveChatModel(userData: Record<string, any>, opts: { hasImage?: boolean } = {}): LanguageModel {
   const hasImage = opts.hasImage ?? false;
-  const ms = userData.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
+  const ms = userData.settings?.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
   const modelProvider = ms?.provider ?? 'platform';
   const plan = userData.plan as string | undefined;
   const isPaid = plan === 'modus' || plan === 'pilot';
