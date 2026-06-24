@@ -64,6 +64,13 @@ export function needsNotesCtx(q: string): boolean {
 export function needsMessagesCtx(q: string): boolean {
   return /\b(imessage|text(s|ed)?|messaged|message thread|conversation with|texted me|texting)\b/i.test(q);
 }
+// Contacts are useful whenever a query is about reaching/identifying a person.
+// Gating on this (instead of injecting the whole contact list on every message)
+// keeps unrelated queries — code, notes, calendar, general chat — from paying
+// the ~1.5k-token contacts tax.
+export function needsContactsCtx(q: string): boolean {
+  return /\b(contacts?|phone ?numbers?|number for|email for|who is|who's|reach out|get in touch|call|text|message|email|birthday|anniversary|address for|introduce)\b/i.test(q);
+}
 // Short or open-ended queries get Gmail + Calendar by default (most commonly useful)
 export function isVagueQuery(q: string): boolean {
   return q.trim().split(/\s+/).length < 6 ||

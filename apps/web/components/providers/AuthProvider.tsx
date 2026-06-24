@@ -27,6 +27,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  useEffect(() => {
+    // MODUS Desktop integration: the desktop app loads this site in a window
+    // (userAgent marked "MODUSDesktop") and pulls a fresh Firebase ID token on
+    // demand via webContents.executeJavaScript to authenticate its background
+    // notes/iMessage sync — so the user signs in ONCE here, not separately in
+    // the desktop agent. getIdToken() auto-refreshes an expired token.
+    if (typeof navigator === 'undefined' || !navigator.userAgent.includes('MODUSDesktop')) return;
+    (window as unknown as { __modusGetToken__?: () => Promise<string | null> }).__modusGetToken__ =
+      () => (auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null));
+  }, []);
+
   return (
     <AuthContext.Provider value={{ user, loading }}>
       {loading ? (

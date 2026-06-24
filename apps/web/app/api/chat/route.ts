@@ -18,6 +18,7 @@ import {
   needsCalendarCtx,
   needsNotesCtx,
   needsMessagesCtx,
+  needsContactsCtx,
   isVagueQuery,
   queryMemoryContext,
   fetchGoogleData,
@@ -135,6 +136,9 @@ export async function POST(req: Request) {
     // No isVagueQuery fallback — this is other people's private correspondence,
     // not just the user's own content, so only surface it on explicit intent.
     const wantsMessages = needsMessagesCtx(queryText);
+    // Contacts are broadly useful for people/vague queries but were previously
+    // injected on EVERY message — gate them so unrelated queries don't pay the cost.
+    const wantsContacts = needsContactsCtx(queryText) || isVagueQuery(queryText);
 
     // Start Pinecone early — runs in parallel with the other context fetches below
     const memoryPromise: Promise<string> =
@@ -192,7 +196,7 @@ export async function POST(req: Request) {
     if (uid) {
       [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock, notesBlock, messagesBlock] = await Promise.all([
         fetchConnectorData(uid, queryText),
-        fetchContactsBlock(uid, userData.settings?.deviceAccess?.contacts !== false),
+        fetchContactsBlock(uid, wantsContacts && userData.settings?.deviceAccess?.contacts !== false),
         fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false),
         // Opt-in only — defaults to OFF, unlike notesSync, since this surfaces
         // other people's private messages, not just the user's own content.
