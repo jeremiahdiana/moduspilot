@@ -22,6 +22,7 @@ export interface UserSettings {
     webSearch: boolean;
     inboxTriage: boolean;
     relationshipNurture: boolean;
+    notesSync: boolean;
   };
 }
 
@@ -49,6 +50,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     webSearch: false,
     inboxTriage: true,
     relationshipNurture: true,
+    notesSync: true,
   },
 };
 

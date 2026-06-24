@@ -59,6 +59,12 @@ const CAPABILITIES: CapabilityRow[] = [
     desc: 'MODUS notices people you’ve fallen out of touch with and drafts a warm reach-out to reconnect. Nothing sends until you approve, and you can edit any draft first.',
     badge: 'Beta',
   },
+  {
+    key: 'notesSync',
+    label: 'Desktop Notes Sync',
+    desc: 'MODUS reads notes synced from the MODUS Desktop app (Mac) when you ask about them in chat — e.g. "what\'s on my grocery list?"',
+    badge: 'Beta',
+  },
 ];
 
 interface Props {

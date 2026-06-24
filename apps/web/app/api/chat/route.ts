@@ -16,6 +16,7 @@ import { resolveChatModel } from '@/lib/chat/model';
 import {
   needsEmailCtx,
   needsCalendarCtx,
+  needsNotesCtx,
   isVagueQuery,
   queryMemoryContext,
   fetchGoogleData,
@@ -25,6 +26,7 @@ import {
   fetchProjectResources,
   fetchContactsBlock,
   fetchContactEmailMap,
+  fetchNotesBlock,
 } from '@/lib/chat/context';
 import {
   buildUserContextBlock,
@@ -127,6 +129,7 @@ export async function POST(req: Request) {
 
     const wantsEmail    = needsEmailCtx(queryText)    || isVagueQuery(queryText);
     const wantsCalendar = needsCalendarCtx(queryText) || isVagueQuery(queryText);
+    const wantsNotes    = needsNotesCtx(queryText)    || isVagueQuery(queryText);
 
     // Start Pinecone early — runs in parallel with the other context fetches below
     const memoryPromise: Promise<string> =
@@ -179,14 +182,16 @@ export async function POST(req: Request) {
     let slackBlock = '';
     let githubBlock = '';
     let contactsBlock = '';
+    let notesBlock = '';
     if (uid) {
-      [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock] = await Promise.all([
+      [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock, notesBlock] = await Promise.all([
         fetchConnectorData(uid, queryText),
         fetchContactsBlock(uid, userData.settings?.deviceAccess?.contacts !== false),
+        fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false),
       ]);
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;

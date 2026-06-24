@@ -58,6 +58,9 @@ export function needsSlackCtx(q: string): boolean {
 export function needsGithubCtx(q: string): boolean {
   return /\b(github|pull request|\bpr\b|issue|repo|commit|branch|merge|code review)\b/i.test(q);
 }
+export function needsNotesCtx(q: string): boolean {
+  return /\b(notes?|note app|apple notes|jotted|wrote down|grocery|grocery list|reminder)\b/i.test(q);
+}
 // Short or open-ended queries get Gmail + Calendar by default (most commonly useful)
 export function isVagueQuery(q: string): boolean {
   return q.trim().split(/\s+/).length < 6 ||
@@ -339,6 +342,31 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
     if (services.length > 0) lines.push(`\nServices (${services.length}):\n${services.join(', ')}`);
 
     return lines.join('').slice(0, 6000);
+  } catch { return ''; }
+}
+
+// Desktop-agent notes sync (MODUS Desktop, Phase 0 proof-of-concept — see
+// apps/desktop). Gated on query intent (needsNotesCtx / vague queries) and the
+// notesSync capability toggle, same pattern as fetchContactsBlock.
+export async function fetchNotesBlock(uid: string, enabled = true): Promise<string> {
+  if (!enabled) return '';
+  try {
+    const snap = await adminDb
+      .collection('users').doc(uid)
+      .collection('notes')
+      .orderBy('updatedAt', 'desc')
+      .limit(10)
+      .get();
+    if (snap.empty) return '';
+
+    const lines: string[] = ['\n\nFROM YOUR SYNCED NOTES (desktop app — most recent):'];
+    for (const d of snap.docs) {
+      const data = d.data() as { title?: string; body?: string };
+      const title = (data.title ?? 'Untitled').replace(/[\r\n\t]/g, ' ').trim().slice(0, 100);
+      const body = (data.body ?? '').slice(0, 800);
+      lines.push(`\n--- ${title} ---\n${body}`);
+    }
+    return lines.join('').slice(0, 8000);
   } catch { return ''; }
 }
 

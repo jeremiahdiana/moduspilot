@@ -1,0 +1,23 @@
+{
+  "name": "modus-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && npm run bundle:bridge",
+    "bundle:bridge": "esbuild src/bridge/bridge.ts --bundle --platform=browser --format=cjs --outfile=dist/bridge/bridge.js",
+    "dev": "npm run build && electron .",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.4",
+    "firebase": "^10.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1",
+    "typescript": "^5.4.0"
+  }
+}
