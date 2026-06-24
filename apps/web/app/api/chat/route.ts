@@ -17,6 +17,7 @@ import {
   needsEmailCtx,
   needsCalendarCtx,
   needsNotesCtx,
+  needsMessagesCtx,
   isVagueQuery,
   queryMemoryContext,
   fetchGoogleData,
@@ -27,6 +28,7 @@ import {
   fetchContactsBlock,
   fetchContactEmailMap,
   fetchNotesBlock,
+  fetchMessagesBlock,
 } from '@/lib/chat/context';
 import {
   buildUserContextBlock,
@@ -130,6 +132,9 @@ export async function POST(req: Request) {
     const wantsEmail    = needsEmailCtx(queryText)    || isVagueQuery(queryText);
     const wantsCalendar = needsCalendarCtx(queryText) || isVagueQuery(queryText);
     const wantsNotes    = needsNotesCtx(queryText)    || isVagueQuery(queryText);
+    // No isVagueQuery fallback — this is other people's private correspondence,
+    // not just the user's own content, so only surface it on explicit intent.
+    const wantsMessages = needsMessagesCtx(queryText);
 
     // Start Pinecone early — runs in parallel with the other context fetches below
     const memoryPromise: Promise<string> =
@@ -183,15 +188,19 @@ export async function POST(req: Request) {
     let githubBlock = '';
     let contactsBlock = '';
     let notesBlock = '';
+    let messagesBlock = '';
     if (uid) {
-      [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock, notesBlock] = await Promise.all([
+      [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock, notesBlock, messagesBlock] = await Promise.all([
         fetchConnectorData(uid, queryText),
         fetchContactsBlock(uid, userData.settings?.deviceAccess?.contacts !== false),
         fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false),
+        // Opt-in only — defaults to OFF, unlike notesSync, since this surfaces
+        // other people's private messages, not just the user's own content.
+        fetchMessagesBlock(uid, wantsMessages && capabilities.messagesSync === true),
       ]);
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;

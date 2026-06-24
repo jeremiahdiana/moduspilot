@@ -61,6 +61,9 @@ export function needsGithubCtx(q: string): boolean {
 export function needsNotesCtx(q: string): boolean {
   return /\b(notes?|note app|apple notes|jotted|wrote down|grocery|grocery list|reminder)\b/i.test(q);
 }
+export function needsMessagesCtx(q: string): boolean {
+  return /\b(imessage|text(s|ed)?|messaged|message thread|conversation with|texted me|texting)\b/i.test(q);
+}
 // Short or open-ended queries get Gmail + Calendar by default (most commonly useful)
 export function isVagueQuery(q: string): boolean {
   return q.trim().split(/\s+/).length < 6 ||
@@ -366,6 +369,32 @@ export async function fetchNotesBlock(uid: string, enabled = true): Promise<stri
     for (const d of snap.docs) {
       const data = d.data() as { title?: string; body?: string };
       const title = (data.title ?? 'Untitled').replace(/[\r\n\t]/g, ' ').trim().slice(0, 100);
+      const body = (data.body ?? '').slice(0, 800);
+      lines.push(`\n--- ${title} ---\n${body}`);
+    }
+    return lines.join('').slice(0, 8000);
+  } catch { return ''; }
+}
+
+// Desktop-agent iMessage sync (MODUS Desktop — see apps/desktop). Unlike
+// notes, this is OTHER people's private correspondence, not just the user's
+// own content — gated the same way (intent + capability toggle) but the
+// capability defaults to OFF (opt-in), not on.
+export async function fetchMessagesBlock(uid: string, enabled = true): Promise<string> {
+  if (!enabled) return '';
+  try {
+    const snap = await adminDb
+      .collection('users').doc(uid)
+      .collection('messages')
+      .orderBy('modifiedAt', 'desc')
+      .limit(10)
+      .get();
+    if (snap.empty) return '';
+
+    const lines: string[] = ['\n\nFROM YOUR SYNCED IMESSAGE CONVERSATIONS (desktop app — most recently active):'];
+    for (const d of snap.docs) {
+      const data = d.data() as { title?: string; body?: string };
+      const title = (data.title ?? 'Unknown').replace(/[\r\n\t]/g, ' ').trim().slice(0, 100);
       const body = (data.body ?? '').slice(0, 800);
       lines.push(`\n--- ${title} ---\n${body}`);
     }

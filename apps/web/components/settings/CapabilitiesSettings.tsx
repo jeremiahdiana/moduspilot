@@ -65,6 +65,12 @@ const CAPABILITIES: CapabilityRow[] = [
     desc: 'MODUS reads notes synced from the MODUS Desktop app (Mac) when you ask about them in chat — e.g. "what\'s on my grocery list?"',
     badge: 'Beta',
   },
+  {
+    key: 'messagesSync',
+    label: 'Desktop iMessage Sync',
+    desc: 'MODUS reads recent iMessage conversations synced from the MODUS Desktop app (Mac) when you ask about them in chat. Off by default since this includes other people\'s messages, not just your own notes.',
+    badge: 'Beta',
+  },
 ];
 
 interface Props {

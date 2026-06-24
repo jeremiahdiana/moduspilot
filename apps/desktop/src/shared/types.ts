@@ -16,3 +16,13 @@ export interface NoteRecord {
   // alone can't be used to find the most recently *edited* notes.
   modifiedAt?: number;
 }
+
+// One per iMessage conversation (thread), not per individual message — body
+// is a recent-messages transcript. Same modifiedAt rationale as NoteRecord.
+export interface ConversationRecord {
+  id: string;
+  title: string;
+  body: string;
+  source: string;
+  modifiedAt?: number;
+}

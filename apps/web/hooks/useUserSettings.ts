@@ -23,6 +23,7 @@ export interface UserSettings {
     inboxTriage: boolean;
     relationshipNurture: boolean;
     notesSync: boolean;
+    messagesSync: boolean;
   };
 }
 
@@ -51,6 +52,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     inboxTriage: true,
     relationshipNurture: true,
     notesSync: true,
+    messagesSync: false,
   },
 };
 

@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { initializeFirestore, doc, setDoc, writeBatch, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
-import type { NoteRecord, SignedInUser } from '../shared/types';
+import type { ConversationRecord, NoteRecord, SignedInUser } from '../shared/types';
 
 // Same Firebase project as apps/web and apps/mobile. These are the public
 // client-side config values (already shipped in the web bundle) — not secrets.
@@ -26,6 +26,7 @@ declare global {
     modusGetUser: () => Promise<SignedInUser | null>;
     modusWriteTestDoc: (uid: string) => Promise<boolean>;
     modusWriteNotes: (uid: string, records: NoteRecord[]) => Promise<number>;
+    modusWriteMessages: (uid: string, records: ConversationRecord[]) => Promise<number>;
   }
 }
 
@@ -67,6 +68,23 @@ window.modusWriteNotes = async (uid: string, records: NoteRecord[]) => {
       title: r.title,
       body: r.body,
       folder: r.folder ?? null,
+      source: r.source,
+      modifiedAt: r.modifiedAt != null ? Timestamp.fromMillis(r.modifiedAt) : null,
+      updatedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
+  return records.length;
+};
+
+// Mirrors modusWriteNotes — one doc per conversation (thread), not per message.
+window.modusWriteMessages = async (uid: string, records: ConversationRecord[]) => {
+  const messagesCol = collection(db, 'users', uid, 'messages');
+  const batch = writeBatch(db);
+  for (const r of records) {
+    batch.set(doc(messagesCol, r.id), {
+      title: r.title,
+      body: r.body,
       source: r.source,
       modifiedAt: r.modifiedAt != null ? Timestamp.fromMillis(r.modifiedAt) : null,
       updatedAt: serverTimestamp(),
