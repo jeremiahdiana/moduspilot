@@ -6,6 +6,7 @@ import { startScheduler } from './sync/scheduler';
 import { initLaunchAtLogin } from './settings';
 import { getAuthState } from './sync/ingest';
 import { pollNotifications } from './notifications';
+import { initAutoUpdate } from './updater';
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;    // background sync cadence
 const AUTH_POLL_MS = 60 * 1000;            // how often we re-check sign-in state
@@ -24,6 +25,7 @@ if (!app.requestSingleInstanceLock()) {
     initLaunchAtLogin();
     await createMainWindow();
     createTray();
+    initAutoUpdate();
     log.info('[main] MODUS Desktop ready');
 
     // Reflect sign-in state in the tray, and kick a sync the moment the user

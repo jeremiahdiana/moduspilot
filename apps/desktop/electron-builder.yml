@@ -2,6 +2,7 @@ appId: com.moduspilot.desktop
 productName: MODUS Desktop
 directories:
   output: out
+  buildResources: build
 files:
   - dist/**/*
   - assets/**/*
@@ -10,3 +11,20 @@ mac:
   icon: assets/icon.icns
   hardenedRuntime: true
   gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Notarization (uses notarytool). APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD come
+  # from the build environment; teamId is fixed.
+  notarize:
+    teamId: 8KF5J7X9BU
+  # dmg = initial download; zip = required by electron-updater for auto-updates.
+  target:
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
+# Auto-update + release artifacts go to GitHub Releases on the repo.
+publish:
+  provider: github
+  owner: joinFITR
+  repo: moduspilot
