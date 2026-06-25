@@ -12,7 +12,6 @@ import AccountSettings from '@/components/settings/AccountSettings';
 import PrivacySettings from '@/components/settings/PrivacySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
 import UsageSettings from '@/components/settings/UsageSettings';
-import CapabilitiesSettings from '@/components/settings/CapabilitiesSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
 import ModelSettings from '@/components/settings/ModelSettings';
 import TipsSettings from '@/components/settings/TipsSettings';
@@ -32,7 +31,6 @@ const TABS = [
   { key: 'privacy',      label: 'Privacy',      icon: <TabIcon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /> },
   { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
   { key: 'usage',        label: 'Usage',        icon: <TabIcon d="M18 20V10M12 20V4M6 20v-6" /> },
-  { key: 'capabilities', label: 'Capabilities', icon: <TabIcon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /> },
   { key: 'model',        label: 'Brain',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
   { key: 'tips',         label: 'Tips & Tricks', icon: <TabIcon d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /> },
 ] as const;
@@ -50,7 +48,9 @@ function SettingsContent() {
 
   // Redirect old connectors tab and any unknown tab
   useEffect(() => {
-    if (rawTab === 'connectors') {
+    if (rawTab === 'connectors' || rawTab === 'capabilities') {
+      // Capabilities merged into the top-level Capabilities page (the old
+      // Connections page); the standalone settings tab is gone.
       router.replace('/connections');
     } else if (rawTab === 'memory') {
       // Memory merged into the Brain tab.
@@ -168,9 +168,6 @@ function SettingsContent() {
               )}
               {activeTab === 'usage' && (
                 <UsageSettings plan={plan} usage={usage} onUpgrade={() => setTab('billing')} />
-              )}
-              {activeTab === 'capabilities' && (
-                <CapabilitiesSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
               )}
               {activeTab === 'model' && (
                 <div className="space-y-12">

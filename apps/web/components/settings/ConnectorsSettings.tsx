@@ -16,6 +16,16 @@ interface ContactEntry { id: string; name: string; email: string | null; phone: 
 
 interface Props { user: User }
 
+// AI behaviors (merged in from the old Capabilities tab). Non-beta features are
+// MODUS+ only; beta features are available on any plan.
+const AI_FEATURES: { key: 'webSearch' | 'dailyBriefing' | 'voiceInput' | 'inboxTriage' | 'relationshipNurture'; label: string; desc: string; beta?: boolean }[] = [
+  { key: 'webSearch', label: 'Web Search', desc: 'MODUS searches the web in real time for news, prices, research — anything current.' },
+  { key: 'dailyBriefing', label: 'Daily Briefing', desc: 'A morning brief with your top priorities, pending approvals, and a quick check-in.' },
+  { key: 'voiceInput', label: 'Voice Input', desc: 'Speak to MODUS instead of typing. Audio is transcribed locally before sending.', beta: true },
+  { key: 'inboxTriage', label: 'Inbox Triage', desc: 'MODUS drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft.', beta: true },
+  { key: 'relationshipNurture', label: 'Relationship Follow-ups', desc: 'MODUS drafts warm reach-outs to people you’ve fallen out of touch with. Nothing sends until you approve.', beta: true },
+];
+
 // ── Icons ────────────────────────────────────────────────────────────────────
 
 function GoogleIcon() {
@@ -100,10 +110,11 @@ function fmtDate(iso: string | null) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ConnectorsSettings({ user }: Props) {
-  // Desktop sync toggles (notesSync/messagesSync) live in settings.capabilities;
-  // they're data-source connections, so their UI belongs here, not in Capabilities.
-  const { settings, saving: settingsSaving, saveSettings } = useUserSettings(user);
-  const setCapability = (key: 'notesSync' | 'messagesSync', val: boolean) =>
+  // This page merges connections + capabilities. Capability toggles (AI
+  // features + desktop syncs) all live in settings.capabilities.
+  const { settings, plan, saving: settingsSaving, saveSettings } = useUserSettings(user);
+  const isPaid = plan === 'modus' || plan === 'pilot';
+  const setCapability = (key: keyof typeof settings.capabilities, val: boolean) =>
     saveSettings({ capabilities: { ...settings.capabilities, [key]: val } });
 
   const [googleAccounts, setGoogleAccounts] = useState<GoogleAccount[]>([]);
@@ -471,8 +482,33 @@ export default function ConnectorsSettings({ user }: Props) {
         </div>
       </SectionGroup>
 
-      {/* ── Right column: Device + Custom ── */}
+      {/* ── Right column: AI Features + Device + Custom ── */}
       <div className="space-y-6">
+      <SectionGroup label="AI Features">
+        <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
+          {AI_FEATURES.map(f => {
+            const locked = !isPaid && !f.beta;
+            return (
+              <div key={f.key} className="flex items-start gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-text">{f.label}</p>
+                    {f.beta && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>}
+                    {locked && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand/20 text-brand">MODUS+</span>}
+                  </div>
+                  <p className="text-xs text-muted leading-relaxed mt-0.5">{f.desc}</p>
+                </div>
+                <Toggle
+                  checked={settings.capabilities[f.key]}
+                  onChange={v => setCapability(f.key, v)}
+                  disabled={settingsSaving || locked}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </SectionGroup>
+
       <SectionGroup label="On This Device">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
           {/* Contacts */}

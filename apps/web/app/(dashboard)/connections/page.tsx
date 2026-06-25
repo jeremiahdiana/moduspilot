@@ -18,8 +18,8 @@ export default function ConnectionsPage() {
     <div className="h-full overflow-y-auto py-6 px-4 md:py-10 md:px-10">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-text">Connections</h1>
-          <p className="text-sm text-muted mt-1.5">Connect your tools so MODUS can see your full context.</p>
+          <h1 className="text-xl font-semibold text-text">Capabilities</h1>
+          <p className="text-sm text-muted mt-1.5">Everything MODUS can do — connect your tools, your Mac, and your device, and toggle AI features.</p>
         </div>
         <ConnectorsSettings user={user} />
       </div>
