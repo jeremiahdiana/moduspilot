@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import confetti from 'canvas-confetti';
 import { SkeletonList, SkeletonRow } from '@/components/ui/Skeleton';
+import CalendarWidget from '@/components/dashboard/CalendarWidget';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -346,6 +347,14 @@ export default function RemindersPage() {
         </SkeletonList>
       ) : (
         <div className="max-w-2xl space-y-10">
+
+          {/* ── Today's schedule (calendar agenda) ──────────────────── */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Today&apos;s Schedule</h2>
+            </div>
+            <CalendarWidget />
+          </section>
 
           {/* ── Habits section ──────────────────────────────────────── */}
           <section>
