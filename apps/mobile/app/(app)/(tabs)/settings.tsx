@@ -124,12 +124,6 @@ export default function SettingsScreen() {
           />
           <Divider />
           <ToggleRow
-            icon="memory" label="Vector memory" sub="Recall context across sessions"
-            value={!!settings.capabilities?.vectorMemory}
-            onChange={v => toggleCapability('vectorMemory', v)} brand={c.brand} border={c.border}
-          />
-          <Divider />
-          <ToggleRow
             icon="inbox" label="Inbox triage" sub="Draft replies to emails waiting on you"
             value={!!settings.capabilities?.inboxTriage}
             onChange={v => toggleCapability('inboxTriage', v)} brand={c.brand} border={c.border}
