@@ -8,7 +8,7 @@ const INGEST_URL = 'https://moduspilot.com/api/desktop/ingest';
 // app exposes window.__modusGetToken__ only when it detects the desktop user
 // agent; getIdToken() auto-refreshes if the token is near expiry. Returns null
 // if the page isn't loaded/signed-in yet.
-async function getIdToken(): Promise<string | null> {
+export async function getIdToken(): Promise<string | null> {
   const win = getMainWindow();
   if (!win) return null;
   try {

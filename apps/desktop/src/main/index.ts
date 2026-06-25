@@ -5,9 +5,11 @@ import { createTray, setSignedIn, runSync } from './tray';
 import { startScheduler } from './sync/scheduler';
 import { initLaunchAtLogin } from './settings';
 import { getAuthState } from './sync/ingest';
+import { pollNotifications } from './notifications';
 
-const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background sync cadence
-const AUTH_POLL_MS = 60 * 1000;          // how often we re-check sign-in state
+const SYNC_INTERVAL_MS = 5 * 60 * 1000;    // background sync cadence
+const AUTH_POLL_MS = 60 * 1000;            // how often we re-check sign-in state
+const NOTIFICATION_POLL_MS = 60 * 1000;    // how often we check for new notifications
 
 log.initialize();
 log.info('[main] starting MODUS Desktop');
@@ -45,6 +47,12 @@ if (!app.requestSingleInstanceLock()) {
     startScheduler(SYNC_INTERVAL_MS, () => {
       runSync().catch((err) => log.error('[sync] scheduled sync failed', err));
     });
+
+    // Poll for native desktop notifications (FCM web-push doesn't work in
+    // Electron). No-ops until signed in.
+    setInterval(() => {
+      pollNotifications().catch((err) => log.error('[notifications] poll failed', err));
+    }, NOTIFICATION_POLL_MS);
   });
 
   // Clicking the dock icon (app is not quit, just window hidden) reopens it.
