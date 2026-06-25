@@ -43,11 +43,6 @@ const CAPABILITIES: CapabilityRow[] = [
     badge: 'Beta',
   },
   {
-    key: 'vectorMemory',
-    label: 'Vector Memory',
-    desc: 'MODUS stores semantic memories from your conversations in Pinecone so it can recall past context across sessions.',
-  },
-  {
     key: 'inboxTriage',
     label: 'Inbox Triage',
     desc: 'MODUS watches your connected inbox and proactively drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft first.',
@@ -57,18 +52,6 @@ const CAPABILITIES: CapabilityRow[] = [
     key: 'relationshipNurture',
     label: 'Relationship Follow-ups',
     desc: 'MODUS notices people you’ve fallen out of touch with and drafts a warm reach-out to reconnect. Nothing sends until you approve, and you can edit any draft first.',
-    badge: 'Beta',
-  },
-  {
-    key: 'notesSync',
-    label: 'Desktop Notes Sync',
-    desc: 'MODUS reads notes synced from the MODUS Desktop app (Mac) when you ask about them in chat — e.g. "what\'s on my grocery list?"',
-    badge: 'Beta',
-  },
-  {
-    key: 'messagesSync',
-    label: 'Desktop iMessage Sync',
-    desc: 'MODUS reads recent iMessage conversations synced from the MODUS Desktop app (Mac) when you ask about them in chat. Off by default since this includes other people\'s messages, not just your own notes.',
     badge: 'Beta',
   },
 ];

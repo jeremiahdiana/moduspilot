@@ -192,6 +192,17 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
       <div className="bg-panel border border-border rounded-xl divide-y divide-border">
         <div className="flex items-start justify-between p-6 gap-6">
           <div className="flex-1">
+            <p className="text-sm font-medium text-text mb-1">Vector Memory</p>
+            <p className="text-xs text-muted leading-relaxed">Store semantic memories from your conversations (in Pinecone) so MODUS recalls relevant past context across sessions. Turning this off disables long-term recall.</p>
+          </div>
+          <Toggle
+            checked={settings.capabilities.vectorMemory}
+            onChange={v => onSave({ capabilities: { ...settings.capabilities, vectorMemory: v } })}
+            disabled={saving}
+          />
+        </div>
+        <div className="flex items-start justify-between p-6 gap-6">
+          <div className="flex-1">
             <p className="text-sm font-medium text-text mb-1">Generate Memory from Chat History</p>
             <p className="text-xs text-muted leading-relaxed">When enabled, MODUS automatically extracts and stores facts from your conversations — your preferences, recurring goals, decisions — so it builds a profile of you over time.</p>
           </div>

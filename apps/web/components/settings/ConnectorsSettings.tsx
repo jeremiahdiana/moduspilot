@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from 'firebase/auth';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 interface GoogleAccount { email: string; connectedAt: string | null; }
 interface NotionAccount { workspaceId: string; workspaceName: string; workspaceIcon: string | null; ownerEmail: string; connectedAt: string | null; }
@@ -99,6 +100,12 @@ function fmtDate(iso: string | null) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ConnectorsSettings({ user }: Props) {
+  // Desktop sync toggles (notesSync/messagesSync) live in settings.capabilities;
+  // they're data-source connections, so their UI belongs here, not in Capabilities.
+  const { settings, saving: settingsSaving, saveSettings } = useUserSettings(user);
+  const setCapability = (key: 'notesSync' | 'messagesSync', val: boolean) =>
+    saveSettings({ capabilities: { ...settings.capabilities, [key]: val } });
+
   const [googleAccounts, setGoogleAccounts] = useState<GoogleAccount[]>([]);
   const [notionAccounts, setNotionAccounts] = useState<NotionAccount[]>([]);
   const [slackAccounts, setSlackAccounts] = useState<SlackAccount[]>([]);
@@ -586,6 +593,46 @@ export default function ConnectorsSettings({ user }: Props) {
         <p className="text-[11px] text-muted mt-2 px-1">Permissions are managed in iOS Settings → MODUS.</p>
       </SectionGroup>
 
+      {/* ── On Your Mac (MODUS Desktop) ── */}
+      <SectionGroup label="On Your Mac">
+        <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
+          {/* Apple Notes */}
+          <div className="flex items-start gap-3 px-4 py-3">
+            <IconBox><MacIcon /></IconBox>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-text">Apple Notes</p>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>
+              </div>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Let MODUS read notes synced from the MODUS Desktop app (Mac) when you ask in chat — e.g. &quot;what&apos;s on my grocery list?&quot;</p>
+            </div>
+            <Toggle checked={settings.capabilities.notesSync} onChange={v => setCapability('notesSync', v)} disabled={settingsSaving} />
+          </div>
+          {/* iMessage */}
+          <div className="flex items-start gap-3 px-4 py-3">
+            <IconBox><MacIcon /></IconBox>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-text">iMessage</p>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>
+              </div>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Let MODUS read recent iMessage conversations synced from the Mac app. Off by default — this includes other people&apos;s messages, not just your own notes.</p>
+            </div>
+            <Toggle checked={settings.capabilities.messagesSync} onChange={v => setCapability('messagesSync', v)} disabled={settingsSaving} />
+          </div>
+          {/* Reminders (synced into the Reminders section automatically) */}
+          <div className="flex items-start gap-3 px-4 py-3">
+            <IconBox><MacIcon /></IconBox>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-text">Apple Reminders</p>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Synced into your Reminders section automatically by the Mac app.</p>
+            </div>
+            <span className="text-[11px] text-muted shrink-0 mt-1">Auto</span>
+          </div>
+        </div>
+        <p className="text-[11px] text-muted mt-2 px-1">Requires the MODUS Desktop app with Full Disk Access granted.</p>
+      </SectionGroup>
+
       {/* ── Custom MCP ── */}
       <SectionGroup label="Custom">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
@@ -720,6 +767,28 @@ function IconBox({ children }: { children: React.ReactNode }) {
     <div className="w-7 h-7 rounded-lg bg-bg border border-border/70 flex items-center justify-center shrink-0 text-muted">
       {children}
     </div>
+  );
+}
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      disabled={disabled}
+      className={`relative w-11 h-6 rounded-full transition-colors disabled:opacity-40 shrink-0 ${checked ? 'bg-brand' : 'bg-border'}`}
+    >
+      <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+    </button>
+  );
+}
+
+function MacIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
+    </svg>
   );
 }
 

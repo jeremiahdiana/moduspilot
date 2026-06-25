@@ -33,7 +33,6 @@ const TABS = [
   { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
   { key: 'usage',        label: 'Usage',        icon: <TabIcon d="M18 20V10M12 20V4M6 20v-6" /> },
   { key: 'capabilities', label: 'Capabilities', icon: <TabIcon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /> },
-  { key: 'memory',       label: 'Memory',       icon: <TabIcon d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4l3 3" /> },
   { key: 'model',        label: 'Brain',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
   { key: 'tips',         label: 'Tips & Tricks', icon: <TabIcon d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /> },
 ] as const;
@@ -53,6 +52,9 @@ function SettingsContent() {
   useEffect(() => {
     if (rawTab === 'connectors') {
       router.replace('/connections');
+    } else if (rawTab === 'memory') {
+      // Memory merged into the Brain tab.
+      router.replace('/settings?tab=model');
     }
   }, [rawTab, router]);
 
@@ -170,18 +172,18 @@ function SettingsContent() {
               {activeTab === 'capabilities' && (
                 <CapabilitiesSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
               )}
-              {activeTab === 'memory' && (
-                <MemorySettings
-                  settings={settings}
-                  memories={memories}
-                  saving={saving}
-                  onSave={saveSettings}
-                  onAdd={addMemory}
-                  onDelete={deleteMemory}
-                />
-              )}
               {activeTab === 'model' && (
-                <ModelSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
+                <div className="space-y-12">
+                  <ModelSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
+                  <MemorySettings
+                    settings={settings}
+                    memories={memories}
+                    saving={saving}
+                    onSave={saveSettings}
+                    onAdd={addMemory}
+                    onDelete={deleteMemory}
+                  />
+                </div>
               )}
               {activeTab === 'tips' && (
                 <TipsSettings />
