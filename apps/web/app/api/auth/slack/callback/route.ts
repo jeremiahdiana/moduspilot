@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (error || !code || !state) {
-    return Response.redirect(`${appUrl}/connections&error=slack_denied`);
+    return Response.redirect(`${appUrl}/capabilities?error=slack_denied`);
   }
 
   try {
@@ -22,9 +22,9 @@ export async function GET(req: Request) {
     if (origin === 'chat') {
       return Response.redirect(`${appUrl}/chat?connected=slack`);
     }
-    return Response.redirect(`${appUrl}/connections&connected=slack`);
+    return Response.redirect(`${appUrl}/capabilities?connected=slack`);
   } catch (e) {
     console.error('[slack/callback]', e);
-    return Response.redirect(`${appUrl}/connections&error=slack_failed`);
+    return Response.redirect(`${appUrl}/capabilities?error=slack_failed`);
   }
 }

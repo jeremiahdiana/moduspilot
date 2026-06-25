@@ -51,7 +51,7 @@ function SettingsContent() {
     if (rawTab === 'connectors' || rawTab === 'capabilities') {
       // Capabilities merged into the top-level Capabilities page (the old
       // Connections page); the standalone settings tab is gone.
-      router.replace('/connections');
+      router.replace('/capabilities');
     } else if (rawTab === 'memory') {
       // Memory merged into the Brain tab.
       router.replace('/settings?tab=model');

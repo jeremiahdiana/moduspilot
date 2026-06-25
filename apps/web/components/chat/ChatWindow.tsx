@@ -282,10 +282,10 @@ export default function ChatWindow({
                     {connectedServices.slack    && <ServiceBadge label="Slack" />}
                     {connectedServices.github   && <ServiceBadge label="GitHub" />}
                     {connectedServices.contacts && <ServiceBadge label="Contacts" />}
-                    <Link href="/connections" className="text-xs text-muted hover:text-text transition-colors">Manage →</Link>
+                    <Link href="/capabilities" className="text-xs text-muted hover:text-text transition-colors">Manage →</Link>
                   </>
                 ) : connectedServices !== null ? (
-                  <Link href="/connections" className="text-xs text-muted hover:text-brand transition-colors">
+                  <Link href="/capabilities" className="text-xs text-muted hover:text-brand transition-colors">
                     Connect your tools →
                   </Link>
                 ) : null}

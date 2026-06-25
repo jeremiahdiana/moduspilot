@@ -49,7 +49,7 @@ const NAV = [
   { href: '/projects',    label: 'Projects',    icon: 'projects'    as const },
   { href: '/goals',       label: 'Goals',       icon: 'goals'       as const },
   { href: '/reminders',   label: 'Reminders',   icon: 'reminders'   as const },
-  { href: '/connections', label: 'Capabilities', icon: 'connections' as const },
+  { href: '/capabilities', label: 'Capabilities', icon: 'connections' as const },
 ];
 
 function BriefingNavLink({ pathname }: { pathname: string }) {

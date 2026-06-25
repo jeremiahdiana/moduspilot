@@ -11,6 +11,8 @@ const nextConfig = {
         destination: 'https://moduspilot.com/:path*',
         permanent: true,
       },
+      // Connections page was renamed to Capabilities — keep old bookmarks working.
+      { source: '/connections', destination: '/capabilities', permanent: true },
     ];
   },
 
