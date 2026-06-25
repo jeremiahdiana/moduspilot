@@ -12,7 +12,13 @@ import { useSheets } from '@/components/ui/Sheets';
 import { ScreenFade, FadeReveal } from '@/components/ui';
 import { useThemeColors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
+import { fetchTodayEvents, type CalEvent } from '@/lib/api';
 import type { Habit, Task } from '@/lib/types';
+
+function fmtEventTime(iso: string): string {
+  try { return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  catch { return ''; }
+}
 
 const PRIORITY_BAND: Record<string, string> = { high: '#f87171', medium: '#facc15', low: '#6b6b80' };
 const PRIORITY_TEXT: Record<string, string> = { high: '#f87171', medium: '#facc15', low: '#6b6b80' };
@@ -142,7 +148,18 @@ export default function RemindersScreen() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [quickAdd, setQuickAdd] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
+  const [events, setEvents] = useState<CalEvent[]>([]);
   const prevDone = useRef(0);
+
+  // Today's Google Calendar events — shown as a read-only agenda at the top,
+  // mirroring the web Reminders page ("what's on today" in one place).
+  useEffect(() => {
+    let alive = true;
+    fetchTodayEvents()
+      .then(r => { if (alive) setEvents((r.events ?? []).filter(e => !e.allDay)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user?.uid]);
 
   const doneToday = habits.filter(h => h.completedDates.includes(todayStr)).length;
   const totalHabits = habits.length;
@@ -227,6 +244,26 @@ export default function RemindersScreen() {
               <View className="flex-1">
                 <Text className="text-emerald-400 font-semibold text-sm">Perfect day!</Text>
                 <Text className="text-muted text-xs">All {totalHabits} habits complete. Keep the streak alive tomorrow.</Text>
+              </View>
+            </View>
+          )}
+
+          {/* ── TODAY'S SCHEDULE (calendar agenda) ─────────────── */}
+          {events.length > 0 && (
+            <View className="mb-6">
+              <View className="flex-row items-center gap-2.5 mb-3">
+                <Text className="text-xs font-bold uppercase tracking-widest text-muted">Today&apos;s Schedule</Text>
+                <View className="px-2 py-0.5 rounded-full bg-brand/10">
+                  <Text className="text-brand text-[10px] font-bold">{events.length}</Text>
+                </View>
+              </View>
+              <View className="gap-2">
+                {events.map(e => (
+                  <View key={e.id} className="flex-row items-center gap-3 px-4 py-3 bg-surface dark:bg-surface/70 border border-border dark:border-border/60 rounded-2xl">
+                    <Text className="text-brand font-semibold text-xs tabular-nums w-16">{fmtEventTime(e.start)}</Text>
+                    <Text className="text-text text-[15px] flex-1" numberOfLines={1}>{e.title}</Text>
+                  </View>
+                ))}
               </View>
             </View>
           )}
