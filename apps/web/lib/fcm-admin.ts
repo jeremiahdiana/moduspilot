@@ -1,10 +1,13 @@
 import { getMessaging } from 'firebase-admin/messaging';
+import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from './firebase-admin';
 
 /**
  * Push a notification to all of a user's devices. Web/Android register FCM
  * tokens (sent via Firebase Admin); the iOS app registers Expo push tokens
- * (sent via Expo's push service). Both are best-effort and run in parallel.
+ * (sent via Expo's push service); the desktop app polls a persisted
+ * notifications collection (FCM web-push service workers don't run in
+ * Electron). All three sinks are best-effort and run in parallel.
  */
 export async function sendPushToUser(
   uid: string,
@@ -15,7 +18,24 @@ export async function sendPushToUser(
   await Promise.allSettled([
     sendFcm(uid, title, body, data),
     sendExpo(uid, title, body, data),
+    persistNotification(uid, title, body, data),
   ]);
+}
+
+// Store the notification so the desktop app (which can't receive FCM web-push)
+// can poll + display it natively. Doubles as a notification history.
+async function persistNotification(uid: string, title: string, body: string, data?: Record<string, string>) {
+  try {
+    await adminDb.collection('users').doc(uid).collection('notifications').add({
+      title,
+      body,
+      data: data ?? {},
+      seen: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('[fcm-admin] persistNotification failed:', e);
+  }
 }
 
 async function sendFcm(uid: string, title: string, body: string, data?: Record<string, string>) {
