@@ -20,3 +20,15 @@ export interface ConversationRecord {
   source: string;
   modifiedAt?: number;
 }
+
+// One per Apple Reminder — synced into the MODUS reminders section as a task.
+// `completed` lets the backend reconcile MODUS task state with Apple's.
+export interface ReminderRecord {
+  id: string;               // ZIDENTIFIER (stable UUID)
+  title: string;
+  notes?: string;
+  dueDate?: string;         // YYYY-MM-DD in the user's local timezone (matches MODUS Task.dueDate)
+  completed: boolean;
+  priority?: 'high' | 'medium' | 'low';
+  list?: string;
+}

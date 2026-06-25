@@ -1,6 +1,6 @@
 import log from 'electron-log';
 import { getMainWindow } from '../windows';
-import type { NoteRecord, ConversationRecord } from '../../shared/types';
+import type { NoteRecord, ConversationRecord, ReminderRecord } from '../../shared/types';
 
 const INGEST_URL = 'https://moduspilot.com/api/desktop/ingest';
 
@@ -37,14 +37,15 @@ export async function getAuthState(): Promise<{ signedIn: boolean; email: string
   return { signedIn: true, email: decodeEmail(token) };
 }
 
-export interface IngestResult { notesWritten: number; messagesWritten: number }
+export interface IngestResult { notesWritten: number; messagesWritten: number; remindersWritten?: number }
 
-// Uploads local notes/messages to the web backend, authenticated with the
-// signed-in window's ID token. Returns null if not signed in or the request
+// Uploads local notes/messages/reminders to the web backend, authenticated with
+// the signed-in window's ID token. Returns null if not signed in or the request
 // fails (sync stays a no-op until the user signs in via the MODUS window).
 export async function ingest(payload: {
   notes?: NoteRecord[];
   messages?: ConversationRecord[];
+  reminders?: ReminderRecord[];
 }): Promise<IngestResult | null> {
   const token = await getIdToken();
   if (!token) {

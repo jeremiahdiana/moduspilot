@@ -5,6 +5,7 @@ import { showMainWindow } from './windows';
 import { ingest } from './sync/ingest';
 import { readAppleNotes, isFullDiskAccessGranted as notesFdaGranted } from './sync/appleNotesSync';
 import { readRecentMessages, isFullDiskAccessGranted as messagesFdaGranted } from './sync/appleMessagesSync';
+import { readAppleReminders, isFullDiskAccessGranted as remindersFdaGranted } from './sync/appleReminders';
 
 let tray: Tray | null = null;
 let syncing = false;
@@ -42,17 +43,18 @@ export async function runSync(): Promise<void> {
   try {
     const notes = notesFdaGranted() ? readAppleNotes() : [];
     const messages = messagesFdaGranted() ? readRecentMessages() : [];
-    if (notes.length === 0 && messages.length === 0) {
+    const reminders = remindersFdaGranted() ? readAppleReminders() : [];
+    if (notes.length === 0 && messages.length === 0 && reminders.length === 0) {
       log.info('[sync] nothing to sync (Full Disk Access off or no local data)');
       return;
     }
-    const result = await ingest({ notes, messages });
+    const result = await ingest({ notes, messages, reminders });
     if (result) {
       lastSyncAt = new Date();
       lastNotesCount = result.notesWritten;
       lastMessagesCount = result.messagesWritten;
       signedIn = true;
-      log.info(`[sync] uploaded ${result.notesWritten} note(s), ${result.messagesWritten} conversation(s)`);
+      log.info(`[sync] uploaded ${result.notesWritten} note(s), ${result.messagesWritten} conversation(s), ${result.remindersWritten ?? 0} reminder(s)`);
     } else {
       log.info('[sync] skipped — open MODUS and sign in first');
     }
