@@ -31,6 +31,7 @@ import {
   fetchNotesBlock,
   fetchMessagesBlock,
 } from '@/lib/chat/context';
+import { fetchGroupAvailabilityBlock } from '@/lib/chat/group-context';
 import {
   buildUserContextBlock,
   buildStyleBlock,
@@ -165,6 +166,9 @@ export async function POST(req: Request) {
 
     const webSearchBlock = await fetchWebSearchBlock(queryText, capabilities);
     const driveBlock = uid ? await fetchDriveBlock(uid, queryText) : '';
+    // Agent-to-agent: when the user asks about a groupmate's availability, pull
+    // the busy windows of members who opted to share their calendar.
+    const groupBlock = uid ? await fetchGroupAvailabilityBlock(uid, queryText, briefingTimezone) : '';
 
     // Collect Pinecone result (started in parallel above)
     const memoryContext = await memoryPromise;
@@ -204,7 +208,7 @@ export async function POST(req: Request) {
       ]);
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
