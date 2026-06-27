@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, doc, onSnapshot, query, where, updateDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, where, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -47,6 +47,8 @@ export default function GroupPage() {
   const [myInvites, setMyInvites] = useState<Invite[]>([]);
   const [sentInvites, setSentInvites] = useState<Invite[]>([]);
 
+  const [shared, setShared] = useState<{ id: string; text: string; authorUid: string; authorName: string | null; createdAtMs: number }[]>([]);
+  const [shareInput, setShareInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -87,6 +89,19 @@ export default function GroupPage() {
     });
   }, [email]);
 
+  // Shared group space — anything the whole group can see.
+  useEffect(() => {
+    if (!groupId) { setShared([]); return; }
+    return onSnapshot(collection(db, 'groups', groupId, 'shared'), snap => {
+      setShared(snap.docs
+        .map(d => {
+          const x = d.data();
+          return { id: d.id, text: x.text as string, authorUid: x.authorUid as string, authorName: (x.authorName as string) ?? null, createdAtMs: x.createdAt?.toMillis?.() ?? 0 };
+        })
+        .sort((a, b) => b.createdAtMs - a.createdAtMs));
+    });
+  }, [groupId]);
+
   // Invites I've sent (owner view).
   useEffect(() => {
     if (!uid || !groupId) { setSentInvites([]); return; }
@@ -122,6 +137,21 @@ export default function GroupPage() {
   const accept = (inviteId: string) => run(async () => { await callGroup('accept', { inviteId }); });
   const leave = () => run(async () => { await callGroup('leave'); });
   const disband = () => run(async () => { await callGroup('delete'); });
+
+  async function addShared() {
+    const text = shareInput.trim();
+    if (!text || !groupId || !uid) return;
+    setShareInput('');
+    try {
+      await addDoc(collection(db, 'groups', groupId, 'shared'), {
+        text, authorUid: uid, authorName: user?.displayName ?? null, createdAt: serverTimestamp(),
+      });
+    } catch { setError('Could not add to the group space'); }
+  }
+  async function removeShared(id: string) {
+    if (!groupId) return;
+    try { await deleteDoc(doc(db, 'groups', groupId, 'shared', id)); } catch { setError('Could not remove item'); }
+  }
 
   async function toggleSharing(next: boolean) {
     if (!groupId || !uid) return;
@@ -209,6 +239,48 @@ export default function GroupPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Shared group space */}
+            <div className="bg-panel border border-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-border/40">
+                <span className="text-base font-semibold text-text">Group space</span>
+                <p className="text-[12px] text-muted mt-0.5">Trips, plans, links — anything the whole group should see.</p>
+              </div>
+              <div className="px-5 py-4">
+                <div className="flex gap-2 mb-3">
+                  <input value={shareInput} onChange={e => setShareInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addShared(); }}
+                    placeholder="Add to the group space…"
+                    className="flex-1 bg-bg border border-border rounded-xl px-3.5 py-2.5 text-sm text-text outline-none focus:border-brand/50" />
+                  <button onClick={addShared}
+                    className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted hover:text-text hover:border-brand/40 transition-colors shrink-0">
+                    Add
+                  </button>
+                </div>
+                {shared.length === 0 ? (
+                  <p className="text-[13px] text-muted/70">Nothing here yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {shared.map(s => (
+                      <li key={s.id} className="group flex items-start gap-2.5 rounded-xl bg-bg/40 px-3.5 py-2.5">
+                        <span className="text-brand mt-1 shrink-0">&#9670;</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-text whitespace-pre-wrap break-words">{s.text}</p>
+                          {s.authorName && <p className="text-[11px] text-muted mt-0.5">{s.authorName}</p>}
+                        </div>
+                        <button onClick={() => removeShared(s.id)}
+                          className="text-muted/40 hover:text-red-500 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                          aria-label="Remove">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             {/* My sharing preference */}
