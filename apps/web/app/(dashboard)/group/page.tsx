@@ -40,6 +40,7 @@ export default function GroupPage() {
   const email = user?.email?.toLowerCase() ?? null;
 
   const [groupId, setGroupId] = useState<string | null | undefined>(undefined); // undefined = loading
+  const [plan, setPlan] = useState<string | null>(null);
   const [groupName, setGroupName] = useState('');
   const [ownerUid, setOwnerUid] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -56,7 +57,9 @@ export default function GroupPage() {
   useEffect(() => {
     if (!uid) return;
     return onSnapshot(doc(db, 'users', uid), snap => {
-      setGroupId((snap.data()?.groupId as string | undefined) ?? null);
+      const d = snap.data();
+      setGroupId((d?.groupId as string | undefined) ?? null);
+      setPlan((d?.plan as string | undefined) ?? 'free');
     });
   }, [uid]);
 
@@ -104,6 +107,17 @@ export default function GroupPage() {
   }
 
   const createGroup = () => run(async () => { await callGroup('create', { name: nameInput }); setNameInput(''); });
+  const upgrade = () => run(async () => {
+    const token = await auth.currentUser?.getIdToken();
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ plan: 'group' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) throw new Error(data.error ?? 'Could not start checkout');
+    window.location.href = data.url;
+  });
   const invite = () => run(async () => { await callGroup('invite', { email: emailInput }); setEmailInput(''); setNotice('Invite sent.'); });
   const accept = (inviteId: string) => run(async () => { await callGroup('accept', { inviteId }); });
   const leave = () => run(async () => { await callGroup('leave'); });
@@ -144,8 +158,8 @@ export default function GroupPage() {
 
         {groupId === undefined && <p className="text-sm text-muted">Loading…</p>}
 
-        {/* No group → create */}
-        {groupId === null && (
+        {/* No group, on the Group plan → create */}
+        {groupId === null && plan === 'group' && (
           <div className="bg-panel border border-border rounded-2xl p-6">
             <h2 className="text-base font-semibold text-text mb-1">Start a group</h2>
             <p className="text-sm text-muted mb-4">Create a group, then invite up to 4 people. Each gets their own private MODUS.</p>
@@ -157,6 +171,19 @@ export default function GroupPage() {
                 Create
               </button>
             </div>
+          </div>
+        )}
+
+        {/* No group, not on the Group plan → upgrade (invitees with a pending invite see the accept card above instead) */}
+        {groupId === null && plan !== 'group' && myInvites.length === 0 && (
+          <div className="bg-panel border border-brand rounded-2xl p-6 shadow-[0_0_40px_rgba(124,58,237,0.10)]">
+            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">GROUP — $79/mo</p>
+            <h2 className="text-lg font-semibold text-text mb-1">A private MODUS for your whole group.</h2>
+            <p className="text-sm text-muted mb-4">You plus 4 members, each with their own MODUS. Agent-to-agent coordination, a shared group space, and everything in MODUS for each person.</p>
+            <button onClick={upgrade} disabled={busy}
+              className="px-5 py-3 rounded-xl bg-brand text-white text-sm font-bold hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all disabled:opacity-50">
+              Upgrade to Group
+            </button>
           </div>
         )}
 

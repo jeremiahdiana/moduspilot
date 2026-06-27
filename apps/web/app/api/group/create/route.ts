@@ -7,6 +7,13 @@ export async function POST(req: Request) {
   const user = await verifyRequest(req);
   if (!user) return jsonError('Unauthorized', 401);
 
+  // Only the Group plan can create a group (the owner's plan covers all seats;
+  // invited members join for free without needing their own plan).
+  const userSnap = await adminDb.collection('users').doc(user.uid).get();
+  if (userSnap.data()?.plan !== 'group') {
+    return jsonError('The Group plan is required to start a group', 402);
+  }
+
   const existing = await getUserGroupId(user.uid);
   if (existing) return jsonError('You are already in a group', 409);
 

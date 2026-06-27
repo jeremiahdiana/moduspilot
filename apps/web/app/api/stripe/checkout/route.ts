@@ -4,6 +4,7 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 const PRICE_IDS: Record<string, string | undefined> = {
   modus: process.env.STRIPE_PRICE_MODUS,
   pilot: process.env.STRIPE_PRICE_PILOT,
+  group: process.env.STRIPE_PRICE_GROUP,
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';

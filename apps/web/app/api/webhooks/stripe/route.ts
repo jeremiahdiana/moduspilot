@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const session = event.data.object;
     const uid = session.metadata?.uid;
     const plan = session.metadata?.plan;
-    if (uid && (plan === 'modus' || plan === 'pilot')) {
+    if (uid && (plan === 'modus' || plan === 'pilot' || plan === 'group')) {
       await adminDb.collection('users').doc(uid).update({
         plan,
         stripeCustomerId: session.customer,
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     const status = sub.status; // active, past_due, canceled, unpaid, etc.
 
     if (status === 'active' || status === 'trialing') {
-      if (plan === 'modus' || plan === 'pilot') {
+      if (plan === 'modus' || plan === 'pilot' || plan === 'group') {
         await ref.update({ plan, subscriptionId: sub.id });
       }
     } else if (status === 'past_due' || status === 'unpaid' || status === 'paused') {
