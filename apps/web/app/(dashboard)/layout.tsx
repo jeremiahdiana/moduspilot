@@ -40,6 +40,7 @@ const ICONS = {
   goals:       'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9',
   reminders:   'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
   notes:       'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5',
+  group:       'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
   connections: 'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71',
   settings:    'M12 2a10 10 0 110 20A10 10 0 0112 2zm0 5v5l3 3',
 } as const;
@@ -51,6 +52,7 @@ const NAV = [
   { href: '/goals',       label: 'Goals',       icon: 'goals'       as const },
   { href: '/reminders',   label: 'Reminders',   icon: 'reminders'   as const },
   { href: '/notes',       label: 'Notes',       icon: 'notes'       as const },
+  { href: '/group',       label: 'Group',       icon: 'group'       as const },
   { href: '/capabilities', label: 'Capabilities', icon: 'connections' as const },
 ];
 

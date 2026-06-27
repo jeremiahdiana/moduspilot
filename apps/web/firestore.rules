@@ -44,5 +44,46 @@ service cloud.firestore {
     match /sharedConversations/{shareId} {
       allow read, write: if false;
     }
+
+    // ── Groups (MODUS Group plan) ─────────────────────────────────────────────
+    // A group is a small set of members, each with their own private MODUS. The
+    // group doc carries `memberUids` purely so rules can gate access — all writes
+    // to it (and to membership) go through Admin SDK routes that keep the array
+    // consistent, so clients can only ever READ the group, never mutate it.
+    function isGroupMember(groupId) {
+      return request.auth != null &&
+        request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberUids;
+    }
+
+    match /groups/{groupId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.memberUids;
+      allow write: if false; // server-only (Admin SDK)
+
+      // Per-member docs hold display info + that member's sharing preferences.
+      // Everyone in the group can read them; a member may update ONLY their own
+      // (to toggle what their MODUS shares). Membership changes are server-only.
+      match /members/{memberUid} {
+        allow read: if isGroupMember(groupId);
+        allow update: if request.auth != null && request.auth.uid == memberUid
+                      && isGroupMember(groupId);
+        allow create, delete: if false;
+      }
+
+      // The shared group space (trips, plans, notes the whole group can see).
+      // Any member can read and contribute.
+      match /shared/{docId} {
+        allow read, write: if isGroupMember(groupId);
+      }
+    }
+
+    // ── Group invites ─────────────────────────────────────────────────────────
+    // Readable only by the invited email or the inviter; created/accepted/revoked
+    // exclusively through Admin SDK routes.
+    match /groupInvites/{inviteId} {
+      allow read: if request.auth != null &&
+        (request.auth.token.email == resource.data.email ||
+         request.auth.uid == resource.data.invitedByUid);
+      allow write: if false;
+    }
   }
 }
