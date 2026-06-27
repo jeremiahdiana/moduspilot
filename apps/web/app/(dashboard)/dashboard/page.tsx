@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import DashboardGrid from '@/components/dashboard/DashboardGrid';
+import NeedsYou from '@/components/dashboard/NeedsYou';
 import Link from 'next/link';
 
 function greeting() {
@@ -391,6 +392,7 @@ export default function DashboardPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        <NeedsYou />
         <DashboardGrid />
       </div>
     </div>
