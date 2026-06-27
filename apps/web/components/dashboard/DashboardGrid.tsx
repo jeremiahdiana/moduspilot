@@ -1,8 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import GoalCard from './GoalCard';
-import HabitTracker from './HabitTracker';
 import TaskList from './TaskList';
 import BriefingWidget from './BriefingWidget';
 import GmailWidget from './GmailWidget';
@@ -22,23 +20,15 @@ function Widget({ title, icon, href, action, children, className = '' }: WidgetP
   return (
     <motion.div
       className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden ${className}`}
-      whileHover={{
-        y: -4,
-        boxShadow: '0 16px 48px rgba(124,58,237,0.10)',
-        borderColor: 'rgba(124,58,237,0.22)',
-      }}
+      whileHover={{ y: -2, borderColor: 'rgba(124,58,237,0.20)' }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       style={{ willChange: 'transform' }}
     >
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2.5">
-          <motion.div
-            className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand"
-            whileHover={{ scale: 1.18, rotate: 6, backgroundColor: 'rgba(124,58,237,0.18)' }}
-            transition={{ type: 'spring', stiffness: 380, damping: 22 }}
-          >
+          <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand">
             {icon}
-          </motion.div>
+          </div>
           <span className="text-sm font-semibold text-text">{title}</span>
         </div>
         {action ?? (href && (
@@ -69,19 +59,9 @@ const Icons = {
       <path d="M22 6l-10 7L2 6" />
     </svg>
   ),
-  goals: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-      <path d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-    </svg>
-  ),
   tasks: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
       <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-    </svg>
-  ),
-  habits: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
     </svg>
   ),
   calendar: (
@@ -129,27 +109,15 @@ export default function DashboardGrid() {
         {/* Right column */}
         <div className="flex flex-col gap-4">
           <FadeUp delay={0.06}>
-            <Widget title="Goals" icon={Icons.goals} href="/goals" className="min-h-[180px]">
-              <GoalCard />
-            </Widget>
-          </FadeUp>
-
-          <FadeUp delay={0.16}>
             <Widget title="Tasks" icon={Icons.tasks} href="/tasks" className="min-h-[180px]">
               <TaskList />
-            </Widget>
-          </FadeUp>
-
-          <FadeUp delay={0.24}>
-            <Widget title="Habits" icon={Icons.habits} href="/habits" className="min-h-[140px]">
-              <HabitTracker />
             </Widget>
           </FadeUp>
         </div>
       </div>
 
       {/* Full-width Calendar */}
-      <FadeUp delay={0.3}>
+      <FadeUp delay={0.18}>
         <Widget title="Today's Schedule" icon={Icons.calendar} className="min-h-[80px]">
           <CalendarWidget />
         </Widget>
