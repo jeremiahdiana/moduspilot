@@ -282,37 +282,6 @@ body::after {
 }
 
 /* Dashboard ambient orbs */
-.dash-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  pointer-events: none;
-  will-change: transform;
-}
-.dash-orb-1 {
-  width: 440px; height: 260px;
-  top: -55%; left: -10%;
-  background: radial-gradient(circle, rgba(124,58,237,0.16) 0%, transparent 70%);
-  animation: orb-drift-1 22s ease-in-out infinite;
-}
-.dash-orb-2 {
-  width: 280px; height: 280px;
-  top: -20%; right: 0%;
-  background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%);
-  animation: orb-drift-2 28s ease-in-out infinite;
-}
-.dash-orb-3 {
-  width: 200px; height: 200px;
-  bottom: -40%; left: 50%;
-  background: radial-gradient(circle, rgba(192,132,252,0.09) 0%, transparent 70%);
-  animation: orb-drift-3 20s ease-in-out infinite;
-}
-
-/* Light mode orb boost */
-:root .dash-orb-1 { background: radial-gradient(circle, rgba(124,58,237,0.34) 0%, transparent 70%); }
-:root .dash-orb-2 { background: radial-gradient(circle, rgba(167,139,250,0.28) 0%, transparent 70%); }
-:root .dash-orb-3 { background: radial-gradient(circle, rgba(192,132,252,0.22) 0%, transparent 70%); }
-
 /* Animated gradient text */
 .gradient-text-animated {
   background: linear-gradient(90deg, #7c3aed, #a78bfa, #c084fc, #8b5cf6, #7c3aed);

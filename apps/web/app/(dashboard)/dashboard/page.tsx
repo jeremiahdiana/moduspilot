@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
@@ -98,28 +98,18 @@ function useFocusTask(uid: string | null) {
 
 function FocusCard({ focus }: { focus: { title: string; source: 'briefing' | 'task' } }) {
   return (
-    <div className="mb-5 relative">
-      {/* Animated glow aura behind the card */}
+    <div className="mb-5">
       <motion.div
-        className="absolute inset-0 rounded-2xl bg-brand/20 blur-xl"
-        animate={{ opacity: [0.4, 0.75, 0.4] }}
-        transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        initial={{ opacity: 0, y: -12, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 24, delay: 0.05 }}
-        className="relative px-5 py-4 rounded-2xl bg-brand/5 border border-brand/25 flex items-center gap-4 backdrop-blur-sm"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="px-5 py-4 rounded-2xl bg-brand/5 border border-brand/20 flex items-center gap-4"
       >
-        <motion.div
-          className="w-9 h-9 rounded-xl bg-brand/15 flex items-center justify-center shrink-0"
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-        >
+        <div className="w-9 h-9 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-brand">
             <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
           </svg>
-        </motion.div>
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-brand/70 mb-0.5">
             {focus.source === 'briefing' ? 'Your focus today' : 'Up next'}
@@ -131,47 +121,20 @@ function FocusCard({ focus }: { focus: { title: string; source: 'briefing' | 'ta
   );
 }
 
-function useCountUp(target: number, duration = 600): number {
-  const [display, setDisplay] = useState(0);
-  const raf = useRef<number>(0);
-  const start = useRef<number>(0);
-  const from = useRef<number>(0);
-
-  useEffect(() => {
-    from.current = display;
-    start.current = 0;
-    cancelAnimationFrame(raf.current);
-    const step = (ts: number) => {
-      if (!start.current) start.current = ts;
-      const progress = Math.min((ts - start.current) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(from.current + (target - from.current) * eased));
-      if (progress < 1) raf.current = requestAnimationFrame(step);
-    };
-    raf.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
-
-  return display;
-}
-
 function StatPill({ value, label, href, color, delay = 0 }: { value: number; label: string; href: string; color: string; delay?: number }) {
-  const count = useCountUp(value);
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      whileHover={{ scale: 1.07, y: -2 }}
-      whileTap={{ scale: 0.96 }}
-      transition={{ duration: 0.32, delay, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -1 }}
+      transition={{ duration: 0.28, delay, ease: [0.16, 1, 0.3, 1] }}
       style={{ display: 'inline-flex' }}
     >
       <Link
         href={href}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${color}`}
       >
-        <span className="font-bold text-sm tabular-nums">{count}</span>
+        <span className="font-bold text-sm tabular-nums">{value}</span>
         <span>{label}</span>
       </Link>
     </motion.div>
@@ -317,16 +280,10 @@ export default function DashboardPage() {
 
   return (
     <div className="overflow-y-auto h-full">
-      {/* Header with ambient orbs */}
+      {/* Header */}
       <div className="relative px-4 md:px-8 pt-6 md:pt-8 pb-6 border-b border-border/50 overflow-hidden">
-        {/* Static gradient layers */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_100%_at_0%_0%,rgba(124,58,237,0.08),transparent)] pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-brand/[0.04] to-transparent pointer-events-none" />
-
-        {/* Animated ambient orbs */}
-        <div className="dash-orb dash-orb-1" />
-        <div className="dash-orb dash-orb-2" />
-        <div className="dash-orb dash-orb-3" />
+        {/* Single faint static gradient for depth — no motion */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_100%_at_0%_0%,rgba(124,58,237,0.05),transparent)] pointer-events-none" />
 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -339,7 +296,7 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-2xl font-medium text-text">
                 {greeting()}{firstName ? (
-                  <>, <span className="gradient-text-animated">{firstName}</span></>
+                  <>, <span className="text-brand">{firstName}</span></>
                 ) : ''}.
               </h1>
               <motion.p
@@ -353,15 +310,12 @@ export default function DashboardPage() {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.85, x: 10 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.3 }}
-              className="shimmer-badge flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/8 border border-emerald-500/20 shrink-0 mt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/8 border border-emerald-500/20 shrink-0 mt-1"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
+              <span className="inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
               <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tracking-wide">MODUS · Live</span>
             </motion.div>
           </div>
