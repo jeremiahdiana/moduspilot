@@ -13,10 +13,9 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # Notarization (uses notarytool). APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD come
-  # from the build environment; teamId is fixed.
-  notarize:
-    teamId: 8KF5J7X9BU
+  # Notarization (notarytool) — credentials from env: APPLE_ID,
+  # APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID.
+  notarize: true
   # dmg = initial download; zip = required by electron-updater for auto-updates.
   target:
     - target: dmg
