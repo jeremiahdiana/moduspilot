@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from 'firebase/auth';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { isPaidPlan } from '@/lib/plan';
 
 interface GoogleAccount { email: string; connectedAt: string | null; }
 interface NotionAccount { workspaceId: string; workspaceName: string; workspaceIcon: string | null; ownerEmail: string; connectedAt: string | null; }
@@ -113,7 +114,7 @@ export default function ConnectorsSettings({ user }: Props) {
   // This page merges connections + capabilities. Capability toggles (AI
   // features + desktop syncs) all live in settings.capabilities.
   const { settings, plan, saving: settingsSaving, saveSettings } = useUserSettings(user);
-  const isPaid = plan === 'modus' || plan === 'pilot';
+  const isPaid = isPaidPlan(plan);
   const setCapability = (key: keyof typeof settings.capabilities, val: boolean) =>
     saveSettings({ capabilities: { ...settings.capabilities, [key]: val } });
 

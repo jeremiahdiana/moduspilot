@@ -10,6 +10,7 @@ import {
   MODUS_WEEKLY_LIMIT,
   PILOT_WEEKLY_LIMIT,
 } from '@/lib/constants';
+import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
 export function getWeekKey(): string {
@@ -52,8 +53,7 @@ export async function enforceGuestRateLimit(req: Request): Promise<Response | nu
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function enforceFreeTierLimit(uid: string, userData: Record<string, any>): Promise<Response | null> {
   const plan = userData.plan as string | undefined;
-  const isPaid = plan === 'modus' || plan === 'pilot';
-  if (isPaid) return null;
+  if (isPaidPlan(plan)) return null;
 
   // Use modusPilotSignupAt for trial — more reliable than Firebase Auth creation time.
   // If missing (existing users), set it now so their 3-day trial starts from today.
@@ -101,11 +101,11 @@ export async function enforceFreeTierLimit(uid: string, userData: Record<string,
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function enforcePaidTokenLimit(userData: Record<string, any>): Response | null {
   const plan = userData.plan as string | undefined;
-  if (plan !== 'modus' && plan !== 'pilot') return null;
+  if (!isPaidPlan(plan)) return null;
   const todayStr  = new Date().toISOString().slice(0, 10);
   const weekKey   = getWeekKey();
-  const dailyLimit  = plan === 'pilot' ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
-  const weeklyLimit = plan === 'pilot' ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+  const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
+  const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
   const tokensToday  = (userData.tokenDate  as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
   const tokensWeek   = (userData.tokenWeek  as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
   if (tokensToday >= dailyLimit || tokensWeek >= weeklyLimit) {
@@ -121,7 +121,7 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function trackTokenUsage(uid: string, userData: Record<string, any>, totalTokens: number): void {
   const plan = userData.plan as string | undefined;
-  if (plan !== 'modus' && plan !== 'pilot') return;
+  if (!isPaidPlan(plan)) return;
   const userRef = adminDb.collection('users').doc(uid);
   adminDb.runTransaction(async (txn) => {
     const snap = await txn.get(userRef);

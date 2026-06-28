@@ -3,6 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
+import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 const OPENAI_VISION = /gpt-4o|gpt-4\.1|gpt-4-turbo/;
 function visionOpenAIModel(model: string): string {
@@ -18,8 +19,8 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   const ms = userData.settings?.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
   const modelProvider = ms?.provider ?? 'platform';
   const plan = userData.plan as string | undefined;
-  const isPaid = plan === 'modus' || plan === 'pilot';
-  const isPilot = plan === 'pilot';
+  const isPaid = isPaidPlan(plan);
+  const isPilot = isPilotLevelPlan(plan);
 
   // BYOK — user's own key always wins, regardless of plan
   if (modelProvider === 'openai' && ms?.openaiKey) {
