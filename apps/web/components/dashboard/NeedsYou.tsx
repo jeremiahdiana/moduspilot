@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where, doc, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ApprovalCard from '@/components/chat/ApprovalCard';
 
@@ -125,10 +125,18 @@ function ItemCard({ item, onDismiss }: { item: ProactiveItem; onDismiss: (id: st
   );
 }
 
+interface GroupInvite {
+  id: string;
+  groupName: string;
+  invitedByName: string | null;
+}
+
 export default function NeedsYou() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
+  const email = user?.email?.toLowerCase() ?? null;
   const [items, setItems] = useState<ProactiveItem[]>([]);
+  const [invites, setInvites] = useState<GroupInvite[]>([]);
 
   useEffect(() => {
     if (!uid) return;
@@ -153,6 +161,22 @@ export default function NeedsYou() {
     return unsub;
   }, [uid]);
 
+  // Pending group invites addressed to this user (single equality filter).
+  useEffect(() => {
+    if (!email) return;
+    const q = query(collection(db, 'groupInvites'), where('email', '==', email));
+    const unsub = onSnapshot(
+      q,
+      snap => {
+        setInvites(snap.docs
+          .filter(d => d.data().status === 'pending')
+          .map(d => ({ id: d.id, groupName: d.data().groupName ?? 'a group', invitedByName: d.data().invitedByName ?? null })));
+      },
+      () => { /* non-fatal */ },
+    );
+    return unsub;
+  }, [email]);
+
   async function dismiss(id: string) {
     if (!uid) return;
     // Optimistic remove so the card leaves immediately on approve/skip.
@@ -160,7 +184,19 @@ export default function NeedsYou() {
     try { await updateDoc(doc(db, 'users', uid, 'conversations', id), { read: true }); } catch { /* non-fatal */ }
   }
 
-  if (items.length === 0) return null;
+  async function acceptInvite(id: string) {
+    setInvites(prev => prev.filter(i => i.id !== id)); // optimistic
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      await fetch('/api/group/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ inviteId: id }),
+      });
+    } catch { /* non-fatal — feed will re-sync */ }
+  }
+
+  if (items.length === 0 && invites.length === 0) return null;
 
   return (
     <motion.section
@@ -177,13 +213,38 @@ export default function NeedsYou() {
         </div>
         <span className="text-sm font-semibold text-text">Needs you</span>
         <span className="text-[11px] font-medium text-brand bg-brand/10 rounded-full px-2 py-0.5 tabular-nums">
-          {items.length}
+          {items.length + invites.length}
         </span>
         <span className="text-[11px] text-muted ml-auto hidden sm:block">MODUS worked while you were away</span>
       </div>
 
       <div className="px-3 pb-3 space-y-2">
         <AnimatePresence initial={false}>
+          {invites.map(inv => (
+            <motion.div
+              key={inv.id}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.18 } }}
+              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+              className="rounded-xl border border-border/60 bg-bg/40 px-4 py-3"
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand bg-brand/10 rounded px-1.5 py-0.5">Group invite</span>
+              </div>
+              <p className="text-sm leading-relaxed text-text mb-2.5">
+                <span className="font-semibold">{inv.invitedByName ?? 'Someone'}</span> invited you to join{' '}
+                <span className="font-semibold">{inv.groupName}</span>.
+              </p>
+              <button
+                onClick={() => acceptInvite(inv.id)}
+                className="text-xs font-semibold text-white bg-brand hover:bg-brand/90 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                Join group
+              </button>
+            </motion.div>
+          ))}
           {items.map(item => (
             <ItemCard key={item.id} item={item} onDismiss={dismiss} />
           ))}

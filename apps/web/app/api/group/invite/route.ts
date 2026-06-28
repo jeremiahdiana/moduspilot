@@ -1,5 +1,6 @@
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { sendPushToUser } from '@/lib/fcm-admin';
 import { verifyRequest, getUserGroupId, jsonError, MAX_GROUP_MEMBERS } from '@/lib/groups';
 
 // Owner-only: invites someone by email to the requester's group.
@@ -41,6 +42,18 @@ export async function POST(req: Request) {
     status: 'pending',
     createdAt: FieldValue.serverTimestamp(),
   });
+
+  // Best-effort push if the invitee already has a MODUS account. If they don't
+  // (sign-up still ahead of them), this silently no-ops — they'll see the invite
+  // in their Needs-you feed the moment they open the app.
+  try {
+    const invitee = await adminAuth.getUserByEmail(inviteEmail);
+    await sendPushToUser(
+      invitee.uid,
+      `${user.name ?? 'Someone'} invited you to a group`,
+      `Join "${group.name ?? 'their group'}" on MODUS`,
+    );
+  } catch { /* no account / no token — non-fatal */ }
 
   return Response.json({ ok: true });
 }

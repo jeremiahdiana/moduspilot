@@ -16,6 +16,7 @@ function getAdminApp() {
 export const adminAuth = {
   verifyIdToken: (token: string) => getAuth(getAdminApp()).verifyIdToken(token),
   getUser: (uid: string) => getAuth(getAdminApp()).getUser(uid),
+  getUserByEmail: (email: string) => getAuth(getAdminApp()).getUserByEmail(email),
   createCustomToken: (uid: string) => getAuth(getAdminApp()).createCustomToken(uid),
   deleteUser: (uid: string) => getAuth(getAdminApp()).deleteUser(uid),
 };
