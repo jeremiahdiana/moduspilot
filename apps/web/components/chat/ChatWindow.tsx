@@ -221,17 +221,10 @@ export default function ChatWindow({
             transition={{ type: 'spring', stiffness: 200, damping: 24 }}
             className="flex flex-col items-center justify-center mt-20 gap-5"
           >
-            {/* Glowing avatar */}
-            <div className="relative">
-              <motion.div
-                className="absolute inset-0 rounded-2xl bg-brand/25 blur-xl"
-                animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.15, 1] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div className="relative w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center float">
-                <Image src="/logo.png" alt="MODUS" width={28} height={28} className="opacity-80 dark:hidden" />
-                <Image src="/logo-dark.png" alt="MODUS" width={28} height={28} className="opacity-80 hidden dark:block" />
-              </motion.div>
+            {/* Avatar */}
+            <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+              <Image src="/logo.png" alt="MODUS" width={28} height={28} className="opacity-80 dark:hidden" />
+              <Image src="/logo-dark.png" alt="MODUS" width={28} height={28} className="opacity-80 hidden dark:block" />
             </div>
 
             {/* Title */}
@@ -310,20 +303,15 @@ export default function ChatWindow({
         ))}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
             className="flex items-center gap-2.5"
           >
-            <motion.div
-              initial={{ scale: 0.6 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 22 }}
-              className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0"
-            >
+            <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
               <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75 dark:hidden" />
               <Image src="/logo-dark.png" alt="MODUS" width={14} height={14} className="opacity-75 hidden dark:block" />
-            </motion.div>
+            </div>
             <div className="flex gap-1 items-end">
               <span className="typing-dot w-1.5 h-1.5 bg-brand/60 rounded-full" />
               <span className="typing-dot w-1.5 h-1.5 bg-brand/60 rounded-full" />

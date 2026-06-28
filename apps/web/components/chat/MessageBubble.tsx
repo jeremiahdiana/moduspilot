@@ -63,9 +63,9 @@ export default function MessageBubble({
     const hasImage = Array.isArray(message.content) && message.content.some(p => p.type === 'image');
     return (
       <motion.div
-        initial={{ opacity: 0, x: 14, scale: 0.97 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className="flex justify-end"
       >
         <div className="max-w-[72%] space-y-1.5">
@@ -100,18 +100,12 @@ export default function MessageBubble({
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10, scale: 0.97 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="flex justify-start gap-2.5"
     >
-      <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 22, delay: 0.04 }}
-      >
-        <ModusAvatar />
-      </motion.div>
+      <ModusAvatar />
       <div className="max-w-[72%] space-y-3">
         {parts.map((part, i) =>
           part.type === 'approval' ? (
