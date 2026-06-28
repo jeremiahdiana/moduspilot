@@ -1,9 +1,14 @@
 import { requireAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 const MAX_CHARS = 4000;
-const MAX_PER_DAY = 30;
+// Daily voice (TTS) ceilings by plan — paid users get real headroom to use
+// voice as a daily driver; free stays capped to bound platform-key cost.
+const FREE_TTS_PER_DAY = 30;
+const MODUS_TTS_PER_DAY = 300;
+const PILOT_TTS_PER_DAY = 2000;
 const ALLOWED_VOICES = new Set(['alloy', 'echo', 'fable', 'nova', 'onyx', 'shimmer']);
 const DEFAULT_VOICE = 'onyx';
 
@@ -24,8 +29,12 @@ export async function POST(req: Request) {
     return Response.json({ error: 'No OpenAI key available. Add one in Settings → AI Model.' }, { status: 503 });
   }
 
-  if (d.ttsDate === today && (d.ttsCount ?? 0) >= MAX_PER_DAY) {
-    return Response.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  const plan = d.plan as string | undefined;
+  const maxPerDay = isPilotLevelPlan(plan) ? PILOT_TTS_PER_DAY
+    : isPaidPlan(plan) ? MODUS_TTS_PER_DAY
+    : FREE_TTS_PER_DAY;
+  if (d.ttsDate === today && (d.ttsCount ?? 0) >= maxPerDay) {
+    return Response.json({ error: 'Daily voice limit reached' }, { status: 429 });
   }
 
   const body = await req.json() as { text?: string; voice?: string };
