@@ -90,11 +90,7 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
       <Ico d={ICONS.briefing} d2={ICONS.briefing2} className="relative" />
       <span className="relative flex-1">Briefing</span>
       {unread && !active && (
-        <motion.span
-          className="relative w-1.5 h-1.5 rounded-full bg-brand shrink-0"
-          animate={{ scale: [1, 1.3, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
+        <span className="relative w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
       )}
     </Link>
   );
