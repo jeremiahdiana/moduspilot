@@ -23,7 +23,7 @@ export default function AccountSettings({ user }: Props) {
   const [error, setError] = useState('');
   const [msgCount, setMsgCount] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [plan, setPlan] = useState<'free' | 'modus' | 'pilot'>('free');
+  const [plan, setPlan] = useState<'free' | 'modus' | 'pilot' | 'group'>('free');
   const [trialDaysLeft, setTrialDaysLeft] = useState(TRIAL_DAYS);
   const router = useRouter();
 
@@ -39,7 +39,7 @@ export default function AccountSettings({ user }: Props) {
     }
     getDoc(doc(db, 'users', user.uid)).then(snap => {
       const data = snap.data() ?? {};
-      setPlan(data.plan === 'modus' || data.plan === 'pilot' ? data.plan : 'free');
+      setPlan(data.plan === 'modus' || data.plan === 'pilot' || data.plan === 'group' ? data.plan : 'free');
       setMsgCount(data.usageDate === today ? (data.dailyMessages ?? 0) : 0);
     }).catch(() => {});
   }, [user]);

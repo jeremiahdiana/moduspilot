@@ -1,9 +1,10 @@
 'use client';
 
 import { FREE_DAILY_LIMIT, MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
+import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 interface Props {
-  plan: 'free' | 'modus' | 'pilot';
+  plan: 'free' | 'modus' | 'pilot' | 'group';
   usage: {
     dailyMessages: number; usageDate: string;
     dailyTokens: number;   tokenDate: string;
@@ -32,12 +33,12 @@ function getWeekKey() {
 }
 
 export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUpgrade?: () => void }) {
-  const isPaid = plan === 'modus' || plan === 'pilot';
+  const isPaid = isPaidPlan(plan);
   const today   = new Date().toISOString().slice(0, 10);
   const weekKey = getWeekKey();
 
-  const dailyLimit  = plan === 'pilot' ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
-  const weeklyLimit = plan === 'pilot' ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+  const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
+  const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
 
   const dailyCount   = usage.usageDate === today    ? usage.dailyMessages  : 0;
   const tokenCount   = usage.tokenDate === today    ? usage.dailyTokens    : 0;

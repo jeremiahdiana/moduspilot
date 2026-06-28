@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import type { UserSettings, ModelConfig } from '@/hooks/useUserSettings';
+import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 interface Props {
   settings: UserSettings;
-  plan: 'free' | 'modus' | 'pilot';
+  plan: 'free' | 'modus' | 'pilot' | 'group';
   saving: boolean;
   onSave: (updates: Partial<UserSettings>) => Promise<void>;
 }
@@ -125,14 +126,17 @@ function RadioDot({ selected }: { selected: boolean }) {
 export default function ModelSettings({ settings, plan, saving, onSave }: Props) {
   const raw = settings.modelSettings;
   const rawProvider = raw?.provider ?? 'platform';
-  const isPaid = plan === 'modus' || plan === 'pilot';
-  const isPilot = plan === 'pilot';
+  const isPaid = isPaidPlan(plan);
+  const isPilot = isPilotLevelPlan(plan);
+  // Group gets PILOT-level model access — normalize so the per-model `plans`
+  // arrays (which list 'modus'/'pilot') unlock the right models for group.
+  const effectivePlan = plan === 'group' ? 'pilot' : plan;
 
   const initialPlatformModel = (() => {
     if (!raw?.model || rawProvider !== 'platform') return 'llama-3.3-70b-versatile';
     const brain = BRAINS.find(b => b.id === raw.model);
     if (!brain) return 'llama-3.3-70b-versatile';
-    if (!brain.plans.includes(plan)) return 'llama-3.3-70b-versatile';
+    if (!brain.plans.includes(effectivePlan)) return 'llama-3.3-70b-versatile';
     return raw.model;
   })();
 
@@ -150,7 +154,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
 
   function selectBrain(id: string) {
     const brain = BRAINS.find(b => b.id === id)!;
-    if (!brain.plans.includes(plan)) return;
+    if (!brain.plans.includes(effectivePlan)) return;
     setPlatformModel(id);
     setByokProvider(null);
     setSaved(false);
@@ -198,7 +202,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
         <p className="text-sm font-semibold text-text">Platform Brains</p>
         <div className="grid gap-2.5">
           {BRAINS.map(brain => {
-            const locked = !brain.plans.includes(plan);
+            const locked = !brain.plans.includes(effectivePlan);
             const isSelected = !byokProvider && platformModel === brain.id;
             return (
               <button

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 
 const PLANS: Array<{
-  key: 'free' | 'modus' | 'pilot';
+  key: 'free' | 'modus' | 'pilot' | 'group';
   label: string;
   price: string;
   period: string;
@@ -51,10 +51,23 @@ const PLANS: Array<{
       'Dedicated onboarding',
     ],
   },
+  {
+    key: 'group',
+    label: 'GROUP',
+    price: '$79',
+    period: '/mo',
+    features: [
+      '5 seats — each a full MODUS',
+      'Everything in MODUS, per person',
+      'Shared group space',
+      'Cross-agent availability + scheduling',
+      'Web + iOS + Mac for everyone',
+    ],
+  },
 ];
 
 interface Props {
-  plan: 'free' | 'modus' | 'pilot';
+  plan: 'free' | 'modus' | 'pilot' | 'group';
 }
 
 async function getToken() {
@@ -69,7 +82,7 @@ export default function BillingSettings({ plan }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const handleUpgrade = async (targetPlan: 'modus' | 'pilot') => {
+  const handleUpgrade = async (targetPlan: 'modus' | 'pilot' | 'group') => {
     setLoading(targetPlan);
     setError('');
     try {
@@ -140,6 +153,7 @@ export default function BillingSettings({ plan }: Props) {
           {plan === 'free' && <p className="text-xs text-muted mt-1">Free tier — upgrade anytime.</p>}
           {plan === 'modus' && <p className="text-xs text-muted mt-1">$24/mo — billed monthly.</p>}
           {plan === 'pilot' && <p className="text-xs text-muted mt-1">$59/mo — billed monthly.</p>}
+          {plan === 'group' && <p className="text-xs text-muted mt-1">$79/mo — up to 5 members.</p>}
         </div>
         {plan !== 'free' && (
           <button
@@ -153,7 +167,7 @@ export default function BillingSettings({ plan }: Props) {
       </div>
 
       {/* Plan cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {PLANS.map(p => {
           const isCurrent = p.key === plan;
           const isUpgrade = p.key !== 'free' && !isCurrent;
@@ -184,7 +198,7 @@ export default function BillingSettings({ plan }: Props) {
               </ul>
               {!isCurrent && (
                 <button
-                  onClick={() => isUpgrade ? handleUpgrade(p.key as 'modus' | 'pilot') : handleManage()}
+                  onClick={() => isUpgrade ? handleUpgrade(p.key as 'modus' | 'pilot' | 'group') : handleManage()}
                   disabled={!!loading}
                   className={`w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                     isUpgrade
