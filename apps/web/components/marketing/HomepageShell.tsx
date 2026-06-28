@@ -7,7 +7,6 @@ import ChatSection from './ChatSection';
 import CoreLoop from './CoreLoop';
 import FeaturesSection from './FeaturesSection';
 import IntegrationsSection from './IntegrationsSection';
-import GroupSection from './GroupSection';
 import PricingSection from './PricingSection';
 import FinalCTA from './FinalCTA';
 import Footer from './Footer';
@@ -49,12 +48,6 @@ export default function HomepageShell() {
 
         <RevealSection direction="left" distance={24}>
           <IntegrationsSection />
-        </RevealSection>
-
-        <Divider />
-
-        <RevealSection>
-          <GroupSection />
         </RevealSection>
 
         <Divider />

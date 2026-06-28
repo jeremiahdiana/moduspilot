@@ -122,6 +122,15 @@ const PLANS = [
   },
 ];
 
+const GROUP_FEATURES = [
+  '5 seats — each a full, separate MODUS',
+  'Everything in MODUS, for every member',
+  'A shared group space for trips & plans',
+  'Ask MODUS when a teammate is free',
+  'Web + iOS + Mac for everyone',
+  '7-day full trial, no card required',
+];
+
 const COMPARISONS = [
   { tool: 'Superhuman', price: '$30/mo', what: 'Email only', icon: '✉' },
   { tool: 'Notion AI', price: '$10/mo', what: 'Passive notes', icon: '◻' },
@@ -145,6 +154,10 @@ const FAQS = [
   {
     q: 'What makes PILOT different from MODUS?',
     a: 'PILOT adds the executive layer: wearable health sync (Oura, Whoop, HealthKit), financial pulse via Plaid, relationship intelligence CRM, meeting intelligence, travel management, and a document vault. If you manage a team or run a company, PILOT is built for you.',
+  },
+  {
+    q: 'How does the Group plan work?',
+    a: 'One Group plan covers up to 5 people for $79/mo. The owner subscribes and invites the rest by email — each member gets their own separate MODUS with their own account and data, and they join at no extra cost. The group shares a space for trips and plans, and MODUS can check a teammate\'s availability, but only what each person chooses to share is ever shared.',
   },
   {
     q: 'Does MODUS replace my existing apps?',
@@ -370,6 +383,44 @@ export default function PricingPage() {
               </RevealOnScroll>
             ))}
           </div>
+
+          {/* ── Group plan (multi-seat) ──────────────────────────────── */}
+          <RevealOnScroll direction="up" className="mb-6">
+            <div
+              className="relative rounded-3xl border border-brand/40 bg-panel/60 backdrop-blur-xl overflow-hidden"
+              style={{ boxShadow: '0 0 40px rgba(124,58,237,0.12)' }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-transparent pointer-events-none" />
+              <div className="relative p-8 md:p-10 flex flex-col md:flex-row md:items-center gap-8">
+                <div className="md:flex-1">
+                  <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">GROUP</p>
+                  <div className="flex items-end gap-1 mb-3">
+                    <span className="text-5xl font-black text-text">$79</span>
+                    <span className="text-base font-normal text-muted mb-2">/mo</span>
+                  </div>
+                  <p className="text-sm text-muted leading-relaxed max-w-md">
+                    For teams, cofounders, and households. Up to 5 people, each with their own full
+                    MODUS, coordinating through one shared group. The owner&rsquo;s plan covers
+                    everyone — invited members join free.
+                  </p>
+                </div>
+                <div className="md:w-72 shrink-0">
+                  <ul className="space-y-3 mb-6">
+                    {GROUP_FEATURES.map(f => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <span className="mt-0.5 shrink-0 text-xs text-brand">◆</span>
+                        <span className="text-text/80">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/login" className="block w-full py-4 rounded-2xl text-sm font-bold text-center btn-primary text-white">
+                    Get started
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </RevealOnScroll>
 
           {/* Annual note */}
           <RevealOnScroll direction="none">
