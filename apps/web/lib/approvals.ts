@@ -126,6 +126,45 @@ export const approvalHandlers: Record<string, ApprovalHandler> = {
     return Response.json({ id: ref.id });
   },
 
+  // Group scheduling: creates ONE event on the requester's calendar and adds
+  // every other group member as an attendee, so Google sends them an invite.
+  // We never write to other members' calendars directly — invites are the
+  // consent-respecting mechanism.
+  schedule_group_event: async ({ uid, userRef, title, description, payload, base }) => {
+    const { startDateTime, endDateTime } = payload as { startDateTime?: string; endDateTime?: string };
+    if (!startDateTime || !endDateTime) return Response.json({ error: 'start/end required' }, { status: 400 });
+
+    const userSnap = await userRef.get();
+    const groupId = userSnap.data()?.groupId as string | undefined;
+    if (!groupId) return Response.json({ error: 'Not in a group' }, { status: 400 });
+
+    const membersSnap = await userRef.firestore.doc(`groups/${groupId}`).collection('members').get();
+    const attendees = membersSnap.docs
+      .map(d => d.data())
+      .filter(m => m.uid !== uid && typeof m.email === 'string' && m.email)
+      .map(m => ({ email: m.email as string }));
+
+    const googleToken = await getValidAccessToken(uid);
+    if (!googleToken) return Response.json({ error: 'Google not connected' }, { status: 400 });
+
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        summary: title,
+        description: description ?? '',
+        start: { dateTime: startDateTime },
+        end: { dateTime: endDateTime },
+        attendees,
+      }),
+    });
+    if (!res.ok) return Response.json({ error: 'Calendar create failed' }, { status: 500 });
+
+    // Mirror into the user's events subcollection for consistency with schedule_event.
+    const ref = await userRef.collection('events').add({ ...base, attendees: attendees.map(a => a.email) });
+    return Response.json({ id: ref.id });
+  },
+
   archive_email: async ({ uid, payload }) => {
     const threadId = payload.threadId as string | undefined;
     if (!threadId) return Response.json({ error: 'threadId required' }, { status: 400 });

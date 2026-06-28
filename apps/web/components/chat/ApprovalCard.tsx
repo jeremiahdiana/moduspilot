@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<string, string> = {
   create_task: 'New Task',
   create_habit: 'New Habit',
   schedule_event: 'Schedule Event',
+  schedule_group_event: 'Group Event',
   draft_email: 'Draft Email',
   update_goal: 'Update Goal',
   update_goal_progress: 'Goal Progress',
@@ -90,6 +91,11 @@ function buildFollowUpMessage(type: string, title: string, payload: Record<strin
       if (date) msg += ` on ${date}`;
       if (startTime) msg += ` at ${startTime}`;
       return msg + '.';
+    }
+    case 'schedule_group_event': {
+      const attendees = payload.attendees as string[] | undefined;
+      const n = attendees?.length ?? 0;
+      return `Scheduled "${title}" and invited ${n > 0 ? `${n} group member${n > 1 ? 's' : ''}` : 'the group'}.`;
     }
     case 'send_email': {
       const to = payload.to as string | undefined;
