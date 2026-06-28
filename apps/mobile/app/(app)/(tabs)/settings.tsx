@@ -138,6 +138,8 @@ export default function SettingsScreen() {
 
         {/* Account & integrations */}
         <View className="bg-surface border border-border rounded-xl overflow-hidden">
+          <NavRow icon="group" label="Group" onPress={() => router.push('/(app)/group' as never)} />
+          <Divider />
           <NavRow icon="hub" label="Connectors" onPress={() => router.push('/(app)/connectors' as never)} />
           <Divider />
           <NavRow icon="terminal" label="MCP Servers" onPress={() => router.push('/(app)/mcp-servers' as never)} />

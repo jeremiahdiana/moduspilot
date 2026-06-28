@@ -244,7 +244,7 @@ async function postForUrl(path: string, body?: unknown): Promise<string> {
 }
 
 /** Stripe Checkout URL for a plan upgrade. */
-export const startCheckout = (plan: 'modus' | 'pilot') => postForUrl('/api/stripe/checkout', { plan });
+export const startCheckout = (plan: 'modus' | 'pilot' | 'group') => postForUrl('/api/stripe/checkout', { plan });
 /** Stripe billing-portal URL (manage/cancel). */
 export const openBillingPortal = () => postForUrl('/api/stripe/portal');
 
