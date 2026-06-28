@@ -33,6 +33,18 @@ export async function POST(req: Request) {
     .limit(1).get();
   if (!dupe.empty) return jsonError('That person already has a pending invite');
 
+  // Pending invites count against the seats — caps total (members + pending) at
+  // MAX_GROUP_MEMBERS. Without this an owner could spam unlimited invite docs +
+  // push notifications to arbitrary emails. (Owner can /api/group/revoke a
+  // pending invite to free a seat, e.g. after a typo.)
+  const pending = await adminDb.collection('groupInvites')
+    .where('groupId', '==', groupId)
+    .where('status', '==', 'pending')
+    .count().get();
+  if (members.length + pending.data().count >= MAX_GROUP_MEMBERS) {
+    return jsonError(`No seats left — members plus pending invites already fill the group of ${MAX_GROUP_MEMBERS}. Cancel a pending invite or wait for someone to join.`);
+  }
+
   await adminDb.collection('groupInvites').add({
     groupId,
     groupName: group.name ?? 'Group',

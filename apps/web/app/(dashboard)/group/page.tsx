@@ -135,6 +135,7 @@ export default function GroupPage() {
   });
   const invite = () => run(async () => { await callGroup('invite', { email: emailInput }); setEmailInput(''); setNotice('Invite sent.'); });
   const accept = (inviteId: string) => run(async () => { await callGroup('accept', { inviteId }); });
+  const revoke = (inviteId: string) => run(async () => { await callGroup('revoke', { inviteId }); });
   const leave = () => run(async () => { await callGroup('leave'); });
   const disband = () => run(async () => { await callGroup('delete'); });
 
@@ -314,7 +315,14 @@ export default function GroupPage() {
                   <ul className="mt-3 space-y-1">
                     {sentInvites.map(inv => (
                       <li key={inv.id} className="text-[12px] text-muted flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> {inv.email} — pending
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />
+                        <span className="flex-1 truncate">{inv.email} — pending</span>
+                        <button onClick={() => revoke(inv.id)} disabled={busy}
+                          className="text-muted/60 hover:text-red-500 transition-colors shrink-0" aria-label="Cancel invite">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
                       </li>
                     ))}
                   </ul>
