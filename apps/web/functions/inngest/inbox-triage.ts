@@ -1,13 +1,10 @@
 import { inngest } from '@/lib/inngest';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { generateProactiveText } from '@/lib/proactive-model';
 import { sendPushToUser } from '@/lib/fcm-admin';
 import { getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getActionableThreads } from '@/lib/google-gmail';
-
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
 
 // Most cards a single user gets per hourly run, so the inbox never floods them.
 const MAX_PER_RUN = 3;
@@ -101,8 +98,9 @@ export const inboxTriage = inngest.createFunction(
                 // meeting request becomes a calendar hold (schedule_event), and
                 // everything else becomes a reply draft (send_email).
                 const now = nowContext(tz);
-                const { text: rawJson } = await generateText({
-                  model: groq('llama-3.3-70b-versatile'),
+                const rawJson = await generateProactiveText({
+                  plan: data.plan,
+                  maxTokens: 400,
                   prompt: `You are MODUS Pilot, ${name}'s chief of staff, triaging an inbound email. Today is ${now.label} (${now.iso}); the current local time is ${now.time}.
 
 Decide what ${name} needs and output ONLY a JSON object (no markdown fences, no prose). Exactly one of:
@@ -122,7 +120,6 @@ Subject: ${thread.subject}
 
 ${(thread.body ?? '').slice(0, 4000)}
 --- end ---`,
-                  maxTokens: 400,
                 });
 
                 let parsed: { kind?: string; title?: string; startDateTime?: string; endDateTime?: string; humanTime?: string; body?: string } | null = null;

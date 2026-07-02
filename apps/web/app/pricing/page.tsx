@@ -118,7 +118,7 @@ const COMPARISONS = [
 const FAQS = [
   {
     q: 'What happens after the 3-day trial?',
-    a: 'Your card is billed for the plan you chose ($24/mo MODUS or $59/mo PILOT) and you keep full access. We email you before the trial ends, and you can cancel anytime during the 3 days at no charge.',
+    a: 'Your card is billed for the plan you chose ($24/mo MODUS or $59/mo PILOT) and you keep full access. We notify you before the trial ends, and you can cancel anytime during the 3 days at no charge.',
   },
   {
     q: 'Can I cancel anytime?',

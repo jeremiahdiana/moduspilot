@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { generateProactiveText } from '@/lib/proactive-model';
 import { sendPushToUser } from '@/lib/fcm-admin';
 import { getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getActionableThreads } from '@/lib/google-gmail';
-
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
 const MAX_PER_RUN = 3;
 const AUTOMATED_SENDER = /(no[-_.]?reply|do[-_.]?not[-_.]?reply|notifications?@|mailer-daemon|postmaster@|newsletter|@.*\b(mailchimp|sendgrid|sparkpost|amazonses|substack)\b)/i;
 
@@ -87,8 +84,9 @@ export async function POST(req: NextRequest) {
       const now = nowContext(tz);
       let rawJson = '';
       try {
-        ({ text: rawJson } = await generateText({
-          model: groq('llama-3.3-70b-versatile'),
+        rawJson = await generateProactiveText({
+          plan: data.plan,
+          maxTokens: 400,
           prompt: `You are MODUS Pilot, ${name}'s chief of staff, triaging an inbound email. Today is ${now.label} (${now.iso}); the current local time is ${now.time}.
 
 Decide what ${name} needs and output ONLY a JSON object (no markdown fences, no prose). Exactly one of:
@@ -108,8 +106,7 @@ Subject: ${thread.subject}
 
 ${(thread.body ?? '').slice(0, 4000)}
 --- end ---`,
-          maxTokens: 400,
-        }));
+        });
       } catch { continue; }
 
       let parsed: { kind?: string; title?: string; startDateTime?: string; endDateTime?: string; humanTime?: string; body?: string } | null = null;

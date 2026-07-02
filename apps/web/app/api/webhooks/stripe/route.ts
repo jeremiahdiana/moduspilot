@@ -1,5 +1,9 @@
 import { stripe } from '@/lib/stripe';
 import { adminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { sendPushToUser } from '@/lib/fcm-admin';
+
+const PLAN_PRICE: Record<string, string> = { modus: '$24', pilot: '$59', group: '$79' };
 
 async function findUserBySubscription(subId: string, customerId: string | null, uid?: string | null) {
   if (uid) {
@@ -37,6 +41,7 @@ export async function POST(req: Request) {
         plan,
         stripeCustomerId: session.customer,
         subscriptionId: session.subscription,
+        trialReminderSent: false,
       });
     }
   }
@@ -56,6 +61,43 @@ export async function POST(req: Request) {
     } else if (status === 'past_due' || status === 'unpaid' || status === 'paused') {
       await ref.update({ plan: 'free' });
     }
+  }
+
+  // Trial ending — notify the user before their card is charged. Stripe fires
+  // this ~3 days before trial end (immediately for our 3-day trial, i.e. right
+  // after signup), so it doubles as a clear "you'll be charged on X" heads-up
+  // that reduces surprise charges + disputes. Delivered in-app + push (MODUS
+  // has no transactional email provider).
+  if (event.type === 'customer.subscription.trial_will_end') {
+    const sub = event.data.object;
+    const ref = await findUserBySubscription(sub.id, sub.customer as string | null, sub.metadata?.uid);
+    if (!ref) return Response.json({ received: true });
+
+    const snap = await ref.get();
+    if (snap.data()?.trialReminderSent === true) return Response.json({ received: true });
+
+    const plan = sub.metadata?.plan ?? 'modus';
+    const price = PLAN_PRICE[plan] ?? '$24';
+    const chargeDate = sub.trial_end
+      ? new Date(sub.trial_end * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+      : 'soon';
+    const body = `Your free trial ends ${chargeDate}. Unless you cancel first, your card will be charged ${price}/mo. Manage anytime in Settings → Billing.`;
+
+    await Promise.all([
+      ref.collection('conversations').add({
+        title: 'Your trial is ending',
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        deleted: false,
+        system: true,
+        trialReminder: true,
+        read: false,
+        messages: [{ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, role: 'assistant', content: body }],
+      }),
+      ref.update({ trialReminderSent: true }),
+      sendPushToUser(ref.id, 'Your MODUS trial is ending', body).catch(() => {}),
+    ]);
+    return Response.json({ received: true });
   }
 
   if (event.type === 'customer.subscription.deleted') {
