@@ -1,6 +1,7 @@
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
+import { isPaidPlan } from '@/lib/plan';
 import { getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 import { getActionableThreads } from '@/lib/google-gmail';
@@ -128,7 +129,7 @@ export async function GET(req: Request) {
           staleContacts: staleContacts.length ? staleContacts : undefined,
           slippedTaskTitles30Days: slippedTaskTitles30Days.length ? slippedTaskTitles30Days : undefined,
           habitRates30Days: habitRates30Days.length ? habitRates30Days : undefined,
-        });
+        }, { premium: isPaidPlan(userDoc.data()?.plan) });
         const contentText = briefingDataToText(briefingData);
 
         const title = `Morning Briefing — ${todayLabel()}`;

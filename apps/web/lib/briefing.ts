@@ -1,5 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { generateText, type LanguageModel } from 'ai';
 
 export interface BriefingTop3Item {
   task: string;
@@ -72,7 +73,10 @@ export async function generateBriefingData(
     staleContacts?: { name: string; daysSince: number }[];
     slippedTaskTitles30Days?: string[];
     habitRates30Days?: { title: string; doneOutOf30: number }[];
-  }
+  },
+  // Paid users get a frontier model (Claude Sonnet) for the briefing — the
+  // flagship daily read — with Groq Llama as the fast/free fallback.
+  opts: { premium?: boolean } = {}
 ): Promise<BriefingData> {
   const { today, yesterday } = input;
 
@@ -183,12 +187,18 @@ ${scheduleText}${emailsText ? `\n\nUNREAD EMAILS (awaiting reply):\n${emailsText
     schedule: input.schedule ?? [],
   });
 
-  // Try primary model, fall back to smaller model, then fall back to structured data
-  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-  for (const modelId of models) {
+  // Paid users lead with Claude Sonnet 4.6; everyone falls back to Groq Llama
+  // (fast + free), then to the structured fallback so we never throw.
+  const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const models: LanguageModel[] = [];
+  if (opts.premium && anthropicKey) {
+    models.push(createAnthropic({ apiKey: anthropicKey })('claude-sonnet-4-6'));
+  }
+  models.push(groq('llama-3.3-70b-versatile'), groq('llama-3.1-8b-instant'));
+  for (const model of models) {
     try {
       const { text } = await generateText({
-        model: groq(modelId),
+        model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
