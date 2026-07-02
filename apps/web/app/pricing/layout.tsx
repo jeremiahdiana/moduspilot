@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Pricing — Modus',
-  description: 'Start free. Scale when it earns its keep. Modus at $24/mo replaces an entire cognitive workflow — goals, tasks, habits, triage, and execution.',
+  description: 'Try MODUS free for 3 days, then $24/mo. Replaces an entire cognitive workflow — goals, tasks, habits, triage, and execution.',
   alternates: {
     canonical: 'https://moduspilot.com/pricing',
   },

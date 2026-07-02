@@ -4,25 +4,10 @@ import { motion } from 'framer-motion';
 
 const PLANS = [
   {
-    tier: 'FREE',
-    price: '$0',
-    sub: '3-day full trial, then limited. No credit card required.',
-    cta: 'Start Free',
-    popular: false,
-    features: [
-      'AI Chat (limited messages/day)',
-      '1 daily briefing',
-      'Up to 3 active goals',
-      'Basic task capture',
-      '7-day context memory',
-      'Web + iOS access',
-    ],
-  },
-  {
     tier: 'MODUS',
     price: '$24',
-    sub: 'The full operating system. Where MODUS earns its keep.',
-    cta: 'Make Your Modus',
+    sub: '3 days free, then $24/mo. Card required · cancel anytime.',
+    cta: 'Start 3-day trial',
     popular: true,
     features: [
       'AI Chat — unlimited, full context',
@@ -44,8 +29,8 @@ const PLANS = [
   {
     tier: 'PILOT',
     price: '$59',
-    sub: 'For founders and executives. A fraction of a part-time EA.',
-    cta: 'Fly Pilot',
+    sub: 'For founders and executives. 3 days free, then $59/mo.',
+    cta: 'Start 3-day trial',
     popular: false,
     features: [
       'Everything in MODUS',
@@ -86,7 +71,7 @@ export default function PricingSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-black text-text mb-4">Your Modus. Your Plan.</h2>
-          <p className="text-muted text-lg">Start free. Scale when it earns its keep.</p>
+          <p className="text-muted text-lg">Try it free for 3 days. Card required · cancel anytime.</p>
         </motion.div>
 
         <motion.div
@@ -94,7 +79,7 @@ export default function PricingSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start max-w-3xl mx-auto"
         >
           {PLANS.map(plan => (
             <motion.div

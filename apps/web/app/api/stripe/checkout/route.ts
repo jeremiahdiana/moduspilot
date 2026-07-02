@@ -1,5 +1,6 @@
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { TRIAL_DAYS } from '@/lib/constants';
 
 const PRICE_IDS: Record<string, string | undefined> = {
   modus: process.env.STRIPE_PRICE_MODUS,
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { plan } = await req.json() as { plan: string };
+  const { plan, returnTo } = await req.json() as { plan: string; returnTo?: string };
   const priceId = PRICE_IDS[plan];
   if (!priceId) return Response.json({ error: 'Invalid plan' }, { status: 400 });
 
@@ -31,15 +32,29 @@ export async function POST(req: Request) {
   const userDoc = await adminDb.collection('users').doc(uid).get();
   const existingCustomerId = userDoc.data()?.stripeCustomerId as string | undefined;
 
+  // Optional post-checkout destination (e.g. new users land on the dashboard
+  // after starting their trial; billing changes stay in settings).
+  const successUrl = returnTo === 'dashboard'
+    ? `${APP_URL}/dashboard?trial_started=1`
+    : `${APP_URL}/settings?tab=billing&upgraded=1`;
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${APP_URL}/settings?tab=billing&upgraded=1`,
+    success_url: successUrl,
     cancel_url: `${APP_URL}/settings?tab=billing`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: email }),
+    // Card required now; MODUS is billed after the 3-day trial. Stripe fires
+    // checkout.session.completed + a `trialing` subscription (handled in the
+    // webhook → plan set immediately), then auto-charges when the trial ends.
+    subscription_data: {
+      metadata: { uid, plan },
+      trial_period_days: TRIAL_DAYS,
+      trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
+    },
+    payment_method_collection: 'always',
     metadata: { uid, plan },
-    subscription_data: { metadata: { uid, plan } },
   });
 
   return Response.json({ url: session.url });

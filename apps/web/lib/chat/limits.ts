@@ -1,16 +1,15 @@
 import { createHash } from 'crypto';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import {
-  FREE_DAILY_LIMIT,
   GUEST_DAILY_LIMIT,
-  TRIAL_MS,
+  PAYWALL_LAUNCH_MS,
   MODUS_TOKEN_LIMIT,
   PILOT_TOKEN_LIMIT,
   MODUS_WEEKLY_LIMIT,
   PILOT_WEEKLY_LIMIT,
 } from '@/lib/constants';
-import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
+import { hasActiveAccess, isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
 export function getWeekKey(): string {
@@ -44,54 +43,39 @@ export async function enforceGuestRateLimit(req: Request): Promise<Response | nu
 }
 
 /**
- * Free-tier daily message limit. Paid plans are exempt. Trial users (within
- * TRIAL_MS of modusPilotSignupAt) are exempt; first-seen users have their
- * signup timestamp recorded and are granted the trial. Outside the trial,
- * FREE_DAILY_LIMIT messages/day enforced atomically.
- * Returns a 429 Response when blocked, otherwise null.
+ * Subscription gate. MODUS is fully paid: access requires a paid/trialing
+ * subscription (plan set by the Stripe webhook, including the 3-day card-required
+ * trial) OR being grandfathered. Accounts created before PAYWALL_LAUNCH_MS are
+ * grandfathered into permanent free access; the flag is resolved once (from the
+ * Firebase account creation time) and cached on the user doc. Everyone else must
+ * start a trial — blocked with a 402 so the client can open checkout.
+ * Returns a Response when blocked, otherwise null.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function enforceFreeTierLimit(uid: string, userData: Record<string, any>): Promise<Response | null> {
-  const plan = userData.plan as string | undefined;
-  if (isPaidPlan(plan)) return null;
+export async function enforceSubscriptionGate(uid: string, userData: Record<string, any>): Promise<Response | null> {
+  // Fast path: subscribed/trialing or already-known grandfathered.
+  if (hasActiveAccess(userData)) return null;
 
-  // Use modusPilotSignupAt for trial — more reliable than Firebase Auth creation time.
-  // If missing (existing users), set it now so their 3-day trial starts from today.
-  let inTrial = false;
-  const rawSignup = userData.modusPilotSignupAt;
-  if (rawSignup) {
-    const signupMs = typeof rawSignup.toDate === 'function'
-      ? rawSignup.toDate().getTime()
-      : new Date(rawSignup as string).getTime();
-    inTrial = Date.now() - signupMs < TRIAL_MS;
-  } else {
-    // First time — record signup date and grant full trial
-    adminDb.collection('users').doc(uid).set(
-      { modusPilotSignupAt: FieldValue.serverTimestamp() },
-      { merge: true }
-    ).catch(() => {});
-    inTrial = true;
+  // Resolve grandfather status once if unknown, then cache it on the user doc.
+  if (userData.grandfathered === undefined) {
+    let createdMs = PAYWALL_LAUNCH_MS; // if we can't tell, don't grandfather
+    try {
+      const rec = await adminAuth.getUser(uid);
+      const created = rec.metadata?.creationTime;
+      if (created) createdMs = new Date(created).getTime();
+    } catch {
+      // Fall back to modusPilotSignupAt if the auth lookup fails.
+      const raw = userData.modusPilotSignupAt;
+      if (raw) createdMs = typeof raw.toDate === 'function' ? raw.toDate().getTime() : new Date(raw as string).getTime();
+    }
+    const grandfathered = createdMs < PAYWALL_LAUNCH_MS;
+    userData.grandfathered = grandfathered;
+    adminDb.collection('users').doc(uid).set({ grandfathered }, { merge: true }).catch(() => {});
+    if (grandfathered) return null;
   }
 
-  if (inTrial) return null;
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const userRef = adminDb.collection('users').doc(uid);
-  let limitReached = false;
-  await adminDb.runTransaction(async (txn) => {
-    const snap = await txn.get(userRef);
-    const data = snap.data() ?? {};
-    const usageDate = (data.usageDate as string) ?? '';
-    const dailyMessages = (data.dailyMessages as number) ?? 0;
-    const count = usageDate === todayStr ? dailyMessages : 0;
-    if (count >= FREE_DAILY_LIMIT) { limitReached = true; return; }
-    if (usageDate === todayStr) {
-      txn.set(userRef, { dailyMessages: FieldValue.increment(1) }, { merge: true });
-    } else {
-      txn.set(userRef, { dailyMessages: 1, usageDate: todayStr }, { merge: true });
-    }
-  });
-  return limitReached ? Response.json({ error: 'daily_limit_reached' }, { status: 429 }) : null;
+  // New user, no subscription — must start a trial.
+  return Response.json({ error: 'subscription_required' }, { status: 402 });
 }
 
 /**

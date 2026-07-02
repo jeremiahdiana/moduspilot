@@ -6,7 +6,6 @@ import { updateProfile, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
-import { FREE_DAILY_LIMIT, TRIAL_DAYS } from '@/lib/constants';
 
 interface Props {
   user: User;
@@ -21,10 +20,9 @@ export default function AccountSettings({ user }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState('');
-  const [msgCount, setMsgCount] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot' | 'group'>('free');
-  const [trialDaysLeft, setTrialDaysLeft] = useState(TRIAL_DAYS);
+  const [grandfathered, setGrandfathered] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,15 +30,10 @@ export default function AccountSettings({ user }: Props) {
   }, []);
 
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (user.metadata.creationTime) {
-      const days = Math.floor((Date.now() - new Date(user.metadata.creationTime).getTime()) / 86400000);
-      setTrialDaysLeft(Math.max(0, TRIAL_DAYS - days));
-    }
     getDoc(doc(db, 'users', user.uid)).then(snap => {
       const data = snap.data() ?? {};
       setPlan(data.plan === 'modus' || data.plan === 'pilot' || data.plan === 'group' ? data.plan : 'free');
-      setMsgCount(data.usageDate === today ? (data.dailyMessages ?? 0) : 0);
+      setGrandfathered(data.grandfathered === true);
     }).catch(() => {});
   }, [user]);
 
@@ -100,31 +93,23 @@ export default function AccountSettings({ user }: Props) {
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-semibold text-text">Plan & Usage</h3>
         {plan === 'free' ? (
-          <>
-            {trialDaysLeft > 0 ? (
+          grandfathered ? (
+            <>
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted">Free trial</p>
-                <span className="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full">{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} left</span>
+                <p className="text-sm text-muted">Early access</p>
+                <span className="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full">Free — grandfathered</span>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted">Messages today</p>
-                  <span className="text-xs text-muted">{msgCount} / {FREE_DAILY_LIMIT}</span>
-                </div>
-                <div className="h-1.5 bg-bg rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${msgCount >= FREE_DAILY_LIMIT ? 'bg-red-400' : 'bg-brand'}`}
-                    style={{ width: `${Math.min(100, (msgCount / FREE_DAILY_LIMIT) * 100)}%` }}
-                  />
-                </div>
-                {msgCount >= FREE_DAILY_LIMIT && (
-                  <p className="text-xs text-red-400">Daily limit reached. Resets at midnight.</p>
-                )}
+              <p className="text-xs text-muted">Thanks for being an early user — your access stays free.</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted">No active plan</p>
+                <span className="text-xs font-semibold text-muted bg-bg px-2.5 py-1 rounded-full">Trial not started</span>
               </div>
-            )}
-            <p className="text-xs text-muted">Free plan · <span className="text-brand cursor-pointer hover:underline">Upgrade to remove limits →</span></p>
-          </>
+              <p className="text-xs text-muted">Start your 3-day free trial · <span className="text-brand cursor-pointer hover:underline" onClick={() => router.push('/settings?tab=billing')}>Choose a plan →</span></p>
+            </>
+          )
         ) : (
           <div className="flex items-center justify-between">
             <p className="text-sm text-text font-medium capitalize">{plan} plan</p>

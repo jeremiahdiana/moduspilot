@@ -21,7 +21,7 @@ export default function FinalCTA() {
             <span className="text-brand">another productivity app.</span>
           </h2>
           <p className="text-muted text-lg mb-10 max-w-xl mx-auto">
-            MODUS runs the system. You make the calls. Start free — no credit card needed.
+            MODUS runs the system. You make the calls. Try it free for 3 days.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
@@ -37,7 +37,7 @@ export default function FinalCTA() {
               See how it works
             </a>
           </div>
-          <p className="text-xs text-muted/40 mt-6">3-day free trial · No credit card · Cancel anytime</p>
+          <p className="text-xs text-muted/40 mt-6">3-day free trial · Card required · Cancel anytime</p>
         </motion.div>
       </div>
     </section>

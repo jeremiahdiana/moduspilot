@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Data Retention">
-          <p>Free plan: conversation history is retained for 90 days. MODUS/PILOT plans: retained for 2 years, or until you delete your account.</p>
+          <p>Conversation history is retained for 2 years, or until you delete your account.</p>
           <p>You can delete your account and all associated data at any time from Settings → Account → Delete Account. Deletion is immediate and irreversible.</p>
         </Section>
 

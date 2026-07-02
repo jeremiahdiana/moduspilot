@@ -7,15 +7,6 @@ interface Props {
   onClose: () => void;
 }
 
-const FREE_FEATURES = [
-  'AI Chat (limited messages/day)',
-  '1 daily briefing',
-  'Up to 3 active goals',
-  'Basic task capture',
-  '7-day context memory',
-  'Web + iOS access',
-];
-
 const MODUS_FEATURES = [
   'Unlimited AI Chat (full context)',
   'Unlimited briefings',
@@ -84,36 +75,13 @@ export default function PaywallModal({ onClose }: Props) {
 
         <div className="text-center mb-6">
           <span className="text-2xl font-black tracking-widest text-brand">MODUS PILOT</span>
-          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Your 3-day trial has ended</p>
+          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Start your 3-day free trial</p>
         </div>
 
         <h2 className="text-xl font-bold text-text mb-1">Choose your plan</h2>
-        <p className="text-muted text-sm mb-8">Modus at $24 replaces an entire cognitive workflow category. Pilot at $59 is priced against human executive assistance.</p>
+        <p className="text-muted text-sm mb-8">3 days free, then billed monthly. Card required · cancel anytime. Modus at $24 replaces an entire cognitive workflow category. Pilot at $59 is priced against human executive assistance.</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {/* FREE tier — current plan */}
-          <div className="border border-border rounded-xl p-5 opacity-75 relative">
-            <div className="absolute -top-2.5 left-4 bg-border text-muted text-xs font-bold px-2 py-0.5 rounded">CURRENT PLAN</div>
-            <div className="mb-1">
-              <span className="text-lg font-black text-muted">FREE</span>
-            </div>
-            <div className="mb-4">
-              <span className="text-2xl font-bold text-text">$0</span>
-              <span className="text-muted text-sm">/mo</span>
-            </div>
-            <ul className="space-y-1.5 mb-5">
-              {FREE_FEATURES.map(f => (
-                <li key={f} className="flex items-start gap-2 text-xs text-muted">
-                  <span className="mt-0.5 shrink-0">–</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <div className="w-full border border-border text-muted text-center font-bold py-3 rounded-xl text-sm">
-              Your current plan
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {/* MODUS tier */}
           <div className="border border-brand rounded-xl p-5 relative">
             <div className="absolute -top-2.5 left-4 bg-brand text-white text-xs font-bold px-2 py-0.5 rounded">MOST POPULAR</div>
@@ -137,7 +105,7 @@ export default function PaywallModal({ onClose }: Props) {
               disabled={!!loading}
               className="w-full bg-brand text-white font-bold py-3 rounded-xl hover:bg-brand/90 transition-colors text-sm disabled:opacity-50"
             >
-              {loading === 'modus' ? 'Redirecting…' : 'Get MODUS — $24/mo'}
+              {loading === 'modus' ? 'Redirecting…' : 'Start trial — then $24/mo'}
             </button>
           </div>
 
@@ -163,13 +131,13 @@ export default function PaywallModal({ onClose }: Props) {
               disabled={!!loading}
               className="w-full border border-border text-text font-bold py-3 rounded-xl hover:bg-panel transition-colors text-sm disabled:opacity-50"
             >
-              {loading === 'pilot' ? 'Redirecting…' : 'Get PILOT — $59/mo'}
+              {loading === 'pilot' ? 'Redirecting…' : 'Start trial — then $59/mo'}
             </button>
           </div>
         </div>
 
         {error && <p className="text-center text-xs text-red-400 mb-2">{error}</p>}
-        <p className="text-center text-xs text-muted">Annual billing available (2 months free) · Cancel anytime</p>
+        <p className="text-center text-xs text-muted">Card required · billed after your 3-day trial · cancel anytime · annual billing available (2 months free)</p>
 
         <button onClick={onClose} className="w-full text-center text-muted text-xs mt-4 hover:text-text transition-colors">
           Maybe later

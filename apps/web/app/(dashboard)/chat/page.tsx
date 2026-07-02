@@ -11,7 +11,6 @@ import PaywallModal from '@/components/chat/PaywallModal';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Message } from 'ai';
-import { FREE_DAILY_LIMIT, TRIAL_DAYS } from '@/lib/constants';
 
 type Plan = 'free' | 'modus' | 'pilot';
 
@@ -30,9 +29,8 @@ export default function ChatPage() {
   const [headerTitle, setHeaderTitle] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [msgCount, setMsgCount] = useState(0);
   const [plan, setPlan] = useState<Plan>('free');
-  const [trialDaysLeft, setTrialDaysLeft] = useState<number>(TRIAL_DAYS);
+  const [grandfathered, setGrandfathered] = useState(false);
   const [connectedToast, setConnectedToast] = useState('');
   const initDone = useRef(false);
   const pendingConvIdRef = useRef<string | null>(null);
@@ -65,44 +63,28 @@ export default function ChatPage() {
     }
   }, [conversations]);
 
-  // Load user plan + daily message count + trial status
+  // Load user plan + access status (subscription or grandfathered)
   useEffect(() => {
     if (!uid || initDone.current) return;
     initDone.current = true;
-
-    const today = new Date().toISOString().slice(0, 10);
 
     getDoc(doc(db, 'users', uid)).then(snap => {
       const data = snap.data() ?? {};
       const userPlan = data.plan as Plan | undefined;
       setPlan(userPlan === 'modus' || userPlan === 'pilot' ? userPlan : 'free');
-
-      // Use modusPilotSignupAt for trial (same as server-side logic)
-      const rawSignup = data.modusPilotSignupAt;
-      if (rawSignup) {
-        const signupDate: Date = typeof rawSignup.toDate === 'function' ? rawSignup.toDate() : new Date(rawSignup as string);
-        const daysSince = Math.floor((Date.now() - signupDate.getTime()) / (1000 * 60 * 60 * 24));
-        setTrialDaysLeft(Math.max(0, TRIAL_DAYS - daysSince));
-      } else {
-        // Not yet set — server will set it on first chat; treat as full trial
-        setTrialDaysLeft(TRIAL_DAYS);
-      }
-
-      const lastDay = data.usageDate ?? '';
-      if (lastDay === today) {
-        setMsgCount(data.dailyMessages ?? 0);
-      } else {
-        setMsgCount(0);
-      }
+      // Grandfathered = account predates the paywall launch (permanent free access).
+      setGrandfathered(data.grandfathered === true);
     }).catch(() => {
-      // Network unavailable on load — defaults (free plan, 0 messages) are fine
+      // Network unavailable on load — defaults (free plan, no access) are fine
     });
   }, [uid, user]);
 
+  // Trialing subscriptions set plan='modus' via the Stripe webhook, so paid
+  // covers the 3-day trial too. Grandfathered accounts keep permanent access.
   const isPaid = plan === 'modus' || plan === 'pilot';
-  const trialActive = trialDaysLeft > 0;
-  // Limit only kicks in when trial expired AND not on paid plan
-  const isAtLimit = !isPaid && !isGuest && !trialActive && msgCount >= FREE_DAILY_LIMIT;
+  const hasAccess = isPaid || grandfathered;
+  // No subscription and not grandfathered → must start a trial before chatting.
+  const needsSubscription = !hasAccess && !isGuest;
 
   const activeConversation = conversations.find(c => c.id === activeId) ?? null;
 
@@ -149,16 +131,9 @@ export default function ChatPage() {
     await saveMessages(convId, messages, title);
   }, [isGuest, uid, activeId, createConversation, saveMessages]);
 
-  const handleUserMessage = useCallback(() => {
-    if (isGuest) return;
-    // Only update local UI state — the server increments the Firestore counter authoritatively.
-    // Writing here too would double-count every message.
-    const newCount = msgCount + 1;
-    setMsgCount(newCount);
-    if (!isPaid && !trialActive && newCount >= FREE_DAILY_LIMIT) {
-      setShowPaywall(true);
-    }
-  }, [isGuest, isPaid, trialActive, msgCount]);
+  // Access is server-authoritative: the API returns subscription_required (402)
+  // and the composer opens the paywall via onShowPaywall. Nothing to track here.
+  const handleUserMessage = useCallback(() => {}, []);
 
   return (
     <div className="flex h-full overflow-hidden relative">
@@ -198,36 +173,14 @@ export default function ChatPage() {
             />
           )}
 
-          {/* Plan / trial status */}
-          {!isPaid && (
+          {/* No subscription — prompt to start the trial */}
+          {needsSubscription && (
             <div className="px-3 pt-3 border-t border-border mt-auto">
-              {trialActive ? (
-                <>
-                  <div className="flex justify-between text-xs text-muted mb-1">
-                    <span>{trialDaysLeft}d trial left</span>
-                    <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Upgrade</button>
-                  </div>
-                  <div className="h-1 bg-border rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand rounded-full transition-all"
-                      style={{ width: `${Math.min(100, ((TRIAL_DAYS - trialDaysLeft) / TRIAL_DAYS) * 100)}%` }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-between text-xs text-muted mb-1">
-                    <span>{msgCount}/{FREE_DAILY_LIMIT} today</span>
-                    <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Upgrade</button>
-                  </div>
-                  <div className="h-1 bg-border rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand rounded-full transition-all"
-                      style={{ width: `${Math.min(100, (msgCount / FREE_DAILY_LIMIT) * 100)}%` }}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="flex justify-between text-xs text-muted mb-1">
+                <span>Trial not started</span>
+                <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Start trial</button>
+              </div>
+              <p className="text-[11px] text-muted/70 leading-snug">Start your 3-day free trial to use MODUS.</p>
             </div>
           )}
 
@@ -295,7 +248,7 @@ export default function ChatPage() {
             onMessagesChange={isGuest ? undefined : handleMessagesChange}
             onUserMessage={handleUserMessage}
             isGuest={isGuest}
-            isAtLimit={isAtLimit}
+            isAtLimit={needsSubscription}
             onShowPaywall={() => setShowPaywall(true)}
             personalContext={settings.personalContext}
             responseStyle={settings.responseStyle}

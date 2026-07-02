@@ -45,34 +45,11 @@ function RevealOnScroll({
 
 const PLANS = [
   {
-    tier: 'FREE',
-    price: '$0',
-    period: '/mo',
-    sub: '3-day full trial, then limited. No credit card required.',
-    cta: 'Start Free',
-    href: '/login',
-    popular: false,
-    accent: 'from-slate-500/10 to-slate-600/5',
-    glow: '',
-    features: [
-      { label: 'AI Chat (limited messages/day)', included: true },
-      { label: '1 daily briefing', included: true },
-      { label: 'Up to 3 active goals', included: true },
-      { label: 'Basic task capture', included: true },
-      { label: '7-day context memory', included: true },
-      { label: 'Web + iOS access', included: true },
-      { label: 'Calendar integration', included: false },
-      { label: 'Email triage', included: false },
-      { label: 'Voice interface', included: false },
-      { label: 'Cross-app execution', included: false },
-    ],
-  },
-  {
     tier: 'MODUS',
     price: '$24',
     period: '/mo',
-    sub: 'The full operating system. Where MODUS earns its keep.',
-    cta: 'Make Your Modus',
+    sub: '3 days free, then $24/mo. Card required · cancel anytime.',
+    cta: 'Start 3-day trial',
     href: '/login',
     popular: true,
     accent: 'from-brand/20 to-violet-600/10',
@@ -100,7 +77,7 @@ const PLANS = [
     price: '$59',
     period: '/mo',
     sub: 'For founders and executives. A fraction of a part-time EA.',
-    cta: 'Fly Pilot',
+    cta: 'Start 3-day trial',
     href: '/login',
     popular: false,
     accent: 'from-indigo-500/10 to-purple-600/5',
@@ -141,7 +118,7 @@ const COMPARISONS = [
 const FAQS = [
   {
     q: 'What happens after the 3-day trial?',
-    a: 'You keep access on the free tier — limited to 20 messages per day and up to 3 active goals. No credit card required to start. Upgrade anytime to unlock everything.',
+    a: 'Your card is billed for the plan you chose ($24/mo MODUS or $59/mo PILOT) and you keep full access. We email you before the trial ends, and you can cancel anytime during the 3 days at no charge.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -243,7 +220,7 @@ export default function PricingPage() {
               transition={{ duration: 0.6, delay: 0.25 }}
               className="text-muted text-xl max-w-lg mx-auto leading-relaxed mb-10"
             >
-              Start free. Scale when it earns its keep.
+              Try it free for 3 days. Card required · cancel anytime.
             </motion.p>
 
             <motion.div
@@ -252,7 +229,7 @@ export default function PricingPage() {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="flex items-center justify-center gap-6 text-sm text-muted"
             >
-              {['3-day full trial', 'No credit card', 'Cancel anytime'].map(t => (
+              {['3-day free trial', 'Card required', 'Cancel anytime'].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <span className="text-brand">◆</span>
                   {t}
@@ -543,7 +520,7 @@ export default function PricingPage() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                   className="text-muted text-lg mb-10 max-w-md mx-auto leading-relaxed"
                 >
-                  Start free. No credit card. Cancel anytime.<br />Your first 3 days are fully unlocked.
+                  3 days free, then billed monthly. Cancel anytime.<br />Your first 3 days are fully unlocked.
                 </motion.p>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -556,7 +533,7 @@ export default function PricingPage() {
                     href="/login"
                     className="btn-primary inline-block px-10 py-4 text-white font-bold rounded-2xl text-base"
                   >
-                    Make Your Modus — It&apos;s Free
+                    Start Your 3-Day Trial
                   </Link>
                   <Link
                     href="/how-it-works"
@@ -572,7 +549,7 @@ export default function PricingPage() {
                   transition={{ duration: 0.5, delay: 0.45 }}
                   className="text-muted text-xs mt-6"
                 >
-                  3-day full trial · No credit card required
+                  3-day free trial · card required · cancel anytime
                 </motion.p>
               </div>
             </div>

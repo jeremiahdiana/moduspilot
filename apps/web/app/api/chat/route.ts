@@ -8,7 +8,7 @@ import { getMcpServers } from '@/lib/mcp-servers';
 import { assertPublicUrl } from '@/lib/ssrf';
 import {
   enforceGuestRateLimit,
-  enforceFreeTierLimit,
+  enforceSubscriptionGate,
   enforcePaidTokenLimit,
   trackTokenUsage,
 } from '@/lib/chat/limits';
@@ -74,8 +74,8 @@ export async function POST(req: Request) {
       const blocked = await enforceGuestRateLimit(req);
       if (blocked) return blocked;
     } else {
-      const freeBlocked = await enforceFreeTierLimit(uid, userData);
-      if (freeBlocked) return freeBlocked;
+      const gateBlocked = await enforceSubscriptionGate(uid, userData);
+      if (gateBlocked) return gateBlocked;
       const paidBlocked = enforcePaidTokenLimit(userData);
       if (paidBlocked) return paidBlocked;
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { FREE_DAILY_LIMIT, MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
+import { MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
 import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
 
 interface Props {
@@ -40,7 +40,6 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
   const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
   const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
 
-  const dailyCount   = usage.usageDate === today    ? usage.dailyMessages  : 0;
   const tokenCount   = usage.tokenDate === today    ? usage.dailyTokens    : 0;
   const weeklyCount  = usage.tokenWeek === weekKey  ? usage.weeklyTokens   : 0;
 
@@ -108,20 +107,10 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
           </div>
         </>
       ) : (
-        /* Free user — message count */
-        <div className="bg-panel border border-border rounded-xl p-6 space-y-5">
-          <h3 className="text-sm font-semibold text-text">Daily Messages</h3>
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <p className="text-3xl font-bold text-text">{dailyCount}</p>
-              <p className="text-sm text-muted">/ {FREE_DAILY_LIMIT}</p>
-            </div>
-            <UsageBar value={dailyCount} max={FREE_DAILY_LIMIT} />
-            <div className="flex justify-between text-xs text-muted">
-              <span>{FREE_DAILY_LIMIT - dailyCount} messages remaining today</span>
-              <span>Resets in {resetTime}</span>
-            </div>
-          </div>
+        /* No active plan — MODUS is fully paid */
+        <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
+          <h3 className="text-sm font-semibold text-text">No active plan</h3>
+          <p className="text-sm text-muted">MODUS requires an active plan. Start your 3-day free trial to unlock chat, briefings, and everything else.</p>
         </div>
       )}
 
@@ -136,10 +125,10 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
             { label: 'Memory storage',    value: 'Unlimited' },
             { label: 'Data retention',    value: '2 years' },
           ] : [
-            { label: 'Daily messages',    value: `${FREE_DAILY_LIMIT}/day (after trial)` },
-            { label: 'Goals / Tasks / Habits', value: 'Unlimited' },
-            { label: 'Memory storage',    value: '50 memories' },
-            { label: 'Data retention',    value: '90 days' },
+            { label: 'AI access',         value: 'Requires an active plan' },
+            { label: 'Free trial',        value: '3 days, card required' },
+            { label: 'MODUS',             value: '$24/mo' },
+            { label: 'PILOT',             value: '$59/mo' },
           ]).map(row => (
             <div key={row.label} className="flex justify-between items-center py-2 border-b border-border/50 last:border-0">
               <span className="text-sm text-muted">{row.label}</span>

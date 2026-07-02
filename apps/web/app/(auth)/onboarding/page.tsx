@@ -201,7 +201,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         >
           Set up MODUS — takes 60 sec →
         </motion.button>
-        <p className="text-xs text-muted text-center">3-day free trial · No credit card required</p>
+        <p className="text-xs text-muted text-center">3-day free trial · Card required · Cancel anytime</p>
       </motion.div>
     </div>
   );
@@ -815,6 +815,23 @@ export default function OnboardingPage() {
   }
 
   // ── done ───────────────────────────────────────────────────────────────────
+  // New users start their 3-day card-required trial via Stripe Checkout right
+  // after onboarding. If checkout can't be created, fall through to the app —
+  // the chat gate will surface the paywall when they try to use it.
+  async function startTrial() {
+    try {
+      const token = await user!.getIdToken();
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: 'modus', returnTo: 'dashboard' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+    } catch { /* fall through to dashboard */ }
+    router.push('/dashboard');
+  }
+
   if (screen === 'done') {
     return (
       <div className="relative min-h-screen flex flex-col items-center overflow-y-auto">
@@ -824,7 +841,7 @@ export default function OnboardingPage() {
             name={name}
             goal={goal}
             googleEmail={googleEmail}
-            onEnter={() => router.push('/dashboard')}
+            onEnter={startTrial}
           />
         </div>
       </div>

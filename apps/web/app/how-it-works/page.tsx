@@ -450,7 +450,7 @@ export default function HowItWorksPage() {
                 <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
                   <Link href="/login"
                     className="inline-block px-10 py-4 bg-brand text-white font-bold rounded-xl hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all text-base">
-                    Start free — 3 days full access →
+                    Start your 3-day free trial →
                   </Link>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
@@ -460,7 +460,7 @@ export default function HowItWorksPage() {
                   </Link>
                 </motion.div>
               </div>
-              <p className="text-xs text-muted/50">No credit card · Cancel anytime</p>
+              <p className="text-xs text-muted/50">Card required · Cancel anytime</p>
             </div>
           </RevealOnScroll>
         </section>

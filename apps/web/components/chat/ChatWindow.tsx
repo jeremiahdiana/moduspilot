@@ -122,8 +122,9 @@ export default function ChatWindow({
     },
     onError: (err) => {
       const msg = (err?.message ?? '').toLowerCase();
-      if (msg.includes('daily_limit_reached')) {
-        setChatError("You've used your 20 free messages for today. Upgrade to MODUS for unlimited.");
+      if (msg.includes('subscription_required')) {
+        setChatError('Start your 3-day free trial to use MODUS.');
+        onShowPaywall?.();
       } else if (msg.includes('token_limit_reached')) {
         setChatError("You've hit your daily AI token limit. Resets at midnight.");
       } else if (msg.includes('groq_daily_limit')) {

@@ -13,18 +13,6 @@ const PLANS: Array<{
   popular?: boolean;
 }> = [
   {
-    key: 'free',
-    label: 'Free',
-    price: '$0',
-    period: '',
-    features: [
-      '3-day full trial',
-      '20 messages/day after trial',
-      'Goals, tasks, habits',
-      'Chat history (90 days)',
-    ],
-  },
-  {
     key: 'modus',
     label: 'MODUS',
     price: '$24',
@@ -150,7 +138,7 @@ export default function BillingSettings({ plan }: Props) {
         <div>
           <p className="text-xs text-muted font-medium uppercase tracking-wider mb-1">Current Plan</p>
           <p className="text-2xl font-black tracking-wide text-brand">{plan.toUpperCase()}</p>
-          {plan === 'free' && <p className="text-xs text-muted mt-1">Free tier — upgrade anytime.</p>}
+          {plan === 'free' && <p className="text-xs text-muted mt-1">No active subscription — start a 3-day trial below.</p>}
           {plan === 'modus' && <p className="text-xs text-muted mt-1">$24/mo — billed monthly.</p>}
           {plan === 'pilot' && <p className="text-xs text-muted mt-1">$59/mo — billed monthly.</p>}
           {plan === 'group' && <p className="text-xs text-muted mt-1">$79/mo — up to 5 members.</p>}

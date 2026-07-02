@@ -322,7 +322,7 @@ export default function HeroSection() {
             href="/login"
             className="btn-primary group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand text-white text-sm sm:text-base font-bold rounded-xl transition-all hover:scale-[1.03] hover:shadow-[0_0_56px_rgba(124,58,237,0.60)] active:scale-100 text-center"
           >
-            <span className="relative z-10">Start free — no credit card needed</span>
+            <span className="relative z-10">Start your 3-day free trial</span>
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-600 via-brand to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </a>
           <a href="#features" className="flex items-center gap-1.5 text-sm text-muted hover:text-text transition-colors">
