@@ -334,8 +334,15 @@ export default function ChatScreen() {
         if (acc.trim()) void persist([...priorMessages, userMsg, { id: assistantId, role: 'assistant', content: acc }]);
       } else {
         const msg = (e as Error)?.message ?? 'Something went wrong';
-        if (msg.includes('daily_limit_reached')) {
-          Alert.alert('Daily limit reached', 'Upgrade to MODUS for unlimited messages.');
+        if (msg.includes('subscription_required')) {
+          Alert.alert(
+            'Start your free trial',
+            'MODUS is a paid product with a 3-day free trial. Choose a plan to continue.',
+            [
+              { text: 'Not now', style: 'cancel' },
+              { text: 'Start trial', onPress: () => router.push('/(app)/billing') },
+            ],
+          );
         } else {
           Alert.alert('Error', 'Failed to get a response. Please try again.');
         }

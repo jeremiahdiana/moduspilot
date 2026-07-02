@@ -23,7 +23,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { API_BASE, getAuthHeader } from '@/lib/api';
+import * as WebBrowser from 'expo-web-browser';
+import { API_BASE, getAuthHeader, startCheckout } from '@/lib/api';
 import { AuthButtons } from '@/components/AuthButtons';
 import { Icon, type IconName } from '@/components/Icon';
 import { Logo } from '@/components/ui/Logo';
@@ -241,16 +242,16 @@ function PaywallScreen({
           {/* Plan comparison */}
           <AnimatedRow index={9}>
             <View className="flex-row gap-3 mb-6">
-              {/* Free */}
+              {/* Trial */}
               <View className="flex-1 bg-surface border border-border rounded-2xl p-4">
-                <Text className="text-text font-bold text-sm mb-1">Free</Text>
-                <Text className="text-2xl font-display font-black text-text">$0</Text>
+                <Text className="text-text font-bold text-sm mb-1">Trial</Text>
+                <Text className="text-2xl font-display font-black text-text">3 days</Text>
                 <Text className="text-muted text-[11px] mt-1 leading-relaxed">
-                  {'20 msg/day\nafter 3d trial'}
+                  {'free, then\n$24/mo'}
                 </Text>
                 <View className="mt-3 gap-1.5">
-                  <Text className="text-muted text-[11px]">· Core chat</Text>
-                  <Text className="text-muted text-[11px]">· Goals & habits</Text>
+                  <Text className="text-muted text-[11px]">· Full access</Text>
+                  <Text className="text-muted text-[11px]">· Cancel anytime</Text>
                 </View>
               </View>
               {/* MODUS paid */}
@@ -282,7 +283,7 @@ function PaywallScreen({
                 style={{ alignSelf: 'stretch' }}
               />
               <Text className="text-muted/70 text-[11px] text-center leading-4">
-                Then $24/mo. Cancel anytime. No credit card needed.
+                Then $24/mo. Card required. Cancel anytime.
               </Text>
             </View>
           </AnimatedRow>
@@ -423,6 +424,13 @@ export default function OnboardingScreen() {
         }).catch(() => {});
       }
 
+      // Start the 3-day card-required trial via Stripe Checkout (the trial is
+      // applied server-side). If it can't start, fall through to the app — the
+      // chat gate surfaces the paywall when they try to use it.
+      try {
+        const url = await startCheckout('modus');
+        await WebBrowser.openBrowserAsync(url);
+      } catch { /* fall through */ }
       setTimeout(() => router.replace('/(app)/(tabs)/briefing'), 900);
     } catch {
       setTimeout(() => router.replace('/(app)/(tabs)/briefing'), 900);
@@ -718,7 +726,7 @@ export default function OnboardingScreen() {
           )}
 
           <Text className="text-muted/70 text-[11px] text-center px-4 leading-4">
-            3-day free trial · No credit card required
+            3-day free trial · Card required · Cancel anytime
           </Text>
         </View>
       ),

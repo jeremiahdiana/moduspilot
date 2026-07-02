@@ -12,9 +12,8 @@ import { haptics } from '@/lib/haptics';
 import type { Plan } from '@/lib/types';
 
 const TIERS: { key: Plan; name: string; price: string; tagline: string; features: string[] }[] = [
-  { key: 'free', name: 'Free', price: '$0', tagline: '3-day full trial, then 20 messages/day', features: ['Core chat + approvals', 'Goals, habits, briefing'] },
-  { key: 'modus', name: 'MODUS', price: '$24/mo', tagline: 'Unlimited everything', features: ['Unlimited messages', 'All integrations', 'Proactive briefings'] },
-  { key: 'pilot', name: 'PILOT', price: '$59/mo', tagline: 'For founders & executives', features: ['Everything in MODUS', 'Wearables, CRM, financial', 'Priority support'] },
+  { key: 'modus', name: 'MODUS', price: '$24/mo', tagline: '3 days free, then $24/mo · card required', features: ['Unlimited messages', 'All integrations', 'Proactive briefings'] },
+  { key: 'pilot', name: 'PILOT', price: '$59/mo', tagline: 'For founders & executives · 3 days free', features: ['Everything in MODUS', 'Wearables, CRM, financial', 'Priority support'] },
 ];
 
 export default function BillingScreen() {
@@ -103,7 +102,7 @@ export default function BillingScreen() {
                     className="mt-4 rounded-xl bg-brand py-3 items-center flex-row justify-center gap-2"
                   >
                     {busy === t.key ? <ActivityIndicator color="#fff" size="small" /> : (
-                      <Text className="text-white font-semibold">{plan === 'free' ? `Upgrade to ${t.name}` : `Switch to ${t.name}`}</Text>
+                      <Text className="text-white font-semibold">{plan === 'free' ? `Start trial — ${t.name}` : `Switch to ${t.name}`}</Text>
                     )}
                   </TouchableOpacity>
                 )}
