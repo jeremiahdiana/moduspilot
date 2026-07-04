@@ -50,6 +50,7 @@ interface Props {
   customStyle?: string;
   briefingHour?: number;
   briefingTimezone?: string;
+  plan?: string;
 }
 
 export default function ChatWindow({
@@ -66,9 +67,23 @@ export default function ChatWindow({
   customStyle,
   briefingHour,
   briefingTimezone,
+  plan,
 }: Props) {
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
+  // In-chat model selection ('auto' | model id). Persisted across sessions; the
+  // ref keeps the value stable for the useChat request body (avoids stale closures).
+  const [modelChoice, setModelChoice] = useState('auto');
+  const modelChoiceRef = useRef('auto');
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('modus:modelChoice') : null;
+    if (saved) { setModelChoice(saved); modelChoiceRef.current = saved; }
+  }, []);
+  function handleModelChange(v: string) {
+    setModelChoice(v);
+    modelChoiceRef.current = v;
+    try { localStorage.setItem('modus:modelChoice', v); } catch {}
+  }
   const inputAreaRef = useRef<HTMLTextAreaElement>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const prevLoadingRef = useRef(false);
@@ -128,7 +143,7 @@ export default function ChatWindow({
       } else if (msg.includes('token_limit_reached')) {
         setChatError("You've hit your daily AI token limit. Resets at midnight.");
       } else if (msg.includes('groq_daily_limit')) {
-        setChatError('AI daily limit reached — go to Settings → Model and switch to a different model, or try again tomorrow.');
+        setChatError('AI daily limit reached — switch models with the selector below the chat box, or try again tomorrow.');
       } else if (msg.includes('rate_limit_reached') || msg.includes('rate limit') || msg.includes('429') || msg.includes('tpd') || msg.includes('tokens per day') || msg.includes('too many')) {
         setChatError('AI service is busy. Wait a moment and try again.');
       } else if (msg.includes('api_key_error') || msg.includes('401') || msg.includes('unauthorized') || msg.includes('api key') || msg.includes('invalid key')) {
@@ -209,7 +224,10 @@ export default function ChatWindow({
     setInput('');
     setChatError(null);
     onUserMessage?.();
-    await append({ role: 'user', content } as Parameters<typeof append>[0]);
+    await append(
+      { role: 'user', content } as Parameters<typeof append>[0],
+      { body: { modelChoice: modelChoiceRef.current } },
+    );
   }
 
   return (
@@ -295,7 +313,7 @@ export default function ChatWindow({
             onAppend={(text) => {
               setChatError(null);
               onUserMessage?.();
-              append({ role: 'user', content: text });
+              append({ role: 'user', content: text }, { body: { modelChoice: modelChoiceRef.current } });
             }}
             onApproved={(text) => {
               append({ role: 'assistant', content: text } as Parameters<typeof append>[0]);
@@ -355,6 +373,9 @@ export default function ChatWindow({
           attachedImage={attachedImage?.base64 ?? null}
           onClearImage={() => setAttachedImage(null)}
           textareaRef={inputAreaRef}
+          plan={isGuest ? undefined : plan}
+          modelChoice={modelChoice}
+          onModelChange={handleModelChange}
         />
       )}
     </div>

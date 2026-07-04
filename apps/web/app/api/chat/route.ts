@@ -13,6 +13,8 @@ import {
   trackTokenUsage,
 } from '@/lib/chat/limits';
 import { resolveChatModel } from '@/lib/chat/model';
+import { routeTask } from '@/lib/chat/auto-route';
+import { isModelUnlocked } from '@/lib/models';
 import {
   needsEmailCtx,
   needsCalendarCtx,
@@ -90,6 +92,9 @@ export async function POST(req: Request) {
       goalContext?: GoalContext;
       projectContext?: ProjectContext;
       taskContext?: TaskContext;
+      // In-chat model switcher: 'auto' (MODUS picks per task), a specific model
+      // id, or undefined/'default' (use the saved Brain setting).
+      modelChoice?: string;
     };
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
@@ -164,7 +169,26 @@ export async function POST(req: Request) {
       ...(userData.settings?.capabilities as Record<string, boolean> ?? {}),
     } : {};
 
-    const webSearchBlock = await fetchWebSearchBlock(queryText, capabilities);
+    // Model selection for this message. 'auto' → MODUS classifies the task and
+    // picks the best unlocked model (and turns web search on for research);
+    // a specific id → use it (gated by plan in resolveChatModel); else the saved
+    // Brain setting. Only paid/grandfathered users reach here past the gate, but
+    // resolveChatModel still falls back to Llama if a model isn't unlocked.
+    const modelChoice = body.modelChoice;
+    let forcedModelId: string | undefined;
+    let forceWebSearch = false;
+    if (uid && queryText) {
+      if (modelChoice === 'auto') {
+        const routed = await routeTask(queryText, userData.plan);
+        forcedModelId = routed.modelId;
+        forceWebSearch = routed.webSearch;
+      } else if (modelChoice && modelChoice !== 'default' && isModelUnlocked(modelChoice, userData.plan)) {
+        forcedModelId = modelChoice;
+      }
+    }
+
+    const searchCapabilities = forceWebSearch ? { ...capabilities, webSearch: true } : capabilities;
+    const webSearchBlock = await fetchWebSearchBlock(queryText, searchCapabilities);
     const driveBlock = uid ? await fetchDriveBlock(uid, queryText) : '';
     // Agent-to-agent: when the user asks about a groupmate's availability, pull
     // the busy windows of members who opted to share their calendar.
@@ -173,9 +197,9 @@ export async function POST(req: Request) {
     // Collect Pinecone result (started in parallel above)
     const memoryContext = await memoryPromise;
 
-    // Resolve model — BYOK keys take priority, then platform default (Groq).
-    // hasImage forces a vision-capable model.
-    const chatModel = resolveChatModel(userData, { hasImage });
+    // Resolve model — an in-chat/Auto override wins for this message, else BYOK
+    // keys, then the platform default (Groq). hasImage forces a vision model.
+    const chatModel = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
 
     // System prompt blocks
     const userContextBlock = buildUserContextBlock(personalContext);

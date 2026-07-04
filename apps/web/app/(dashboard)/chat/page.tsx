@@ -255,6 +255,7 @@ export default function ChatPage() {
             customStyle={settings.customStyle}
             briefingHour={settings.briefingHour}
             briefingTimezone={settings.briefingTimezone}
+            plan={plan}
           />
           )}
         </div>

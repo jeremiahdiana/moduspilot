@@ -3,6 +3,7 @@
 import { useState, useRef, type FormEvent, type ChangeEvent } from 'react';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { auth } from '@/lib/firebase';
+import ModelSwitcher from '@/components/chat/ModelSwitcher';
 
 interface Props {
   input: string;
@@ -14,9 +15,13 @@ interface Props {
   attachedImage: string | null;
   onClearImage: () => void;
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
+  /** When set (signed-in users), shows the model switcher. */
+  plan?: string;
+  modelChoice?: string;
+  onModelChange?: (value: string) => void;
 }
 
-export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading, attachedImage, onClearImage, textareaRef }: Props) {
+export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading, attachedImage, onClearImage, textareaRef, plan, modelChoice, onModelChange }: Props) {
   const [recording, setRecording] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const mediaRef = useRef<MediaRecorder | null>(null);
@@ -138,7 +143,12 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
         </Tooltip>
       </div>
       {voiceError && <p className="text-center text-red-400 text-xs mt-1">{voiceError}</p>}
-      <p className="text-center text-muted text-xs mt-2">Enter to send · Shift+Enter for new line</p>
+      <div className="flex items-center justify-between gap-3 mt-2">
+        {plan && onModelChange ? (
+          <ModelSwitcher value={modelChoice ?? 'auto'} onChange={onModelChange} plan={plan} />
+        ) : <span />}
+        <p className="text-muted text-xs">Enter to send · Shift+Enter for new line</p>
+      </div>
     </form>
   );
 }

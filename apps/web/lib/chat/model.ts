@@ -14,7 +14,7 @@ const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY ?? '', baseURL: 'ht
 const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function resolveChatModel(userData: Record<string, any>, opts: { hasImage?: boolean } = {}): LanguageModel {
+export function resolveChatModel(userData: Record<string, any>, opts: { hasImage?: boolean; modelId?: string } = {}): LanguageModel {
   const hasImage = opts.hasImage ?? false;
   const ms = userData.settings?.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
   const modelProvider = ms?.provider ?? 'platform';
@@ -22,16 +22,23 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   const isPaid = isPaidPlan(plan);
   const isPilot = isPilotLevelPlan(plan);
 
-  // BYOK — user's own key always wins, regardless of plan
-  if (modelProvider === 'openai' && ms?.openaiKey) {
-    const model = ms.model ?? 'gpt-4o';
-    return createOpenAI({ apiKey: ms.openaiKey })(hasImage ? visionOpenAIModel(model) : model);
-  }
-  if (modelProvider === 'anthropic' && ms?.anthropicKey) {
-    return createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-sonnet-4-6');
+  // Explicit per-request override (in-chat model switcher / Auto router). Routes
+  // as a platform model through the plan gate below, ignoring the saved BYOK
+  // provider so the user's in-chat choice wins for this message.
+  if (opts.modelId) {
+    // fall through to platform routing with the forced id
+  } else {
+    // BYOK — user's own key always wins, regardless of plan
+    if (modelProvider === 'openai' && ms?.openaiKey) {
+      const model = ms.model ?? 'gpt-4o';
+      return createOpenAI({ apiKey: ms.openaiKey })(hasImage ? visionOpenAIModel(model) : model);
+    }
+    if (modelProvider === 'anthropic' && ms?.anthropicKey) {
+      return createAnthropic({ apiKey: ms.anthropicKey })(ms.model ?? 'claude-sonnet-4-6');
+    }
   }
 
-  const selectedModel = ms?.model ?? LLAMA_FALLBACK;
+  const selectedModel = opts.modelId ?? ms?.model ?? LLAMA_FALLBACK;
 
   // If image attached and we'd fall back to text-only Groq, route to OpenAI vision
   const openAIKey = process.env.OPENAI_API_KEY?.trim();
