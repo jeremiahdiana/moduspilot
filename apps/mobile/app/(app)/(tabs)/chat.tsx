@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@/lib/firebase';
 import { streamChat, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
+import { ModelSwitcher } from '@/components/ModelSwitcher';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
@@ -125,6 +127,11 @@ export default function ChatScreen() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [scope, setScope] = useState<Scope | null>(null);
   const [searchMode, setSearchMode] = useState(false);
+  // Plan gates which models the switcher unlocks; modelChoice is the in-chat
+  // selection ('auto' | model id), persisted across sessions via AsyncStorage.
+  const [plan, setPlan] = useState<string>('free');
+  const [modelChoice, setModelChoice] = useState('auto');
+  const modelChoiceRef = useRef('auto');
   const convIdRef = useRef<string | null>(null);
   const scopeRef = useRef<Scope | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -189,6 +196,26 @@ export default function ChatScreen() {
     if (!user) return;
     return subscribeConversations(user.uid, setConversations);
   }, [user]);
+
+  // Live plan (unlocks models in the switcher) + persisted model choice.
+  useEffect(() => {
+    if (!user) return;
+    return onSnapshot(doc(db, 'users', user.uid), snap => {
+      setPlan((snap.data()?.plan as string) ?? 'free');
+    });
+  }, [user]);
+
+  useEffect(() => {
+    AsyncStorage.getItem('modus:modelChoice').then(v => {
+      if (v) { setModelChoice(v); modelChoiceRef.current = v; }
+    });
+  }, []);
+
+  const handleModelChange = useCallback((v: string) => {
+    setModelChoice(v);
+    modelChoiceRef.current = v;
+    AsyncStorage.setItem('modus:modelChoice', v).catch(() => {});
+  }, []);
 
   const voice = useVoiceInput(useCallback((text: string) => {
     setInput(prev => (prev.trim() ? prev.trimEnd() + ' ' : '') + text);
@@ -320,6 +347,7 @@ export default function ChatScreen() {
         projectContext: scopeRef.current?.projectContext,
         taskContext: scopeRef.current?.taskContext,
         image,
+        modelChoice: modelChoiceRef.current,
       })) {
         acc += chunk;
         setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: acc } : m)));
@@ -495,6 +523,9 @@ export default function ChatScreen() {
               </View>
             </View>
           )}
+          <View className="px-3 pt-2.5 flex-row items-center">
+            <ModelSwitcher value={modelChoice} onChange={handleModelChange} plan={plan} />
+          </View>
           <View className="px-2 py-2 flex-row items-end gap-2">
             <TextInput
               className="flex-1 text-text text-base px-3 py-2.5"
