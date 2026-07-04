@@ -1,13 +1,17 @@
+import { createHash } from 'crypto';
 import { createOpenAI } from '@ai-sdk/openai';
 import { experimental_generateImage as generateImage } from 'ai';
 import { requireAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { hasActiveAccess } from '@/lib/plan';
+import { uploadGeneratedImage } from '@/lib/storage';
 
 // Daily image-generation cap per user. Image models cost real money per call,
-// so gate to paid/grandfathered users and cap generously but finitely.
+// so gate to paid/grandfathered users and cap generously but finitely. Cache
+// hits (identical prompt) do not consume the cap.
 const DAILY_IMAGE_LIMIT = 20;
+const ALLOWED_SIZES = ['1024x1024', '1024x1536', '1536x1024'];
 
 export async function POST(req: Request) {
   const auth = await requireAuth(req);
@@ -19,9 +23,10 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Image generation is not configured.' }, { status: 500 });
   }
 
-  const { prompt, size } = await req.json().catch(() => ({})) as { prompt?: string; size?: string };
+  const { prompt, size, force } = await req.json().catch(() => ({})) as { prompt?: string; size?: string; force?: boolean };
   const cleanPrompt = (prompt ?? '').trim().slice(0, 4000);
   if (!cleanPrompt) return Response.json({ error: 'Missing prompt.' }, { status: 400 });
+  const allowedSize = ALLOWED_SIZES.includes(size ?? '') ? size! : '1024x1024';
 
   const userRef = adminDb.collection('users').doc(uid);
   const snap = await userRef.get();
@@ -30,8 +35,19 @@ export async function POST(req: Request) {
     return Response.json({ error: 'subscription_required' }, { status: 402 });
   }
 
-  // Atomic daily-cap check + increment (resets on date change), matching the
-  // transaction pattern used for chat limits.
+  // Cache by (uid, size, prompt) so reloading a chat re-requests the same block
+  // and gets the same persisted image back — no regeneration, no cap use. The
+  // Regenerate button sends force:true to bypass it.
+  const key = createHash('sha256').update(`${allowedSize}|${cleanPrompt}`).digest('hex').slice(0, 40);
+  const cacheRef = userRef.collection('imageCache').doc(key);
+  if (!force) {
+    const cached = await cacheRef.get();
+    const cachedUrl = cached.data()?.url as string | undefined;
+    if (cachedUrl) return Response.json({ image: cachedUrl, cached: true });
+  }
+
+  // Atomic daily-cap check + increment (resets on date change) — only on a real
+  // generation, matching the transaction pattern used for chat limits.
   const today = new Date().toISOString().slice(0, 10);
   try {
     await adminDb.runTransaction(async (txn) => {
@@ -49,27 +65,31 @@ export async function POST(req: Request) {
   }
 
   const openai = createOpenAI({ apiKey: openAIKey });
-  const allowedSize = ['1024x1024', '1024x1536', '1536x1024'].includes(size ?? '') ? size! : '1024x1024';
 
-  try {
-    const { image } = await generateImage({
-      model: openai.image('gpt-image-1'),
-      prompt: cleanPrompt,
-      size: allowedSize as `${number}x${number}`,
-    });
-    return Response.json({ image: `data:image/png;base64,${image.base64}` });
-  } catch (primaryErr) {
-    // gpt-image-1 requires OpenAI org verification; fall back to DALL·E 3.
+  async function tryGenerate(model: string, genSize: string): Promise<string | null> {
     try {
       const { image } = await generateImage({
-        model: openai.image('dall-e-3'),
+        model: openai.image(model),
         prompt: cleanPrompt,
-        size: '1024x1024',
+        size: genSize as `${number}x${number}`,
       });
-      return Response.json({ image: `data:image/png;base64,${image.base64}` });
-    } catch (fallbackErr) {
-      console.error('[generate/image] failed:', String(primaryErr), '||', String(fallbackErr));
-      return Response.json({ error: 'generation_failed' }, { status: 502 });
+      return image.base64;
+    } catch (e) {
+      console.error(`[generate/image] ${model} failed:`, String(e));
+      return null;
     }
   }
+
+  // gpt-image-1 needs OpenAI org verification; fall back to DALL·E 3.
+  const base64 = (await tryGenerate('gpt-image-1', allowedSize)) ?? (await tryGenerate('dall-e-3', '1024x1024'));
+  if (!base64) return Response.json({ error: 'generation_failed' }, { status: 502 });
+
+  // Persist to Storage for a durable URL; cache it so reloads are free. If
+  // Storage isn't available, return an inline data URL (works but won't persist).
+  const url = await uploadGeneratedImage(uid, base64);
+  if (url) {
+    await cacheRef.set({ url, prompt: cleanPrompt, size: allowedSize, createdAt: FieldValue.serverTimestamp() }).catch(() => {});
+    return Response.json({ image: url });
+  }
+  return Response.json({ image: `data:image/png;base64,${base64}`, persisted: false });
 }

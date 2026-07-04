@@ -31,6 +31,8 @@ import { GradientText } from '@/components/ui/GradientText';
 import { haptics } from '@/lib/haptics';
 import { ApprovalCard } from '@/components/ApprovalCard';
 import { DraftOptionsCard } from '@/components/DraftOptionsCard';
+import { ImageCard } from '@/components/ImageCard';
+import { DocumentCard } from '@/components/DocumentCard';
 import { ProactiveReveal } from '@/components/ui/ProactiveReveal';
 import { ThinkingPulse } from '@/components/ui/ThinkingPulse';
 import { PulseAvatar } from '@/components/ui/PulseAvatar';
@@ -666,6 +668,10 @@ function MessageBubble({
                 )
               ) : part.type === 'draft_options' ? (
                 <DraftOptionsCard key={i} raw={part.value} onSend={onSend} />
+              ) : part.type === 'image' ? (
+                <ImageCard key={i} raw={part.value} />
+              ) : part.type === 'document' ? (
+                <DocumentCard key={i} raw={part.value} />
               ) : part.value.trim() ? (
                 <View key={i} className="rounded-2xl rounded-bl-sm px-4 py-3 bg-surface border border-border self-start">
                   <Markdown text={part.value.trim()} />

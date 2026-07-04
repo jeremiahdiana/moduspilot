@@ -24,7 +24,7 @@ export default function ImageCard({ raw }: { raw: string }) {
   try { data = JSON.parse(raw); } catch { data = { prompt: raw }; }
   const prompt = (data.prompt ?? '').trim();
 
-  async function generate() {
+  async function generate(force = false) {
     setStatus('loading');
     setError('');
     try {
@@ -32,7 +32,7 @@ export default function ImageCard({ raw }: { raw: string }) {
       const res = await fetch('/api/generate/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ prompt, size: data.size }),
+        body: JSON.stringify({ prompt, size: data.size, force }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -94,7 +94,7 @@ export default function ImageCard({ raw }: { raw: string }) {
             >
               Download
             </a>
-            <button onClick={generate} className="text-xs text-muted hover:text-text transition-colors">
+            <button onClick={() => generate(true)} className="text-xs text-muted hover:text-text transition-colors">
               Regenerate
             </button>
           </div>
@@ -104,7 +104,7 @@ export default function ImageCard({ raw }: { raw: string }) {
       {status === 'error' && (
         <div className="aspect-square flex flex-col items-center justify-center gap-3 px-6 text-center">
           <p className="text-xs text-red-400">{error}</p>
-          <button onClick={generate} className="text-xs font-semibold text-brand hover:underline">Try again</button>
+          <button onClick={() => generate()} className="text-xs font-semibold text-brand hover:underline">Try again</button>
         </div>
       )}
     </motion.div>

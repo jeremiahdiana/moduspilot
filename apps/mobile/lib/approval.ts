@@ -49,12 +49,14 @@ export const CONNECT_TYPES = new Set(Object.keys(CONNECT_ENDPOINTS));
 export type ChatPart =
   | { type: 'text'; value: string }
   | { type: 'approval'; value: string }
-  | { type: 'draft_options'; value: string };
+  | { type: 'draft_options'; value: string }
+  | { type: 'image'; value: string }
+  | { type: 'document'; value: string };
 
-// Matches both interactive block types the assistant emits (mirrors web).
-const BLOCK_RE = /```(approval|draft_options)\n([\s\S]*?)```/g;
+// Matches every interactive block type the assistant emits (mirrors web).
+const BLOCK_RE = /```(approval|draft_options|image|document)\n([\s\S]*?)```/g;
 
-/** Split assistant content into text + approval-card parts (post-stream). */
+/** Split assistant content into text + interactive-card parts (post-stream). */
 export function parseApprovalParts(content: string): ChatPart[] {
   const parts: ChatPart[] = [];
   let last = 0;
@@ -62,7 +64,7 @@ export function parseApprovalParts(content: string): ChatPart[] {
   BLOCK_RE.lastIndex = 0;
   while ((match = BLOCK_RE.exec(content)) !== null) {
     if (match.index > last) parts.push({ type: 'text', value: content.slice(last, match.index) });
-    parts.push({ type: match[1] as 'approval' | 'draft_options', value: match[2].trim() });
+    parts.push({ type: match[1] as ChatPart['type'], value: match[2].trim() });
     last = match.index + match[0].length;
   }
   if (last < content.length) parts.push({ type: 'text', value: content.slice(last) });
@@ -72,13 +74,14 @@ export function parseApprovalParts(content: string): ChatPart[] {
 /** Remove interactive blocks (complete or still-streaming) from text for display. */
 export function stripApprovalBlocks(content: string): string {
   return content
-    .replace(/```(approval|draft_options)[\s\S]*?```/g, '')
-    .replace(/```(approval|draft_options)[\s\S]*$/g, '')
+    .replace(/```(approval|draft_options|image|document)[\s\S]*?```/g, '')
+    .replace(/```(approval|draft_options|image|document)[\s\S]*$/g, '')
     .trimEnd();
 }
 
 export function hasApprovalBlock(content: string): boolean {
-  return content.includes('```approval') || content.includes('```draft_options');
+  return content.includes('```approval') || content.includes('```draft_options')
+    || content.includes('```image') || content.includes('```document');
 }
 
 /**

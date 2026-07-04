@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, type Transaction } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 
 function getAdminApp() {
   if (getApps().length) return getApp();
@@ -11,6 +12,16 @@ function getAdminApp() {
       privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     }),
   });
+}
+
+/**
+ * Default Storage bucket for generated assets. Set FIREBASE_STORAGE_BUCKET if
+ * the project uses a non-default bucket (newer projects use
+ * `<projectId>.firebasestorage.app` rather than `<projectId>.appspot.com`).
+ */
+export function adminBucket() {
+  const name = process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`;
+  return getStorage(getAdminApp()).bucket(name);
 }
 
 export const adminAuth = {
