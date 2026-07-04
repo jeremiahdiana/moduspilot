@@ -3,20 +3,24 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import ApprovalCard from './ApprovalCard';
 import DraftOptionsCard from './DraftOptionsCard';
+import ImageCard from './ImageCard';
+import DocumentCard from './DocumentCard';
 
 type Part =
   | { type: 'text'; value: string }
   | { type: 'approval'; value: string }
-  | { type: 'draft_options'; value: string };
+  | { type: 'draft_options'; value: string }
+  | { type: 'image'; value: string }
+  | { type: 'document'; value: string };
 
 function parseBlocks(content: string): Part[] {
   const parts: Part[] = [];
-  const regex = /```(approval|draft_options)\n([\s\S]*?)```/g;
+  const regex = /```(approval|draft_options|image|document)\n([\s\S]*?)```/g;
   let last = 0;
   let match;
   while ((match = regex.exec(content)) !== null) {
     if (match.index > last) parts.push({ type: 'text', value: content.slice(last, match.index) });
-    parts.push({ type: match[1] as 'approval' | 'draft_options', value: match[2].trim() });
+    parts.push({ type: match[1] as 'approval' | 'draft_options' | 'image' | 'document', value: match[2].trim() });
     last = match.index + match[0].length;
   }
   if (last < content.length) parts.push({ type: 'text', value: content.slice(last) });
@@ -86,11 +90,11 @@ export default function MessageBubble({
 
   const rawText = extractTextContent(message.content);
 
-  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options');
+  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```image') || rawText.includes('```document');
   const streamingText = hasSpecialBlock
     ? rawText
-        .replace(/```(approval|draft_options)[\s\S]*?```/g, '')
-        .replace(/```(approval|draft_options)[\s\S]*$/g, '')
+        .replace(/```(approval|draft_options|image|document)[\s\S]*?```/g, '')
+        .replace(/```(approval|draft_options|image|document)[\s\S]*$/g, '')
         .trimEnd()
     : rawText;
 
@@ -112,6 +116,10 @@ export default function MessageBubble({
             <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />
           ) : part.type === 'draft_options' ? (
             <DraftOptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
+          ) : part.type === 'image' ? (
+            <ImageCard key={i} raw={part.value} />
+          ) : part.type === 'document' ? (
+            <DocumentCard key={i} raw={part.value} />
           ) : part.value.trim() ? (
             <p key={i} className="text-sm leading-relaxed text-text whitespace-pre-wrap">{part.value}</p>
           ) : null
