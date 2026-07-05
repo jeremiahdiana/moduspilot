@@ -338,3 +338,19 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after { animation: none; }
 }
+
+/* Rendered MODUS document (inline card preview + editor live preview) */
+.modus-doc { color: rgb(var(--color-text)); font-size: 0.875rem; line-height: 1.65; }
+.modus-doc h1 { font-size: 1.35rem; font-weight: 700; margin: 0 0 0.6rem; line-height: 1.25; }
+.modus-doc h2 { font-size: 1.1rem; font-weight: 700; margin: 1.1rem 0 0.4rem; }
+.modus-doc h3 { font-size: 1rem; font-weight: 600; margin: 0.9rem 0 0.35rem; }
+.modus-doc h4 { font-size: 0.9rem; font-weight: 600; margin: 0.75rem 0 0.3rem; }
+.modus-doc p { margin: 0 0 0.6rem; }
+.modus-doc ul, .modus-doc ol { margin: 0 0 0.7rem; padding-left: 1.35rem; }
+.modus-doc ul { list-style: disc; }
+.modus-doc ol { list-style: decimal; }
+.modus-doc li { margin: 0.2rem 0; }
+.modus-doc hr { border: none; border-top: 1px solid rgb(var(--color-border)); margin: 1rem 0; }
+.modus-doc code { background: rgb(var(--color-muted) / 0.12); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+.modus-doc strong { font-weight: 700; }
+.modus-doc > *:first-child { margin-top: 0; }
