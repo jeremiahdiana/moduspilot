@@ -26,7 +26,7 @@ const FAQS = [
   },
   {
     q: 'What integrations does MODUS support?',
-    a: 'Gmail and Google Calendar are live today — MODUS reads your inbox, categorizes by urgency, drafts replies, and syncs your meetings into your briefing — plus Notion, Slack, GitHub and Drive. The Mac app is live and the iPhone app is in beta.',
+    a: 'On the web: Gmail, Google Calendar, Drive, Notion, Slack and GitHub — MODUS reads your inbox, drafts replies, and syncs meetings into your briefing. On your Mac and iPhone it also reaches iMessage, Apple Notes, Reminders, Contacts, Photos, Apple Health, iCloud files and even your Obsidian vault. The Mac app is live and the iPhone app is in beta.',
   },
   {
     q: 'Is my data private?',

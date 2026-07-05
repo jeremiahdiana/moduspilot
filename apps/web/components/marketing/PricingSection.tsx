@@ -73,8 +73,17 @@ export default function PricingSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">Your Modus. Your Plan.</h2>
-          <p className="text-muted text-lg">Try it free for 3 days. Card required · cancel anytime.</p>
+          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">One subscription. Every model.</h2>
+          <p className="text-muted text-lg max-w-2xl mx-auto">
+            Write with Gemini, research with Claude, ask ChatGPT — for one price, with far higher limits than paying for any of them alone. Try it free for 3 days. Card required · cancel anytime.
+          </p>
+          <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted bg-panel border border-border rounded-full px-4 py-2">
+            <span className="text-text font-semibold">Replaces</span>
+            <span>ChatGPT Plus</span><span className="text-muted/40">+</span>
+            <span>Claude Pro</span><span className="text-muted/40">+</span>
+            <span>Gemini Advanced</span>
+            <span className="text-brand font-semibold">— for less.</span>
+          </div>
         </motion.div>
 
         <motion.div
@@ -82,24 +91,27 @@ export default function PricingSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start max-w-3xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start max-w-3xl mx-auto pt-4"
         >
           {PLANS.map(plan => (
             <motion.div
               key={plan.tier}
               variants={item}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className={`relative bg-panel rounded-2xl overflow-hidden flex flex-col border ${
-                plan.popular ? 'border-brand shadow-[0_0_40px_rgba(124,58,237,0.15)]' : 'border-border'
-              }`}
+              className="relative"
             >
               {plan.popular && (
-                <>
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent" />
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-brand text-white text-[11px] font-bold px-3 py-1 rounded-full">Most Popular</span>
-                  </div>
-                </>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <span className="bg-brand text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg shadow-brand/30 whitespace-nowrap">Most Popular</span>
+                </div>
+              )}
+              <div
+                className={`relative bg-panel rounded-2xl overflow-hidden flex flex-col border h-full ${
+                  plan.popular ? 'border-brand shadow-[0_0_40px_rgba(124,58,237,0.15)]' : 'border-border'
+                }`}
+              >
+              {plan.popular && (
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent" />
               )}
 
               <div className="p-8 border-b border-border">
@@ -132,6 +144,7 @@ export default function PricingSection() {
                 >
                   {plan.cta}
                 </a>
+              </div>
               </div>
             </motion.div>
           ))}

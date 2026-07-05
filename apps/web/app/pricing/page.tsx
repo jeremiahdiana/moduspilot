@@ -221,15 +221,28 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.25 }}
-              className="text-muted text-xl max-w-lg mx-auto leading-relaxed mb-10"
+              className="text-muted text-xl max-w-2xl mx-auto leading-relaxed mb-6"
             >
-              Try it free for 3 days. Card required · cancel anytime.
+              Write with Gemini, research with Claude, ask ChatGPT — every frontier model in one subscription, with far higher limits than paying for any of them alone.
             </motion.p>
 
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted bg-panel/60 backdrop-blur-sm border border-border rounded-full px-4 py-2 mb-8"
+            >
+              <span className="text-text font-semibold">Replaces</span>
+              <span>ChatGPT Plus</span><span className="text-muted/40">+</span>
+              <span>Claude Pro</span><span className="text-muted/40">+</span>
+              <span>Gemini Advanced</span>
+              <span className="text-brand font-semibold">— for less.</span>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.45 }}
               className="flex items-center justify-center gap-6 text-sm text-muted"
             >
               {['3-day free trial', 'Card required', 'Cancel anytime'].map(t => (
@@ -291,13 +304,21 @@ export default function PricingPage() {
           </RevealOnScroll>
 
           {/* ── Plan cards ───────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start mb-6 pt-5">
             {PLANS.map((plan, i) => (
               <RevealOnScroll key={plan.tier} delay={i * 0.12} direction="up">
+                <div className="relative h-full">
+                {plan.popular && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20">
+                    <span className="bg-brand text-white text-[11px] font-bold px-4 py-1 rounded-full shadow-lg shadow-brand/40 whitespace-nowrap">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
                 <motion.div
                   whileHover={plan.popular ? { y: -6 } : { y: -3 }}
                   transition={{ type: 'spring', stiffness: 300 }}
-                  className={`relative rounded-3xl flex flex-col border overflow-hidden group ${
+                  className={`relative rounded-3xl flex flex-col border overflow-hidden group h-full ${
                     plan.popular
                       ? 'bg-panel/70 backdrop-blur-xl border-brand/50'
                       : 'bg-panel/60 backdrop-blur-xl border-border/70'
@@ -309,16 +330,8 @@ export default function PricingPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
                   {plan.popular && (
-                    <>
-                      {/* Top shimmer line */}
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand to-transparent" />
-                      {/* Popular badge */}
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                        <span className="bg-brand text-white text-[11px] font-bold px-4 py-1 rounded-full shadow-lg shadow-brand/40">
-                          Most Popular
-                        </span>
-                      </div>
-                    </>
+                    /* Top shimmer line */
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand to-transparent" />
                   )}
 
                   <div className="relative p-8 border-b border-border/60">
@@ -360,6 +373,7 @@ export default function PricingPage() {
                     </Link>
                   </div>
                 </motion.div>
+                </div>
               </RevealOnScroll>
             ))}
           </div>

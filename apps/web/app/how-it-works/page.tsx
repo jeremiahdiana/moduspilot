@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/marketing/Navbar';
 import { MarketingBackground, ScrollProgress } from '@/components/marketing/MarketingBackground';
+import { MODEL_LOGOS } from '@/components/marketing/ModelLogos';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
@@ -414,18 +415,15 @@ export default function HowItWorksPage() {
           </RevealOnScroll>
           <RevealOnScroll delay={0.1}>
             <div className="flex flex-wrap gap-2">
-              {[
-                { name: 'Claude', color: '#D97757' },
-                { name: 'GPT-4o', color: '#10A37F' },
-                { name: 'Gemini', color: '#4285F4' },
-                { name: 'Grok', color: '#6B7280' },
-                { name: 'Llama', color: '#0866FF' },
-              ].map(m => (
-                <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
-                  <span className="text-xs font-semibold text-text">{m.name}</span>
-                </span>
-              ))}
+              {MODEL_LOGOS.map(m => {
+                const Logo = m.logo;
+                return (
+                  <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel/80 backdrop-blur-sm border border-border rounded-full pl-2 pr-3 py-1.5">
+                    <Logo className="w-4 h-4" />
+                    <span className="text-xs font-semibold text-text">{m.name}</span>
+                  </span>
+                );
+              })}
             </div>
           </RevealOnScroll>
         </section>

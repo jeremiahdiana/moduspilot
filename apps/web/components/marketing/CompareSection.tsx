@@ -33,10 +33,10 @@ export default function CompareSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-black text-text mb-4">
-            Why Not Just Use ChatGPT?
+            Why pay for one AI<br className="hidden sm:block" /> when you can have them all?
           </h2>
           <p className="text-muted text-lg max-w-xl mx-auto">
-            ChatGPT answers questions. MODUS runs your life. Not the same category.
+            One subscription. Every frontier model, plus an assistant that actually runs your day — not another chatbot that only answers.
           </p>
         </motion.div>
 

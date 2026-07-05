@@ -1,48 +1,100 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { MODEL_LOGOS, ClaudeLogo, GeminiLogo, OpenAILogo, GrokLogo } from './ModelLogos';
 
-// Wordmark badges (name + brand-tinted dot) — deliberately NOT copied brand
-// logos, for accuracy + to avoid trademark asset issues.
-const MODELS = [
-  { name: 'Claude',  provider: 'Anthropic', color: '#D97757' },
-  { name: 'GPT-4o',  provider: 'OpenAI',    color: '#10A37F' },
-  { name: 'Gemini',  provider: 'Google',    color: '#4285F4' },
-  { name: 'Grok',    provider: 'xAI',       color: '#6B7280' },
-  { name: 'Llama',   provider: 'Meta',      color: '#0866FF' },
+// Auto-cycling demo — matches the motto (write→Gemini, research→Claude,
+// ask→ChatGPT). Each cycle stages in: prompt → routing chip → reply.
+const DEMOS = [
+  { prompt: 'Write me a cover letter',        Logo: GeminiLogo, model: 'Gemini',  reply: 'On it — drafting something that sounds human, not AI.' },
+  { prompt: 'Research the 2026 EV market',    Logo: ClaudeLogo, model: 'Claude',  reply: 'Pulling live sources and summarizing the landscape.' },
+  { prompt: 'What should I focus on today?',  Logo: OpenAILogo, model: 'ChatGPT', reply: 'Your top 3 — starting with the investor reply.' },
+  { prompt: 'Debug this Python function',     Logo: GrokLogo,   model: 'Grok',    reply: 'Found it — an off-by-one on line 14. Here\'s the fix.' },
 ];
 
-/* A truthful mock of the real in-chat model switcher (composer + open dropdown). */
-function SwitcherMock() {
+function ModelDemo() {
+  const [i, setI] = useState(0);
+  const [stage, setStage] = useState(0); // 0 = prompt, 1 = routing, 2 = reply
+
+  useEffect(() => {
+    setStage(0);
+    const t1 = setTimeout(() => setStage(1), 800);
+    const t2 = setTimeout(() => setStage(2), 1800);
+    const t3 = setTimeout(() => setI(x => (x + 1) % DEMOS.length), 4400);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [i]);
+
+  const d = DEMOS[i];
+  const Logo = d.Logo;
+
   return (
-    <div className="relative bg-panel border border-border rounded-2xl p-4 shadow-xl shadow-brand/5">
-      {/* composer row */}
-      <div className="flex items-center gap-2 bg-bg border border-border rounded-xl px-3 py-2.5 mb-3">
-        <span className="text-sm text-muted/70 flex-1">Write me a cover letter…</span>
-        <span className="w-6 h-6 rounded-lg bg-brand flex items-center justify-center shrink-0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-3.5 h-3.5 text-white">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-          </svg>
-        </span>
+    <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-xl shadow-brand/5">
+      {/* window chrome */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg/40">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-400/50" />
+          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/50" />
+          <div className="w-2.5 h-2.5 rounded-full bg-green-400/50" />
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+          <span className="text-[11px] font-semibold text-muted/60 tracking-widest">MODUS</span>
+        </div>
+        <div className="w-[46px]" />
       </div>
 
-      {/* open model dropdown */}
-      <div className="border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 bg-brand/5 border-b border-border">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand shrink-0">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
-          </svg>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-brand">Auto</p>
-            <p className="text-[11px] text-muted">MODUS picks the best model for each task</p>
-          </div>
-        </div>
-        {MODELS.map(m => (
-          <div key={m.name} className="flex items-center gap-2.5 px-3 py-2 border-b border-border/50 last:border-0">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
-            <span className="text-sm font-medium text-text">{m.name}</span>
-            <span className="text-[11px] text-muted">{m.provider}</span>
-          </div>
+      {/* conversation */}
+      <div className="h-[300px] p-5 flex flex-col justify-center gap-3">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={i}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex flex-col gap-3"
+          >
+            {/* user prompt */}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-end">
+              <div className="bg-brand text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%]">
+                <p className="text-sm">{d.prompt}</p>
+              </div>
+            </motion.div>
+
+            {/* routing chip */}
+            {stage >= 1 && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex items-center gap-2 self-start">
+                <span className="text-[11px] text-muted">Routed to</span>
+                <span className="inline-flex items-center gap-1.5 bg-brand/5 border border-brand/20 rounded-full pl-1.5 pr-2.5 py-1">
+                  <Logo className="w-3.5 h-3.5" />
+                  <span className="text-xs font-semibold text-text">{d.model}</span>
+                </span>
+              </motion.div>
+            )}
+
+            {/* reply */}
+            {stage >= 2 ? (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-start">
+                <div className="bg-bg border border-border rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[85%]">
+                  <p className="text-sm text-text">{d.reply}</p>
+                </div>
+              </motion.div>
+            ) : stage >= 1 && (
+              <div className="flex gap-1 self-start pl-1">
+                <span className="typing-dot w-1.5 h-1.5 bg-brand/50 rounded-full" />
+                <span className="typing-dot w-1.5 h-1.5 bg-brand/50 rounded-full" />
+                <span className="typing-dot w-1.5 h-1.5 bg-brand/50 rounded-full" />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* progress dots */}
+      <div className="flex items-center justify-center gap-1.5 pb-4">
+        {DEMOS.map((_, idx) => (
+          <span key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === i ? 'w-5 bg-brand' : 'w-1.5 bg-border'}`} />
         ))}
       </div>
     </div>
@@ -53,7 +105,7 @@ export default function MultiModelSection() {
   return (
     <section id="models" className="py-28 px-6 overflow-hidden">
       <div className="max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-14 items-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -61,22 +113,27 @@ export default function MultiModelSection() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">One chat. Every model.</p>
-            <h2 className="text-4xl md:text-5xl font-black text-text leading-tight mb-5">
-              Write with Gemini.<br />Research with Claude.<br />Ask ChatGPT.
+            <h2 className="text-4xl md:text-5xl font-black text-text leading-[1.12] tracking-tight mb-5">
+              <span className="block whitespace-nowrap">Write with Gemini.</span>
+              <span className="block whitespace-nowrap">Research with Claude.</span>
+              <span className="block whitespace-nowrap">Ask ChatGPT.</span>
             </h2>
             <p className="text-muted text-base leading-relaxed mb-6">
               Every frontier model lives in one chat. Pick the one you want — or let MODUS
               <span className="text-text font-semibold"> route every task to the best model automatically</span>. Switch anytime, right in the composer.
             </p>
 
-            {/* wordmark badges */}
+            {/* model badges with real logos */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {MODELS.map(m => (
-                <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel border border-border rounded-full px-3 py-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
-                  <span className="text-xs font-semibold text-text">{m.name}</span>
-                </span>
-              ))}
+              {MODEL_LOGOS.map(m => {
+                const Logo = m.logo;
+                return (
+                  <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel border border-border rounded-full pl-2 pr-3 py-1.5">
+                    <Logo className="w-4 h-4" />
+                    <span className="text-xs font-semibold text-text">{m.name}</span>
+                  </span>
+                );
+              })}
             </div>
 
             <div className="flex items-start gap-2 text-sm text-muted">
@@ -91,7 +148,7 @@ export default function MultiModelSection() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            <SwitcherMock />
+            <ModelDemo />
           </motion.div>
         </div>
       </div>
