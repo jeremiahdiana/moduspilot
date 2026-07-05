@@ -251,18 +251,18 @@ export default function ConversationList({ conversations, activeId, onSelect, on
             </span>
           )}
           {!isEditing && (
-            <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap">
+            <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap transition-opacity duration-150 group-hover:opacity-0">
               {relativeTime(conv.updatedAt)}
             </span>
           )}
         </div>
         {preview && !isEditing && (
-          <p className="text-[11px] text-muted truncate mt-0.5 pr-12">{preview}</p>
+          <p className="text-[11px] text-muted truncate mt-0.5 pr-14">{preview}</p>
         )}
 
         {/* Hover actions */}
         {!isEditing && (
-          <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+          <div className={`absolute right-1.5 top-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg px-0.5 py-0.5 shadow-sm ${isActive ? 'bg-brand/15' : 'bg-panel'}`}>
             <Tooltip label="Rename" side="bottom">
             <button
               onClick={(e) => startEdit(conv, e)}

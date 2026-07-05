@@ -62,9 +62,11 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
             onClick={() => select('auto')}
             className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${value === 'auto' || !value ? 'bg-brand/5' : ''}`}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand shrink-0 mt-0.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
-            </svg>
+            <span className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
+              </svg>
+            </span>
             <div className="min-w-0">
               <p className={`text-sm font-medium ${value === 'auto' || !value ? 'text-brand' : 'text-text'}`}>Auto</p>
               <p className="text-xs text-muted leading-snug">MODUS picks the best model for each task</p>
@@ -88,7 +90,9 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
                 } ${selected ? 'bg-brand/5' : ''}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Logo className="w-4 h-4 shrink-0" />
+                  <span className="w-7 h-7 rounded-lg bg-muted/10 border border-border/60 flex items-center justify-center shrink-0">
+                    <Logo className="w-4 h-4" />
+                  </span>
                   <div className="min-w-0">
                     <p className={`text-sm font-medium truncate ${selected ? 'text-brand' : 'text-text'}`}>{m.name}</p>
                     <p className="text-xs text-muted truncate">{m.provider}</p>
