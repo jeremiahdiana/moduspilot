@@ -236,11 +236,16 @@ export default function ChatPage() {
         <div className="flex-1 min-h-0 overflow-hidden">
           {/* Wait until activeId is settled so ChatWindow doesn't remount with a key change */}
           {!isGuest && (loading || settingsLoading || (conversations.length > 0 && !activeId)) ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            // Reserve the composer's height at the bottom so the spinner centers
+            // in the SAME region the greeting will — no vertical jump on load.
+            <div className="flex flex-col h-full">
+              <div className="flex-1 flex flex-col items-center justify-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                </div>
+                <p className="text-xs text-muted">Loading your chat…</p>
               </div>
-              <p className="text-xs text-muted">Loading your chat…</p>
+              <div className="h-[124px] shrink-0" aria-hidden />
             </div>
           ) : (
           <ChatWindow
