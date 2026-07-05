@@ -311,11 +311,11 @@ export default function HowItWorksPage() {
             </h1>
             <div className="max-w-2xl space-y-4">
               <p className="text-muted text-lg leading-relaxed">
-                ChatGPT and Claude are tools — you go to them. MODUS is built differently: it comes to you. Manages your schedule, sends your emails, surfaces decisions for approval, and checks in when something needs a human call.
+                ChatGPT and Claude are tools — you go to them. MODUS is built differently: it uses them all, routes each task to the best model, and comes to you. Manages your schedule, sends your emails, creates what you need, and surfaces decisions for approval.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 mt-8">
-              {['Approval-based', 'Memory that persists', 'Proactive — not reactive', 'Connected to your tools'].map(tag => (
+              {['Every AI model', 'Approval-based', 'Creates images & docs', 'Proactive — not reactive', 'Connected to your tools'].map(tag => (
                 <span key={tag} className="text-xs font-medium text-brand bg-brand/8 border border-brand/20 px-3 py-1.5 rounded-full">
                   {tag}
                 </span>
@@ -401,6 +401,33 @@ export default function HowItWorksPage() {
               </RevealOnScroll>
             ))}
           </div>
+        </section>
+
+        {/* Every model */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <RevealOnScroll>
+            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Every model</p>
+            <h2 className="text-4xl font-semibold text-text mb-4">MODUS speaks every model&apos;s language.</h2>
+            <p className="text-muted text-lg leading-relaxed max-w-2xl mb-8">
+              MODUS isn&apos;t tied to one AI. Write with Gemini, research with Claude, ask ChatGPT — pick the model you want for any message, or leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best. It&apos;s the layer above every model, not just another chatbot.
+            </p>
+          </RevealOnScroll>
+          <RevealOnScroll delay={0.1}>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { name: 'Claude', color: '#D97757' },
+                { name: 'GPT-4o', color: '#10A37F' },
+                { name: 'Gemini', color: '#4285F4' },
+                { name: 'Grok', color: '#6B7280' },
+                { name: 'Llama', color: '#0866FF' },
+              ].map(m => (
+                <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
+                  <span className="text-xs font-semibold text-text">{m.name}</span>
+                </span>
+              ))}
+            </div>
+          </RevealOnScroll>
         </section>
 
         {/* MODUS vs others */}

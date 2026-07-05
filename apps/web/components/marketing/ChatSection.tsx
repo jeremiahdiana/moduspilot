@@ -109,10 +109,10 @@ export default function ChatSection() {
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-1.5 text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-text font-medium">Web App</span>
+                <span className="text-text font-medium">Web · Mac</span>
                 <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">Live</span>
               </div>
-              <span className="text-muted text-sm">iOS · Mac <span className="text-[10px] text-muted/50">Coming Soon</span></span>
+              <span className="text-muted text-sm">iPhone <span className="text-[10px] font-bold bg-brand/10 text-brand px-2 py-0.5 rounded-full">Beta</span></span>
             </div>
           </motion.div>
 

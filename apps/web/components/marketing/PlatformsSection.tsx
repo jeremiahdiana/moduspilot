@@ -6,34 +6,26 @@ const PLATFORMS = [
   {
     icon: '◈',
     title: 'Web App',
-    badge: 'Live Now',
+    badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
-    desc: 'Full dashboard, AI chat, goals, habits, tasks, and briefings at app.moduspilot.com. No install. Works everywhere.',
-    detail: 'Next.js · Vercel · Real-time sync',
-  },
-  {
-    icon: '◉',
-    title: 'iOS App',
-    badge: 'Coming Soon',
-    badgeColor: 'bg-border text-muted',
-    desc: 'Push notifications, HealthKit, voice interface. MODUS reaches you — you don\'t open it to check.',
-    detail: 'Expo React Native · Firebase · RevenueCat',
-  },
-  {
-    icon: '◎',
-    title: 'Telegram',
-    badge: 'Coming Soon',
-    badgeColor: 'bg-border text-muted',
-    desc: 'Chat with MODUS directly from Telegram. Same memory, same approvals, no app switch required.',
-    detail: 'Telegram Bot API · Webhook sync',
+    desc: 'The full MODUS — dashboard, AI chat, goals, habits, tasks, and briefings at app.moduspilot.com. No install. Works everywhere.',
+    detail: 'Same account, real-time sync',
   },
   {
     icon: '▣',
     title: 'Mac App',
-    badge: 'Coming Soon',
-    badgeColor: 'bg-border text-muted',
-    desc: 'Menu bar access, ⌘K command bar. Always one keystroke away from your operating system.',
-    detail: 'Native notifications · Global shortcut',
+    badge: 'Live',
+    badgeColor: 'bg-emerald-500/20 text-emerald-400',
+    desc: 'A native desktop app with your notes, iMessage, reminders, and calendar synced in — plus native notifications on your Mac.',
+    detail: 'Signed & auto-updating',
+  },
+  {
+    icon: '◉',
+    title: 'iPhone App',
+    badge: 'Beta',
+    badgeColor: 'bg-brand/15 text-brand',
+    desc: 'MODUS in your pocket — chat, model switcher, image & document creation, and push notifications so it reaches you. Rolling out now.',
+    detail: 'TestFlight beta',
   },
 ];
 
@@ -59,7 +51,7 @@ export default function PlatformsSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-black text-text mb-4">Everywhere You Work</h2>
-          <p className="text-muted text-lg">One OS. Every surface. Start on web today.</p>
+          <p className="text-muted text-lg">Live on web &amp; Mac. iPhone app in beta.</p>
         </motion.div>
 
         <motion.div
@@ -67,7 +59,7 @@ export default function PlatformsSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
         >
           {PLATFORMS.map(p => (
             <motion.div

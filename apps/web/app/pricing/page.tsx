@@ -56,6 +56,8 @@ const PLANS = [
     glow: '0 0 80px rgba(124,58,237,0.25), 0 0 160px rgba(124,58,237,0.1)',
     features: [
       { label: 'AI Chat — unlimited, full context', included: true },
+      { label: 'Multiple AI models — Claude + GPT, auto-routed', included: true },
+      { label: 'Generate images & editable PDFs', included: true },
       { label: 'Unlimited briefings', included: true },
       { label: 'Unlimited goals + habit engine', included: true },
       { label: 'Voice interface', included: true },
@@ -69,7 +71,7 @@ const PLANS = [
       { label: 'Focus protection', included: true },
       { label: 'Life admin automation', included: true },
       { label: 'Pattern recognition', included: true },
-      { label: 'Web + iOS + Mac access', included: true },
+      { label: 'Web + Mac apps live · iPhone in beta', included: true },
     ],
   },
   {
@@ -84,6 +86,7 @@ const PLANS = [
     glow: '0 0 40px rgba(124,58,237,0.12)',
     features: [
       { label: 'Everything in MODUS', included: true },
+      { label: 'Every frontier model — Claude, GPT, Gemini, Grok, o4-mini + manual pick', included: true },
       { label: 'Unlimited context memory', included: true },
       { label: 'Wearable sync (HealthKit, Oura, Whoop)', included: true },
       { label: 'Financial pulse via Plaid', included: true },
@@ -104,7 +107,7 @@ const GROUP_FEATURES = [
   'Everything in MODUS, for every member',
   'A shared group space for trips & plans',
   'Ask MODUS when a teammate is free',
-  'Web + iOS + Mac for everyone',
+  'Web + Mac + iPhone (beta) for everyone',
   '7-day full trial, no card required',
 ];
 

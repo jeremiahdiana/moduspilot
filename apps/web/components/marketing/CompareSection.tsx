@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 
 const ROWS = [
+  { feature: 'Every frontier model, auto-routed per task', modus: true,  chatgpt: 'One model', notion: false, todoist: false },
   { feature: 'Daily briefing with priorities', modus: true,  chatgpt: false, notion: false, todoist: false },
   { feature: 'Approve every AI action before it runs', modus: true,  chatgpt: false, notion: false, todoist: false },
   { feature: 'Goal → milestone → habit → task engine', modus: true,  chatgpt: false, notion: 'Manual', todoist: 'Manual' },

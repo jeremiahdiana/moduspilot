@@ -4,6 +4,18 @@ import { motion } from 'framer-motion';
 
 const FEATURES = [
   {
+    icon: '◇',
+    title: 'Every AI Model, One Chat',
+    desc: 'Claude, GPT-4o, Gemini, Grok — pick the model you want, or let MODUS auto-route each task to the best one. Switch anytime, right in the chat.',
+    accent: 'from-brand/10 to-transparent',
+  },
+  {
+    icon: '✎',
+    title: 'Create Images & Documents',
+    desc: 'Ask MODUS to generate an image or a formatted PDF — edit the document in a live canvas and download it. All inside the same conversation.',
+    accent: 'from-violet-500/10 to-transparent',
+  },
+  {
     icon: '☀',
     title: 'Daily Briefing',
     desc: 'Every morning MODUS comes to you — not the other way around. Energy check, top 3 priorities, inbox triage, habit streaks. Done before you open Gmail.',

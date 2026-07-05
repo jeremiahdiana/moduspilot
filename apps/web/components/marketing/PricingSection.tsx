@@ -11,6 +11,8 @@ const PLANS = [
     popular: true,
     features: [
       'AI Chat — unlimited, full context',
+      'Multiple AI models — Claude + GPT, auto-routed',
+      'Generate images & editable PDFs',
       'Unlimited briefings + goals + habit engine',
       'Voice interface',
       'Calendar read + write',
@@ -23,7 +25,7 @@ const PLANS = [
       'Focus protection',
       'Life admin automation',
       'Pattern recognition',
-      'Web + iOS + Mac access',
+      'Web + Mac apps live · iPhone in beta',
     ],
   },
   {
@@ -34,6 +36,7 @@ const PLANS = [
     popular: false,
     features: [
       'Everything in MODUS',
+      'Every frontier model — Claude, GPT, Gemini, Grok, o4-mini',
       'Unlimited context memory',
       'Wearable sync (HealthKit, Oura, Whoop)',
       'Financial pulse via Plaid',

@@ -13,12 +13,20 @@ const FAQS = [
     a: "ChatGPT answers questions in a vacuum. MODUS has persistent memory across every conversation, connects to your Gmail and Google Calendar, tracks your goals and habits over time, and proactively reaches out to you — you don't go to it. Different category entirely.",
   },
   {
+    q: 'Which AI models does MODUS use?',
+    a: "All of them. Claude, GPT-4o, Gemini, Grok and more live in one chat. Pick the model you want for any message, or leave it on Auto and MODUS routes each task to the best one. MODUS ($24) auto-routes the top models; PILOT ($59) unlocks every frontier model with manual pick per message.",
+  },
+  {
     q: 'Can I use my own OpenAI or Claude API key?',
-    a: 'Yes. Under Settings → Model, you can connect your own OpenAI key (GPT-4o) or Anthropic key (Claude). MODUS handles all the orchestration — you just bring the brain. The default uses Groq at no extra cost.',
+    a: 'Yes. Under Settings → Brain you can connect your own OpenAI (GPT-4o) or Anthropic (Claude) key — or just use the models MODUS already includes, no key needed. Either way MODUS handles the orchestration and routing.',
+  },
+  {
+    q: 'Can MODUS create images and PDFs?',
+    a: 'Yes. Ask MODUS to generate an image or a document and it makes it right in the chat — images you can download, and formatted PDFs you can edit in a live canvas before exporting.',
   },
   {
     q: 'What integrations does MODUS support?',
-    a: 'Gmail and Google Calendar are live today. MODUS reads your inbox, categorizes by urgency, drafts replies, and syncs your meetings into your daily briefing. iOS, Mac app, and Telegram are coming next.',
+    a: 'Gmail and Google Calendar are live today — MODUS reads your inbox, categorizes by urgency, drafts replies, and syncs your meetings into your briefing — plus Notion, Slack, GitHub and Drive. The Mac app is live and the iPhone app is in beta.',
   },
   {
     q: 'Is my data private?',

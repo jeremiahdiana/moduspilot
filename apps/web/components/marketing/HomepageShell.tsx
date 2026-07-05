@@ -4,10 +4,14 @@ import { MarketingBackground, ScrollProgress } from './MarketingBackground';
 import RevealSection from './RevealSection';
 import HeroSection from './HeroSection';
 import ChatSection from './ChatSection';
+import MultiModelSection from './MultiModelSection';
 import CoreLoop from './CoreLoop';
 import FeaturesSection from './FeaturesSection';
 import IntegrationsSection from './IntegrationsSection';
+import PlatformsSection from './PlatformsSection';
+import CompareSection from './CompareSection';
 import PricingSection from './PricingSection';
+import FAQSection from './FAQSection';
 import FinalCTA from './FinalCTA';
 import Footer from './Footer';
 
@@ -36,6 +40,10 @@ export default function HomepageShell() {
           <ChatSection />
         </RevealSection>
 
+        <RevealSection direction="left" distance={24}>
+          <MultiModelSection />
+        </RevealSection>
+
         <RevealSection direction="none">
           <CoreLoop />
         </RevealSection>
@@ -50,10 +58,22 @@ export default function HomepageShell() {
           <IntegrationsSection />
         </RevealSection>
 
+        <RevealSection>
+          <PlatformsSection />
+        </RevealSection>
+
         <Divider />
+
+        <RevealSection direction="none">
+          <CompareSection />
+        </RevealSection>
 
         <RevealSection>
           <PricingSection />
+        </RevealSection>
+
+        <RevealSection direction="none">
+          <FAQSection />
         </RevealSection>
 
         <RevealSection direction="none">
