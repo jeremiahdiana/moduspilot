@@ -237,9 +237,9 @@ export default function ChatWindow({
       <div className="flex-1 overflow-y-auto flex flex-col">
         {messages.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
             className="flex-1 flex flex-col items-center justify-center gap-5 px-8 py-8"
           >
             {/* Avatar */}
