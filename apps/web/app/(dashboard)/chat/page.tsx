@@ -236,16 +236,27 @@ export default function ChatPage() {
         <div className="flex-1 min-h-0 overflow-hidden">
           {/* Wait until activeId is settled so ChatWindow doesn't remount with a key change */}
           {!isGuest && (loading || settingsLoading || (conversations.length > 0 && !activeId)) ? (
-            // Reserve the composer's height at the bottom so the spinner centers
-            // in the SAME region the greeting will — no vertical jump on load.
+            // Mirror ChatWindow's exact layout (centered content above a
+            // composer-shaped footer) so the spinner sits precisely where the
+            // greeting will — the loading→loaded hand-off has zero vertical jump.
             <div className="flex flex-col h-full">
-              <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
                   <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
                 </div>
                 <p className="text-xs text-muted">Loading your chat…</p>
               </div>
-              <div className="h-[124px] shrink-0" aria-hidden />
+              <div className="px-8 py-4 border-t border-border shrink-0" aria-hidden>
+                <div className="flex items-center gap-3 bg-panel border border-border rounded-2xl px-4 py-3">
+                  <span className="w-5 h-5 rounded bg-muted/10 shrink-0" />
+                  <span className="flex-1 text-sm text-muted/30">Talk to MODUS…</span>
+                  <span className="w-8 h-8 rounded-lg bg-brand/30 shrink-0" />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="inline-block h-[26px] w-24 rounded-lg border border-border" />
+                  <span className="text-muted/40 text-xs">Enter to send · Shift+Enter for new line</span>
+                </div>
+              </div>
             </div>
           ) : (
           <ChatWindow
