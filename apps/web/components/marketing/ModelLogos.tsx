@@ -62,3 +62,13 @@ export const MODEL_LOGOS: ModelInfo[] = [
   { name: 'Grok',    provider: 'xAI',       logo: GrokLogo },
   { name: 'Llama',   provider: 'Meta',      logo: MetaLogo },
 ];
+
+/** Logo for a platform model id (see lib/models.ts) — used by the in-app switcher. */
+export function logoForModel(id: string): (p: LogoProps) => ReactNode {
+  if (id.startsWith('claude')) return ClaudeLogo;
+  if (id.startsWith('gpt') || id.startsWith('o4') || id.startsWith('o3')) return OpenAILogo;
+  if (id.startsWith('gemini')) return GeminiLogo;
+  if (id.startsWith('grok')) return GrokLogo;
+  if (id.startsWith('llama')) return MetaLogo;
+  return OpenAILogo;
+}
