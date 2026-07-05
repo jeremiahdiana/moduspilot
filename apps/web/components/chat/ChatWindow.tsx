@@ -22,8 +22,10 @@ function getSmartPrompts(svc: ConnectedServices): string[] {
   if (svc.github)   prompts.push("What are my open pull requests?");
   if (svc.contacts) prompts.push("Who do I know at [company]?");
   if (prompts.length === 0) {
-    return ["Help me plan my day", "Draft a message", "Think through a decision", "Set a goal"];
+    return ["Help me plan my day", "Generate an image", "Make a PDF", "Set a goal"];
   }
+  // Keep a generation prompt discoverable alongside connected-service prompts.
+  prompts.push("Generate an image");
   return prompts.slice(0, 4);
 }
 

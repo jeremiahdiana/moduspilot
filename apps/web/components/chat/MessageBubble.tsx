@@ -91,6 +91,9 @@ export default function MessageBubble({
   const rawText = extractTextContent(message.content);
 
   const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```image') || rawText.includes('```document');
+  const specialLabel = rawText.includes('```image') ? 'Creating image…'
+    : rawText.includes('```document') ? 'Writing document…'
+    : 'Preparing action…';
   const streamingText = hasSpecialBlock
     ? rawText
         .replace(/```(approval|draft_options|image|document)[\s\S]*?```/g, '')
@@ -127,7 +130,7 @@ export default function MessageBubble({
         {isStreaming && hasSpecialBlock && (
           <div className="flex items-center gap-2 px-4 py-3 border border-border bg-panel rounded-xl">
             <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
-            <span className="text-xs text-muted">Preparing action…</span>
+            <span className="text-xs text-muted">{specialLabel}</span>
           </div>
         )}
       </div>

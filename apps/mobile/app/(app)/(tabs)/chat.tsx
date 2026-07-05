@@ -99,6 +99,13 @@ const SKILL_CATEGORIES: {
       { icon: 'flag',           label: 'Review my goals',      prompt: 'Summarize my current goals and tell me where I should be focusing most.' },
     ],
   },
+  {
+    id: 'create', icon: 'auto-awesome', label: 'Create',
+    subs: [
+      { icon: 'auto-awesome', label: 'Generate an image', prompt: "Generate an image for me. Ask me what I'd like to see, then create it." },
+      { icon: 'description',  label: 'Make a PDF',        prompt: 'Help me create a PDF document. Ask me what it should contain, then produce it.' },
+    ],
+  },
 ];
 
 function extractTaskItems(text: string): string[] {
@@ -623,6 +630,9 @@ function MessageBubble({
 
   const isEmpty = message.content === '' && isStreaming;
   const hasAction = hasApprovalBlock(message.content);
+  const actionLabel = message.content.includes('```image') ? 'Creating image…'
+    : message.content.includes('```document') ? 'Writing document…'
+    : 'Preparing action…';
 
   // While streaming, hide the (possibly incomplete) approval JSON and show a
   // pulse. Once finished, split into text + interactive approval cards.
@@ -651,7 +661,7 @@ function MessageBubble({
             {hasAction && (
               <View className="flex-row items-center gap-2 px-4 py-3 border border-border bg-surface rounded-2xl self-start">
                 <View className="w-1.5 h-1.5 rounded-full bg-brand" />
-                <Text className="text-muted text-xs">Preparing action…</Text>
+                <Text className="text-muted text-xs">{actionLabel}</Text>
               </View>
             )}
           </>
