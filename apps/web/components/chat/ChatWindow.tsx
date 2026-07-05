@@ -233,14 +233,14 @@ export default function ChatWindow({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {messages.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="flex-1 flex flex-col items-center justify-center gap-5 px-8 py-8"
+            className="min-h-full flex flex-col items-center justify-center gap-5 px-8 py-8"
           >
             {/* Avatar */}
             <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">

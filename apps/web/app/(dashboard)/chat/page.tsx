@@ -96,12 +96,14 @@ export default function ChatPage() {
   }, [activeConversation?.messages?.length, inFlightMessages.length]);
 
   const handleNew = useCallback(async () => {
+    setInFlightMessages([]); // never inherit a previous chat's in-flight messages
     if (isGuest) { setActiveId(null); return; }
     const id = await createConversation();
     setActiveId(id);
   }, [isGuest, createConversation]);
 
   const handleSelect = useCallback((id: string) => {
+    setInFlightMessages([]);
     setActiveId(id);
   }, []);
 
