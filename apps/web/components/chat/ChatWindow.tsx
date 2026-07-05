@@ -234,13 +234,13 @@ export default function ChatWindow({
 
   return (
     <div className="flex flex-col h-full">
-      <div className={`flex-1 overflow-y-auto px-8 py-6 ${messages.length === 0 ? 'flex flex-col justify-center' : 'space-y-4'}`}>
-        {messages.length === 0 && (
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {messages.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 24 }}
-            className="flex flex-col items-center justify-center gap-5 py-8"
+            className="flex-1 flex flex-col items-center justify-center gap-5 px-8 py-8"
           >
             {/* Avatar */}
             <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
@@ -306,7 +306,8 @@ export default function ChatWindow({
               </motion.div>
             )}
           </motion.div>
-        )}
+        ) : (
+          <div className="px-8 py-6 space-y-4">
         {messages.map((m, idx) => (
           <MessageBubble
             key={m.id}
@@ -341,6 +342,8 @@ export default function ChatWindow({
           </motion.div>
         )}
         <div ref={bottomRef} />
+          </div>
+        )}
       </div>
 
       {chatError && (
