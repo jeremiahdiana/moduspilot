@@ -5,7 +5,7 @@
 export type Plan = 'free' | 'modus' | 'pilot' | 'group';
 
 /** Any paid plan — exempt from free limits, eligible for paid features. */
-export function isPaidPlan(plan: string | null | undefined): boolean {
+export function isPaidPlan(plan: string | null | undefined): plan is 'modus' | 'pilot' | 'group' {
   return plan === 'modus' || plan === 'pilot' || plan === 'group';
 }
 

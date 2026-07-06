@@ -8,11 +8,12 @@ import { useConversations } from '@/hooks/useConversations';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import PaywallModal from '@/components/chat/PaywallModal';
+import { isPaidPlan } from '@/lib/plan';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Message } from 'ai';
 
-type Plan = 'free' | 'modus' | 'pilot';
+type Plan = 'free' | 'modus' | 'pilot' | 'group';
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -71,7 +72,8 @@ export default function ChatPage() {
     getDoc(doc(db, 'users', uid)).then(snap => {
       const data = snap.data() ?? {};
       const userPlan = data.plan as Plan | undefined;
-      setPlan(userPlan === 'modus' || userPlan === 'pilot' ? userPlan : 'free');
+      // isPaidPlan covers modus/pilot/group; anything else (incl. undefined) → free.
+      setPlan(isPaidPlan(userPlan) ? userPlan : 'free');
       // Grandfathered = account predates the paywall launch (permanent free access).
       setGrandfathered(data.grandfathered === true);
     }).catch(() => {
@@ -81,7 +83,9 @@ export default function ChatPage() {
 
   // Trialing subscriptions set plan='modus' via the Stripe webhook, so paid
   // covers the 3-day trial too. Grandfathered accounts keep permanent access.
-  const isPaid = plan === 'modus' || plan === 'pilot';
+  // Use the shared plan helper so this stays in sync with the server gate
+  // (isPaidPlan covers modus/pilot/group — don't inline the list here).
+  const isPaid = isPaidPlan(plan);
   const hasAccess = isPaid || grandfathered;
   // No subscription and not grandfathered → must start a trial before chatting.
   const needsSubscription = !hasAccess && !isGuest;
