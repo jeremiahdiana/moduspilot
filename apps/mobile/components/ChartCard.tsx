@@ -4,8 +4,9 @@ import Svg, { Rect, Path, Circle, Line, G, Text as SvgText, Defs, LinearGradient
 import { useThemeColors } from '@/lib/theme';
 
 // Renders MODUS charts on mobile (parity with the web ChartCard). MODUS emits
-// ```chart { json }``` and this draws a native SVG chart. Robust: bad JSON or
-// empty data shows a small notice instead of crashing.
+// ```chart { json }``` and this draws a native SVG chart. Interactive: tap a
+// bar / point / slice to see its value. Robust: bad JSON or empty data shows a
+// small notice instead of crashing.
 
 type ChartSpec = {
   type?: 'bar' | 'line' | 'area' | 'pie';
@@ -20,6 +21,7 @@ const H = 220;
 export function ChartCard({ raw }: { raw: string }) {
   const c = useThemeColors();
   const [w, setW] = useState(0);
+  const [active, setActive] = useState<{ si: number; idx: number } | null>(null);
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
 
   const spec = useMemo<ChartSpec | null>(() => {
@@ -59,6 +61,30 @@ export function ChartCard({ raw }: { raw: string }) {
   const gridColor = c.border;
   const labelColor = c.muted;
 
+  // Tooltip for the tapped element (SVG overlay). Position depends on chart type.
+  function tooltip() {
+    if (!active) return null;
+    const row = data[active.idx];
+    if (!row) return null;
+    const val = num(row, keys[active.si] ?? keys[0]);
+    const text = `${String(row[labelKey])}: ${val}${unit}`;
+    const tw = Math.min(w - 8, text.length * 6.2 + 16);
+    let tx: number, ty: number;
+    if (type === 'pie') { tx = w / 2 - tw / 2; ty = 6; }
+    else {
+      const cx = xCenter(active.idx);
+      tx = Math.max(4, Math.min(w - tw - 4, cx - tw / 2));
+      const topY = type === 'bar' ? baseY - (val / maxV) * innerH : yFor(val);
+      ty = Math.max(2, topY - 26);
+    }
+    return (
+      <G>
+        <Rect x={tx} y={ty} width={tw} height={20} rx={6} fill={c.text} opacity={0.92} />
+        <SvgText x={tx + tw / 2} y={ty + 13.5} fontSize={11} fontWeight="600" fill={c.surface} textAnchor="middle">{text}</SvgText>
+      </G>
+    );
+  }
+
   function renderBody() {
     if (type === 'pie') {
       const cx = w / 2, cy = H / 2, R = Math.min(w, H) / 2 - 16, r0 = R * 0.5;
@@ -71,7 +97,8 @@ export function ChartCard({ raw }: { raw: string }) {
         const p = (ang: number, rad: number) => `${cx + rad * Math.cos(ang)} ${cy + rad * Math.sin(ang)}`;
         const d = `M ${p(a0, r0)} L ${p(a0, R)} A ${R} ${R} 0 ${large} 1 ${p(a1, R)} L ${p(a1, r0)} A ${r0} ${r0} 0 ${large} 0 ${p(a0, r0)} Z`;
         a0 = a1;
-        return <Path key={idx} d={d} fill={PALETTE[idx % PALETTE.length]} />;
+        const on = active?.idx === idx;
+        return <Path key={idx} d={d} fill={PALETTE[idx % PALETTE.length]} opacity={active && !on ? 0.5 : 1} onPress={() => setActive({ si: 0, idx })} />;
       });
     }
 
@@ -86,9 +113,16 @@ export function ChartCard({ raw }: { raw: string }) {
               <Path d={`${line} L ${xCenter(data.length - 1)},${baseY} L ${xCenter(0)},${baseY} Z`} fill={`url(#grad${si})`} />
             )}
             <Path d={line} stroke={color} strokeWidth={2.5} fill="none" />
-            {data.map((row, idx) => (
-              <Circle key={idx} cx={xCenter(idx)} cy={yFor(num(row, k))} r={3} fill={color} />
-            ))}
+            {data.map((row, idx) => {
+              const on = active?.si === si && active?.idx === idx;
+              return (
+                <G key={idx}>
+                  <Circle cx={xCenter(idx)} cy={yFor(num(row, k))} r={on ? 5 : 3} fill={color} />
+                  {/* larger transparent hit target for easy tapping */}
+                  <Circle cx={xCenter(idx)} cy={yFor(num(row, k))} r={14} fill="transparent" onPress={() => setActive({ si, idx })} />
+                </G>
+              );
+            })}
           </G>
         );
       });
@@ -104,7 +138,14 @@ export function ChartCard({ raw }: { raw: string }) {
         const v = num(row, k);
         const h = (v / maxV) * innerH;
         const x = padL + idx * groupW + barPad + si * barW;
-        return <Rect key={`${idx}-${k}`} x={x} y={baseY - h} width={Math.max(1, barW - 2)} height={Math.max(0, h)} rx={3} fill={PALETTE[si % PALETTE.length]} />;
+        const on = active?.si === si && active?.idx === idx;
+        return (
+          <Rect
+            key={`${idx}-${k}`} x={x} y={baseY - h} width={Math.max(1, barW - 2)} height={Math.max(0, h)} rx={3}
+            fill={PALETTE[si % PALETTE.length]} opacity={active && !on ? 0.55 : 1}
+            onPress={() => setActive({ si, idx })}
+          />
+        );
       }),
     );
   }
@@ -145,6 +186,8 @@ export function ChartCard({ raw }: { raw: string }) {
                 {String(row[labelKey])}
               </SvgText>
             ))}
+
+            {tooltip()}
           </Svg>
         )}
       </View>
@@ -160,6 +203,8 @@ export function ChartCard({ raw }: { raw: string }) {
           ))}
         </View>
       )}
+
+      <Text className="text-muted/60 text-[10px] mt-1.5">Tap a {type === 'pie' ? 'slice' : type === 'bar' ? 'bar' : 'point'} to see its value</Text>
     </View>
   );
 }

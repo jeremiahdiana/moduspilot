@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -30,6 +30,20 @@ export default function ChartCard({ raw }: { raw: string }) {
       return null;
     }
   }, [raw]);
+
+  // Click a legend entry to show/hide that series.
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const toggle = (k: string) => setHidden(prev => {
+    const next = new Set(prev);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
+  const legend = (
+    <Legend
+      onClick={(e) => toggle(String((e as { dataKey?: string }).dataKey ?? ''))}
+      wrapperStyle={{ fontSize: 12, cursor: 'pointer' }}
+    />
+  );
 
   if (!spec) {
     return (
@@ -80,9 +94,9 @@ export default function ChartCard({ raw }: { raw: string }) {
               <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} />
               <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
-              {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+              {keys.length > 1 && legend}
               {keys.map((k, i) => (
-                <Line key={k} type="monotone" dataKey={k} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line key={k} type="monotone" dataKey={k} hide={hidden.has(k)} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               ))}
             </LineChart>
           ) : type === 'area' ? (
@@ -99,9 +113,9 @@ export default function ChartCard({ raw }: { raw: string }) {
               <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} />
               <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
-              {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+              {keys.length > 1 && legend}
               {keys.map((k, i) => (
-                <Area key={k} type="monotone" dataKey={k} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.5} fill={`url(#grad-${i})`} />
+                <Area key={k} type="monotone" dataKey={k} hide={hidden.has(k)} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.5} fill={`url(#grad-${i})`} />
               ))}
             </AreaChart>
           ) : (
@@ -110,9 +124,9 @@ export default function ChartCard({ raw }: { raw: string }) {
               <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} />
               <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgb(var(--color-brand) / 0.06)' }} formatter={(v: number) => fmt(v)} />
-              {keys.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
+              {keys.length > 1 && legend}
               {keys.map((k, i) => (
-                <Bar key={k} dataKey={k} fill={PALETTE[i % PALETTE.length]} radius={[4, 4, 0, 0]} maxBarSize={48} />
+                <Bar key={k} dataKey={k} hide={hidden.has(k)} fill={PALETTE[i % PALETTE.length]} radius={[4, 4, 0, 0]} maxBarSize={48} />
               ))}
             </BarChart>
           )}
