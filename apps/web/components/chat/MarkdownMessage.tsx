@@ -1,0 +1,79 @@
+'use client';
+
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+
+// Renders MODUS's chat text as real markdown: GFM tables, task-list
+// checkboxes, fenced code with syntax highlighting (rehype-highlight adds
+// hljs-* classes; colors come from the .chat-md pre code theme in globals.css).
+// Every element is themed to match the chat surface. Safe on streaming text —
+// react-markdown renders whatever parses so far.
+export default function MarkdownMessage({ children }: { children: string }) {
+  return (
+    <div className="chat-md text-sm leading-relaxed text-text">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[[rehypeHighlight, { detect: true, ignoreMissing: true }]]}
+        components={{
+          p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+          h1: ({ children }) => <h1 className="text-base font-bold text-text mt-4 mb-2 first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-[15px] font-bold text-text mt-4 mb-2 first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-sm font-semibold text-text mt-3 mb-1.5 first:mt-0">{children}</h3>,
+          ul: ({ className, children }) =>
+            (className ?? '').includes('contains-task-list')
+              ? <ul className="my-2 space-y-1.5 list-none pl-0">{children}</ul>
+              : <ul className="my-2 space-y-1 list-disc pl-5 marker:text-brand/60">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 space-y-1 list-decimal pl-5 marker:text-muted">{children}</ol>,
+          li: ({ className, children }) =>
+            (className ?? '').includes('task-list-item')
+              ? <li className="flex items-start gap-2 leading-relaxed">{children}</li>
+              : <li className="leading-relaxed">{children}</li>,
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="text-brand underline underline-offset-2 hover:text-brand-light">{children}</a>
+          ),
+          strong: ({ children }) => <strong className="font-semibold text-text">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          blockquote: ({ children }) => (
+            <blockquote className="my-2 border-l-2 border-brand/40 pl-3 text-muted italic">{children}</blockquote>
+          ),
+          hr: () => <hr className="my-3 border-border" />,
+          // Inline code vs. fenced block. rehype-highlight only touches block
+          // code (adds a `language-*`/`hljs` class); inline code has no class.
+          code: ({ className, children, ...props }) => {
+            const isBlock = /\bhljs\b|\blanguage-/.test(className ?? '');
+            if (isBlock) {
+              return <code className={className} {...props}>{children}</code>;
+            }
+            return (
+              <code className="rounded bg-brand/10 border border-brand/15 px-1 py-0.5 text-[0.85em] font-mono text-brand-light">{children}</code>
+            );
+          },
+          pre: ({ children }) => (
+            <pre className="my-2 overflow-x-auto rounded-lg border border-border bg-[#0d0d14] p-3 text-[12.5px] leading-relaxed">{children}</pre>
+          ),
+          table: ({ children }) => (
+            <div className="my-2 overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-left text-[13px] border-collapse">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-brand/5">{children}</thead>,
+          th: ({ children }) => <th className="px-3 py-2 font-semibold text-muted border-b border-border whitespace-nowrap">{children}</th>,
+          td: ({ children }) => <td className="px-3 py-2 text-text/90 border-b border-border/40 align-top">{children}</td>,
+          input: ({ checked, type }) =>
+            type === 'checkbox' ? (
+              <span className={`inline-flex w-4 h-4 translate-y-0.5 items-center justify-center rounded border shrink-0 ${checked ? 'bg-brand/15 border-brand/50' : 'border-border bg-panel'}`}>
+                {checked && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-2.5 h-2.5 text-brand">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+                  </svg>
+                )}
+              </span>
+            ) : null,
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  );
+}

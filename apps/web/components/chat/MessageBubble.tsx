@@ -5,22 +5,22 @@ import ApprovalCard from './ApprovalCard';
 import DraftOptionsCard from './DraftOptionsCard';
 import ImageCard from './ImageCard';
 import DocumentCard from './DocumentCard';
+import ChartCard from './ChartCard';
+import MarkdownMessage from './MarkdownMessage';
 
+type BlockType = 'approval' | 'draft_options' | 'image' | 'document' | 'chart';
 type Part =
   | { type: 'text'; value: string }
-  | { type: 'approval'; value: string }
-  | { type: 'draft_options'; value: string }
-  | { type: 'image'; value: string }
-  | { type: 'document'; value: string };
+  | { type: BlockType; value: string };
 
 function parseBlocks(content: string): Part[] {
   const parts: Part[] = [];
-  const regex = /```(approval|draft_options|image|document)\n([\s\S]*?)```/g;
+  const regex = /```(approval|draft_options|image|document|chart)\n([\s\S]*?)```/g;
   let last = 0;
   let match;
   while ((match = regex.exec(content)) !== null) {
     if (match.index > last) parts.push({ type: 'text', value: content.slice(last, match.index) });
-    parts.push({ type: match[1] as 'approval' | 'draft_options' | 'image' | 'document', value: match[2].trim() });
+    parts.push({ type: match[1] as BlockType, value: match[2].trim() });
     last = match.index + match[0].length;
   }
   if (last < content.length) parts.push({ type: 'text', value: content.slice(last) });
@@ -90,14 +90,15 @@ export default function MessageBubble({
 
   const rawText = extractTextContent(message.content);
 
-  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```image') || rawText.includes('```document');
+  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```image') || rawText.includes('```document') || rawText.includes('```chart');
   const specialLabel = rawText.includes('```image') ? 'Creating image…'
     : rawText.includes('```document') ? 'Writing document…'
+    : rawText.includes('```chart') ? 'Building chart…'
     : 'Preparing action…';
   const streamingText = hasSpecialBlock
     ? rawText
-        .replace(/```(approval|draft_options|image|document)[\s\S]*?```/g, '')
-        .replace(/```(approval|draft_options|image|document)[\s\S]*$/g, '')
+        .replace(/```(approval|draft_options|image|document|chart)[\s\S]*?```/g, '')
+        .replace(/```(approval|draft_options|image|document|chart)[\s\S]*$/g, '')
         .trimEnd()
     : rawText;
 
@@ -123,8 +124,10 @@ export default function MessageBubble({
             <ImageCard key={i} raw={part.value} />
           ) : part.type === 'document' ? (
             <DocumentCard key={i} raw={part.value} />
+          ) : part.type === 'chart' ? (
+            <ChartCard key={i} raw={part.value} />
           ) : part.value.trim() ? (
-            <p key={i} className="text-sm leading-relaxed text-text whitespace-pre-wrap">{part.value}</p>
+            <MarkdownMessage key={i}>{part.value}</MarkdownMessage>
           ) : null
         )}
         {isStreaming && hasSpecialBlock && (

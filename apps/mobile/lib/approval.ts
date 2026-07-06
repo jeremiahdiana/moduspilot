@@ -51,10 +51,11 @@ export type ChatPart =
   | { type: 'approval'; value: string }
   | { type: 'draft_options'; value: string }
   | { type: 'image'; value: string }
-  | { type: 'document'; value: string };
+  | { type: 'document'; value: string }
+  | { type: 'chart'; value: string };
 
-// Matches every interactive block type the assistant emits (mirrors web).
-const BLOCK_RE = /```(approval|draft_options|image|document)\n([\s\S]*?)```/g;
+// Matches every special block type the assistant emits (mirrors web).
+const BLOCK_RE = /```(approval|draft_options|image|document|chart)\n([\s\S]*?)```/g;
 
 /** Split assistant content into text + interactive-card parts (post-stream). */
 export function parseApprovalParts(content: string): ChatPart[] {
@@ -74,14 +75,15 @@ export function parseApprovalParts(content: string): ChatPart[] {
 /** Remove interactive blocks (complete or still-streaming) from text for display. */
 export function stripApprovalBlocks(content: string): string {
   return content
-    .replace(/```(approval|draft_options|image|document)[\s\S]*?```/g, '')
-    .replace(/```(approval|draft_options|image|document)[\s\S]*$/g, '')
+    .replace(/```(approval|draft_options|image|document|chart)[\s\S]*?```/g, '')
+    .replace(/```(approval|draft_options|image|document|chart)[\s\S]*$/g, '')
     .trimEnd();
 }
 
 export function hasApprovalBlock(content: string): boolean {
   return content.includes('```approval') || content.includes('```draft_options')
-    || content.includes('```image') || content.includes('```document');
+    || content.includes('```image') || content.includes('```document')
+    || content.includes('```chart');
 }
 
 /**

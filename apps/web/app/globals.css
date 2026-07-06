@@ -354,3 +354,22 @@ body::after {
 .modus-doc code { background: rgb(var(--color-muted) / 0.12); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
 .modus-doc strong { font-weight: 700; }
 .modus-doc > *:first-child { margin-top: 0; }
+
+/* Syntax highlighting for fenced code in chat markdown (rehype-highlight adds
+   .hljs + token classes). Always-dark code surface; palette matches the brand. */
+.chat-md pre code.hljs { display: block; color: #e4e4ef; background: transparent; }
+.chat-md code.hljs { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.chat-md .hljs-comment, .chat-md .hljs-quote { color: #6b7280; font-style: italic; }
+.chat-md .hljs-keyword, .chat-md .hljs-selector-tag, .chat-md .hljs-literal,
+.chat-md .hljs-section, .chat-md .hljs-link { color: #c084fc; }
+.chat-md .hljs-built_in, .chat-md .hljs-type, .chat-md .hljs-title.class_,
+.chat-md .hljs-class .hljs-title { color: #7dd3fc; }
+.chat-md .hljs-title, .chat-md .hljs-title.function_, .chat-md .hljs-name { color: #7dd3fc; }
+.chat-md .hljs-string, .chat-md .hljs-attr, .chat-md .hljs-template-string,
+.chat-md .hljs-addition, .chat-md .hljs-regexp { color: #86efac; }
+.chat-md .hljs-number, .chat-md .hljs-symbol, .chat-md .hljs-bullet,
+.chat-md .hljs-meta { color: #fdba74; }
+.chat-md .hljs-variable, .chat-md .hljs-params, .chat-md .hljs-property { color: #a78bfa; }
+.chat-md .hljs-deletion { color: #fca5a5; }
+.chat-md .hljs-emphasis { font-style: italic; }
+.chat-md .hljs-strong { font-weight: 700; }
