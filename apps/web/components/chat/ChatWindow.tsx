@@ -158,7 +158,8 @@ export default function ChatWindow({
     },
   });
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const didInitialScrollRef = useRef(false);
 
   // Pre-fill input if navigated here with ?q= (Cmd+K)
   useEffect(() => {
@@ -170,9 +171,16 @@ export default function ChatWindow({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Scroll to bottom on new messages
+  // Keep the message list pinned to the bottom. Scroll ONLY this container via
+  // element.scrollTo — NOT scrollIntoView, which scrolls every scrollable
+  // ancestor (including the document) and, during the loading→loaded hand-off,
+  // scrolled the whole window up and cropped the header + sidebar. Instant on
+  // first load (no visible jump), smooth for messages that arrive after.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = scrollContainerRef.current;
+    if (!el || messages.length === 0) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: didInitialScrollRef.current ? 'smooth' : 'auto' });
+    didInitialScrollRef.current = true;
   }, [messages]);
 
   // Reset messages when conversation changes
@@ -234,7 +242,7 @@ export default function ChatWindow({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
         {messages.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -341,7 +349,6 @@ export default function ChatWindow({
             </div>
           </motion.div>
         )}
-        <div ref={bottomRef} />
           </div>
         )}
       </div>
