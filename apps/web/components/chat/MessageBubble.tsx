@@ -52,11 +52,13 @@ function ModusAvatar() {
 export default function MessageBubble({
   message,
   isStreaming = false,
+  showAvatar = true,
   onAppend,
   onApproved,
 }: {
   message: Message;
   isStreaming?: boolean;
+  showAvatar?: boolean;
   onAppend?: (text: string) => void;
   onApproved?: (text: string) => void;
 }) {
@@ -113,8 +115,8 @@ export default function MessageBubble({
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="flex justify-start gap-2.5"
     >
-      <ModusAvatar />
-      <div className="max-w-[72%] space-y-3">
+      {showAvatar ? <ModusAvatar /> : <div className="w-7 shrink-0" aria-hidden />}
+      <div className="max-w-[85%] space-y-3">
         {parts.map((part, i) =>
           part.type === 'approval' ? (
             <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />

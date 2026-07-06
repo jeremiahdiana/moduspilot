@@ -8,10 +8,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { motion } from 'framer-motion';
 
 interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
+}
+
+function timeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
 function getSmartPrompts(svc: ConnectedServices): string[] {
@@ -71,6 +79,8 @@ export default function ChatWindow({
   briefingTimezone,
   plan,
 }: Props) {
+  const { user } = useAuth();
+  const firstName = user?.displayName?.trim().split(/\s+/)[0] ?? '';
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
   // In-chat model selection ('auto' | model id). Persisted across sessions; the
@@ -263,9 +273,11 @@ export default function ChatWindow({
               transition={{ delay: 0.18, type: 'spring', stiffness: 220, damping: 24 }}
               className="text-center"
             >
-              <p className="text-text text-base font-semibold mb-1">What&apos;s on your plate?</p>
+              <p className="text-text text-base font-semibold mb-1">
+                {isGuest ? "What's on your plate?" : `${timeGreeting()}${firstName ? `, ${firstName}` : ''}.`}
+              </p>
               <p className="text-muted text-sm">
-                {isGuest ? 'Sign in to save your conversations.' : 'Your chief of staff. Ready when you are.'}
+                {isGuest ? 'Sign in to save your conversations.' : "What's on your plate?"}
               </p>
             </motion.div>
 
@@ -315,11 +327,12 @@ export default function ChatWindow({
             )}
           </motion.div>
         ) : (
-          <div className="px-8 py-6 space-y-4">
+          <div className="px-8 py-6 space-y-4 max-w-3xl mx-auto w-full">
         {messages.map((m, idx) => (
           <MessageBubble
             key={m.id}
             message={m}
+            showAvatar={messages[idx - 1]?.role !== m.role}
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
             onAppend={(text) => {
               setChatError(null);

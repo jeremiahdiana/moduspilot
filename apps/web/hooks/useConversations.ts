@@ -18,6 +18,8 @@ export interface Conversation {
   shareId?: string;
   projectId?: string;
   goalId?: string;
+  /** MODUS-generated (daily briefing, proactive nudge, check-in) vs. a real user chat. */
+  system?: boolean;
 }
 
 export function useConversations(uid: string | null) {
@@ -45,6 +47,7 @@ export function useConversations(uid: string | null) {
             shareId: d.data().shareId as string | undefined,
             projectId: d.data().projectId as string | undefined,
             goalId: d.data().goalId as string | undefined,
+            system: !!(d.data().system || d.data().briefing || d.data().checkin),
           }))
           .filter(c => !c.deleted && !c.projectId && !c.goalId)
       );

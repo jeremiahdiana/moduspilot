@@ -87,7 +87,8 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
   }
 
   return (
-    <form onSubmit={onSubmit} className="px-8 py-4 border-t border-border">
+    <form onSubmit={onSubmit} className="border-t border-border">
+      <div className="max-w-3xl mx-auto px-8 py-4">
       {attachedImage && (
         <div className="mb-2 relative inline-block">
           <img src={`data:image/jpeg;base64,${attachedImage}`} alt="attachment" className="h-16 w-16 object-cover rounded-lg border border-border" />
@@ -148,6 +149,7 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
           <ModelSwitcher value={modelChoice ?? 'auto'} onChange={onModelChange} plan={plan} />
         ) : <span />}
         <p className="text-muted text-xs">Enter to send · Shift+Enter for new line</p>
+      </div>
       </div>
     </form>
   );
