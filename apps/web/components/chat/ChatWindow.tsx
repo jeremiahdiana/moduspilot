@@ -327,7 +327,7 @@ export default function ChatWindow({
             )}
           </motion.div>
         ) : (
-          <div className="px-8 py-6 space-y-4 max-w-3xl mx-auto w-full">
+          <div className="px-8 py-6 space-y-4 max-w-4xl mx-auto w-full">
         {messages.map((m, idx) => (
           <MessageBubble
             key={m.id}
