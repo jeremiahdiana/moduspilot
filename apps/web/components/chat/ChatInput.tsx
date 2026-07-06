@@ -88,7 +88,7 @@ export default function ChatInput({ input, onChange, onSubmit, onVoiceTranscript
 
   return (
     <form onSubmit={onSubmit} className="border-t border-border">
-      <div className="max-w-4xl mx-auto px-8 py-4">
+      <div className="max-w-6xl mx-auto px-8 py-4">
       {attachedImage && (
         <div className="mb-2 relative inline-block">
           <img src={`data:image/jpeg;base64,${attachedImage}`} alt="attachment" className="h-16 w-16 object-cover rounded-lg border border-border" />
