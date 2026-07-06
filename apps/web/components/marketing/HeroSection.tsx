@@ -182,9 +182,17 @@ export default function HeroSection() {
         <motion.p
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.28, ease: 'easeOut' }}
-          className="text-sm sm:text-base text-muted/90 max-w-xl mx-auto mb-10 leading-relaxed"
+          className="text-sm sm:text-base text-muted/90 max-w-xl mx-auto mb-2.5 leading-relaxed"
         >
           <span className="text-text font-semibold">Every model. Every app.</span> Routed to the best one — working while you don&apos;t.
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.31, ease: 'easeOut' }}
+          className="text-sm sm:text-base text-muted max-w-xl mx-auto mb-10"
+        >
+          Write with <span className="text-text font-semibold">Gemini</span>. Research with <span className="text-text font-semibold">Claude</span>. Ask <span className="text-text font-semibold">ChatGPT</span>.
         </motion.p>
 
         <motion.div

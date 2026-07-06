@@ -1,35 +1,208 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { MODEL_LOGOS, ClaudeLogo, GeminiLogo, OpenAILogo, GrokLogo } from './ModelLogos';
 
-// Auto-cycling demo — realistic prompts, real routed models, believable answers.
-// Matches the motto (write→Gemini, research→Claude, ask→GPT, code→Grok).
-const DEMOS = [
+// ─── Rich reply renderers ───────────────────────────────────────────────────
+// Each demo answers with real, formatted output (not a flat sentence) so the
+// section actually shows what MODUS can produce: drafts, tables, charts,
+// generated images, code, checklists. All self-contained — no APIs, no assets.
+
+function EmailReply({ subject, body }: { subject: string; body: string }) {
+  return (
+    <div className="w-full">
+      <div className="border-b border-border/60 pb-2 mb-2.5">
+        <p className="text-[11px] text-muted">To: Sarah Chen · <span className="text-brand">Draft ready</span></p>
+        <p className="text-sm font-semibold text-text mt-0.5">{subject}</p>
+      </div>
+      <p className="text-sm text-text/90 leading-relaxed whitespace-pre-line">{body}</p>
+    </div>
+  );
+}
+
+function TableReply() {
+  const cols = ['State', 'Credit', 'Notes'];
+  const rows = [
+    ['CA', '$7,500 + $2,000', 'Income-capped'],
+    ['TX', '$7,500', 'No annual EV fee'],
+    ['NY', '$7,500 + $2,000', 'Stackable, federal'],
+  ];
+  return (
+    <div className="w-full">
+      <p className="text-sm text-text/90 mb-2.5">Here&apos;s the 2026 breakdown — federal credit plus each state&apos;s rebate:</p>
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="bg-brand/5">
+              {cols.map(c => (
+                <th key={c} className="px-3 py-2 font-semibold text-muted whitespace-nowrap">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, ri) => (
+              <tr key={ri} className={ri < rows.length - 1 ? 'border-b border-border/50' : ''}>
+                {r.map((cell, ci) => (
+                  <td key={ci} className={`px-3 py-2 whitespace-nowrap ${ci === 0 ? 'font-semibold text-text' : 'text-text/80'}`}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ChartReply() {
+  const bars = [
+    { m: 'Feb', v: 12 }, { m: 'Mar', v: 18 }, { m: 'Apr', v: 24 },
+    { m: 'May', v: 31 }, { m: 'Jun', v: 38 }, { m: 'Jul', v: 47 },
+  ];
+  const max = 47;
+  return (
+    <div className="w-full">
+      <p className="text-xs font-semibold text-text mb-0.5">MRR — last 6 months</p>
+      <p className="text-[11px] text-muted mb-3">+292% · $12k → $47k</p>
+      <div className="flex items-end gap-2 h-28">
+        {bars.map((b, idx) => (
+          <div key={b.m} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+            <span className="text-[9px] font-medium text-muted">${b.v}k</span>
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: `${(b.v / max) * 100}%` }}
+              transition={{ duration: 0.5, delay: 0.06 * idx, ease: 'easeOut' }}
+              className="w-full rounded-t-md bg-gradient-to-t from-brand/50 to-brand"
+            />
+            <span className="text-[9px] text-muted">{b.m}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ImageReply() {
+  return (
+    <div className="w-full">
+      <p className="text-sm text-text/90 mb-2.5">Done — here&apos;s a launch hero, dark and violet:</p>
+      <div className="relative aspect-[16/9] w-full max-w-sm rounded-xl overflow-hidden border border-border bg-[#0a0a12]">
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 28% 18%, rgba(124,58,237,0.6), transparent 60%), radial-gradient(100% 100% at 82% 92%, rgba(192,132,252,0.4), transparent 55%)' }} />
+        <div className="absolute left-0 right-0 bottom-0 h-2/5" style={{ background: 'linear-gradient(to top, rgba(124,58,237,0.45), transparent)' }} />
+        <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.4) 1px,transparent 1px)', backgroundSize: '26px 26px' }} />
+        <div className="absolute w-20 h-20 rounded-full blur-2xl" style={{ top: '22%', left: '52%', background: 'rgba(216,180,254,0.75)' }} />
+        <div className="absolute w-10 h-10 rounded-full blur-md" style={{ top: '30%', left: '58%', background: 'rgba(245,240,255,0.9)' }} />
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <span className="text-[11px] text-muted">Generated · 1024×1024</span>
+        <span className="text-muted/50">·</span>
+        <span className="inline-flex items-center gap-1 text-[11px] text-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+          Download
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CodeReply() {
+  return (
+    <div className="w-full">
+      <p className="text-sm text-text/90 mb-2.5">
+        That&apos;s <span className="font-semibold text-text">StrictMode</span> double-invoking effects in dev to surface bugs — it won&apos;t happen in production. Add a cleanup to be safe:
+      </p>
+      <pre className="rounded-lg border border-border bg-[#0d0d14] p-3 overflow-x-auto">
+        <code className="text-[11.5px] leading-relaxed font-mono">
+          <span className="text-[#6b7280]">{'// runs twice in dev only — cleanup handles it'}</span>{'\n'}
+          <span className="text-[#c084fc]">useEffect</span>{'(() => {\n'}
+          {'  '}<span className="text-[#a78bfa]">const</span>{' ctrl = '}<span className="text-[#a78bfa]">new</span>{' '}<span className="text-[#7dd3fc]">AbortController</span>{'();\n'}
+          {'  '}<span className="text-[#7dd3fc]">fetchData</span>{'({ signal: ctrl.signal });\n'}
+          {'  '}<span className="text-[#a78bfa]">return</span>{' () => ctrl.'}<span className="text-[#7dd3fc]">abort</span>{'();\n'}
+          {'}, []);'}
+        </code>
+      </pre>
+    </div>
+  );
+}
+
+function ChecklistReply() {
+  const items = ['Stripe Atlas — file the C-corp (~$500)', 'EIN + bylaws + stock issuance included', '83(b) election prep in the same flow', 'Bank + cap table ready in 2–3 days'];
+  return (
+    <div className="w-full">
+      <p className="text-sm text-text/90 mb-2.5">Fastest path — <span className="font-semibold text-text">Stripe Atlas</span>, done in 2–3 days:</p>
+      <div className="space-y-2">
+        {items.map((it, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.08 * idx }}
+            className="flex items-center gap-2.5"
+          >
+            <span className="w-4 h-4 rounded-full bg-brand/15 border border-brand/40 flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-2.5 h-2.5 text-brand">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
+              </svg>
+            </span>
+            <span className="text-sm text-text/90">{it}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Demo data ───────────────────────────────────────────────────────────────
+type Demo = {
+  prompt: string;
+  Logo: (p: { className?: string }) => ReactNode;
+  model: string;
+  reason: string;
+  render: () => ReactNode;
+};
+
+const DEMOS: Demo[] = [
   {
     prompt: 'Write a cold email to a VC who passed on us 6 months ago.',
-    Logo: GeminiLogo, model: 'Gemini', reason: 'natural, human writing',
-    reply: 'Subject: We’re a different company than 6 months ago\n\nHi Sarah — last we spoke we were pre-revenue. Since then: $40k MRR, a team of 8, and two of your portfolio founders now use us daily. Worth a fresh look?',
+    Logo: GeminiLogo, model: 'Gemini', reason: 'natural writing',
+    render: () => (
+      <EmailReply
+        subject="We're a different company than 6 months ago"
+        body={'Hi Sarah — last we spoke we were pre-revenue.\n\nSince then: $47k MRR, a team of 8, and two of your portfolio founders now use us daily. Worth a fresh look?'}
+      />
+    ),
   },
   {
     prompt: 'Compare the 2026 EV tax credits in CA, TX, and NY.',
     Logo: ClaudeLogo, model: 'Claude', reason: 'analysis & research',
-    reply: 'CA — up to $7,500 federal + a $2,000 state rebate (income-capped).\nTX — federal only, but no annual EV fee.\nNY — $2,000 Drive Clean rebate, stackable with federal. Full table with the income limits below.',
+    render: () => <TableReply />,
   },
   {
-    prompt: 'What’s the fastest way to incorporate a Delaware C-corp?',
-    Logo: OpenAILogo, model: 'GPT-4o', reason: 'general knowledge',
-    reply: 'Stripe Atlas or Clerky — about $500 and ready in 2–3 days. You get your EIN, bylaws, stock issuance, and 83(b) filing prep in one flow. Want the step-by-step checklist?',
+    prompt: 'Generate a launch hero image — dark, violet, futuristic.',
+    Logo: OpenAILogo, model: 'GPT-4o', reason: 'image generation',
+    render: () => <ImageReply />,
+  },
+  {
+    prompt: 'Chart our MRR for the last 6 months.',
+    Logo: ClaudeLogo, model: 'Claude', reason: 'data & analysis',
+    render: () => <ChartReply />,
   },
   {
     prompt: 'Why does my useEffect run twice in React 18?',
     Logo: GrokLogo, model: 'Grok', reason: 'code & debugging',
-    reply: 'That’s StrictMode intentionally double-invoking effects in dev to surface bugs — it won’t happen in production. If it’s causing real side effects, add a cleanup function or an AbortController.',
+    render: () => <CodeReply />,
+  },
+  {
+    prompt: "What's the fastest way to incorporate a Delaware C-corp?",
+    Logo: OpenAILogo, model: 'GPT-4o', reason: 'general knowledge',
+    render: () => <ChecklistReply />,
   },
 ];
 
-function Demo() {
+function DemoWindow() {
   const [i, setI] = useState(0);
   const [stage, setStage] = useState(0); // 0 prompt, 1 routing, 2 reply
 
@@ -37,7 +210,7 @@ function Demo() {
     setStage(0);
     const t1 = setTimeout(() => setStage(1), 900);
     const t2 = setTimeout(() => setStage(2), 2100);
-    const t3 = setTimeout(() => setI(x => (x + 1) % DEMOS.length), 6000);
+    const t3 = setTimeout(() => setI(x => (x + 1) % DEMOS.length), 7200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [i]);
 
@@ -61,7 +234,7 @@ function Demo() {
         <div className="w-[56px]" />
       </div>
 
-      <div className="flex min-h-[420px]">
+      <div className="flex min-h-[480px]">
         {/* model rail (real switcher) */}
         <div className="w-56 shrink-0 border-r border-border bg-bg/30 p-3 hidden md:flex flex-col gap-1">
           <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-2 pb-1">Model</p>
@@ -100,7 +273,7 @@ function Demo() {
         </div>
 
         {/* conversation */}
-        <div className="flex-1 p-5 sm:p-6 flex flex-col justify-center gap-3.5 min-w-0">
+        <div className="flex-1 p-5 sm:p-6 flex flex-col justify-start gap-3.5 min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={i}
@@ -130,8 +303,8 @@ function Demo() {
               {/* reply */}
               {stage >= 2 ? (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="flex justify-start">
-                  <div className="bg-bg border border-border rounded-2xl rounded-bl-sm px-4 py-3 max-w-[92%]">
-                    <p className="text-sm text-text leading-relaxed whitespace-pre-line">{d.reply}</p>
+                  <div className="bg-bg border border-border rounded-2xl rounded-bl-sm px-4 py-3 w-full max-w-[95%]">
+                    {d.render()}
                   </div>
                 </motion.div>
               ) : stage >= 1 && (
@@ -201,7 +374,7 @@ export default function MultiModelSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="max-w-4xl mx-auto"
         >
-          <Demo />
+          <DemoWindow />
         </motion.div>
 
         <p className="text-center text-sm text-muted mt-6 max-w-2xl mx-auto">
