@@ -82,6 +82,8 @@ export default function ChatWindow({
   const { user } = useAuth();
   const firstName = user?.displayName?.trim().split(/\s+/)[0] ?? '';
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; text: string }[]>([]);
+  const [webSearchOn, setWebSearchOn] = useState(false);
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
   // In-chat model selection ('auto' | model id). Persisted across sessions; the
   // ref keeps the value stable for the useChat request body (avoids stale closures).
@@ -226,7 +228,7 @@ export default function ChatWindow({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!input.trim() && !attachedImage) return;
+    if (!input.trim() && !attachedImage && attachedFiles.length === 0) return;
     if (isAtLimit) { onShowPaywall?.(); return; }
 
     const content = attachedImage
@@ -240,13 +242,15 @@ export default function ChatWindow({
         ]
       : input.trim();
 
+    const filesToSend = attachedFiles;
     setAttachedImage(null);
+    setAttachedFiles([]);
     setInput('');
     setChatError(null);
     onUserMessage?.();
     await append(
       { role: 'user', content } as Parameters<typeof append>[0],
-      { body: { modelChoice: modelChoiceRef.current } },
+      { body: { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend } },
     );
   }
 
@@ -397,6 +401,12 @@ export default function ChatWindow({
           isLoading={isLoading}
           attachedImage={attachedImage?.base64 ?? null}
           onClearImage={() => setAttachedImage(null)}
+          attachedFiles={attachedFiles}
+          onFileAttach={(name, text) => setAttachedFiles(f => [...f, { name, text }])}
+          onRemoveFile={(i) => setAttachedFiles(f => f.filter((_, idx) => idx !== i))}
+          webSearchOn={webSearchOn}
+          onToggleWebSearch={() => setWebSearchOn(v => !v)}
+          connectedServices={connectedServices}
           textareaRef={inputAreaRef}
           plan={isGuest ? undefined : plan}
           modelChoice={modelChoice}

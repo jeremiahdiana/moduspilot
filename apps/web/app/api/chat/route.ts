@@ -95,6 +95,10 @@ export async function POST(req: Request) {
       // In-chat model switcher: 'auto' (MODUS picks per task), a specific model
       // id, or undefined/'default' (use the saved Brain setting).
       modelChoice?: string;
+      // Per-message "+" menu: force a web search for this message, and any files
+      // the user attached (PDF text extracted server-side, text files read client-side).
+      webSearch?: boolean;
+      attachments?: { name: string; text: string }[];
     };
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
@@ -176,7 +180,8 @@ export async function POST(req: Request) {
     // resolveChatModel still falls back to Llama if a model isn't unlocked.
     const modelChoice = body.modelChoice;
     let forcedModelId: string | undefined;
-    let forceWebSearch = false;
+    // The "+" menu web-search toggle forces it for this message; Auto-routing can also.
+    let forceWebSearch = body.webSearch === true;
     if (uid && queryText) {
       if (modelChoice === 'auto') {
         const routed = await routeTask(queryText, userData.plan);
@@ -232,7 +237,13 @@ export async function POST(req: Request) {
       ]);
     }
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock;
+    // Files the user attached via the composer "+" menu — treat as primary context.
+    const attachmentsBlock = (body.attachments && body.attachments.length)
+      ? '\n\nATTACHED FILES (the user attached these to their latest message — use them as primary context for their question; cite by file name):\n' +
+        body.attachments.map(a => `\n--- ${a.name} ---\n${(a.text ?? '').slice(0, 24000)}`).join('\n') + '\n'
+      : '';
+
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
