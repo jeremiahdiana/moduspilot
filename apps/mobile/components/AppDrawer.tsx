@@ -31,6 +31,7 @@ const PRIMARY: NavItem[] = [
 const WORKSPACE: NavItem[] = [
   { key: 'goals',     label: 'Goals',     seg: 'goals',     href: '/(app)/(tabs)/goals',     icon: 'flag' },
   { key: 'reminders', label: 'Reminders', seg: 'reminders', href: '/(app)/(tabs)/reminders', icon: 'checklist' },
+  { key: 'notes',     label: 'Notes',     seg: 'notes',     href: '/(app)/(tabs)/notes',     icon: 'sticky-note-2' },
   { key: 'group',     label: 'Group',     seg: 'group',     href: '/(app)/group',            icon: 'group' },
 ];
 const BOTTOM: NavItem[] = [

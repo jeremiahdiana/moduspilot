@@ -158,6 +158,7 @@ export default function SettingsScreen() {
               { key: 'projects', icon: 'folder', label: 'Projects' },
               { key: 'goals', icon: 'flag', label: 'Goals' },
               { key: 'reminders', icon: 'checklist', label: 'Reminders' },
+              { key: 'notes', icon: 'sticky-note-2', label: 'Notes' },
               { key: 'group', icon: 'group', label: 'Group' },
               { key: 'capabilities', icon: 'hub', label: 'Connections' },
             ] as { key: string; icon: IconName; label: string }[]).map((item, i) => (
