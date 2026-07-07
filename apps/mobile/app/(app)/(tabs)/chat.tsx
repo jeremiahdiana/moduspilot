@@ -332,7 +332,7 @@ export default function ChatScreen() {
     }
     try {
       const res = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'text/*'],
+        type: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/*'],
         copyToCacheDirectory: true,
       });
       if (res.canceled) return;
@@ -342,12 +342,13 @@ export default function ChatScreen() {
       setExtractingFile(asset.name);
       try {
         const isPdf = asset.mimeType === 'application/pdf' || /\.pdf$/i.test(asset.name);
+        const isDocx = asset.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || /\.docx$/i.test(asset.name);
         let text = '';
-        if (isPdf) {
+        if (isPdf || isDocx) {
           const headers = await getAuthHeader();
           const form = new FormData();
           // React Native FormData file shape
-          form.append('file', { uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'application/pdf' } as unknown as Blob);
+          form.append('file', { uri: asset.uri, name: asset.name, type: asset.mimeType ?? (isPdf ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') } as unknown as Blob);
           const r = await fetch(`${API_BASE}/api/attachments/extract`, { method: 'POST', headers, body: form });
           const data = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(data.error || 'Could not read that file.');
@@ -679,7 +680,7 @@ export default function ChatScreen() {
             <TouchableOpacity onPress={() => { setAttachMenu(false); void pickDocument(); }} activeOpacity={0.7} className="flex-row items-center gap-3 px-2 py-3.5">
               <Icon name="insert-drive-file" size={22} color={c.muted} />
               <Text className="flex-1 text-text text-base">Attach file</Text>
-              <Text className="text-muted text-xs">PDF, text, CSV</Text>
+              <Text className="text-muted text-xs">PDF, Word, text</Text>
             </TouchableOpacity>
 
             <View className="h-px bg-border my-1" />
