@@ -25,13 +25,12 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 
 // Mirrors the sidebar groups in app/(dashboard)/layout.tsx.
 // `locked` items (Chat, Settings) are always shown and can't be hidden.
-const SIDEBAR_GROUPS: { label: string; items: { key: string; label: string; locked?: boolean }[] }[] = [
+const SIDEBAR_GROUPS: { label: string; items: { key: string; label: string; locked?: boolean; hint?: string }[] }[] = [
   {
     label: 'Primary',
     items: [
       { key: 'chat', label: 'Chat', locked: true },
       { key: 'dashboard', label: 'Dashboard' },
-      { key: 'briefing', label: 'Briefing' },
       { key: 'projects', label: 'Projects' },
     ],
   },
@@ -40,8 +39,8 @@ const SIDEBAR_GROUPS: { label: string; items: { key: string; label: string; lock
     items: [
       { key: 'goals', label: 'Goals' },
       { key: 'reminders', label: 'Reminders' },
-      { key: 'notes', label: 'Notes' },
-      { key: 'group', label: 'Group' },
+      { key: 'notes', label: 'Notes', hint: 'Shown when you have synced notes' },
+      { key: 'group', label: 'Group', hint: "Shown when you're in a group" },
     ],
   },
   {
@@ -113,6 +112,7 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
                 <Row
                   key={item.key}
                   label={item.label}
+                  hint={item.hint}
                   sublabel={item.locked ? 'Always shown' : undefined}
                   checked={item.locked || !sidebarHidden.includes(item.key)}
                   disabled={saving || item.locked}

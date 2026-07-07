@@ -12,7 +12,7 @@ export const DASHBOARD_WIDGETS: LayoutItem[] = [
   { key: 'stats', label: 'Stat pills', hint: 'Goals, tasks due, top streak' },
   { key: 'quickActions', label: 'Quick actions', hint: 'Add task / goal / habit shortcuts' },
   { key: 'needsYou', label: 'Needs you', hint: 'MODUS proactive approvals feed' },
-  { key: 'briefing', label: "Today's briefing", hint: 'Briefing preview widget' },
+  { key: 'briefing', label: "Today's briefing", hint: 'Morning briefing at the top of your dashboard' },
   { key: 'inbox', label: 'Inbox', hint: 'Recent Gmail threads' },
   { key: 'tasks', label: 'Tasks', hint: 'Due today' },
   { key: 'schedule', label: "Today's schedule", hint: 'Calendar events' },

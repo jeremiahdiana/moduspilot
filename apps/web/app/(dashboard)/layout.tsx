@@ -8,7 +8,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import { collection, query, where, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, limit } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
@@ -48,11 +48,13 @@ const ICONS = {
 type NavItem = { key: string; href: string; label: string; icon: keyof typeof ICONS; special?: 'briefing' };
 
 // Primary group — the daily essentials, always visible (no group label).
-// Briefing is special-cased (unread dot) but stays in-line here.
+// Briefing is no longer a destination — it now surfaces at the top of the
+// Dashboard (the single "Today" home). The Dashboard item carries the unread
+// briefing dot so "you have a new briefing" still has a nav signal. The full
+// interactive /briefing page stays reachable via that hero + ⌘K.
 const PRIMARY: NavItem[] = [
   { key: 'chat',      href: '/chat',      label: 'Chat',      icon: 'chat'      },
-  { key: 'dashboard', href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { key: 'briefing',  href: '/briefing',  label: 'Briefing',  icon: 'briefing', special: 'briefing' },
+  { key: 'dashboard', href: '/dashboard', label: 'Dashboard', icon: 'dashboard', special: 'briefing' },
   { key: 'projects',  href: '/projects',  label: 'Projects',  icon: 'projects'  },
 ];
 
@@ -118,7 +120,9 @@ function useSidebarPrefs(uid: string | undefined) {
   return { hidden, workspaceCollapsed, toggleWorkspace };
 }
 
-function BriefingNavLink({ pathname }: { pathname: string }) {
+// A NavLink that also shows an unread-briefing dot. Used for the Dashboard item
+// now that the briefing lives on the dashboard (no standalone Briefing nav item).
+function NavLinkWithBriefingDot({ item, pathname, onNavClick }: { item: NavItem; pathname: string; onNavClick?: () => void }) {
   const { user } = useAuth();
   const [unread, setUnread] = useState(false);
 
@@ -133,11 +137,12 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
     return unsub;
   }, [user]);
 
-  const active = pathname === '/briefing';
+  const active = pathname === item.href;
 
   return (
     <Link
-      href="/briefing"
+      href={item.href}
+      onClick={onNavClick}
       className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
         active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
       }`}
@@ -149,13 +154,59 @@ function BriefingNavLink({ pathname }: { pathname: string }) {
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         />
       )}
-      <Ico d={ICONS.briefing} d2={ICONS.briefing2} className="relative" />
-      <span className="relative flex-1">Briefing</span>
+      <Ico d={ICONS[item.icon]} className="relative" />
+      <span className="relative flex-1">{item.label}</span>
       {unread && !active && (
         <span className="relative w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
       )}
     </Link>
   );
+}
+
+// True when the user has at least one synced note. Notes are read-only and only
+// populated by the Mac desktop app, so web/iPhone-only users have none — we hide
+// the nav item rather than show a permanently empty page.
+function useHasNotes(uid: string | undefined) {
+  const [hasNotes, setHasNotes] = useState(false);
+  useEffect(() => {
+    if (!uid) { setHasNotes(false); return; }
+    const unsub = onSnapshot(
+      query(collection(db, 'users', uid, 'notes'), limit(1)),
+      snap => setHasNotes(!snap.empty),
+      () => setHasNotes(false),
+    );
+    return unsub;
+  }, [uid]);
+  return hasNotes;
+}
+
+// True when Group is relevant: the user is in a group, on the group plan, or has
+// a pending invite (so an invitee can still reach /group to accept). Reads the
+// user doc directly — useUserSettings.plan drops the 'group' value.
+function useGroupVisible(uid: string | undefined, email: string | null | undefined) {
+  const [inGroup, setInGroup] = useState(false);
+  const [invited, setInvited] = useState(false);
+
+  useEffect(() => {
+    if (!uid) { setInGroup(false); return; }
+    const unsub = onSnapshot(doc(db, 'users', uid), snap => {
+      const d = snap.data();
+      setInGroup(!!d?.groupId || d?.plan === 'group');
+    }, () => setInGroup(false));
+    return unsub;
+  }, [uid]);
+
+  useEffect(() => {
+    if (!email) { setInvited(false); return; }
+    const unsub = onSnapshot(
+      query(collection(db, 'groupInvites'), where('email', '==', email)),
+      snap => setInvited(!snap.empty),
+      () => setInvited(false),
+    );
+    return unsub;
+  }, [email]);
+
+  return inGroup || invited;
 }
 
 function SidebarContent({
@@ -166,6 +217,8 @@ function SidebarContent({
   onCmdOpen,
   onNavClick,
   hidden,
+  hasNotes,
+  groupVisible,
   workspaceCollapsed,
   onToggleWorkspace,
 }: {
@@ -176,10 +229,16 @@ function SidebarContent({
   onCmdOpen: () => void;
   onNavClick?: () => void;
   hidden: Set<string>;
+  hasNotes: boolean;
+  groupVisible: boolean;
   workspaceCollapsed: boolean;
   onToggleWorkspace: () => void;
 }) {
-  const visibleWorkspace = WORKSPACE.filter(i => !hidden.has(i.key));
+  const visibleWorkspace = WORKSPACE.filter(i =>
+    !hidden.has(i.key)
+    && (i.key !== 'notes' || hasNotes)     // Notes only when synced notes exist
+    && (i.key !== 'group' || groupVisible)  // Group only when relevant
+  );
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -226,7 +285,7 @@ function SidebarContent({
           {/* Primary group — daily essentials */}
           {PRIMARY.filter(i => i.key === 'chat' || !hidden.has(i.key)).map(item =>
             item.special === 'briefing'
-              ? <BriefingNavLink key={item.key} pathname={pathname} />
+              ? <NavLinkWithBriefingDot key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
               : <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
           )}
 
@@ -351,6 +410,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { hidden, workspaceCollapsed, toggleWorkspace } = useSidebarPrefs(user?.uid);
+  const hasNotes = useHasNotes(user?.uid);
+  const groupVisible = useGroupVisible(user?.uid, user?.email);
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -422,7 +483,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <SidebarContent
           pathname={pathname} user={user} open={open} setOpen={setOpen}
           onCmdOpen={() => setCmdOpen(true)}
-          hidden={hidden} workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
+          hidden={hidden} hasNotes={hasNotes} groupVisible={groupVisible}
+          workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
         />
         {/* Drag handle */}
         <div
@@ -454,7 +516,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 pathname={pathname} user={user} open={open} setOpen={setOpen}
                 onCmdOpen={() => { setCmdOpen(true); setMobileOpen(false); }}
                 onNavClick={() => setMobileOpen(false)}
-                hidden={hidden} workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
+                hidden={hidden} hasNotes={hasNotes} groupVisible={groupVisible}
+                workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
               />
             </motion.div>
           </>

@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import TaskList from './TaskList';
-import BriefingWidget from './BriefingWidget';
 import GmailWidget from './GmailWidget';
 import CalendarWidget from './CalendarWidget';
 import Link from 'next/link';
@@ -88,32 +87,22 @@ function FadeUp({ delay, children }: { delay: number; children: React.ReactNode 
 
 export default function DashboardGrid({ hidden }: { hidden?: Set<string> }) {
   const show = (key: string) => !hidden?.has(key);
-  const showBriefing = show('briefing');
+  // The briefing now surfaces in the top-of-page hero (BriefingHero), not as a
+  // grid widget — so the left column is just the Inbox.
   const showInbox = show('inbox');
-  const showLeftCol = showBriefing || showInbox;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
 
         {/* Left column */}
-        {showLeftCol && (
+        {showInbox && (
           <div className="flex flex-col gap-4">
-            {showBriefing && (
-              <FadeUp delay={0}>
-                <Widget title="Today's Briefing" icon={Icons.briefing} href="/briefing" className="min-h-[200px]">
-                  <BriefingWidget />
-                </Widget>
-              </FadeUp>
-            )}
-
-            {showInbox && (
-              <FadeUp delay={0.12}>
-                <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
-                  <GmailWidget />
-                </Widget>
-              </FadeUp>
-            )}
+            <FadeUp delay={0.12}>
+              <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
+                <GmailWidget />
+              </Widget>
+            </FadeUp>
           </div>
         )}
 

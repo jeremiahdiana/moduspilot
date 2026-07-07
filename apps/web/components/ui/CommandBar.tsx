@@ -108,6 +108,26 @@ const QUICK_ACTIONS: Action[] = [
     ),
   },
   {
+    label: 'Open Notes',
+    description: 'Your synced Apple Notes',
+    href: '/notes',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Open Group',
+    description: 'Your shared group space',
+    href: '/group',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+      </svg>
+    ),
+  },
+  {
     label: 'Settings',
     description: 'Manage your preferences',
     href: '/settings',

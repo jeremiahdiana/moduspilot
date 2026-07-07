@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import DashboardGrid from '@/components/dashboard/DashboardGrid';
 import NeedsYou from '@/components/dashboard/NeedsYou';
+import BriefingHero from '@/components/dashboard/BriefingHero';
 import { useLayoutPrefs } from '@/hooks/useLayoutPrefs';
 import Link from 'next/link';
 
@@ -278,7 +279,8 @@ export default function DashboardPage() {
   const firstName = user?.displayName?.split(' ')[0] ?? '';
   const stats = useStats(user?.uid ?? null);
   const focus = useFocusTask(user?.uid ?? null);
-  const { dashboardHidden } = useLayoutPrefs(user?.uid);
+  const { dashboardHidden, briefingEnabled } = useLayoutPrefs(user?.uid);
+  const showBriefingHero = !dashboardHidden.has('briefing') && briefingEnabled;
 
   return (
     <div className="overflow-y-auto h-full">
@@ -337,8 +339,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="p-4 md:p-8 md:pt-6">
+        {showBriefingHero && <BriefingHero />}
         <AnimatePresence>
-          {focus && !dashboardHidden.has('focus') && (
+          {/* The briefing hero owns the "your focus today" (briefing top priority);
+              only show the standalone Focus card for a plain next task, so the same
+              item never appears twice. */}
+          {focus && focus.source === 'task' && !dashboardHidden.has('focus') && (
             <motion.div
               key="focus"
               initial={{ opacity: 0, height: 0 }}
