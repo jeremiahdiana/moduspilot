@@ -183,7 +183,14 @@ export async function POST(req: Request) {
     // The "+" menu web-search toggle forces it for this message; Auto-routing can also.
     let forceWebSearch = body.webSearch === true;
     if (uid && queryText) {
-      if (modelChoice === 'auto') {
+      // Saved Brain: 'auto' means MODUS routes per task. Used when the composer
+      // sends no explicit per-message choice (or sends 'default').
+      const savedModel = userData.settings?.modelSettings as { provider?: string; model?: string } | undefined;
+      const savedIsPlatform = !savedModel?.provider || savedModel.provider === 'platform';
+      const wantsAuto = modelChoice === 'auto'
+        || ((!modelChoice || modelChoice === 'default') && savedIsPlatform && savedModel?.model === 'auto');
+
+      if (wantsAuto) {
         const routed = await routeTask(queryText, userData.plan);
         forcedModelId = routed.modelId;
         forceWebSearch = routed.webSearch;

@@ -23,7 +23,7 @@ export default function ChatPage() {
   const initialQuery = searchParams.get('q') ?? undefined;
 
   const { conversations, loading, createConversation, saveMessages, renameConversation, deleteConversation, restoreConversation } = useConversations(uid);
-  const { settings, loading: settingsLoading } = useUserSettings(user);
+  const { settings, loading: settingsLoading, saveSettings } = useUserSettings(user);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   // Draft = "New chat" clicked but nothing typed yet. No Firestore doc exists;
@@ -149,6 +149,18 @@ export default function ChatPage() {
   // Access is server-authoritative: the API returns subscription_required (402)
   // and the composer opens the paywall via onShowPaywall. Nothing to track here.
   const handleUserMessage = useCallback(() => {}, []);
+
+  // The composer's model picker and the Brain settings page are one synced setting.
+  // Derive the composer's default from the saved Brain ('auto' | model id, or
+  // 'default' when a BYOK key is configured), and persist composer changes back.
+  const ms = settings.modelSettings;
+  const defaultModelChoice = ms?.provider === 'openai' || ms?.provider === 'anthropic'
+    ? 'default'
+    : (ms?.model ?? 'auto');
+  const handleModelChoiceChange = useCallback((v: string) => {
+    // Spread preserves any saved BYOK keys; provider→platform since v is auto/a model id.
+    saveSettings({ modelSettings: { ...settings.modelSettings, provider: 'platform', model: v } });
+  }, [saveSettings, settings.modelSettings]);
 
   return (
     <div className="flex h-full overflow-hidden relative">
@@ -292,6 +304,8 @@ export default function ChatPage() {
             briefingHour={settings.briefingHour}
             briefingTimezone={settings.briefingTimezone}
             plan={plan}
+            defaultModelChoice={defaultModelChoice}
+            onModelChoiceChange={handleModelChoiceChange}
           />
           )}
         </div>

@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { doc, getDoc, addDoc, collection, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@/lib/firebase';
 import { streamChat, API_BASE, getAuthHeader, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
 import { readAsStringAsync } from 'expo-file-system/legacy';
@@ -49,6 +48,7 @@ import {
   loadConversation, deleteConversation, deriveTitle, ensureScopedConversation,
   type ConvSummary, type ProactiveKind,
 } from '@/lib/conversations';
+import { getSettings, saveSettings, type UserSettings } from '@/lib/settings';
 
 // Accent color per proactive card kind — mirrors the briefing palette
 // (relationship nudge = blue) so the cue reads consistently across the app.
@@ -146,11 +146,13 @@ export default function ChatScreen() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [scope, setScope] = useState<Scope | null>(null);
   const [searchMode, setSearchMode] = useState(false);
-  // Plan gates which models the switcher unlocks; modelChoice is the in-chat
-  // selection ('auto' | model id), persisted across sessions via AsyncStorage.
+  // Plan gates which models the switcher unlocks. modelChoice ('auto' | model id |
+  // 'default' for BYOK) is the same synced setting as the Brain page — read from and
+  // written back to users/{uid}.settings.modelSettings, so a choice sticks everywhere.
   const [plan, setPlan] = useState<string>('free');
   const [modelChoice, setModelChoice] = useState('auto');
   const modelChoiceRef = useRef('auto');
+  const settingsRef = useRef<UserSettings>({});
   const convIdRef = useRef<string | null>(null);
   const scopeRef = useRef<Scope | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -225,16 +227,27 @@ export default function ChatScreen() {
   }, [user]);
 
   useEffect(() => {
-    AsyncStorage.getItem('modus:modelChoice').then(v => {
-      if (v) { setModelChoice(v); modelChoiceRef.current = v; }
-    });
-  }, []);
+    if (!user) return;
+    getSettings(user.uid).then(s => {
+      settingsRef.current = s;
+      const m = s.modelSettings;
+      const choice = m?.provider === 'openai' || m?.provider === 'anthropic'
+        ? 'default'
+        : (m?.model ?? 'auto');
+      setModelChoice(choice);
+      modelChoiceRef.current = choice;
+    }).catch(() => {});
+  }, [user]);
 
   const handleModelChange = useCallback((v: string) => {
     setModelChoice(v);
     modelChoiceRef.current = v;
-    AsyncStorage.setItem('modus:modelChoice', v).catch(() => {});
-  }, []);
+    if (!user) return;
+    // Persist as the account default (synced with the Brain page). Spread keeps BYOK keys.
+    saveSettings(user.uid, settingsRef.current, {
+      modelSettings: { ...settingsRef.current.modelSettings, provider: 'platform', model: v },
+    }).then(next => { settingsRef.current = next; }).catch(() => {});
+  }, [user]);
 
   const voice = useVoiceInput(useCallback((text: string) => {
     setInput(prev => (prev.trim() ? prev.trimEnd() + ' ' : '') + text);

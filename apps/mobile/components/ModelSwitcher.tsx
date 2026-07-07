@@ -5,14 +5,16 @@ import { useThemeColors } from '@/lib/theme';
 import { PLATFORM_MODELS, effectivePlan, modelName } from '@/lib/models';
 
 interface Props {
-  /** 'auto' | a model id */
+  /** 'auto' | a model id | 'default' (BYOK) */
   value: string;
   onChange: (value: string) => void;
   plan: string;
 }
 
 function label(value: string): string {
-  return value === 'auto' || !value ? 'Auto' : modelName(value);
+  if (value === 'auto' || !value) return 'Auto';
+  if (value === 'default') return 'Default';
+  return modelName(value);
 }
 
 export function ModelSwitcher({ value, onChange, plan }: Props) {

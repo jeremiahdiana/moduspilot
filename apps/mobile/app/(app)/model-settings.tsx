@@ -23,6 +23,16 @@ const TTS_VOICES: { id: string; name: string; desc: string }[] = [
 
 const BRAINS = [
   {
+    id: 'auto',
+    name: 'Auto',
+    provider: 'MODUS routing',
+    tagline: 'Best model for every task',
+    desc: "MODUS routes each message to the model that'll do it best — Claude for writing and analysis, a reasoning model for code and math, real-time models for research, and fast Llama for everyday. Auto only uses the models your plan unlocks.",
+    badge: 'Recommended',
+    badgeClass: 'bg-brand text-white',
+    plans: ['free', 'modus', 'pilot'],
+  },
+  {
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3',
     provider: 'Meta · Groq',
@@ -127,7 +137,7 @@ export default function BrainScreen() {
   const [saving, setSaving] = useState(false);
   const [ttsVoice, setTtsVoice] = useState('onyx');
 
-  const [platformModel, setPlatformModel] = useState('llama-3.3-70b-versatile');
+  const [platformModel, setPlatformModel] = useState('auto');
   const [byokProvider, setByokProvider] = useState<'openai' | 'anthropic' | null>(null);
   const [byokModel, setByokModel] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
@@ -153,7 +163,7 @@ export default function BrainScreen() {
         setByokModel(m.model ?? prov.models[0].id);
       } else {
         const brain = BRAINS.find(b => b.id === m.model);
-        setPlatformModel(brain?.id ?? 'llama-3.3-70b-versatile');
+        setPlatformModel(brain?.id ?? 'auto');
       }
       setOpenaiKey(m.openaiKey ?? '');
       setAnthropicKey(m.anthropicKey ?? '');

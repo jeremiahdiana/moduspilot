@@ -13,6 +13,16 @@ interface Props {
 
 const BRAINS = [
   {
+    id: 'auto',
+    name: 'Auto',
+    provider: 'MODUS routing',
+    tagline: 'Best model for every task',
+    description: "MODUS reads each message and routes it to the model that'll do it best — Claude for nuanced writing and analysis, a reasoning model for code and math, real-time models for research, and fast Llama for everyday chat. One Brain, every model. Auto only routes to the models your plan unlocks.",
+    badge: 'Recommended',
+    badgeColor: 'bg-brand text-white',
+    plans: ['free', 'modus', 'pilot'] as string[],
+  },
+  {
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3',
     provider: 'Meta · Groq',
@@ -133,10 +143,10 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
   const effectivePlan = plan === 'group' ? 'pilot' : plan;
 
   const initialPlatformModel = (() => {
-    if (!raw?.model || rawProvider !== 'platform') return 'llama-3.3-70b-versatile';
+    if (!raw?.model || rawProvider !== 'platform') return 'auto';
     const brain = BRAINS.find(b => b.id === raw.model);
-    if (!brain) return 'llama-3.3-70b-versatile';
-    if (!brain.plans.includes(effectivePlan)) return 'llama-3.3-70b-versatile';
+    if (!brain) return 'auto';
+    if (!brain.plans.includes(effectivePlan)) return 'auto';
     return raw.model;
   })();
 

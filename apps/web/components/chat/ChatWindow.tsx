@@ -61,6 +61,10 @@ interface Props {
   briefingHour?: number;
   briefingTimezone?: string;
   plan?: string;
+  /** The saved default Brain ('auto' | model id | 'default' for BYOK). */
+  defaultModelChoice?: string;
+  /** Persist a composer model change as the account default (synced to the Brain page). */
+  onModelChoiceChange?: (value: string) => void;
 }
 
 export default function ChatWindow({
@@ -78,6 +82,8 @@ export default function ChatWindow({
   briefingHour,
   briefingTimezone,
   plan,
+  defaultModelChoice = 'auto',
+  onModelChoiceChange,
 }: Props) {
   const { user } = useAuth();
   const firstName = user?.displayName?.trim().split(/\s+/)[0] ?? '';
@@ -85,18 +91,21 @@ export default function ChatWindow({
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; text: string }[]>([]);
   const [webSearchOn, setWebSearchOn] = useState(false);
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
-  // In-chat model selection ('auto' | model id). Persisted across sessions; the
-  // ref keeps the value stable for the useChat request body (avoids stale closures).
-  const [modelChoice, setModelChoice] = useState('auto');
-  const modelChoiceRef = useRef('auto');
+  // In-chat model selection ('auto' | model id | 'default'). Initialized from the
+  // saved Brain (defaultModelChoice) and written back to it on change, so the
+  // composer and the Brain settings page are one synced setting. The ref keeps the
+  // value stable for the useChat request body (avoids stale closures).
+  const [modelChoice, setModelChoice] = useState(defaultModelChoice);
+  const modelChoiceRef = useRef(defaultModelChoice);
+  // Keep in sync if the saved default loads/changes (e.g. from another device).
   useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('modus:modelChoice') : null;
-    if (saved) { setModelChoice(saved); modelChoiceRef.current = saved; }
-  }, []);
+    setModelChoice(defaultModelChoice);
+    modelChoiceRef.current = defaultModelChoice;
+  }, [defaultModelChoice]);
   function handleModelChange(v: string) {
     setModelChoice(v);
     modelChoiceRef.current = v;
-    try { localStorage.setItem('modus:modelChoice', v); } catch {}
+    onModelChoiceChange?.(v);
   }
   const inputAreaRef = useRef<HTMLTextAreaElement>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);

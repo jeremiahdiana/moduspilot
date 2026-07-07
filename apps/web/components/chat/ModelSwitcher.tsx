@@ -12,7 +12,8 @@ interface Props {
 }
 
 function currentLabel(value: string): string {
-  if (value === 'auto' || value === 'default' || !value) return 'Auto';
+  if (value === 'auto' || !value) return 'Auto';
+  if (value === 'default') return 'Default';
   return modelName(value);
 }
 
@@ -45,6 +46,10 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
         {value === 'auto' || !value ? (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-3.5 h-3.5 text-brand shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
+          </svg>
+        ) : value === 'default' ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-3.5 h-3.5 text-muted shrink-0">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
           </svg>
         ) : (
           (() => { const L = logoForModel(value); return <L className="w-3.5 h-3.5 shrink-0" />; })()
