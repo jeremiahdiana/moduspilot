@@ -46,7 +46,10 @@ export function subscribeConversations(uid: string, cb: (convs: ConvSummary[]) =
         snap.docs
           .filter(d => {
             const data = d.data();
-            return data.deleted !== true && data.briefing !== true && data.checkin !== true;
+            // Hide empty ghost chats (0 messages) — conversations are created
+            // lazily on the first message, so an empty one is a stale doc.
+            const hasMessages = Array.isArray(data.messages) && data.messages.length > 0;
+            return data.deleted !== true && data.briefing !== true && data.checkin !== true && hasMessages;
           })
           .map(d => ({
             id: d.id,

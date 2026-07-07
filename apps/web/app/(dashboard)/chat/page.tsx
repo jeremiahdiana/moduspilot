@@ -26,6 +26,10 @@ export default function ChatPage() {
   const { settings, loading: settingsLoading } = useUserSettings(user);
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Draft = "New chat" clicked but nothing typed yet. No Firestore doc exists;
+  // one is created lazily on the first message. Blocks the auto-select effect
+  // so we don't snap back to the most-recent chat.
+  const [isDraft, setIsDraft] = useState(false);
   const [editingHeader, setEditingHeader] = useState(false);
   const [headerTitle, setHeaderTitle] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
@@ -48,12 +52,12 @@ export default function ChatPage() {
     return () => clearTimeout(t);
   }, [searchParams]);
 
-  // Load active conversation from most recent on mount
+  // Load active conversation from most recent on mount (but not while drafting a new chat)
   useEffect(() => {
-    if (!loading && conversations.length > 0 && !activeId) {
+    if (!loading && conversations.length > 0 && !activeId && !isDraft) {
       setActiveId(conversations[0].id);
     }
-  }, [loading, conversations, activeId]);
+  }, [loading, conversations, activeId, isDraft]);
 
   // Once a pending new conversation appears in Firestore (with messages), activate it
   useEffect(() => {
@@ -99,15 +103,18 @@ export default function ChatPage() {
     }
   }, [activeConversation?.messages?.length, inFlightMessages.length]);
 
-  const handleNew = useCallback(async () => {
+  const handleNew = useCallback(() => {
+    // Open an empty draft — no Firestore doc until the first message is sent.
+    // Prevents the pile of empty "New chat" ghosts.
     setInFlightMessages([]); // never inherit a previous chat's in-flight messages
-    if (isGuest) { setActiveId(null); return; }
-    const id = await createConversation();
-    setActiveId(id);
-  }, [isGuest, createConversation]);
+    pendingConvIdRef.current = null;
+    setActiveId(null);
+    setIsDraft(true);
+  }, []);
 
   const handleSelect = useCallback((id: string) => {
     setInFlightMessages([]);
+    setIsDraft(false);
     setActiveId(id);
   }, []);
 
@@ -122,6 +129,7 @@ export default function ChatPage() {
   const handleRestore = useCallback(async (id: string) => {
     await restoreConversation(id);
     setShowDeleted(false);
+    setIsDraft(false);
     setActiveId(id);
   }, [restoreConversation]);
 
@@ -131,6 +139,7 @@ export default function ChatPage() {
     if (!convId) {
       convId = await createConversation();
       pendingConvIdRef.current = convId;
+      setIsDraft(false);        // draft is now a real conversation
       setActiveId(convId); // set immediately so spinner never shows when Firestore confirms
       setInFlightMessages(messages);
     }
@@ -243,7 +252,7 @@ export default function ChatPage() {
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {/* Wait until activeId is settled so ChatWindow doesn't remount with a key change */}
-          {!isGuest && (loading || settingsLoading || (conversations.length > 0 && !activeId)) ? (
+          {!isGuest && !isDraft && (loading || settingsLoading || (conversations.length > 0 && !activeId)) ? (
             // Mirror ChatWindow's exact layout (centered content above a
             // composer-shaped footer) so the spinner sits precisely where the
             // greeting will — the loading→loaded hand-off has zero vertical jump.
@@ -268,7 +277,7 @@ export default function ChatPage() {
             </div>
           ) : (
           <ChatWindow
-            key={activeId ?? 'guest'}
+            key={activeId ?? (isGuest ? 'guest' : 'draft')}
             conversationId={activeId}
             initialMessages={activeConversation?.messages?.length ? activeConversation.messages : inFlightMessages}
             initialInput={initialQuery}

@@ -49,7 +49,10 @@ export function useConversations(uid: string | null) {
             goalId: d.data().goalId as string | undefined,
             system: !!(d.data().system || d.data().briefing || d.data().checkin),
           }))
-          .filter(c => !c.deleted && !c.projectId && !c.goalId)
+          // Hide empty chats: a conversation is only created lazily on the first
+          // message now, so any non-system chat with 0 messages is a stale ghost
+          // (also cleans up ones created by the old eager-create behavior).
+          .filter(c => !c.deleted && !c.projectId && !c.goalId && (c.system || c.messages.length > 0))
       );
       setLoading(false);
     }, (err) => {

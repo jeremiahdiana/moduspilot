@@ -69,13 +69,6 @@ const BOTTOM: NavItem[] = [
   { key: 'capabilities', href: '/capabilities', label: 'Capabilities', icon: 'connections' },
 ];
 
-// Keys the user is allowed to hide (chat + settings are always shown).
-export const HIDEABLE_KEYS = [
-  ...PRIMARY.filter(i => i.key !== 'chat').map(i => i.key),
-  ...WORKSPACE.map(i => i.key),
-  ...BOTTOM.map(i => i.key),
-];
-
 function NavLink({ item, pathname, onNavClick }: { item: NavItem; pathname: string; onNavClick?: () => void }) {
   const active = pathname === item.href;
   return (
