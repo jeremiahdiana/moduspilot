@@ -10,13 +10,16 @@ import {
   Alert,
   Modal,
   Image,
+  Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { doc, getDoc, addDoc, collection, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@/lib/firebase';
-import { streamChat, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
+import { streamChat, API_BASE, getAuthHeader, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import { ModelSwitcher } from '@/components/ModelSwitcher';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
@@ -58,6 +61,9 @@ const PROACTIVE_ACCENT: Record<ProactiveKind, string> = {
 // native rebuild doesn't crash with "Cannot find native module 'ExpoImagePicker'".
 const ImagePicker: typeof import('expo-image-picker') | null = (() => {
   try { return require('expo-image-picker'); } catch { return null; }
+})();
+const DocumentPicker: typeof import('expo-document-picker') | null = (() => {
+  try { return require('expo-document-picker'); } catch { return null; }
 })();
 
 type Scope = {
@@ -128,6 +134,9 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; text: string }[]>([]);
+  const [extractingFile, setExtractingFile] = useState<string | null>(null);
+  const [attachMenu, setAttachMenu] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [convId, setConvId] = useState<string | null>(null);
   // Set when the open conversation was started by MODUS itself (inbox triage /
@@ -316,25 +325,73 @@ export default function ChatScreen() {
     }
   }
 
-  function send() {
-    const text = input.trim();
-    if ((!text && !attachedImage) || streaming) return;
-    const image = attachedImage;
-    const finalText = searchMode && text ? `Search the web for: ${text}` : text;
-    setInput('');
-    setAttachedImage(null);
-    setSearchMode(false);
-    void sendMessage(finalText, image ?? undefined);
+  async function pickDocument() {
+    if (!DocumentPicker) {
+      Alert.alert('Update needed', 'File attachments need the latest app build.');
+      return;
+    }
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'text/*'],
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled) return;
+      const asset = res.assets?.[0];
+      if (!asset) return;
+
+      setExtractingFile(asset.name);
+      try {
+        const isPdf = asset.mimeType === 'application/pdf' || /\.pdf$/i.test(asset.name);
+        let text = '';
+        if (isPdf) {
+          const headers = await getAuthHeader();
+          const form = new FormData();
+          // React Native FormData file shape
+          form.append('file', { uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'application/pdf' } as unknown as Blob);
+          const r = await fetch(`${API_BASE}/api/attachments/extract`, { method: 'POST', headers, body: form });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.error || 'Could not read that file.');
+          text = data.text as string;
+        } else {
+          text = (await readAsStringAsync(asset.uri)).slice(0, 24000);
+          if (!text.trim()) throw new Error('That file looks empty.');
+        }
+        haptics.select();
+        setAttachedFiles(f => [...f, { name: asset.name, text }]);
+      } finally {
+        setExtractingFile(null);
+      }
+    } catch (e) {
+      Alert.alert('Couldn’t attach file', e instanceof Error ? e.message : 'Please try again.');
+    }
   }
 
-  async function sendMessage(text: string, image?: { base64: string; mimeType: string }) {
-    if ((!text.trim() && !image) || streaming) return;
+  function send() {
+    const text = input.trim();
+    if ((!text && !attachedImage && attachedFiles.length === 0) || streaming) return;
+    const image = attachedImage;
+    const files = attachedFiles;
+    setInput('');
+    setAttachedImage(null);
+    setAttachedFiles([]);
+    // searchMode stays sticky (like web) until the user turns it off.
+    void sendMessage(text, image ?? undefined, { webSearch: searchMode, attachments: files });
+  }
+
+  async function sendMessage(
+    text: string,
+    image?: { base64: string; mimeType: string },
+    extra?: { webSearch?: boolean; attachments?: { name: string; text: string }[] },
+  ) {
+    const files = extra?.attachments ?? [];
+    if ((!text.trim() && !image && files.length === 0) || streaming) return;
     haptics.medium();
 
+    const fallback = image ? 'Image' : files.length ? `📎 ${files.map(f => f.name).join(', ')}` : '';
     const userMsg: UIMessage = {
       id: newId(),
       role: 'user',
-      content: text || (image ? 'Image' : ''),
+      content: text || fallback,
       ...(image ? { image: `data:${image.mimeType};base64,${image.base64}` } : {}),
     };
     const assistantId = newId();
@@ -358,6 +415,8 @@ export default function ChatScreen() {
         taskContext: scopeRef.current?.taskContext,
         image,
         modelChoice: modelChoiceRef.current,
+        webSearch: extra?.webSearch,
+        attachments: files,
       })) {
         acc += chunk;
         setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: acc } : m)));
@@ -533,6 +592,25 @@ export default function ChatScreen() {
               </View>
             </View>
           )}
+          {(attachedFiles.length > 0 || extractingFile) && (
+            <View className="px-3 pt-3 flex-row flex-wrap gap-2">
+              {attachedFiles.map((f, i) => (
+                <View key={i} className="flex-row items-center gap-1.5 bg-surface border border-border rounded-lg pl-2 pr-1.5 py-1.5" style={{ maxWidth: 200 }}>
+                  <Icon name="insert-drive-file" size={13} color={c.muted} />
+                  <Text numberOfLines={1} className="text-text text-xs" style={{ maxWidth: 120 }}>{f.name}</Text>
+                  <TouchableOpacity onPress={() => setAttachedFiles(a => a.filter((_, idx) => idx !== i))} hitSlop={6}>
+                    <Icon name="close" size={13} color={c.muted} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {extractingFile && (
+                <View className="flex-row items-center gap-2 bg-surface border border-border rounded-lg px-2.5 py-1.5">
+                  <ActivityIndicator size="small" color={c.brand} />
+                  <Text numberOfLines={1} className="text-muted text-xs" style={{ maxWidth: 140 }}>Reading {extractingFile}…</Text>
+                </View>
+              )}
+            </View>
+          )}
           <View className="px-3 pt-2.5 flex-row items-center">
             <ModelSwitcher value={modelChoice} onChange={handleModelChange} plan={plan} />
           </View>
@@ -551,12 +629,12 @@ export default function ChatScreen() {
             />
             {!streaming && (
               <TouchableOpacity
-                onPress={pickImage}
+                onPress={() => setAttachMenu(true)}
                 activeOpacity={0.8}
-                className="rounded-xl items-center justify-center border bg-surface border-border"
+                className={`rounded-xl items-center justify-center border ${searchMode ? 'bg-brand/10 border-brand/40' : 'bg-surface border-border'}`}
                 style={{ width: 36, height: 36 }}
               >
-                <Icon name="image" size={17} color={c.muted} />
+                <Icon name="add" size={20} color={searchMode ? c.brand : c.muted} />
               </TouchableOpacity>
             )}
             {!streaming && (
@@ -585,6 +663,45 @@ export default function ChatScreen() {
           </GlassView>
         </View>
       </KeyboardAvoidingView>
+
+      {/* "+" attach & tools bottom sheet */}
+      <Modal visible={attachMenu} animationType="slide" transparent onRequestClose={() => setAttachMenu(false)}>
+        <Pressable className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setAttachMenu(false)}>
+          <Pressable className="bg-surface rounded-t-3xl border-t border-border px-4 pt-3 pb-9" onPress={() => {}}>
+            <View className="items-center pb-3"><View className="w-10 h-1 rounded-full bg-border" /></View>
+
+            <TouchableOpacity onPress={() => { setAttachMenu(false); pickImage(); }} activeOpacity={0.7} className="flex-row items-center gap-3 px-2 py-3.5">
+              <Icon name="image" size={22} color={c.muted} />
+              <Text className="flex-1 text-text text-base">Attach photo</Text>
+              <Text className="text-muted text-xs">PNG, JPG</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { setAttachMenu(false); void pickDocument(); }} activeOpacity={0.7} className="flex-row items-center gap-3 px-2 py-3.5">
+              <Icon name="insert-drive-file" size={22} color={c.muted} />
+              <Text className="flex-1 text-text text-base">Attach file</Text>
+              <Text className="text-muted text-xs">PDF, text, CSV</Text>
+            </TouchableOpacity>
+
+            <View className="h-px bg-border my-1" />
+
+            <TouchableOpacity onPress={() => setSearchMode(v => !v)} activeOpacity={0.7} className="flex-row items-center gap-3 px-2 py-3.5">
+              <Icon name="search" size={22} color={searchMode ? c.brand : c.muted} />
+              <Text className="flex-1 text-text text-base">Web search</Text>
+              <View style={{ width: 42, height: 25, borderRadius: 13, backgroundColor: searchMode ? c.brand : c.border, justifyContent: 'center', paddingHorizontal: 3 }}>
+                <View style={{ width: 19, height: 19, borderRadius: 10, backgroundColor: '#fff', alignSelf: searchMode ? 'flex-end' : 'flex-start' }} />
+              </View>
+            </TouchableOpacity>
+
+            <View className="h-px bg-border my-1" />
+
+            <TouchableOpacity onPress={() => { setAttachMenu(false); router.push('/connectors'); }} activeOpacity={0.7} className="flex-row items-center gap-3 px-2 py-3.5">
+              <Icon name="link" size={22} color={c.muted} />
+              <Text className="flex-1 text-text text-base">Manage connections</Text>
+              <Icon name="chevron-right" size={20} color={c.muted} />
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
       </SafeAreaView>
     </ScreenFade>
   );

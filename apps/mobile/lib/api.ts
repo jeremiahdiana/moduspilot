@@ -41,6 +41,10 @@ export type ChatOpts = {
   image?: ChatImage;
   /** Model selection: 'auto' (server picks per task), a model id, or undefined (saved Brain). */
   modelChoice?: string;
+  /** Force a web search for this message (composer "+" menu toggle). */
+  webSearch?: boolean;
+  /** Files attached via the "+" menu — extracted text injected as chat context. */
+  attachments?: { name: string; text: string }[];
 };
 
 // ── Google: today's inbox + calendar (same endpoints the web dashboard uses) ──
@@ -171,7 +175,7 @@ export async function* streamChat(
   opts: ChatOpts = {},
 ): AsyncGenerator<string> {
   const headers = await getAuthHeader();
-  const { signal, goalContext, projectContext, taskContext, image, modelChoice } = opts;
+  const { signal, goalContext, projectContext, taskContext, image, modelChoice, webSearch, attachments } = opts;
 
   // When an image is attached, rewrite the final user message into the AI-SDK
   // structured-content form ([{text},{image}]) — mirrors the web client.
@@ -198,6 +202,8 @@ export async function* streamChat(
       ...(projectContext ? { projectContext } : {}),
       ...(taskContext ? { taskContext } : {}),
       ...(modelChoice ? { modelChoice } : {}),
+      ...(webSearch ? { webSearch } : {}),
+      ...(attachments && attachments.length ? { attachments } : {}),
     }),
     signal,
   });
