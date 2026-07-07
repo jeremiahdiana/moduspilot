@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import DashboardGrid from '@/components/dashboard/DashboardGrid';
 import NeedsYou from '@/components/dashboard/NeedsYou';
+import { useLayoutPrefs } from '@/hooks/useLayoutPrefs';
 import Link from 'next/link';
 
 function greeting() {
@@ -277,6 +278,7 @@ export default function DashboardPage() {
   const firstName = user?.displayName?.split(' ')[0] ?? '';
   const stats = useStats(user?.uid ?? null);
   const focus = useFocusTask(user?.uid ?? null);
+  const { dashboardHidden } = useLayoutPrefs(user?.uid);
 
   return (
     <div className="overflow-y-auto h-full">
@@ -320,21 +322,23 @@ export default function DashboardPage() {
             </motion.div>
           </div>
 
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <StatPill value={stats.activeGoals} label="active goals" href="/goals" color="border-brand/30 bg-brand/5 text-brand" delay={0.1} />
-            <StatPill value={stats.tasksDueToday} label="due today" href="/tasks" color="border-yellow-500/30 bg-yellow-500/5 text-yellow-500" delay={0.18} />
-            {stats.topStreak > 0 && (
-              <StatPill value={stats.topStreak} label="day streak 🔥" href="/habits" color="border-orange-500/30 bg-orange-500/5 text-orange-400" delay={0.26} />
-            )}
-          </div>
+          {!dashboardHidden.has('stats') && (
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <StatPill value={stats.activeGoals} label="active goals" href="/goals" color="border-brand/30 bg-brand/5 text-brand" delay={0.1} />
+              <StatPill value={stats.tasksDueToday} label="due today" href="/tasks" color="border-yellow-500/30 bg-yellow-500/5 text-yellow-500" delay={0.18} />
+              {stats.topStreak > 0 && (
+                <StatPill value={stats.topStreak} label="day streak 🔥" href="/habits" color="border-orange-500/30 bg-orange-500/5 text-orange-400" delay={0.26} />
+              )}
+            </div>
+          )}
 
-          <QuickActions />
+          {!dashboardHidden.has('quickActions') && <QuickActions />}
         </motion.div>
       </div>
 
       <div className="p-4 md:p-8 md:pt-6">
         <AnimatePresence>
-          {focus && (
+          {focus && !dashboardHidden.has('focus') && (
             <motion.div
               key="focus"
               initial={{ opacity: 0, height: 0 }}
@@ -346,8 +350,8 @@ export default function DashboardPage() {
             </motion.div>
           )}
         </AnimatePresence>
-        <NeedsYou />
-        <DashboardGrid />
+        {!dashboardHidden.has('needsYou') && <NeedsYou />}
+        <DashboardGrid hidden={dashboardHidden} />
       </div>
     </div>
   );

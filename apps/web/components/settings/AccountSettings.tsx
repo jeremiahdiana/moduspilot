@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateProfile, deleteUser } from 'firebase/auth';
-import { doc, deleteDoc, collection, getDocs, getDoc } from 'firebase/firestore';
+import { doc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 
@@ -21,21 +21,11 @@ export default function AccountSettings({ user }: Props) {
   const [deleted, setDeleted] = useState(false);
   const [error, setError] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [plan, setPlan] = useState<'free' | 'modus' | 'pilot' | 'group'>('free');
-  const [grandfathered, setGrandfathered] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
-
-  useEffect(() => {
-    getDoc(doc(db, 'users', user.uid)).then(snap => {
-      const data = snap.data() ?? {};
-      setPlan(data.plan === 'modus' || data.plan === 'pilot' || data.plan === 'group' ? data.plan : 'free');
-      setGrandfathered(data.grandfathered === true);
-    }).catch(() => {});
-  }, [user]);
 
   const handleSaveName = async () => {
     setNameSaving(true);
@@ -87,35 +77,6 @@ export default function AccountSettings({ user }: Props) {
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Account</h2>
         <p className="text-sm text-muted">Manage your profile and login settings.</p>
-      </div>
-
-      {/* Usage */}
-      <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-text">Plan & Usage</h3>
-        {plan === 'free' ? (
-          grandfathered ? (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted">Early access</p>
-                <span className="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full">Free — grandfathered</span>
-              </div>
-              <p className="text-xs text-muted">Thanks for being an early user — your access stays free.</p>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted">No active plan</p>
-                <span className="text-xs font-semibold text-muted bg-bg px-2.5 py-1 rounded-full">Trial not started</span>
-              </div>
-              <p className="text-xs text-muted">Start your 3-day free trial · <span className="text-brand cursor-pointer hover:underline" onClick={() => router.push('/settings?tab=billing')}>Choose a plan →</span></p>
-            </>
-          )
-        ) : (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-text font-medium capitalize">{plan} plan</p>
-            <span className="text-xs font-semibold text-brand bg-brand/10 px-2.5 py-1 rounded-full">Unlimited</span>
-          </div>
-        )}
       </div>
 
       {/* Profile */}

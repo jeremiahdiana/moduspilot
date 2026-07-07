@@ -14,8 +14,7 @@ import BillingSettings from '@/components/settings/BillingSettings';
 import UsageSettings from '@/components/settings/UsageSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
 import ModelSettings from '@/components/settings/ModelSettings';
-import TipsSettings from '@/components/settings/TipsSettings';
-import SidebarSettings from '@/components/settings/SidebarSettings';
+import DisplaySettings from '@/components/settings/DisplaySettings';
 
 function TabIcon({ d, d2 }: { d: string; d2?: string }) {
   return (
@@ -28,13 +27,10 @@ function TabIcon({ d, d2 }: { d: string; d2?: string }) {
 
 const TABS = [
   { key: 'general',      label: 'General',      icon: <TabIcon d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /> },
-  { key: 'sidebar',      label: 'Sidebar',      icon: <TabIcon d="M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" d2="M9 4v16" /> },
+  { key: 'display',      label: 'Display',      icon: <TabIcon d="M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" d2="M9 4v16" /> },
   { key: 'account',      label: 'Account',      icon: <TabIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" d2="M12 3a4 4 0 110 8 4 4 0 010-8z" /> },
-  { key: 'privacy',      label: 'Privacy',      icon: <TabIcon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /> },
   { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
-  { key: 'usage',        label: 'Usage',        icon: <TabIcon d="M18 20V10M12 20V4M6 20v-6" /> },
   { key: 'model',        label: 'Brain',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
-  { key: 'tips',         label: 'Tips & Tricks', icon: <TabIcon d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /> },
 ] as const;
 
 type Tab = typeof TABS[number]['key'];
@@ -48,15 +44,21 @@ function SettingsContent() {
   const rawTab = searchParams.get('tab') ?? 'general';
   const validKeys = TABS.map(t => t.key) as string[];
 
-  // Redirect old connectors tab and any unknown tab
+  // Redirect retired tabs to their new homes (consolidation 2026-07).
   useEffect(() => {
     if (rawTab === 'connectors' || rawTab === 'capabilities') {
-      // Capabilities merged into the top-level Capabilities page (the old
-      // Connections page); the standalone settings tab is gone.
+      // Capabilities merged into the top-level Capabilities page.
       router.replace('/capabilities');
     } else if (rawTab === 'memory') {
-      // Memory merged into the Brain tab.
-      router.replace('/settings?tab=model');
+      router.replace('/settings?tab=model');       // Memory lives in Brain.
+    } else if (rawTab === 'sidebar') {
+      router.replace('/settings?tab=display');      // Sidebar folded into Display.
+    } else if (rawTab === 'usage') {
+      router.replace('/settings?tab=billing');      // Usage merged into Billing.
+    } else if (rawTab === 'privacy') {
+      router.replace('/settings?tab=general');      // Privacy folded into General.
+    } else if (rawTab === 'tips') {
+      router.replace('/help');                       // Tips & Tricks moved to Help.
     }
   }, [rawTab, router]);
 
@@ -157,22 +159,22 @@ function SettingsContent() {
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
               {activeTab === 'general' && (
-                <GeneralSettings settings={settings} saving={saving} onSave={saveSettings} />
+                <div className="space-y-12">
+                  <GeneralSettings settings={settings} saving={saving} onSave={saveSettings} />
+                  <PrivacySettings settings={settings} saving={saving} onSave={saveSettings} />
+                </div>
               )}
-              {activeTab === 'sidebar' && (
-                <SidebarSettings settings={settings} saving={saving} onSave={saveSettings} />
+              {activeTab === 'display' && (
+                <DisplaySettings settings={settings} saving={saving} onSave={saveSettings} />
               )}
               {activeTab === 'account' && (
                 <AccountSettings user={user} />
               )}
-              {activeTab === 'privacy' && (
-                <PrivacySettings settings={settings} saving={saving} onSave={saveSettings} />
-              )}
               {activeTab === 'billing' && (
-                <BillingSettings plan={plan} />
-              )}
-              {activeTab === 'usage' && (
-                <UsageSettings plan={plan} usage={usage} onUpgrade={() => setTab('billing')} />
+                <div className="space-y-12">
+                  <UsageSettings plan={plan} usage={usage} onUpgrade={() => { /* already on billing */ }} />
+                  <BillingSettings plan={plan} />
+                </div>
               )}
               {activeTab === 'model' && (
                 <div className="space-y-12">
@@ -186,9 +188,6 @@ function SettingsContent() {
                     onDelete={deleteMemory}
                   />
                 </div>
-              )}
-              {activeTab === 'tips' && (
-                <TipsSettings />
               )}
             </motion.div>
           </AnimatePresence>

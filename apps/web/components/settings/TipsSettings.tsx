@@ -100,7 +100,7 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'MODUS triages your inbox for you',
-        body: 'Through the day MODUS scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and drops it in chat with a push notification. Approve, edit, or skip — nothing sends until you tap. Turn it off in Settings → Capabilities → Inbox Triage.',
+        body: 'Through the day MODUS scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and drops it in chat with a push notification. Approve, edit, or skip — nothing sends until you tap. Turn it off in the Capabilities page → Inbox Triage.',
         tag: 'Automatic',
       },
       {
@@ -114,12 +114,12 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Your morning briefing reads your whole day',
-        body: 'At the time you set (Settings → General), MODUS generates a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox — your top 3, anything overdue, and habits at risk of breaking streak. Turn it off in Settings → Capabilities → Daily Briefing.',
+        body: 'At the time you set (Settings → General), MODUS generates a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox — your top 3, anything overdue, and habits at risk of breaking streak. Turn it off in the Capabilities page → Daily Briefing.',
         tag: 'Daily',
       },
       {
         title: 'Relationship follow-up nudges',
-        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold. Enable in Settings → Capabilities → Relationship Follow-ups.',
+        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold. Enable in the Capabilities page → Relationship Follow-ups.',
       },
     ],
   },
@@ -129,7 +129,7 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Connect Google to unlock Calendar + Gmail',
-        body: 'Settings → Connectors → Google. Once connected, MODUS can see your inbox, schedule events directly in Google Calendar, archive emails, and draft or send replies.',
+        body: 'the Capabilities page → Google. Once connected, MODUS can see your inbox, schedule events directly in Google Calendar, archive emails, and draft or send replies.',
         tag: 'Setup',
       },
       {
@@ -142,12 +142,12 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'On iOS — health, contacts, and files',
-        body: 'In the MODUS iOS app, go to Settings → Connectors → On This Device to enable Health (steps + sleep in your briefing), Contacts (for relationship tracking), Photos, and Files (including Obsidian notes via iCloud Drive).',
+        body: 'In the MODUS iOS app, go to the Capabilities page → On This Device to enable Health (steps + sleep in your briefing), Contacts (for relationship tracking), Photos, and Files (including Obsidian notes via iCloud Drive).',
         tag: 'iOS',
       },
       {
         title: 'Share files to MODUS on iOS',
-        body: 'In the iOS app: Settings → Connectors → Files & Notes → Browse. Pick any text or Markdown file from iCloud Drive. MODUS opens a chat with the file contents ready to discuss — great for Obsidian notes, meeting transcripts, or strategy docs.',
+        body: 'In the iOS app: the Capabilities page → Files & Notes → Browse. Pick any text or Markdown file from iCloud Drive. MODUS opens a chat with the file contents ready to discuss — great for Obsidian notes, meeting transcripts, or strategy docs.',
         tag: 'iOS',
       },
     ],
@@ -158,16 +158,16 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'MODUS builds a profile of you over time',
-        body: 'With "Generate Memory from Chat History" enabled (Settings → Memory), MODUS extracts key facts from your conversations — your preferences, recurring goals, communication style.',
+        body: 'With "Generate Memory from Chat History" enabled (Settings → Brain), MODUS extracts key facts from your conversations — your preferences, recurring goals, communication style.',
       },
       {
         title: 'Add memories manually',
-        body: 'Go to Settings → Memory → Add Memory. Useful for things like: "I work across Pacific and Eastern time zones", "My launch date is June 1", "My co-founder is named Alex".',
+        body: 'Go to Settings → Brain → Add Memory. Useful for things like: "I work across Pacific and Eastern time zones", "My launch date is June 1", "My co-founder is named Alex".',
         tag: 'Pro tip',
       },
       {
         title: 'Import from ChatGPT',
-        body: 'If you\'ve been using ChatGPT\'s memory, you can export your memories from ChatGPT (Settings → Data controls → Export) and import the JSON directly in Settings → Memory.',
+        body: 'If you\'ve been using ChatGPT\'s memory, you can export your memories from ChatGPT (Settings → Data controls → Export) and import the JSON directly in Settings → Brain.',
       },
     ],
   },

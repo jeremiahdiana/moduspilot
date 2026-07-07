@@ -33,6 +33,12 @@ export interface SidebarPrefs {
   workspaceCollapsed?: boolean;
 }
 
+// Per-user in-app density control (synced with web).
+export interface LayoutPrefs {
+  dashboardHidden?: string[];
+  briefingHidden?: string[];
+}
+
 export interface UserSettings {
   personalContext?: string;
   responseStyle?: string;
@@ -41,6 +47,7 @@ export interface UserSettings {
   modelSettings?: ModelSettings;
   ttsVoice?: string;
   sidebar?: SidebarPrefs;
+  layout?: LayoutPrefs;
 }
 
 export interface Memory {
@@ -75,6 +82,9 @@ export async function saveSettings(
     sidebar: updates.sidebar
       ? { ...current.sidebar, ...updates.sidebar }
       : current.sidebar,
+    layout: updates.layout
+      ? { ...current.layout, ...updates.layout }
+      : current.layout,
   };
   await setDoc(doc(db, 'users', uid), { settings: next }, { merge: true });
   return next;

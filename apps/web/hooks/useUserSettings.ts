@@ -39,6 +39,12 @@ export interface UserSettings {
     hidden: string[];
     workspaceCollapsed: boolean;
   };
+  // Per-user in-app density control (synced across web + desktop + iOS).
+  // `dashboardHidden`/`briefingHidden` = widget/section keys the user turned off.
+  layout?: {
+    dashboardHidden: string[];
+    briefingHidden: string[];
+  };
 }
 
 export interface Memory {
@@ -59,7 +65,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   briefingTimezone: 'UTC',
   reflectionHour: 21,
   capabilities: {
-    dailyBriefing: false,
+    dailyBriefing: true,
     voiceInput: false,
     vectorMemory: false,
     webSearch: false,
@@ -69,6 +75,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     messagesSync: false,
   },
   sidebar: { hidden: [], workspaceCollapsed: false },
+  layout: { dashboardHidden: [], briefingHidden: [] },
 };
 
 export function useUserSettings(user: User | null) {
@@ -96,6 +103,7 @@ export function useUserSettings(user: User | null) {
               ...data.settings,
               capabilities: { ...DEFAULT_SETTINGS.capabilities, ...data.settings?.capabilities },
               sidebar: { ...DEFAULT_SETTINGS.sidebar!, ...data.settings?.sidebar },
+              layout: { ...DEFAULT_SETTINGS.layout!, ...data.settings?.layout },
             });
           }
           if (data.plan === 'modus' || data.plan === 'pilot') setPlan(data.plan);
@@ -134,6 +142,10 @@ export function useUserSettings(user: User | null) {
         sidebar: {
           hidden: updates.sidebar?.hidden ?? settings.sidebar?.hidden ?? [],
           workspaceCollapsed: updates.sidebar?.workspaceCollapsed ?? settings.sidebar?.workspaceCollapsed ?? false,
+        },
+        layout: {
+          dashboardHidden: updates.layout?.dashboardHidden ?? settings.layout?.dashboardHidden ?? [],
+          briefingHidden: updates.layout?.briefingHidden ?? settings.layout?.briefingHidden ?? [],
         },
       };
       setSettings(next);

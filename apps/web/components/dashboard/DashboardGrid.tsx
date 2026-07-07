@@ -86,42 +86,57 @@ function FadeUp({ delay, children }: { delay: number; children: React.ReactNode 
   );
 }
 
-export default function DashboardGrid() {
+export default function DashboardGrid({ hidden }: { hidden?: Set<string> }) {
+  const show = (key: string) => !hidden?.has(key);
+  const showBriefing = show('briefing');
+  const showInbox = show('inbox');
+  const showLeftCol = showBriefing || showInbox;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
 
         {/* Left column */}
-        <div className="flex flex-col gap-4">
-          <FadeUp delay={0}>
-            <Widget title="Today's Briefing" icon={Icons.briefing} href="/briefing" className="min-h-[200px]">
-              <BriefingWidget />
-            </Widget>
-          </FadeUp>
+        {showLeftCol && (
+          <div className="flex flex-col gap-4">
+            {showBriefing && (
+              <FadeUp delay={0}>
+                <Widget title="Today's Briefing" icon={Icons.briefing} href="/briefing" className="min-h-[200px]">
+                  <BriefingWidget />
+                </Widget>
+              </FadeUp>
+            )}
 
-          <FadeUp delay={0.12}>
-            <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
-              <GmailWidget />
-            </Widget>
-          </FadeUp>
-        </div>
+            {showInbox && (
+              <FadeUp delay={0.12}>
+                <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
+                  <GmailWidget />
+                </Widget>
+              </FadeUp>
+            )}
+          </div>
+        )}
 
         {/* Right column */}
-        <div className="flex flex-col gap-4">
-          <FadeUp delay={0.06}>
-            <Widget title="Tasks" icon={Icons.tasks} href="/tasks" className="min-h-[180px]">
-              <TaskList />
-            </Widget>
-          </FadeUp>
-        </div>
+        {show('tasks') && (
+          <div className="flex flex-col gap-4">
+            <FadeUp delay={0.06}>
+              <Widget title="Tasks" icon={Icons.tasks} href="/tasks" className="min-h-[180px]">
+                <TaskList />
+              </Widget>
+            </FadeUp>
+          </div>
+        )}
       </div>
 
       {/* Full-width Calendar */}
-      <FadeUp delay={0.18}>
-        <Widget title="Today's Schedule" icon={Icons.calendar} className="min-h-[80px]">
-          <CalendarWidget />
-        </Widget>
-      </FadeUp>
+      {show('schedule') && (
+        <FadeUp delay={0.18}>
+          <Widget title="Today's Schedule" icon={Icons.calendar} className="min-h-[80px]">
+            <CalendarWidget />
+          </Widget>
+        </FadeUp>
+      )}
     </div>
   );
 }

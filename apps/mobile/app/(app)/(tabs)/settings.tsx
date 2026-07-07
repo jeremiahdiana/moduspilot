@@ -12,6 +12,32 @@ import { useSheets } from '@/components/ui/Sheets';
 import { useThemeColors, useThemeToggle } from '@/lib/theme';
 import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/settings';
 
+// Keys mirror apps/web/lib/layout-keys.ts so show/hide syncs across web + iOS.
+const DASHBOARD_ITEMS: { key: string; icon: IconName; label: string }[] = [
+  { key: 'focus', icon: 'track-changes', label: 'Focus card' },
+  { key: 'stats', icon: 'dashboard', label: 'Stat pills' },
+  { key: 'quickActions', icon: 'bolt', label: 'Quick actions' },
+  { key: 'needsYou', icon: 'notifications', label: 'Needs you' },
+  { key: 'briefing', icon: 'wb-sunny', label: "Today's briefing" },
+  { key: 'inbox', icon: 'mail-outline', label: 'Inbox' },
+  { key: 'tasks', icon: 'check-box', label: 'Tasks' },
+  { key: 'schedule', icon: 'event', label: "Today's schedule" },
+];
+
+const BRIEFING_ITEMS: { key: string; icon: IconName; label: string }[] = [
+  { key: 'schedule', icon: 'event', label: 'Schedule timeline' },
+  { key: 'actionQueue', icon: 'bolt', label: 'Needs attention' },
+  { key: 'inbox', icon: 'mail-outline', label: 'Inbox' },
+  { key: 'mission', icon: 'track-changes', label: 'Top priority' },
+  { key: 'energy', icon: 'bolt', label: 'Energy check-in' },
+  { key: 'top3', icon: 'track-changes', label: 'Top 3' },
+  { key: 'habits', icon: 'local-fire-department', label: 'Habits status' },
+  { key: 'looseEnd', icon: 'schedule', label: 'Loose end' },
+  { key: 'pattern', icon: 'visibility', label: 'MODUS noticed' },
+  { key: 'relationship', icon: 'group', label: 'Relationship nudge' },
+  { key: 'news', icon: 'article', label: 'In the news' },
+];
+
 export default function SettingsScreen() {
   const user = auth.currentUser;
   const c = useThemeColors();
@@ -41,6 +67,16 @@ export default function SettingsScreen() {
     const next = await saveSettings(uid, settings, {
       sidebar: { hidden, workspaceCollapsed: settings.sidebar?.workspaceCollapsed },
     });
+    setSettings(next);
+  }
+
+  // Show/hide a dashboard widget or briefing section (synced with web).
+  async function toggleLayoutItem(field: 'dashboardHidden' | 'briefingHidden', key: string, show: boolean) {
+    if (!uid) return;
+    const current = settings.layout?.[field] ?? [];
+    const hidden = show ? current.filter(k => k !== key) : Array.from(new Set([...current, key]));
+    setSettings(s => ({ ...s, layout: { ...s.layout, [field]: hidden } }));
+    const next = await saveSettings(uid, settings, { layout: { [field]: hidden } });
     setSettings(next);
   }
 
@@ -131,7 +167,7 @@ export default function SettingsScreen() {
           <Divider />
           <ToggleRow
             icon="wb-sunny" label="Daily briefing" sub="Morning brief with your priorities"
-            value={!!settings.capabilities?.dailyBriefing}
+            value={settings.capabilities?.dailyBriefing !== false}
             onChange={v => toggleCapability('dailyBriefing', v)} brand={c.brand} border={c.border}
           />
           <Divider />
@@ -148,7 +184,7 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* Sidebar — show/hide menu destinations */}
+        {/* Display — sidebar menu */}
         <View>
           <Text className="text-muted text-xs font-semibold uppercase tracking-wider mb-2 ml-1">Sidebar menu</Text>
           <View className="bg-surface border border-border rounded-xl overflow-hidden">
@@ -168,6 +204,40 @@ export default function SettingsScreen() {
                   icon={item.icon} label={item.label}
                   value={!(settings.sidebar?.hidden ?? []).includes(item.key)}
                   onChange={v => toggleSidebarItem(item.key, v)} brand={c.brand} border={c.border}
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Display — dashboard widgets */}
+        <View>
+          <Text className="text-muted text-xs font-semibold uppercase tracking-wider mb-2 ml-1">Dashboard widgets</Text>
+          <View className="bg-surface border border-border rounded-xl overflow-hidden">
+            {(DASHBOARD_ITEMS).map((item, i) => (
+              <View key={item.key}>
+                {i > 0 && <Divider />}
+                <ToggleRow
+                  icon={item.icon} label={item.label}
+                  value={!(settings.layout?.dashboardHidden ?? []).includes(item.key)}
+                  onChange={v => toggleLayoutItem('dashboardHidden', item.key, v)} brand={c.brand} border={c.border}
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Display — briefing cards */}
+        <View>
+          <Text className="text-muted text-xs font-semibold uppercase tracking-wider mb-2 ml-1">Briefing cards</Text>
+          <View className="bg-surface border border-border rounded-xl overflow-hidden">
+            {(BRIEFING_ITEMS).map((item, i) => (
+              <View key={item.key}>
+                {i > 0 && <Divider />}
+                <ToggleRow
+                  icon={item.icon} label={item.label}
+                  value={!(settings.layout?.briefingHidden ?? []).includes(item.key)}
+                  onChange={v => toggleLayoutItem('briefingHidden', item.key, v)} brand={c.brand} border={c.border}
                 />
               </View>
             ))}

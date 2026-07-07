@@ -287,6 +287,8 @@ export default function BriefingScreen() {
   const [newsPickerOpen, setNewsPickerOpen] = useState(false);
   const [weather, setWeather] = useState<Weather | null>(null);
   const [health, setHealth] = useState<HealthData | null>(null);
+  const [briefHidden, setBriefHidden] = useState<Set<string>>(new Set());
+  const showS = (k: string) => !briefHidden.has(k);
 
   async function load() {
     if (!user) { setLoading(false); return; }
@@ -331,6 +333,11 @@ export default function BriefingScreen() {
     const unsubH = onSnapshot(query(collection(db, 'users', uid, 'habits'), orderBy('createdAt', 'desc')), snap => {
       setHabits(snap.docs.map(d => ({ id: d.id, title: d.data().title ?? 'Untitled', streak: d.data().streak ?? 0, completedDates: d.data().completedDates ?? [] })));
     }, () => {});
+    // Per-user briefing section visibility (Settings → Display), synced w/ web.
+    const unsubS = onSnapshot(doc(db, 'users', uid), snap => {
+      const l = snap.data()?.settings?.layout;
+      setBriefHidden(new Set(Array.isArray(l?.briefingHidden) ? l.briefingHidden : []));
+    }, () => {});
 
     fetchTodayEvents().then(r => { if (alive) setEvents(r.events); });
     fetchWeather().then(w => { if (alive) setWeather(w); });
@@ -341,7 +348,7 @@ export default function BriefingScreen() {
       });
     }
 
-    return () => { alive = false; unsubT(); unsubH(); };
+    return () => { alive = false; unsubT(); unsubH(); unsubS(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -515,7 +522,7 @@ export default function BriefingScreen() {
           )}
 
           {/* Mission today */}
-          {data.top3?.[0]?.task && (
+          {showS('mission') && data.top3?.[0]?.task && (
             <LinearGradient colors={['rgba(124,58,237,0.10)', 'rgba(124,58,237,0.03)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 16, borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)' }}>
               <View className="px-5 py-4">
                 <View className="flex-row items-center gap-2 mb-1.5">
@@ -529,7 +536,7 @@ export default function BriefingScreen() {
           )}
 
           {/* Needs attention */}
-          {needsAttention.length > 0 && (
+          {showS('actionQueue') && needsAttention.length > 0 && (
             <LabeledCard icon="bolt" color="#f59e0b" label="Needs attention" right={<View className="px-2 py-0.5 rounded-full bg-amber-500/10"><Text className="text-[10px] font-bold" style={{ color: '#f59e0b' }}>{needsAttention.length}</Text></View>}>
               <View className="gap-2">
                 {needsAttention.map(item => (
@@ -555,6 +562,7 @@ export default function BriefingScreen() {
           )}
 
           {/* Energy check */}
+          {showS('energy') && (
           <LabeledCard icon="bolt" color="#f59e0b" label="Energy check">
             {energy ? (
               <>
@@ -575,9 +583,10 @@ export default function BriefingScreen() {
               </>
             )}
           </LabeledCard>
+          )}
 
           {/* Top 3 — checkable */}
-          {data.top3?.length > 0 && (
+          {showS('top3') && data.top3?.length > 0 && (
             <LabeledCard icon="track-changes" color="#3b82f6" label="Top 3 today">
               <View className="gap-1.5">
                 {data.top3.map((item, i) => {
@@ -600,7 +609,7 @@ export default function BriefingScreen() {
           )}
 
           {/* Inbox */}
-          {inboxConnected && (
+          {showS('inbox') && inboxConnected && (
             <LabeledCard
               icon="mail-outline" color="#10b981" label="Inbox"
               right={
@@ -666,12 +675,14 @@ export default function BriefingScreen() {
           )}
 
           {/* Schedule timeline */}
+          {showS('schedule') && (
           <LabeledCard icon="event" color="#3b82f6" label="Today's schedule">
             <ScheduleTimeline events={events} fallback={data.schedule ?? []} color={c.brand} />
           </LabeledCard>
+          )}
 
           {/* Habits status (from briefing) */}
-          {data.habits?.length > 0 && (
+          {showS('habits') && data.habits?.length > 0 && (
             <LabeledCard icon="local-fire-department" color="#f97316" label="Habits">
               <View className="gap-0.5">
                 {data.habits.map((h, i) => (
@@ -685,7 +696,7 @@ export default function BriefingScreen() {
           )}
 
           {/* Loose end */}
-          {data.looseEnd?.text && (
+          {showS('looseEnd') && data.looseEnd?.text && (
             <ProactiveReveal delay={0} accent="#f97316">
               <LabeledCard icon="schedule" color="#f97316" label="Loose end" accent="rgba(249,115,22,0.45)">
                 <Text className="text-text text-[13px] leading-5">{data.looseEnd.text}</Text>
@@ -697,7 +708,7 @@ export default function BriefingScreen() {
           )}
 
           {/* MODUS noticed */}
-          {data.patternCallout && (
+          {showS('pattern') && data.patternCallout && (
             <ProactiveReveal delay={90} accent="#f59e0b">
               <LabeledCard icon="visibility" color="#f59e0b" label="MODUS noticed" accent="rgba(245,158,11,0.45)">
                 <Text className="text-text text-[13px] leading-5">{data.patternCallout}</Text>
@@ -706,7 +717,7 @@ export default function BriefingScreen() {
           )}
 
           {/* Relationship nudge */}
-          {data.relationshipAlert && (
+          {showS('relationship') && data.relationshipAlert && (
             <ProactiveReveal delay={180} accent="#3b82f6">
               <LabeledCard icon="group" color="#3b82f6" label="Relationship nudge" accent="rgba(59,130,246,0.45)">
                 <Text className="text-text text-[13px] leading-5">{data.relationshipAlert}</Text>
@@ -715,6 +726,7 @@ export default function BriefingScreen() {
           )}
 
           {/* In the news */}
+          {showS('news') && (
           <LabeledCard
             icon="article" color="#3b82f6" label={`In the news${newsIndustry ? ' · ' + newsIndustry : ''}`}
             right={
@@ -748,6 +760,7 @@ export default function BriefingScreen() {
               </View>
             )}
           </LabeledCard>
+          )}
 
           {/* Ask MODUS */}
           <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/chat' as never)} activeOpacity={0.85} className="flex-row items-center gap-3 rounded-2xl bg-brand/5 border border-brand/25 px-5 py-4 mt-1">

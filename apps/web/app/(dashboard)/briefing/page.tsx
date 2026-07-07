@@ -1076,6 +1076,11 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const bottomRef = useRef<HTMLDivElement>(null);
   const todayStr = new Date().toISOString().slice(0, 10);
 
+  // Per-user briefing section visibility (Settings → Display). Hidden cards
+  // are omitted; core header/narrative always render.
+  const briefingHidden = new Set(settings.layout?.briefingHidden ?? []);
+  const showSection = (key: string) => !briefingHidden.has(key);
+
   // Integration data
   const [gmailThreads, setGmailThreads] = useState<GmailThread[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -1391,10 +1396,12 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_272px] gap-5 items-start">
             {/* Left: reading column */}
             <div className="space-y-3">
-              <FadeCard delay={0.05}>
-                <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
-              </FadeCard>
-              {(() => {
+              {showSection('schedule') && (
+                <FadeCard delay={0.05}>
+                  <ScheduleTimeline events={calendarEvents} schedule={data.schedule ?? []} connected={calendarConnected} onConnectGoogle={handleConnectGoogle} />
+                </FadeCard>
+              )}
+              {showSection('actionQueue') && (() => {
                 const taskItems: ActionItem[] = overdueTasks.map(t => ({
                   id: t.id, type: 'task' as const, title: t.title,
                   sub: `Overdue · due ${new Date(t.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
@@ -1410,39 +1417,47 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
                   </FadeCard>
                 );
               })()}
-              <FadeCard delay={0.10}>
-                <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter} loading={gmailLoading}
-                  onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply}
-                  accounts={gmailAccounts} triageAccount={triageAccount} onTriageAccountChange={setTriageAccount}
-                  triageState={triageState} triageResult={triageResult} onTriage={runTriage} />
-              </FadeCard>
-              {data.looseEnd && (
+              {showSection('inbox') && (
+                <FadeCard delay={0.10}>
+                  <ApprovalQueueCard threads={gmailThreads} connected={gmailConnected} filter={emailFilter} loading={gmailLoading}
+                    onFilterChange={setEmailFilter} onConnectGoogle={handleConnectGoogle} onDraftReply={handleDraftReply}
+                    accounts={gmailAccounts} triageAccount={triageAccount} onTriageAccountChange={setTriageAccount}
+                    triageState={triageState} triageResult={triageResult} onTriage={runTriage} />
+                </FadeCard>
+              )}
+              {showSection('looseEnd') && data.looseEnd && (
                 <FadeCard delay={0.15}><LooseEndCard text={data.looseEnd.text} onHandle={() => setInput(`Handle: ${data.looseEnd!.text}`)} /></FadeCard>
               )}
-              {data.patternCallout && (
+              {showSection('pattern') && data.patternCallout && (
                 <FadeCard delay={0.18}><PatternCard text={data.patternCallout} /></FadeCard>
               )}
-              {data.relationshipAlert && (
+              {showSection('relationship') && data.relationshipAlert && (
                 <FadeCard delay={0.21}><RelationshipCard text={data.relationshipAlert} /></FadeCard>
               )}
-              <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} loading={newsLoading} onChangeTopic={handleNewsTopicChange} /></FadeCard>
+              {showSection('news') && (
+                <FadeCard delay={0.22}><NewsCard items={newsItems} industry={newsIndustry} loading={newsLoading} onChangeTopic={handleNewsTopicChange} /></FadeCard>
+              )}
             </div>
             {/* Right: sticky action panel */}
             <div className="space-y-3 lg:sticky lg:top-6">
-              {data.top3.length > 0 && (
+              {showSection('mission') && data.top3.length > 0 && (
                 <FadeCard delay={0.03}><MissionCard task={data.top3[0].task} source={data.top3[0].source} /></FadeCard>
               )}
-              <FadeCard delay={0.07}>
-                <EnergyCard energy={briefing.energy} onSelect={(key, chatMsg) => { onEnergySelect(key); append({ role: 'user', content: chatMsg }); }} />
-              </FadeCard>
-              {data.top3.length > 0 && (
+              {showSection('energy') && (
+                <FadeCard delay={0.07}>
+                  <EnergyCard energy={briefing.energy} onSelect={(key, chatMsg) => { onEnergySelect(key); append({ role: 'user', content: chatMsg }); }} />
+                </FadeCard>
+              )}
+              {showSection('top3') && data.top3.length > 0 && (
                 <FadeCard delay={0.11}>
                   <CheckableTop3Card items={data.top3} completedIndices={completedTop3} onToggle={toggleTop3} />
                 </FadeCard>
               )}
-              <FadeCard delay={0.15}>
-                <InlineBriefingHabits habits={habits} onToggle={toggleHabit} />
-              </FadeCard>
+              {showSection('habits') && (
+                <FadeCard delay={0.15}>
+                  <InlineBriefingHabits habits={habits} onToggle={toggleHabit} />
+                </FadeCard>
+              )}
             </div>
           </div>
         ) : (
