@@ -1,69 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-
-/* ── Particle canvas ── */
-function ParticleCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    type Node = { x: number; y: number; vx: number; vy: number; r: number; phase: number; speed: number };
-    let nodes: Node[] = [], raf: number;
-    const init = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      const count = Math.min(80, Math.floor((canvas.width * canvas.height) / 12000));
-      nodes = Array.from({ length: count }, () => ({
-        x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-        r: Math.random() * 1.8 + 0.4, phase: Math.random() * Math.PI * 2,
-        speed: 0.012 + Math.random() * 0.018,
-      }));
-    };
-    init();
-    window.addEventListener('resize', init);
-    const LINK = 140;
-    const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const n of nodes) {
-        n.x += n.vx; n.y += n.vy; n.phase += n.speed;
-        if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-        const a = 0.3 + 0.25 * Math.sin(n.phase);
-        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,139,250,${a})`; ctx.fill();
-      }
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < LINK) {
-            ctx.beginPath(); ctx.moveTo(nodes[i].x, nodes[i].y); ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = `rgba(124,58,237,${(1 - d / LINK) * 0.18})`; ctx.lineWidth = 0.7; ctx.stroke();
-          }
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    // Only run the loop while the hero is actually on screen — stops the
-    // O(n²) particle work from burning CPU when the user has scrolled past it.
-    const start = () => { if (!raf) raf = requestAnimationFrame(tick); };
-    const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
-    const io = new IntersectionObserver(
-      ([entry]) => { entry.isIntersecting ? start() : stop(); },
-      { threshold: 0 }
-    );
-    io.observe(canvas);
-    start();
-    return () => { stop(); window.removeEventListener('resize', init); io.disconnect(); };
-  }, []);
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full" />;
-}
+import { useEffect, useState } from 'react';
 
 /* ── Typewriter ── */
 const PHRASES = ['builds your plan', 'tracks your habits', 'triages your inbox', 'blocks your deep work', 'tells you what to focus on'];
@@ -124,39 +62,17 @@ function Ticker() {
 
 /* ── Hero ── */
 export default function HeroSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [onScreen, setOnScreen] = useState(true);
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0 });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
   return (
-    <section ref={sectionRef} className={`relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pt-20 pb-16${onScreen ? '' : ' hero-paused'}`}>
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pt-20 pb-16">
 
-      {/* Background */}
+      {/* Background — one calm violet wash + a faint static dot grid. */}
       <div className="absolute inset-0 -z-10">
         {/* Base — visible violet in light mode, deep dark in dark mode */}
         <div className="absolute inset-0 bg-gradient-to-b from-violet-300/70 via-violet-200/30 to-bg dark:from-violet-950/60 dark:via-bg dark:to-bg" />
-        {/* Strong sweeping arc from top */}
-        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.55),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.35),transparent_65%)]" />
-        {/* Side accent blushes */}
-        <div className="absolute top-0 left-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.35),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_0%_30%,rgba(139,92,246,0.20),transparent)]" />
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.30),transparent)] dark:bg-[radial-gradient(ellipse_60%_50%_at_100%_30%,rgba(167,139,250,0.18),transparent)]" />
-        <div className="hero-orb hero-orb-1" />
-        <div className="hero-orb hero-orb-2" />
-        <div className="hero-orb hero-orb-3" />
-        <div className="hero-orb hero-orb-4" />
-        <ParticleCanvas />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.22)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(124,58,237,0.18)_1px,transparent_1px)] bg-[size:28px_28px]" />
-        {/* Animated spotlight sweep */}
-        <motion.div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_50%_35%_at_50%_35%,rgba(124,58,237,0.12),transparent_70%)]"
-          animate={onScreen ? { opacity: [0.6, 1, 0.6] } : { opacity: 0.8 }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        />
+        {/* Sweeping arc from top */}
+        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.45),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.28),transparent_65%)]" />
+        {/* Faint static dot grid for texture */}
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.16)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(124,58,237,0.12)_1px,transparent_1px)] bg-[size:28px_28px]" />
       </div>
 
       {/* Text block — w-full forces it to fill the flex container so text-center works correctly on mobile */}
@@ -182,17 +98,9 @@ export default function HeroSection() {
         <motion.p
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.28, ease: 'easeOut' }}
-          className="text-sm sm:text-base text-muted/90 max-w-xl mx-auto mb-2.5 leading-relaxed"
+          className="text-sm sm:text-base text-muted max-w-xl mx-auto mb-10 leading-relaxed"
         >
-          <span className="text-text font-semibold">Every model. Every app.</span> Routed to the best one — working while you don&apos;t.
-        </motion.p>
-
-        <motion.p
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.31, ease: 'easeOut' }}
-          className="text-sm sm:text-base text-muted max-w-xl mx-auto mb-10"
-        >
-          Write with <span className="text-text font-semibold">Gemini</span>. Research with <span className="text-text font-semibold">Claude</span>. Ask <span className="text-text font-semibold">ChatGPT</span>.
+          Write with <span className="text-text font-semibold">Gemini</span>. Research with <span className="text-text font-semibold">Claude</span>. Ask <span className="text-text font-semibold">ChatGPT</span>. Routed to the best one, automatically.
         </motion.p>
 
         <motion.div

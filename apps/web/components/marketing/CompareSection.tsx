@@ -3,16 +3,16 @@
 import { motion } from 'framer-motion';
 
 const ROWS = [
-  { feature: 'Every frontier model, auto-routed per task', modus: true,  chatgpt: 'One model', notion: false, todoist: false },
-  { feature: 'Daily briefing with priorities', modus: true,  chatgpt: false, notion: false, todoist: false },
-  { feature: 'Approve every AI action before it runs', modus: true,  chatgpt: false, notion: false, todoist: false },
-  { feature: 'Goal → milestone → habit → task engine', modus: true,  chatgpt: false, notion: 'Manual', todoist: 'Manual' },
-  { feature: 'Gmail triage & draft replies', modus: true,  chatgpt: false, notion: false, todoist: false },
-  { feature: 'Memory across all conversations', modus: true,  chatgpt: 'Paid', notion: false, todoist: false },
-  { feature: 'Bring your own GPT-4o or Claude key', modus: true,  chatgpt: 'N/A', notion: false, todoist: false },
-  { feature: 'Pattern recognition & proactive alerts', modus: true,  chatgpt: false, notion: false, todoist: false },
-  { feature: 'Habit streaks + streak-at-risk alerts', modus: true,  chatgpt: false, notion: false, todoist: false },
-  { feature: 'Google Calendar read + write', modus: true,  chatgpt: false, notion: false, todoist: false },
+  { feature: 'Every frontier model, auto-routed per task', modus: true,  chatgpt: 'One model', notion: false },
+  { feature: 'Daily briefing with priorities', modus: true,  chatgpt: false, notion: false },
+  { feature: 'Approve every AI action before it runs', modus: true,  chatgpt: false, notion: false },
+  { feature: 'Goal → milestone → habit → task engine', modus: true,  chatgpt: false, notion: 'Manual' },
+  { feature: 'Gmail triage & draft replies', modus: true,  chatgpt: false, notion: false },
+  { feature: 'Memory across all conversations', modus: true,  chatgpt: 'Paid', notion: false },
+  { feature: 'Bring your own Claude or GPT key', modus: true,  chatgpt: 'N/A', notion: false },
+  { feature: 'Pattern recognition & proactive alerts', modus: true,  chatgpt: false, notion: false },
+  { feature: 'Habit streaks + streak-at-risk alerts', modus: true,  chatgpt: false, notion: false },
+  { feature: 'Google Calendar read + write', modus: true,  chatgpt: false, notion: false },
 ];
 
 function Cell({ value }: { value: boolean | string }) {
@@ -50,7 +50,7 @@ export default function CompareSection() {
           {/* Header */}
           <div className="grid grid-cols-5 border-b border-border">
             <div className="col-span-2 px-6 py-4" />
-            {['MODUS', 'ChatGPT', 'Notion', 'Todoist'].map((col, i) => (
+            {['MODUS', 'ChatGPT', 'Notion'].map((col, i) => (
               <div key={col} className={`px-4 py-4 text-center ${i === 0 ? 'bg-brand/5 border-l border-r border-brand/20' : ''}`}>
                 <span className={`text-xs font-bold uppercase tracking-widest ${i === 0 ? 'text-brand' : 'text-muted'}`}>{col}</span>
               </div>
@@ -72,16 +72,6 @@ export default function CompareSection() {
             </div>
           ))}
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-xs text-muted/50 mt-6"
-        >
-          Todoist column omitted for space — it has none of the above either.
-        </motion.p>
       </div>
     </section>
   );

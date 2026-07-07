@@ -28,10 +28,10 @@ export default function FinalCTA() {
               href="/login"
               className="btn-primary inline-block px-10 py-4 bg-brand text-white text-base font-bold rounded-xl hover:shadow-[0_0_60px_rgba(124,58,237,0.55)] transition-all hover:scale-105 active:scale-100"
             >
-              Get Early Access
+              Start your 3-day free trial
             </a>
             <a
-              href="#features"
+              href="/how-it-works"
               className="inline-block px-10 py-4 border border-border text-muted text-base font-medium rounded-xl hover:border-brand/40 hover:text-text transition-all"
             >
               See how it works

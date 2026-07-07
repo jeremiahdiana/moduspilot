@@ -2,13 +2,10 @@ export default function Footer() {
   const links = {
     Product: [
       { label: 'Features', href: '#features' },
-      { label: 'How It Works', href: '#how-it-works' },
+      { label: 'How It Works', href: '/how-it-works' },
       { label: 'Pricing', href: '/pricing' },
-      { label: 'Changelog', href: '#' },
     ],
     Company: [
-      { label: 'About', href: '#' },
-      { label: 'Blog', href: '#' },
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms', href: '/terms' },
     ],
