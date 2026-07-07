@@ -35,8 +35,8 @@ const WORKSPACE: NavItem[] = [
   { key: 'group',     label: 'Group',     seg: 'group',     href: '/(app)/group',            icon: 'group' },
 ];
 const BOTTOM: NavItem[] = [
-  { key: 'capabilities', label: 'Connections', seg: 'connectors', href: '/(app)/connectors',      icon: 'hub' },
-  { key: 'settings',     label: 'Settings',    seg: 'settings',   href: '/(app)/(tabs)/settings', icon: 'settings' },
+  { key: 'capabilities', label: 'Capabilities', seg: 'connectors', href: '/(app)/connectors',      icon: 'hub' },
+  { key: 'settings',     label: 'Settings',     seg: 'settings',   href: '/(app)/(tabs)/settings', icon: 'settings' },
 ];
 
 // Live sidebar prefs (hidden items + workspace collapse) from Firestore, synced with web.

@@ -160,7 +160,7 @@ export default function SettingsScreen() {
               { key: 'reminders', icon: 'checklist', label: 'Reminders' },
               { key: 'notes', icon: 'sticky-note-2', label: 'Notes' },
               { key: 'group', icon: 'group', label: 'Group' },
-              { key: 'capabilities', icon: 'hub', label: 'Connections' },
+              { key: 'capabilities', icon: 'hub', label: 'Capabilities' },
             ] as { key: string; icon: IconName; label: string }[]).map((item, i) => (
               <View key={item.key}>
                 {i > 0 && <Divider />}
