@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { experimental_createMCPClient } from 'ai';
+import { connectMcpClient } from '@/lib/mcp-client';
+import type { McpTransport } from '@/lib/mcp-servers';
 import { assertPublicUrl } from '@/lib/ssrf';
 
 const TIMEOUT_MS = 6000;
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     mcpTestCount: testHour === nowHour ? FieldValue.increment(1) : 1,
   }, { merge: true });
 
-  const { url, authHeader } = await req.json() as { url: string; authHeader?: string };
+  const { url, authHeader, transport } = await req.json() as { url: string; authHeader?: string; transport?: McpTransport };
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 });
 
   try {
@@ -41,15 +42,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Invalid URL' }, { status: 400 });
   }
 
-  let client: Awaited<ReturnType<typeof experimental_createMCPClient>> | null = null;
+  let client: Awaited<ReturnType<typeof connectMcpClient>> | null = null;
   try {
-    const connectPromise = experimental_createMCPClient({
-      transport: {
-        type: 'sse',
-        url,
-        headers: authHeader ? { Authorization: authHeader } : undefined,
-      },
-    });
+    const connectPromise = connectMcpClient({ url, authHeader, transport: transport ?? 'http' });
 
     client = await Promise.race([
       connectPromise,

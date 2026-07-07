@@ -5,6 +5,7 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
 import { getMcpServers } from '@/lib/mcp-servers';
+import { connectMcpClient } from '@/lib/mcp-client';
 import { assertPublicUrl } from '@/lib/ssrf';
 import {
   enforceGuestRateLimit,
@@ -267,13 +268,7 @@ export async function POST(req: Request) {
                 // Re-check at connection time: a stored URL could resolve to an
                 // internal address now (DNS rebinding) even if it was public when added.
                 assertPublicUrl(server.url).then(() =>
-                  experimental_createMCPClient({
-                    transport: {
-                      type: 'sse',
-                      url: server.url,
-                      headers: server.authHeader ? { Authorization: server.authHeader } : undefined,
-                    },
-                  }),
+                  connectMcpClient({ url: server.url, authHeader: server.authHeader, transport: server.transport }),
                 ),
                 new Promise<never>((_, reject) =>
                   setTimeout(() => reject(new Error('timeout')), 4000)

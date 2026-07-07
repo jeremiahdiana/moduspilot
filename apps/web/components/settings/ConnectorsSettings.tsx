@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from 'firebase/auth';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { isPaidPlan } from '@/lib/plan';
+import { PLUGIN_DIRECTORY, PLUGIN_DIRECTORY_MORE_URL, type PluginTemplate } from '@/lib/plugin-directory';
 
 interface GoogleAccount { email: string; connectedAt: string | null; }
 interface NotionAccount { workspaceId: string; workspaceName: string; workspaceIcon: string | null; ownerEmail: string; connectedAt: string | null; }
@@ -138,9 +139,12 @@ export default function ConnectorsSettings({ user }: Props) {
   const [mcpName, setMcpName] = useState('');
   const [mcpUrl, setMcpUrl] = useState('');
   const [mcpAuth, setMcpAuth] = useState('');
+  const [mcpTransport, setMcpTransport] = useState<'http' | 'sse'>('http');
+  const [mcpTemplate, setMcpTemplate] = useState<PluginTemplate | null>(null);
   const [mcpTesting, setMcpTesting] = useState(false);
   const [mcpTestResult, setMcpTestResult] = useState<{ ok: boolean; tools?: string[]; error?: string } | null>(null);
   const [mcpSaving, setMcpSaving] = useState(false);
+  const [mcpAdding, setMcpAdding] = useState<string | null>(null); // directory entry being one-tap added
   const [mcpRemoving, setMcpRemoving] = useState<string | null>(null);
 
   useEffect(() => {
@@ -299,7 +303,7 @@ export default function ConnectorsSettings({ user }: Props) {
       const res = await fetch('/api/mcp/test', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined }),
+        body: JSON.stringify({ url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined, transport: mcpTransport }),
       });
       setMcpTestResult(await res.json());
     } catch {
@@ -317,17 +321,50 @@ export default function ConnectorsSettings({ user }: Props) {
       const res = await fetch('/api/mcp/add', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: mcpName.trim(), url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined }),
+        body: JSON.stringify({ name: mcpName.trim(), url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined, transport: mcpTransport }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'Failed to save server'); return; }
-      setMcpServers(prev => [...prev, { id: data.id, name: mcpName.trim(), url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined, createdAt: new Date().toISOString() }]);
-      setMcpFormOpen(false);
-      setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTestResult(null);
+      setMcpServers(prev => [...prev, { id: data.id, name: mcpName.trim(), url: mcpUrl.trim(), authHeader: mcpAuth.trim() || undefined, transport: mcpTransport, createdAt: new Date().toISOString() }]);
+      setMcpFormOpen(false); setMcpTemplate(null);
+      setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTransport('http'); setMcpTestResult(null);
     } catch {
       setError('Failed to save server');
     } finally {
       setMcpSaving(false);
+    }
+  }
+
+  // Directory: tokenless entries add in one tap; others open the form prefilled.
+  function chooseTemplate(t: PluginTemplate) {
+    if (t.id === 'custom') {
+      setMcpTemplate(null); setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTransport('http');
+      setMcpTestResult(null); setMcpFormOpen(true);
+      return;
+    }
+    if (t.tokenless && t.url) { addFromTemplate(t); return; }
+    setMcpTemplate(t);
+    setMcpName(t.name); setMcpUrl(t.url ?? ''); setMcpAuth(''); setMcpTransport(t.transport);
+    setMcpTestResult(null); setMcpFormOpen(true);
+  }
+
+  async function addFromTemplate(t: PluginTemplate) {
+    if (!t.url || mcpServers.some(s => s.url === t.url)) return;
+    setMcpAdding(t.id);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/mcp/add', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: t.name, url: t.url, transport: t.transport }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Failed to add plugin'); return; }
+      setMcpServers(prev => [...prev, { id: data.id, name: t.name, url: t.url!, transport: t.transport, createdAt: new Date().toISOString() }]);
+    } catch {
+      setError('Failed to add plugin');
+    } finally {
+      setMcpAdding(null);
     }
   }
 
@@ -364,8 +401,8 @@ export default function ConnectorsSettings({ user }: Props) {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr_300px] lg:gap-8 gap-6 items-start">
-      {/* ── Left column: Integrations ── */}
+      <div className="grid md:grid-cols-2 gap-6 items-start">
+      {/* ── Integrations ── */}
       <SectionGroup label="Integrations">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
           {/* Google */}
@@ -483,8 +520,7 @@ export default function ConnectorsSettings({ user }: Props) {
         </div>
       </SectionGroup>
 
-      {/* ── Right column: AI Features + Device + Custom ── */}
-      <div className="space-y-6">
+      {/* ── AI Features ── */}
       <SectionGroup label="AI Features">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
           {AI_FEATURES.map(f => {
@@ -670,29 +706,53 @@ export default function ConnectorsSettings({ user }: Props) {
         <p className="text-[11px] text-muted mt-2 px-1">Requires the MODUS Desktop app with Full Disk Access granted.</p>
       </SectionGroup>
 
-      {/* ── Custom MCP ── */}
-      <SectionGroup label="Custom">
+      {/* ── Plugins (elevated, full width) ── */}
+      <div className="md:col-span-2 order-first">
+      <SectionGroup label="Plugins">
         <div className="bg-panel border border-border rounded-xl overflow-hidden divide-y divide-border">
           <div className="flex items-center gap-3 px-4 py-3">
             <IconBox><McpIcon /></IconBox>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text">MCP Server</p>
-              <p className="text-xs text-muted">Connect any tool or data source</p>
+              <p className="text-sm font-medium text-text">Plugins</p>
+              <p className="text-xs text-muted">Give MODUS new tools &amp; data. Plugins connect over MCP and their tools become available in chat.</p>
             </div>
             {loading ? (
               <div className="w-12 h-3 rounded bg-border animate-pulse" />
             ) : mcpServers.length > 0 ? (
               <span className="flex items-center gap-1.5 text-xs text-emerald-400 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                {mcpServers.length} server{mcpServers.length !== 1 ? 's' : ''}
+                {mcpServers.length} active
               </span>
             ) : null}
-            <button
-              onClick={() => { setMcpFormOpen(o => !o); if (mcpFormOpen) { setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTestResult(null); } }}
-              className="ml-2 text-xs font-medium text-brand hover:underline shrink-0"
-            >
-              {mcpFormOpen ? 'Cancel' : mcpServers.length > 0 ? '+ Add' : 'Add server'}
-            </button>
+          </div>
+
+          {/* Starter directory */}
+          <div className="px-4 py-3">
+            <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-2">Add a plugin</p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {PLUGIN_DIRECTORY.map(t => {
+                const already = !!t.url && mcpServers.some(s => s.url === t.url);
+                return (
+                  <div key={t.id} className="flex items-start gap-3 rounded-lg border border-border bg-bg/40 px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-text truncate">{t.name}</p>
+                        {t.tokenless && <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-400 bg-emerald-500/10 rounded px-1 py-0.5 shrink-0">1-tap</span>}
+                      </div>
+                      <p className="text-[11px] text-muted leading-snug mt-0.5">{t.description}</p>
+                    </div>
+                    <button
+                      onClick={() => chooseTemplate(t)}
+                      disabled={already || mcpAdding === t.id}
+                      className="shrink-0 mt-0.5 text-xs font-medium text-brand hover:underline disabled:opacity-40 disabled:no-underline"
+                    >
+                      {already ? 'Added' : mcpAdding === t.id ? 'Adding…' : t.id === 'custom' ? 'Add' : t.tokenless ? 'Add' : 'Use'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <a href={PLUGIN_DIRECTORY_MORE_URL} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-[11px] text-muted hover:text-brand transition-colors">Browse more plugins →</a>
           </div>
 
           <AnimatePresence>
@@ -733,19 +793,36 @@ export default function ConnectorsSettings({ user }: Props) {
                 className="overflow-hidden"
               >
                 <div className="px-4 py-4 space-y-3 bg-bg/40">
+                  {mcpTemplate && (
+                    <div className="rounded-lg bg-brand/5 border border-brand/15 px-3 py-2 text-[11px] text-muted leading-relaxed">
+                      Paste your {mcpTemplate.name} {mcpTemplate.authLabel ?? 'API key / token'} in the auth field below.
+                      {mcpTemplate.docsUrl && (<> <a href={mcpTemplate.docsUrl} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">How to get it →</a></>)}
+                    </div>
+                  )}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-muted uppercase tracking-wide">Server name</label>
+                    <label className="text-[11px] font-medium text-muted uppercase tracking-wide">Plugin name</label>
                     <input value={mcpName} onChange={e => setMcpName(e.target.value)} placeholder="e.g. My Database"
                       className="w-full bg-panel border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-muted uppercase tracking-wide">SSE endpoint URL</label>
-                    <input value={mcpUrl} onChange={e => { setMcpUrl(e.target.value); setMcpTestResult(null); }} placeholder="https://your-server.com/sse"
+                    <label className="text-[11px] font-medium text-muted uppercase tracking-wide">Transport</label>
+                    <div className="flex bg-panel border border-border rounded-lg p-0.5 w-max">
+                      {(['http', 'sse'] as const).map(tp => (
+                        <button key={tp} onClick={() => { setMcpTransport(tp); setMcpTestResult(null); }}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${mcpTransport === tp ? 'bg-brand text-white' : 'text-muted hover:text-text'}`}>
+                          {tp === 'http' ? 'HTTP' : 'SSE'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-muted uppercase tracking-wide">Endpoint URL</label>
+                    <input value={mcpUrl} onChange={e => { setMcpUrl(e.target.value); setMcpTestResult(null); }} placeholder={mcpTransport === 'http' ? 'https://your-server.com/mcp' : 'https://your-server.com/sse'}
                       className="w-full bg-panel border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors font-mono text-xs" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-muted uppercase tracking-wide">Auth header <span className="text-muted/50 normal-case font-normal">(optional)</span></label>
-                    <input value={mcpAuth} onChange={e => setMcpAuth(e.target.value)} placeholder="Bearer your-token"
+                    <input value={mcpAuth} onChange={e => setMcpAuth(e.target.value)} placeholder={mcpTemplate?.authPlaceholder ?? 'Bearer your-token'}
                       className="w-full bg-panel border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors font-mono text-xs" />
                   </div>
 
@@ -762,6 +839,10 @@ export default function ConnectorsSettings({ user }: Props) {
                   )}
 
                   <div className="flex gap-2">
+                    <button onClick={() => { setMcpFormOpen(false); setMcpTemplate(null); setMcpName(''); setMcpUrl(''); setMcpAuth(''); setMcpTransport('http'); setMcpTestResult(null); }}
+                      className="px-3 py-2 border border-border text-xs text-muted hover:text-text rounded-lg transition-colors">
+                      Cancel
+                    </button>
                     <button onClick={testMcpConnection} disabled={mcpTesting || !mcpUrl.trim()}
                       className="flex items-center gap-1.5 px-3 py-2 border border-border text-xs text-muted hover:text-text hover:border-brand/30 rounded-lg transition-colors disabled:opacity-40">
                       {mcpTesting && <span className="w-3 h-3 border border-muted border-t-transparent rounded-full animate-spin" />}
@@ -770,7 +851,7 @@ export default function ConnectorsSettings({ user }: Props) {
                     <button onClick={saveMcpServer} disabled={mcpSaving || !mcpName.trim() || !mcpUrl.trim()}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand/90 disabled:opacity-40 transition-colors">
                       {mcpSaving && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                      {mcpSaving ? 'Saving…' : 'Save server'}
+                      {mcpSaving ? 'Saving…' : 'Save plugin'}
                     </button>
                   </div>
                 </div>
@@ -779,7 +860,7 @@ export default function ConnectorsSettings({ user }: Props) {
           </AnimatePresence>
         </div>
       </SectionGroup>
-      </div>{/* end right column */}
+      </div>{/* end plugins */}
       </div>{/* end grid */}
     </div>
   );

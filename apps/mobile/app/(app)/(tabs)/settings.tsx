@@ -250,7 +250,7 @@ export default function SettingsScreen() {
           <Divider />
           <NavRow icon="hub" label="Connectors" onPress={() => router.push('/(app)/connectors' as never)} />
           <Divider />
-          <NavRow icon="terminal" label="MCP Servers" onPress={() => router.push('/(app)/mcp-servers' as never)} />
+          <NavRow icon="terminal" label="Plugins" onPress={() => router.push('/(app)/mcp-servers' as never)} />
           <Divider />
           <NavRow icon="credit-card" label="Billing & plan" onPress={() => router.push('/(app)/billing' as never)} />
         </View>
