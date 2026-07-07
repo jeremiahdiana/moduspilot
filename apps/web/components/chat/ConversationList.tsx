@@ -188,9 +188,28 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
   );
 }
 
+type Filter = 'all' | 'chats' | 'briefings';
+
 export default function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onRename, user }: Props) {
-  const todayConvs   = conversations.filter(c => isToday(c.updatedAt));
-  const earlierConvs = conversations.filter(c => !isToday(c.updatedAt));
+  // Filter the flood of MODUS-generated briefings/check-ins out of the chat list.
+  // Defaults to "chats" (real conversations) since that's what the sidebar is for;
+  // briefings live on the Briefing page + dashboard, and are one click away here.
+  const [filter, setFilter] = useState<Filter>('chats');
+  useEffect(() => {
+    const saved = localStorage.getItem('modus:chatFilter');
+    if (saved === 'all' || saved === 'chats' || saved === 'briefings') setFilter(saved);
+  }, []);
+  const changeFilter = useCallback((f: Filter) => {
+    setFilter(f);
+    localStorage.setItem('modus:chatFilter', f);
+  }, []);
+
+  const briefingCount = conversations.filter(c => c.system).length;
+  const visible = conversations.filter(c =>
+    filter === 'all' ? true : filter === 'chats' ? !c.system : c.system
+  );
+  const todayConvs   = visible.filter(c => isToday(c.updatedAt));
+  const earlierConvs = visible.filter(c => !isToday(c.updatedAt));
   const [shareModalId, setShareModalId] = useState<string | null>(null);
   const [shareOverrides, setShareOverrides] = useState<Record<string, string | undefined>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -317,7 +336,7 @@ export default function ConversationList({ conversations, activeId, onSelect, on
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 pb-3">
+      <div className="px-3 pb-2.5">
         <button
           onClick={onNew}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20 text-brand text-sm font-medium hover:bg-brand/20 transition-colors"
@@ -327,9 +346,32 @@ export default function ConversationList({ conversations, activeId, onSelect, on
         </button>
       </div>
 
+      {/* Filter — hide the flood of MODUS briefings. Only shown when briefings exist. */}
+      {briefingCount > 0 && (
+        <div className="px-3 pb-2.5">
+          <div className="flex items-center gap-0.5 p-0.5 bg-panel/60 border border-border/60 rounded-lg">
+            {(['all', 'chats', 'briefings'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => changeFilter(f)}
+                className={`flex-1 text-[11px] font-medium px-2 py-1 rounded-md capitalize transition-colors ${
+                  filter === f ? 'bg-brand/15 text-brand' : 'text-muted hover:text-text'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-2">
-        {conversations.length === 0 && (
+        {conversations.length === 0 ? (
           <p className="text-xs text-muted text-center py-6">No conversations yet.</p>
+        ) : visible.length === 0 && (
+          <p className="text-xs text-muted text-center py-6">
+            {filter === 'briefings' ? 'No briefings.' : filter === 'chats' ? 'No chats yet.' : 'Nothing here.'}
+          </p>
         )}
 
         {todayConvs.length > 0 && (
