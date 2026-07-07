@@ -32,6 +32,18 @@ export default function SettingsScreen() {
     setSettings(next);
   }
 
+  // Show/hide a sidebar destination (hidden items stay reachable elsewhere).
+  async function toggleSidebarItem(key: string, show: boolean) {
+    if (!uid) return;
+    const current = settings.sidebar?.hidden ?? [];
+    const hidden = show ? current.filter(k => k !== key) : Array.from(new Set([...current, key]));
+    setSettings(s => ({ ...s, sidebar: { ...s.sidebar, hidden } }));
+    const next = await saveSettings(uid, settings, {
+      sidebar: { hidden, workspaceCollapsed: settings.sidebar?.workspaceCollapsed },
+    });
+    setSettings(next);
+  }
+
   async function handleSignOut() {
     const ok = await confirm({ title: 'Sign out', message: 'Are you sure?', confirmLabel: 'Sign out', destructive: true });
     if (ok) signOut(auth);
@@ -134,6 +146,30 @@ export default function SettingsScreen() {
             value={!!settings.capabilities?.relationshipNurture}
             onChange={v => toggleCapability('relationshipNurture', v)} brand={c.brand} border={c.border}
           />
+        </View>
+
+        {/* Sidebar — show/hide menu destinations */}
+        <View>
+          <Text className="text-muted text-xs font-semibold uppercase tracking-wider mb-2 ml-1">Sidebar menu</Text>
+          <View className="bg-surface border border-border rounded-xl overflow-hidden">
+            {([
+              { key: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+              { key: 'briefing', icon: 'wb-sunny', label: 'Briefing' },
+              { key: 'projects', icon: 'folder', label: 'Projects' },
+              { key: 'goals', icon: 'flag', label: 'Goals' },
+              { key: 'reminders', icon: 'checklist', label: 'Reminders' },
+              { key: 'capabilities', icon: 'hub', label: 'Connections' },
+            ] as { key: string; icon: IconName; label: string }[]).map((item, i) => (
+              <View key={item.key}>
+                {i > 0 && <Divider />}
+                <ToggleRow
+                  icon={item.icon} label={item.label}
+                  value={!(settings.sidebar?.hidden ?? []).includes(item.key)}
+                  onChange={v => toggleSidebarItem(item.key, v)} brand={c.brand} border={c.border}
+                />
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* Account & integrations */}

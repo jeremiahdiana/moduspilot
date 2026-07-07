@@ -1,5 +1,8 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Pressable, Dimensions, StyleSheet } from 'react-native';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -15,16 +18,51 @@ import { haptics } from '@/lib/haptics';
 
 const WIDTH = Math.min(300, Dimensions.get('window').width * 0.82);
 
-const NAV: { label: string; seg: string; href: string; icon: IconName }[] = [
-  { label: 'Dashboard', seg: 'dashboard', href: '/(app)/(tabs)/dashboard', icon: 'dashboard' },
-  { label: 'Briefing',  seg: 'briefing',  href: '/(app)/(tabs)/briefing',  icon: 'wb-sunny' },
-  { label: 'Chat',      seg: 'chat',      href: '/(app)/(tabs)/chat',      icon: 'auto-awesome' },
-  { label: 'Goals',     seg: 'goals',     href: '/(app)/(tabs)/goals',     icon: 'flag' },
-  { label: 'Reminders',    seg: 'reminders',  href: '/(app)/(tabs)/reminders',  icon: 'checklist' },
-  { label: 'Projects',     seg: 'projects',   href: '/(app)/(tabs)/projects',   icon: 'folder' },
-  { label: 'Connections',  seg: 'connectors', href: '/(app)/connectors',        icon: 'hub' },
-  { label: 'Settings',     seg: 'settings',   href: '/(app)/(tabs)/settings',   icon: 'settings' },
+type NavItem = { key: string; label: string; seg: string; href: string; icon: IconName };
+
+// Mirrors the web sidebar groups. `key` is shared cross-platform so a hide toggle set
+// on web/iOS applies consistently (users/{uid}.settings.sidebar.hidden).
+const PRIMARY: NavItem[] = [
+  { key: 'chat',      label: 'Chat',      seg: 'chat',      href: '/(app)/(tabs)/chat',      icon: 'auto-awesome' },
+  { key: 'dashboard', label: 'Dashboard', seg: 'dashboard', href: '/(app)/(tabs)/dashboard', icon: 'dashboard' },
+  { key: 'briefing',  label: 'Briefing',  seg: 'briefing',  href: '/(app)/(tabs)/briefing',  icon: 'wb-sunny' },
+  { key: 'projects',  label: 'Projects',  seg: 'projects',  href: '/(app)/(tabs)/projects',  icon: 'folder' },
 ];
+const WORKSPACE: NavItem[] = [
+  { key: 'goals',     label: 'Goals',     seg: 'goals',     href: '/(app)/(tabs)/goals',     icon: 'flag' },
+  { key: 'reminders', label: 'Reminders', seg: 'reminders', href: '/(app)/(tabs)/reminders', icon: 'checklist' },
+];
+const BOTTOM: NavItem[] = [
+  { key: 'capabilities', label: 'Connections', seg: 'connectors', href: '/(app)/connectors',      icon: 'hub' },
+  { key: 'settings',     label: 'Settings',    seg: 'settings',   href: '/(app)/(tabs)/settings', icon: 'settings' },
+];
+
+// Live sidebar prefs (hidden items + workspace collapse) from Firestore, synced with web.
+function useSidebarPrefs() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!uid) { setHidden(new Set()); setWorkspaceCollapsed(false); return; }
+    const unsub = onSnapshot(doc(db, 'users', uid), snap => {
+      const sb = snap.data()?.settings?.sidebar;
+      setHidden(new Set(Array.isArray(sb?.hidden) ? sb.hidden : []));
+      setWorkspaceCollapsed(!!sb?.workspaceCollapsed);
+    });
+    return unsub;
+  }, [uid]);
+
+  const toggleWorkspace = useCallback(() => {
+    if (!uid) return;
+    const next = !workspaceCollapsed;
+    setWorkspaceCollapsed(next);
+    void setDoc(doc(db, 'users', uid), { settings: { sidebar: { workspaceCollapsed: next } } }, { merge: true });
+  }, [uid, workspaceCollapsed]);
+
+  return { hidden, workspaceCollapsed, toggleWorkspace };
+}
 
 const DrawerCtx = createContext<{ open: () => void; close: () => void }>({ open: () => {}, close: () => {} });
 export const useDrawer = () => useContext(DrawerCtx);
@@ -38,6 +76,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   const c = useThemeColors();
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === 'dark';
+  const { hidden, workspaceCollapsed, toggleWorkspace } = useSidebarPrefs();
 
   const slideX   = useSharedValue(-WIDTH);
   const backdrop = useSharedValue(0);
@@ -76,6 +115,30 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
     close();
   }
 
+  const renderRow = (item: NavItem) => {
+    const active = pathname === `/${item.seg}`;
+    return (
+      <TouchableOpacity
+        key={item.key}
+        activeOpacity={0.7}
+        onPress={() => go(item.href)}
+        style={{
+          flexDirection: 'row', alignItems: 'center', gap: 16,
+          paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
+          backgroundColor: active ? `${c.brand}18` : 'transparent',
+        }}
+      >
+        <Icon name={item.icon} size={22} color={active ? c.brand : c.muted} />
+        <Text style={{ fontSize: 15, letterSpacing: 0.3, color: active ? c.brand : c.text, fontWeight: active ? '600' : '500' }}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // Chat + Settings are never hideable; everything else respects `hidden`.
+  const visibleWorkspace = WORKSPACE.filter(i => !hidden.has(i.key));
+
   return (
     <DrawerCtx.Provider value={{ open, close }}>
       <View style={{ flex: 1 }}>
@@ -111,30 +174,29 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
                 </View>
 
                 <View style={{ gap: 4 }}>
-                  {NAV.map(item => {
-                    const active = pathname === `/${item.seg}`;
-                    return (
+                  {/* Primary group */}
+                  {PRIMARY.filter(i => i.key === 'chat' || !hidden.has(i.key)).map(renderRow)}
+
+                  {/* Workspace group — collapsible */}
+                  {visibleWorkspace.length > 0 && (
+                    <>
                       <TouchableOpacity
-                        key={item.seg}
                         activeOpacity={0.7}
-                        onPress={() => go(item.href)}
-                        style={{
-                          flexDirection: 'row', alignItems: 'center', gap: 16,
-                          paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
-                          backgroundColor: active ? `${c.brand}18` : 'transparent',
-                        }}
+                        onPress={toggleWorkspace}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 }}
                       >
-                        <Icon name={item.icon} size={22} color={active ? c.brand : c.muted} />
-                        <Text style={{
-                          fontSize: 15, letterSpacing: 0.3,
-                          color: active ? c.brand : c.text,
-                          fontWeight: active ? '600' : '500',
-                        }}>
-                          {item.label}
+                        <Text style={{ flex: 1, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', fontWeight: '600', color: c.muted }}>
+                          Workspace
                         </Text>
+                        <Icon name={workspaceCollapsed ? 'chevron-right' : 'expand-more'} size={18} color={c.muted} />
                       </TouchableOpacity>
-                    );
-                  })}
+                      {!workspaceCollapsed && visibleWorkspace.map(renderRow)}
+                    </>
+                  )}
+
+                  {/* Bottom group — Connections + Settings */}
+                  <View style={{ height: 1, backgroundColor: c.border, marginVertical: 8, marginHorizontal: 4 }} />
+                  {BOTTOM.filter(i => i.key === 'settings' || !hidden.has(i.key)).map(renderRow)}
                 </View>
               </View>
             </SafeAreaView>

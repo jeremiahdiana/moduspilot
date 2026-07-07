@@ -33,6 +33,12 @@ export interface UserSettings {
     notesSync: boolean;
     messagesSync: boolean;
   };
+  // Per-user sidebar customization (synced across web + desktop + iOS).
+  // `hidden` = nav keys the user turned off; hidden items stay reachable via Cmd+K.
+  sidebar?: {
+    hidden: string[];
+    workspaceCollapsed: boolean;
+  };
 }
 
 export interface Memory {
@@ -62,6 +68,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     notesSync: true,
     messagesSync: false,
   },
+  sidebar: { hidden: [], workspaceCollapsed: false },
 };
 
 export function useUserSettings(user: User | null) {
@@ -88,6 +95,7 @@ export function useUserSettings(user: User | null) {
               ...DEFAULT_SETTINGS,
               ...data.settings,
               capabilities: { ...DEFAULT_SETTINGS.capabilities, ...data.settings?.capabilities },
+              sidebar: { ...DEFAULT_SETTINGS.sidebar!, ...data.settings?.sidebar },
             });
           }
           if (data.plan === 'modus' || data.plan === 'pilot') setPlan(data.plan);
@@ -123,6 +131,10 @@ export function useUserSettings(user: User | null) {
         ...settings,
         ...updates,
         capabilities: { ...settings.capabilities, ...(updates.capabilities ?? {}) },
+        sidebar: {
+          hidden: updates.sidebar?.hidden ?? settings.sidebar?.hidden ?? [],
+          workspaceCollapsed: updates.sidebar?.workspaceCollapsed ?? settings.sidebar?.workspaceCollapsed ?? false,
+        },
       };
       setSettings(next);
       await setDoc(doc(db, 'users', user.uid), { settings: next }, { merge: true });

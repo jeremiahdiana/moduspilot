@@ -6,9 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/components/providers/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
@@ -45,16 +45,85 @@ const ICONS = {
   settings:    'M12 2a10 10 0 110 20A10 10 0 0112 2zm0 5v5l3 3',
 } as const;
 
-const NAV = [
-  { href: '/dashboard',   label: 'Dashboard',   icon: 'dashboard'   as const },
-  { href: '/chat',        label: 'Chat',        icon: 'chat'        as const },
-  { href: '/projects',    label: 'Projects',    icon: 'projects'    as const },
-  { href: '/goals',       label: 'Goals',       icon: 'goals'       as const },
-  { href: '/reminders',   label: 'Reminders',   icon: 'reminders'   as const },
-  { href: '/notes',       label: 'Notes',       icon: 'notes'       as const },
-  { href: '/group',       label: 'Group',       icon: 'group'       as const },
-  { href: '/capabilities', label: 'Capabilities', icon: 'connections' as const },
+type NavItem = { key: string; href: string; label: string; icon: keyof typeof ICONS; special?: 'briefing' };
+
+// Primary group — the daily essentials, always visible (no group label).
+// Briefing is special-cased (unread dot) but stays in-line here.
+const PRIMARY: NavItem[] = [
+  { key: 'chat',      href: '/chat',      label: 'Chat',      icon: 'chat'      },
+  { key: 'dashboard', href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { key: 'briefing',  href: '/briefing',  label: 'Briefing',  icon: 'briefing', special: 'briefing' },
+  { key: 'projects',  href: '/projects',  label: 'Projects',  icon: 'projects'  },
 ];
+
+// Workspace group — collapsible, labeled "WORKSPACE".
+const WORKSPACE: NavItem[] = [
+  { key: 'goals',     href: '/goals',     label: 'Goals',     icon: 'goals'     },
+  { key: 'reminders', href: '/reminders', label: 'Reminders', icon: 'reminders' },
+  { key: 'notes',     href: '/notes',     label: 'Notes',     icon: 'notes'     },
+  { key: 'group',     href: '/group',     label: 'Group',     icon: 'group'     },
+];
+
+// Bottom group — pinned above Settings.
+const BOTTOM: NavItem[] = [
+  { key: 'capabilities', href: '/capabilities', label: 'Capabilities', icon: 'connections' },
+];
+
+// Keys the user is allowed to hide (chat + settings are always shown).
+export const HIDEABLE_KEYS = [
+  ...PRIMARY.filter(i => i.key !== 'chat').map(i => i.key),
+  ...WORKSPACE.map(i => i.key),
+  ...BOTTOM.map(i => i.key),
+];
+
+function NavLink({ item, pathname, onNavClick }: { item: NavItem; pathname: string; onNavClick?: () => void }) {
+  const active = pathname === item.href;
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavClick}
+      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+        active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
+      }`}
+    >
+      {active && (
+        <motion.div
+          layoutId="nav-active-pill"
+          className="absolute inset-0 rounded-xl bg-brand/10"
+          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        />
+      )}
+      <Ico d={ICONS[item.icon]} className="relative" /><span className="relative">{item.label}</span>
+    </Link>
+  );
+}
+
+// Live-subscribes to the user's sidebar prefs (hidden items + collapse state),
+// stored in Firestore users/{uid}.settings.sidebar so they sync across devices.
+function useSidebarPrefs(uid: string | undefined) {
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!uid) { setHidden(new Set()); setWorkspaceCollapsed(false); return; }
+    const unsub = onSnapshot(doc(db, 'users', uid), snap => {
+      const sb = snap.data()?.settings?.sidebar;
+      setHidden(new Set(Array.isArray(sb?.hidden) ? sb.hidden : []));
+      setWorkspaceCollapsed(!!sb?.workspaceCollapsed);
+    });
+    return unsub;
+  }, [uid]);
+
+  const toggleWorkspace = useCallback(() => {
+    if (!uid) return;
+    const next = !workspaceCollapsed;
+    setWorkspaceCollapsed(next); // optimistic
+    // Firestore merge is recursive for nested maps, so this leaves `hidden` intact.
+    void setDoc(doc(db, 'users', uid), { settings: { sidebar: { workspaceCollapsed: next } } }, { merge: true });
+  }, [uid, workspaceCollapsed]);
+
+  return { hidden, workspaceCollapsed, toggleWorkspace };
+}
 
 function BriefingNavLink({ pathname }: { pathname: string }) {
   const { user } = useAuth();
@@ -103,6 +172,9 @@ function SidebarContent({
   setOpen,
   onCmdOpen,
   onNavClick,
+  hidden,
+  workspaceCollapsed,
+  onToggleWorkspace,
 }: {
   pathname: string;
   user: ReturnType<typeof useAuth>['user'];
@@ -110,7 +182,11 @@ function SidebarContent({
   setOpen: (v: boolean) => void;
   onCmdOpen: () => void;
   onNavClick?: () => void;
+  hidden: Set<string>;
+  workspaceCollapsed: boolean;
+  onToggleWorkspace: () => void;
 }) {
+  const visibleWorkspace = WORKSPACE.filter(i => !hidden.has(i.key));
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -153,41 +229,50 @@ function SidebarContent({
 
       {/* Nav */}
       <LayoutGroup>
-        <nav className="flex flex-col gap-0.5 flex-1">
-          {NAV.slice(0, 1).map(item => (
-            <Link key={item.href} href={item.href} onClick={onNavClick}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === item.href ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
-              }`}
-            >
-              {pathname === item.href && (
-                <motion.div
-                  layoutId="nav-active-pill"
-                  className="absolute inset-0 rounded-xl bg-brand/10"
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                />
-              )}
-              <Ico d={ICONS[item.icon]} className="relative" /><span className="relative">{item.label}</span>
-            </Link>
-          ))}
-          <BriefingNavLink pathname={pathname} />
-          {NAV.slice(1).map(item => (
-            <Link key={item.href} href={item.href} onClick={onNavClick}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === item.href ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
-              }`}
-            >
-              {pathname === item.href && (
-                <motion.div
-                  layoutId="nav-active-pill"
-                  className="absolute inset-0 rounded-xl bg-brand/10"
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                />
-              )}
-              <Ico d={ICONS[item.icon]} className="relative" /><span className="relative">{item.label}</span>
-            </Link>
-          ))}
-          <div className="mt-2 pt-2 border-t border-border/50">
+        <nav className="group/nav flex flex-col gap-0.5 flex-1">
+          {/* Primary group — daily essentials */}
+          {PRIMARY.filter(i => i.key === 'chat' || !hidden.has(i.key)).map(item =>
+            item.special === 'briefing'
+              ? <BriefingNavLink key={item.key} pathname={pathname} />
+              : <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
+          )}
+
+          {/* Workspace group — collapsible */}
+          {visibleWorkspace.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={onToggleWorkspace}
+                className="flex items-center gap-1.5 w-full px-3 mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted/70 hover:text-muted transition-colors"
+              >
+                <span className="flex-1 text-left">Workspace</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round"
+                  className={`w-3 h-3 shrink-0 transition-transform ${workspaceCollapsed ? '-rotate-90' : ''}`}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <AnimatePresence initial={false}>
+                {!workspaceCollapsed && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden flex flex-col gap-0.5"
+                  >
+                    {visibleWorkspace.map(item => (
+                      <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Bottom group — Capabilities + Settings */}
+          <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-0.5">
+            {BOTTOM.filter(i => !hidden.has(i.key)).map(item => (
+              <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
+            ))}
             <Link href="/settings" onClick={onNavClick}
               className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                 pathname === '/settings' ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
@@ -201,6 +286,15 @@ function SidebarContent({
                 />
               )}
               <Ico d={ICONS.settings} className="relative" /><span className="relative">Settings</span>
+            </Link>
+            {/* Customize — subtle, revealed on sidebar hover */}
+            <Link href="/settings?tab=sidebar" onClick={onNavClick}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted/50 hover:text-muted opacity-0 group-hover/nav:opacity-100 focus:opacity-100 transition-opacity"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+                <path d="M12 2a10 10 0 110 20A10 10 0 0112 2z" /><path d="M12 8v4l2.5 2.5" />
+              </svg>
+              Customize sidebar
             </Link>
           </div>
         </nav>
@@ -263,6 +357,7 @@ const SIDEBAR_DEFAULT = 224;
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { hidden, workspaceCollapsed, toggleWorkspace } = useSidebarPrefs(user?.uid);
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -334,6 +429,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <SidebarContent
           pathname={pathname} user={user} open={open} setOpen={setOpen}
           onCmdOpen={() => setCmdOpen(true)}
+          hidden={hidden} workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
         />
         {/* Drag handle */}
         <div
@@ -365,6 +461,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 pathname={pathname} user={user} open={open} setOpen={setOpen}
                 onCmdOpen={() => { setCmdOpen(true); setMobileOpen(false); }}
                 onNavClick={() => setMobileOpen(false)}
+                hidden={hidden} workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
               />
             </motion.div>
           </>

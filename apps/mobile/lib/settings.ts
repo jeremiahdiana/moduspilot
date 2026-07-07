@@ -28,6 +28,11 @@ export interface Capabilities {
   relationshipNurture?: boolean;
 }
 
+export interface SidebarPrefs {
+  hidden?: string[];
+  workspaceCollapsed?: boolean;
+}
+
 export interface UserSettings {
   personalContext?: string;
   responseStyle?: string;
@@ -35,6 +40,7 @@ export interface UserSettings {
   capabilities?: Capabilities;
   modelSettings?: ModelSettings;
   ttsVoice?: string;
+  sidebar?: SidebarPrefs;
 }
 
 export interface Memory {
@@ -66,6 +72,9 @@ export async function saveSettings(
     modelSettings: updates.modelSettings
       ? { ...current.modelSettings, ...updates.modelSettings }
       : current.modelSettings,
+    sidebar: updates.sidebar
+      ? { ...current.sidebar, ...updates.sidebar }
+      : current.sidebar,
   };
   await setDoc(doc(db, 'users', uid), { settings: next }, { merge: true });
   return next;

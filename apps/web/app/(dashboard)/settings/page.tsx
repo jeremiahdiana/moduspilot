@@ -15,6 +15,7 @@ import UsageSettings from '@/components/settings/UsageSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
 import ModelSettings from '@/components/settings/ModelSettings';
 import TipsSettings from '@/components/settings/TipsSettings';
+import SidebarSettings from '@/components/settings/SidebarSettings';
 
 function TabIcon({ d, d2 }: { d: string; d2?: string }) {
   return (
@@ -27,6 +28,7 @@ function TabIcon({ d, d2 }: { d: string; d2?: string }) {
 
 const TABS = [
   { key: 'general',      label: 'General',      icon: <TabIcon d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" /> },
+  { key: 'sidebar',      label: 'Sidebar',      icon: <TabIcon d="M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" d2="M9 4v16" /> },
   { key: 'account',      label: 'Account',      icon: <TabIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" d2="M12 3a4 4 0 110 8 4 4 0 010-8z" /> },
   { key: 'privacy',      label: 'Privacy',      icon: <TabIcon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /> },
   { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
@@ -156,6 +158,9 @@ function SettingsContent() {
             >
               {activeTab === 'general' && (
                 <GeneralSettings settings={settings} saving={saving} onSave={saveSettings} />
+              )}
+              {activeTab === 'sidebar' && (
+                <SidebarSettings settings={settings} saving={saving} onSave={saveSettings} />
               )}
               {activeTab === 'account' && (
                 <AccountSettings user={user} />
