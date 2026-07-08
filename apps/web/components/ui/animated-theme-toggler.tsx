@@ -86,7 +86,7 @@ export function AnimatedThemeToggler({
     <>
       <style>{`
         .att-btn{--at-ink:rgba(13,13,20,0.65)}
-        .dark .att-btn,[data-theme="dark"] .att-btn{--at-ink:rgba(232,232,240,0.82)}
+        .dark .att-btn,[data-theme=dark] .att-btn{--at-ink:rgba(232,232,240,0.82)}
       `}</style>
       <motion.button
         className="att-btn"
