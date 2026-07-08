@@ -32,6 +32,18 @@ export async function POST(req: Request) {
   const userDoc = await adminDb.collection('users').doc(uid).get();
   const existingCustomerId = userDoc.data()?.stripeCustomerId as string | undefined;
 
+  // Guard: an active subscriber must NOT get a second (trialing) subscription
+  // here — that would double-bill them and grant a fresh trial. Plan changes go
+  // through /api/stripe/change-plan, which reprices the existing subscription.
+  const existingSubId = userDoc.data()?.subscriptionId as string | undefined;
+  const currentPlan = userDoc.data()?.plan as string | undefined;
+  if (existingSubId && currentPlan && currentPlan !== 'free') {
+    return Response.json(
+      { error: 'You already have an active subscription. Use plan change instead.', code: 'has_subscription' },
+      { status: 409 },
+    );
+  }
+
   // Optional post-checkout destination (e.g. new users land on the dashboard
   // after starting their trial; billing changes stay in settings).
   const successUrl = returnTo === 'dashboard'

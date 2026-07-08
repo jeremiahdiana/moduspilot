@@ -54,6 +54,9 @@ const PLANS: Array<{
   },
 ];
 
+// Price order — decides whether a target plan is an upgrade or a downgrade.
+const RANK: Record<'free' | 'modus' | 'pilot' | 'group', number> = { free: 0, modus: 1, pilot: 2, group: 3 };
+
 interface Props {
   plan: 'free' | 'modus' | 'pilot' | 'group';
 }
@@ -70,14 +73,20 @@ export default function BillingSettings({ plan }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const handleUpgrade = async (targetPlan: 'modus' | 'pilot' | 'group') => {
+  const handleChangePlan = async (targetPlan: 'modus' | 'pilot' | 'group') => {
     setLoading(targetPlan);
     setError('');
     try {
       const token = await getToken();
-      if (!token) { setError('Please sign in to upgrade.'); return; }
+      if (!token) { setError('Please sign in first.'); return; }
 
-      const res = await fetch('/api/stripe/checkout', {
+      // New customers go through Checkout (starts the 3-day trial). Existing
+      // subscribers reprice their current subscription in place — no second
+      // trial, no duplicate subscription, prorated immediately.
+      const isNewCustomer = plan === 'free';
+      const endpoint = isNewCustomer ? '/api/stripe/checkout' : '/api/stripe/change-plan';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ plan: targetPlan }),
@@ -85,9 +94,15 @@ export default function BillingSettings({ plan }: Props) {
 
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return; }
-      window.location.href = data.url;
+
+      if (isNewCustomer) {
+        window.location.href = data.url; // redirect to Stripe Checkout
+      } else {
+        // Repriced in place — reload so the new plan + success banner show.
+        window.location.href = '/settings?tab=billing&upgraded=1';
+      }
     } catch {
-      setError('Failed to start checkout. Try again.');
+      setError('Failed to change plan. Try again.');
     } finally {
       setLoading(null);
     }
@@ -158,7 +173,7 @@ export default function BillingSettings({ plan }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {PLANS.map(p => {
           const isCurrent = p.key === plan;
-          const isUpgrade = p.key !== 'free' && !isCurrent;
+          const isUpgrade = RANK[p.key] > RANK[plan];
           return (
             <div
               key={p.key}
@@ -186,7 +201,7 @@ export default function BillingSettings({ plan }: Props) {
               </ul>
               {!isCurrent && (
                 <button
-                  onClick={() => isUpgrade ? handleUpgrade(p.key as 'modus' | 'pilot' | 'group') : handleManage()}
+                  onClick={() => handleChangePlan(p.key as 'modus' | 'pilot' | 'group')}
                   disabled={!!loading}
                   className={`w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                     isUpgrade
@@ -194,7 +209,7 @@ export default function BillingSettings({ plan }: Props) {
                       : 'border border-border text-muted hover:text-text'
                   }`}
                 >
-                  {loading === p.key ? 'Redirecting…' : isUpgrade ? 'Upgrade' : 'Downgrade'}
+                  {loading === p.key ? 'Working…' : isUpgrade ? 'Upgrade' : 'Downgrade'}
                 </button>
               )}
             </div>

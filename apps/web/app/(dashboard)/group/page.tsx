@@ -124,12 +124,23 @@ export default function GroupPage() {
   const createGroup = () => run(async () => { await callGroup('create', { name: nameInput }); setNameInput(''); });
   const upgrade = () => run(async () => {
     const token = await auth.currentUser?.getIdToken();
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
     const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ plan: 'group' }),
+      method: 'POST', headers, body: JSON.stringify({ plan: 'group' }),
     });
     const data = await res.json().catch(() => ({}));
+
+    // Existing subscribers can't open a second checkout (would double-bill) —
+    // switch their current subscription to Group in place instead.
+    if (res.status === 409 && data.code === 'has_subscription') {
+      const chg = await fetch('/api/stripe/change-plan', {
+        method: 'POST', headers, body: JSON.stringify({ plan: 'group' }),
+      });
+      const cd = await chg.json().catch(() => ({}));
+      if (!chg.ok) throw new Error(cd.error ?? 'Could not switch to Group');
+      window.location.href = '/group';
+      return;
+    }
     if (!res.ok || !data.url) throw new Error(data.error ?? 'Could not start checkout');
     window.location.href = data.url;
   });
