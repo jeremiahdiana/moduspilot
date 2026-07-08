@@ -212,7 +212,14 @@ export async function POST(req: Request) {
 
     // Resolve model — an in-chat/Auto override wins for this message, else BYOK
     // keys, then the platform default (Groq). hasImage forces a vision model.
-    const chatModel = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
+    const resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
+    const chatModel = resolved.model;
+    if (resolved.downgraded) {
+      // Loud + alertable: a premium model was requested but we served Llama
+      // (missing provider key or plan gate). Previously silent — a rotated/removed
+      // key would drop every paid user to Llama with no signal anywhere.
+      console.error(`[chat] MODEL DOWNGRADE: requested ${resolved.requestedId} → served ${resolved.modelId} (missing provider key or plan gate) uid=${uid ?? 'guest'}`);
+    }
 
     // System prompt blocks
     const userContextBlock = buildUserContextBlock(personalContext);
@@ -340,6 +347,14 @@ export async function POST(req: Request) {
     });
 
     return result.toDataStreamResponse({
+      headers: {
+        // Honest labeling: what actually answered this message, so the client can
+        // show a notice when a premium pick was downgraded to the free default.
+        'x-modus-model': resolved.modelId,
+        ...(resolved.downgraded
+          ? { 'x-modus-downgraded': '1', 'x-modus-requested-model': resolved.requestedId ?? '' }
+          : {}),
+      },
       getErrorMessage: (error) => {
         const s = String(error);
         console.error('[chat] stream error:', s);

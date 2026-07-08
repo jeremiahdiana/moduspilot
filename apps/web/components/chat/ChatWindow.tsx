@@ -9,6 +9,7 @@ import Link from 'next/link';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { modelName } from '@/lib/models';
 import { motion } from 'framer-motion';
 
 interface ConnectedServices {
@@ -145,9 +146,22 @@ export default function ChatWindow({
   }, [authToken, isGuest]);
 
   const [chatError, setChatError] = useState<string | null>(null);
+  // Neutral (non-error) notice, e.g. when a premium model pick was unavailable
+  // and MODUS answered with the fast default instead — surfaced so we never pass
+  // Llama off as the model the user selected.
+  const [modelNotice, setModelNotice] = useState<string | null>(null);
 
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
     api: '/api/chat',
+    onResponse: (response) => {
+      if (response.headers.get('x-modus-downgraded') === '1') {
+        const requested = response.headers.get('x-modus-requested-model') || '';
+        const label = requested ? modelName(requested) : 'The selected model';
+        setModelNotice(`${label} is temporarily unavailable — answered with the fast default model instead.`);
+      } else {
+        setModelNotice(null);
+      }
+    },
     initialMessages,
     id: conversationId ?? 'guest',
     headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
@@ -256,6 +270,7 @@ export default function ChatWindow({
     setAttachedFiles([]);
     setInput('');
     setChatError(null);
+    setModelNotice(null);
     onUserMessage?.();
     await append(
       { role: 'user', content } as Parameters<typeof append>[0],
@@ -378,6 +393,17 @@ export default function ChatWindow({
           </div>
         )}
       </div>
+
+      {modelNotice && (
+        <div className="mx-8 mb-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-3">
+          <p className="text-sm text-amber-500">{modelNotice}</p>
+          <button onClick={() => setModelNotice(null)} className="text-amber-500 hover:text-amber-400 shrink-0" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       {chatError && (
         <div className="mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
