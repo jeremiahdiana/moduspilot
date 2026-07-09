@@ -72,6 +72,9 @@ export default function BillingSettings({ plan }: Props) {
   const upgraded = searchParams.get('upgraded') === '1';
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
+  // Plan awaiting confirmation (existing subscribers only — new customers get
+  // Stripe's own hosted confirm/pay page, so no extra step needed there).
+  const [confirmPlan, setConfirmPlan] = useState<'modus' | 'pilot' | 'group' | null>(null);
 
   const handleChangePlan = async (targetPlan: 'modus' | 'pilot' | 'group') => {
     setLoading(targetPlan);
@@ -93,7 +96,7 @@ export default function BillingSettings({ plan }: Props) {
       });
 
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return; }
+      if (!res.ok) { setConfirmPlan(null); setError(data.error ?? 'Something went wrong.'); return; }
 
       if (isNewCustomer) {
         window.location.href = data.url; // redirect to Stripe Checkout
@@ -102,6 +105,7 @@ export default function BillingSettings({ plan }: Props) {
         window.location.href = '/settings?tab=billing&upgraded=1';
       }
     } catch {
+      setConfirmPlan(null);
       setError('Failed to change plan. Try again.');
     } finally {
       setLoading(null);
@@ -201,7 +205,9 @@ export default function BillingSettings({ plan }: Props) {
               </ul>
               {!isCurrent && (
                 <button
-                  onClick={() => handleChangePlan(p.key as 'modus' | 'pilot' | 'group')}
+                  onClick={() => plan === 'free'
+                    ? handleChangePlan(p.key as 'modus' | 'pilot' | 'group')
+                    : setConfirmPlan(p.key as 'modus' | 'pilot' | 'group')}
                   disabled={!!loading}
                   className={`w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                     isUpgrade
@@ -233,6 +239,47 @@ export default function BillingSettings({ plan }: Props) {
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
+
+      {/* Confirm a plan change before we charge / reprice the subscription. */}
+      {confirmPlan && (() => {
+        const target = PLANS.find(p => p.key === confirmPlan)!;
+        const isUp = RANK[confirmPlan] > RANK[plan];
+        const busy = loading === confirmPlan;
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-panel border border-border rounded-2xl max-w-md w-full p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-text">
+                  {isUp ? 'Upgrade' : 'Downgrade'} to {target.label}?
+                </h3>
+                <p className="text-sm text-muted mt-2">
+                  {isUp ? (
+                    <>Your plan switches to <span className="text-text font-medium">{target.label}</span> right now. Upgrades are prorated — you&apos;ll be charged the difference for the rest of this billing period (nothing extra while you&apos;re still in a free trial), then <span className="text-text font-medium">{target.price}/mo</span>.</>
+                  ) : (
+                    <>Your plan switches to <span className="text-text font-medium">{target.label}</span> right now at <span className="text-text font-medium">{target.price}/mo</span>. Any unused credit is applied to your next invoice.</>
+                  )}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmPlan(null)}
+                  disabled={busy}
+                  className="px-4 py-2 text-sm text-muted hover:text-text transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleChangePlan(confirmPlan)}
+                  disabled={busy}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-brand text-white hover:bg-brand/90 transition-colors disabled:opacity-50"
+                >
+                  {busy ? 'Working…' : isUp ? `Confirm upgrade` : `Confirm downgrade`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
