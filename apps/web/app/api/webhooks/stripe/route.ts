@@ -5,6 +5,18 @@ import { sendPushToUser } from '@/lib/fcm-admin';
 
 const PLAN_PRICE: Record<string, string> = { modus: '$24', pilot: '$59', group: '$79' };
 
+// When a subscription ends or lapses, the pending "your trial ends, you'll be
+// charged $X" heads-up is no longer true — retract it so canceled users don't
+// see a stale charge warning (a source of confusion + disputes). Also reset the
+// sent flag so a future trial can notify again.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function clearTrialReminders(ref: FirebaseFirestore.DocumentReference) {
+  const snap = await ref.collection('conversations').where('trialReminder', '==', true).get();
+  if (snap.empty) return;
+  await Promise.all(snap.docs.map(d => d.ref.delete()));
+  await ref.update({ trialReminderSent: false });
+}
+
 async function findUserBySubscription(subId: string, customerId: string | null, uid?: string | null) {
   if (uid) {
     const doc = await adminDb.collection('users').doc(uid).get();
@@ -60,6 +72,7 @@ export async function POST(req: Request) {
       }
     } else if (status === 'past_due' || status === 'unpaid' || status === 'paused') {
       await ref.update({ plan: 'free' });
+      await clearTrialReminders(ref);
     }
   }
 
@@ -103,7 +116,10 @@ export async function POST(req: Request) {
   if (event.type === 'customer.subscription.deleted') {
     const sub = event.data.object;
     const ref = await findUserBySubscription(sub.id, sub.customer as string | null, sub.metadata?.uid);
-    if (ref) await ref.update({ plan: 'free', subscriptionId: null });
+    if (ref) {
+      await ref.update({ plan: 'free', subscriptionId: null });
+      await clearTrialReminders(ref);
+    }
   }
 
   // Downgrade on failed payment after all retries exhausted
@@ -116,7 +132,10 @@ export async function POST(req: Request) {
         invoice.customer as string | null,
         null,
       );
-      if (ref) await ref.update({ plan: 'free' });
+      if (ref) {
+        await ref.update({ plan: 'free' });
+        await clearTrialReminders(ref);
+      }
     }
   }
 
