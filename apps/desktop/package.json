@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "npm run build && electron .",
-    "watch": "tsc -p tsconfig.json --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "dist": "npm run build && electron-builder --mac",
+    "release": "npm run build && electron-builder --mac --publish always"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
