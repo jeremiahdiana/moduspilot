@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// MODUS Cloud Storage security rules.
+//
+// Every legitimate access to Storage is server-mediated:
+//   • Writes go through the Firebase Admin SDK (lib/storage.ts → adminBucket),
+//     which bypasses these rules entirely.
+//   • Reads happen via Firebase download-token URLs
+//     (…?alt=media&token=…), which also bypass these rules.
+//
+// Nothing in the app uses the client-side Storage SDK, so the correct posture is
+// to deny ALL direct client access. This prevents a client from ever listing,
+// reading, or writing bucket objects directly while leaving the server paths
+// fully functional.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
