@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { API_BASE, getAuthHeader } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon } from '@/components/Icon';
@@ -46,6 +47,8 @@ export default function McpServersScreen() {
   const [transport, setTransport] = useState<McpTransport>('http');
   const [saving, setSaving] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -61,6 +64,31 @@ export default function McpServersScreen() {
     }, () => {});
   }, [user]);
 
+  // Test the server the same way web does (/api/mcp/test) so users can confirm it
+  // connects and see its tool count before saving, instead of adding blind.
+  async function testConnection() {
+    if (!url.trim() || testing) return;
+    setTesting(true); setTestMsg(null);
+    try {
+      const headers = { 'Content-Type': 'application/json', ...(await getAuthHeader()) };
+      const res = await fetch(`${API_BASE}/api/mcp/test`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ url: url.trim(), authHeader: authHeader.trim() || undefined, transport }),
+      });
+      const data = await res.json().catch(() => ({} as { ok?: boolean; tools?: string[]; error?: string }));
+      if (res.ok && data.ok) {
+        const n = Array.isArray(data.tools) ? data.tools.length : 0;
+        setTestMsg({ ok: true, text: `Connected — ${n} tool${n === 1 ? '' : 's'} available` });
+        haptics.success();
+      } else {
+        setTestMsg({ ok: false, text: data.error || `Connection failed (${res.status})` });
+      }
+    } catch {
+      setTestMsg({ ok: false, text: 'Connection failed — check the URL and your network.' });
+    } finally { setTesting(false); }
+  }
+
   async function saveServer() {
     if (!user || !name.trim() || !url.trim()) return;
     setSaving(true);
@@ -73,7 +101,7 @@ export default function McpServersScreen() {
         createdAt: serverTimestamp(),
       });
       haptics.medium();
-      setName(''); setUrl(''); setAuthHeader(''); setTransport('http'); setAdding(false);
+      setName(''); setUrl(''); setAuthHeader(''); setTransport('http'); setAdding(false); setTestMsg(null);
     } catch { /* non-fatal */ } finally { setSaving(false); }
   }
 
@@ -109,7 +137,7 @@ export default function McpServersScreen() {
         title="Plugins"
         right={
           <TouchableOpacity
-            onPress={() => setAdding(v => !v)}
+            onPress={() => { setAdding(v => !v); setTestMsg(null); }}
             activeOpacity={0.8}
             className={`w-10 h-10 rounded-xl items-center justify-center ${adding ? 'bg-surface border border-border' : 'bg-brand'}`}
           >
@@ -178,17 +206,34 @@ export default function McpServersScreen() {
                   ))}
                 </View>
               </View>
-              <Field label="Endpoint URL" value={url} onChange={setUrl} placeholder={transport === 'http' ? 'https://mcp.example.com/mcp' : 'https://mcp.example.com/sse'} autoCapitalize="none" />
-              <Field label="Auth header (optional)" value={authHeader} onChange={setAuthHeader} placeholder="Bearer sk-…" autoCapitalize="none" secureTextEntry />
-              <TouchableOpacity
-                onPress={saveServer}
-                activeOpacity={0.8}
-                disabled={!name.trim() || !url.trim() || saving}
-                className="bg-brand rounded-xl py-3 items-center"
-                style={{ opacity: (!name.trim() || !url.trim() || saving) ? 0.5 : 1 }}
-              >
-                <Text className="text-white font-semibold">{saving ? 'Adding…' : 'Add plugin'}</Text>
-              </TouchableOpacity>
+              <Field label="Endpoint URL" value={url} onChange={v => { setUrl(v); setTestMsg(null); }} placeholder={transport === 'http' ? 'https://mcp.example.com/mcp' : 'https://mcp.example.com/sse'} autoCapitalize="none" />
+              <Field label="Auth header (optional)" value={authHeader} onChange={v => { setAuthHeader(v); setTestMsg(null); }} placeholder="Bearer sk-…" autoCapitalize="none" secureTextEntry />
+              {testMsg && (
+                <View className={`flex-row items-center gap-2 rounded-xl px-3 py-2.5 ${testMsg.ok ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                  <Icon name={testMsg.ok ? 'check-circle' : 'error-outline'} size={16} color={testMsg.ok ? '#10b981' : '#ef4444'} />
+                  <Text className={`text-xs flex-1 ${testMsg.ok ? 'text-emerald-500' : 'text-red-500'}`}>{testMsg.text}</Text>
+                </View>
+              )}
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  onPress={testConnection}
+                  activeOpacity={0.8}
+                  disabled={!url.trim() || testing}
+                  className="flex-1 border border-border rounded-xl py-3 items-center"
+                  style={{ opacity: (!url.trim() || testing) ? 0.5 : 1 }}
+                >
+                  <Text className="text-text font-semibold">{testing ? 'Testing…' : 'Test connection'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={saveServer}
+                  activeOpacity={0.8}
+                  disabled={!name.trim() || !url.trim() || saving}
+                  className="flex-1 bg-brand rounded-xl py-3 items-center"
+                  style={{ opacity: (!name.trim() || !url.trim() || saving) ? 0.5 : 1 }}
+                >
+                  <Text className="text-white font-semibold">{saving ? 'Adding…' : 'Add plugin'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
