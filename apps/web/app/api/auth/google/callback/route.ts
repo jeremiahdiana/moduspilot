@@ -46,7 +46,8 @@ export async function GET(req: Request) {
     // after the OAuth redirect. Without this, onAuthStateChanged can fire with
     // null on return and the user appears "signed out".
     let customToken = '';
-    try { customToken = await adminAuth.createCustomToken(uid); } catch {}
+    try { customToken = await adminAuth.createCustomToken(uid); }
+    catch (e) { console.error('[google/callback] custom token mint failed', e); }
 
     if (customToken) {
       const p = new URLSearchParams({ token: customToken, email, origin });

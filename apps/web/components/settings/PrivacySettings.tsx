@@ -76,8 +76,7 @@ export default function PrivacySettings({ settings, saving, onSave }: Props) {
 
       <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
         <h3 className="text-sm font-semibold text-text">Shared Links</h3>
-        <p className="text-xs text-muted">Conversation sharing is not yet enabled. When available, any links you create will appear here and can be revoked.</p>
-        <p className="text-xs text-muted/50 italic">Coming soon</p>
+        <p className="text-xs text-muted leading-relaxed">You can share any conversation as a read-only public link from the share button on a conversation in Chat. Anyone with the link can view that conversation until you revoke it — open the same menu and choose “Unshare” to revoke access at any time.</p>
       </div>
     </div>
   );

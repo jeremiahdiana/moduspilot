@@ -15,21 +15,33 @@ interface SharedConversation {
 }
 
 export async function generateMetadata({ params }: { params: { shareId: string } }): Promise<Metadata> {
-  const snap = await adminDb.collection('sharedConversations').doc(params.shareId).get();
-  if (!snap.exists) return { title: 'MODUS — Shared conversation' };
-  const data = snap.data() as SharedConversation;
-  return {
-    title: `${data.title} — MODUS`,
-    description: 'Shared MODUS conversation',
-    alternates: {
-      canonical: `https://moduspilot.com/s/${params.shareId}`,
-    },
-  };
+  try {
+    const snap = await adminDb.collection('sharedConversations').doc(params.shareId).get();
+    if (!snap.exists) return { title: 'MODUS — Shared conversation' };
+    const data = snap.data() as SharedConversation;
+    return {
+      title: `${data.title} — MODUS`,
+      description: 'Shared MODUS conversation',
+      alternates: {
+        canonical: `https://moduspilot.com/s/${params.shareId}`,
+      },
+    };
+  } catch {
+    // A transient Firestore failure must not throw an unstyled 500 on a public
+    // page — fall back to a generic title; the page body handles the data.
+    return { title: 'MODUS — Shared conversation' };
+  }
 }
 
 export default async function SharedConversationPage({ params }: { params: { shareId: string } }) {
-  const snap = await adminDb.collection('sharedConversations').doc(params.shareId).get();
-  if (!snap.exists) notFound();
+  // Treat a backend/transient failure like a missing doc rather than crashing
+  // this public marketing surface with an unstyled 500.
+  const snap = await adminDb
+    .collection('sharedConversations')
+    .doc(params.shareId)
+    .get()
+    .catch(() => null);
+  if (!snap || !snap.exists) notFound();
 
   const data = snap.data() as SharedConversation;
   const messages = (data.messages ?? []).filter(m => m.role !== 'system');
