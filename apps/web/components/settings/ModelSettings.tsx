@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { UserSettings, ModelConfig } from '@/hooks/useUserSettings';
 import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
+import { ProviderLogo } from '@/components/marketing/BrandLogos';
 
 interface Props {
   settings: UserSettings;
@@ -228,7 +229,11 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="shrink-0 w-9 h-9 rounded-lg bg-bg border border-border flex items-center justify-center text-text/80">
+                      <ProviderLogo provider={brain.provider} className="w-5 h-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <span className={`text-sm font-semibold ${isSelected ? 'text-brand' : 'text-text'}`}>{brain.name}</span>
                       <span className="text-xs text-muted">{brain.provider}</span>
@@ -241,6 +246,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
                     </div>
                     <p className="text-xs font-medium text-text/70 mb-0.5">{brain.tagline}</p>
                     <p className="text-xs text-muted leading-relaxed">{brain.description}</p>
+                    </div>
                   </div>
                   {!locked && <RadioDot selected={isSelected} />}
                 </div>

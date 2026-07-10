@@ -1,10 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { AppleLogo, WebGlobe } from './BrandLogos';
 
 const PLATFORMS = [
   {
-    icon: '◈',
+    icon: <WebGlobe className="w-8 h-8" />,
     title: 'Web App',
     badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
@@ -14,7 +15,7 @@ const PLATFORMS = [
     href: 'https://app.moduspilot.com',
   },
   {
-    icon: '▣',
+    icon: <AppleLogo className="w-8 h-8" />,
     title: 'Mac App',
     badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
@@ -24,7 +25,7 @@ const PLATFORMS = [
     href: 'https://github.com/joinFITR/moduspilot/releases/latest',
   },
   {
-    icon: '◉',
+    icon: <AppleLogo className="w-8 h-8" />,
     title: 'iPhone App',
     badge: 'Beta',
     badgeColor: 'bg-brand/15 text-brand',
