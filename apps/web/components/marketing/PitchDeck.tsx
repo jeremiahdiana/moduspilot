@@ -247,8 +247,8 @@ function Integrations() {
           <div className="flex flex-col gap-2.5">
             {[
               { label: 'Web', sub: 'Live now — moduspilot.com', live: true },
-              { label: 'iPhone & iPad', sub: 'iOS app in development', live: false },
-              { label: 'Mac', sub: 'Native app — coming soon', live: false },
+              { label: 'Mac', sub: 'Live now — native desktop app', live: true },
+              { label: 'iPhone & iPad', sub: 'iOS app in beta', live: false },
             ].map(({ label, sub, live }) => (
               <div key={label} className="flex items-center gap-3 border-t border-white/8 pt-2.5">
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${live ? 'bg-[#a78bfa]' : 'bg-white/20'}`} />

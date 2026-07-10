@@ -10,6 +10,8 @@ const PLATFORMS = [
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
     desc: 'The full MODUS — dashboard, AI chat, goals, habits, tasks, and briefings at app.moduspilot.com. No install. Works everywhere.',
     detail: 'Same account, real-time sync',
+    cta: 'Open the web app →',
+    href: 'https://app.moduspilot.com',
   },
   {
     icon: '▣',
@@ -17,7 +19,9 @@ const PLATFORMS = [
     badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
     desc: 'A native desktop app with your notes, iMessage, reminders, and calendar synced in — plus native notifications on your Mac.',
-    detail: 'Signed & auto-updating',
+    detail: 'Signed & auto-updating · Apple Silicon',
+    cta: 'Download for Mac →',
+    href: 'https://github.com/joinFITR/moduspilot/releases/latest',
   },
   {
     icon: '◉',
@@ -26,6 +30,8 @@ const PLATFORMS = [
     badgeColor: 'bg-brand/15 text-brand',
     desc: 'MODUS in your pocket — chat, model switcher, image & document creation, and push notifications so it reaches you. Rolling out now.',
     detail: 'TestFlight beta',
+    cta: null,
+    href: null,
   },
 ];
 
@@ -75,6 +81,16 @@ export default function PlatformsSection() {
               </div>
               <p className="text-sm text-muted leading-relaxed mb-3">{p.desc}</p>
               <p className="text-xs text-muted/40">{p.detail}</p>
+              {p.href && p.cta && (
+                <a
+                  href={p.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center mt-4 text-sm font-semibold text-brand hover:underline"
+                >
+                  {p.cta}
+                </a>
+              )}
             </motion.div>
           ))}
         </motion.div>
