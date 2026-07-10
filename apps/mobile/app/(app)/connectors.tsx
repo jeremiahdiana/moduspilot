@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import { DetailHeader } from '@/components/DetailHeader';
 import { Icon, type IconName } from '@/components/Icon';
+import { BrandLogo } from '@/components/BrandLogo';
 import { useThemeColors } from '@/lib/theme';
 import { useSheets } from '@/components/ui/Sheets';
 import { haptics } from '@/lib/haptics';
@@ -257,7 +258,7 @@ export default function ConnectorsScreen() {
                       {idx > 0 && <View className="h-px bg-border" />}
                       <View className="flex-row items-center gap-3 px-4 py-3">
                         <View className="w-8 h-8 rounded-xl items-center justify-center border border-border/60" style={{ backgroundColor: m.color + '14' }}>
-                          <Icon name={m.icon} size={16} color={m.color} />
+                          <BrandLogo provider={m.provider} size={18} />
                         </View>
                         <View className="flex-1">
                           <Text className="text-text font-semibold text-[14px]">{m.name}</Text>

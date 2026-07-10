@@ -7,6 +7,7 @@ import { db, auth } from '@/lib/firebase';
 import { DetailHeader } from '@/components/DetailHeader';
 import { GradientButton } from '@/components/ui';
 import { Icon } from '@/components/Icon';
+import { ProviderLogo } from '@/components/BrandLogo';
 import { useThemeColors } from '@/lib/theme';
 import { getSettings, saveSettings, currentUid, type UserSettings } from '@/lib/settings';
 
@@ -239,6 +240,11 @@ export default function BrainScreen() {
                   }`}
                 >
                   <View className="flex-row items-center justify-between gap-3">
+                    <View className="w-9 h-9 rounded-lg bg-surface-2 border border-border items-center justify-center">
+                      {brain.id === 'auto'
+                        ? <Icon name="auto-awesome" size={17} color={c.brand} />
+                        : <ProviderLogo provider={brain.provider} size={18} />}
+                    </View>
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2 mb-0.5 flex-wrap">
                         <Text className={`font-semibold text-sm ${selected ? 'text-brand' : 'text-text'}`}>{brain.name}</Text>

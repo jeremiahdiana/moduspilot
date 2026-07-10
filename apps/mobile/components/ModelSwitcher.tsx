@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Icon } from '@/components/Icon';
+import { ProviderLogo } from '@/components/BrandLogo';
 import { useThemeColors } from '@/lib/theme';
 import { PLATFORM_MODELS, effectivePlan, modelName } from '@/lib/models';
 
@@ -79,6 +80,9 @@ export function ModelSwitcher({ value, onChange, plan }: Props) {
                       selected ? 'bg-brand/10 border-brand/30' : 'bg-surface border-border'
                     }`}
                   >
+                    <View className="w-8 h-8 rounded-lg bg-surface-2 border border-border items-center justify-center">
+                      <ProviderLogo provider={m.provider} size={16} />
+                    </View>
                     <View className="flex-1">
                       <Text className={`text-sm font-semibold ${selected ? 'text-brand' : 'text-text'}`}>{m.name}</Text>
                       <Text className="text-muted text-xs">{m.provider}</Text>
