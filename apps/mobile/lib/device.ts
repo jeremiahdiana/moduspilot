@@ -132,8 +132,8 @@ export async function getRecentPhotos(limit = 20): Promise<PhotoAsset[]> {
     if (status !== 'granted') return [];
     const { assets } = await MediaLibrary.getAssetsAsync({
       first: limit,
-      mediaType: MediaLibrary.MediaType.photo,
-      sortBy: MediaLibrary.SortBy.creationTime,
+      mediaType: 'photo',
+      sortBy: 'creationTime',
     });
     return assets.map(a => ({
       id: a.id,
