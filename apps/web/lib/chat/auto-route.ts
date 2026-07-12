@@ -74,13 +74,20 @@ export async function routeTask(
   if (!queryText.trim() || !process.env.GROQ_API_KEY) return fallback;
 
   try {
-    const { text } = await generateText({
-      model: groq('llama-3.1-8b-instant'),
-      system: CLASSIFIER_SYSTEM,
-      prompt: queryText.slice(0, 2000),
-      maxTokens: 4,
-      temperature: 0,
-    });
+    // Bound the classifier: it runs BEFORE the main stream starts, so if Groq
+    // hangs it would stall the entire chat (and eat into the function's time
+    // budget). Cap it hard — a slow router must never block the answer; we just
+    // fall back to the general/Llama default.
+    const { text } = await Promise.race([
+      generateText({
+        model: groq('llama-3.1-8b-instant'),
+        system: CLASSIFIER_SYSTEM,
+        prompt: queryText.slice(0, 2000),
+        maxTokens: 4,
+        temperature: 0,
+      }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('classifier timeout')), 3500)),
+    ]);
     const word = text.trim().toLowerCase().replace(/[^a-z]/g, '');
     const category: TaskCategory =
       (['writing', 'research', 'code', 'reasoning', 'general'] as const).includes(word as TaskCategory)

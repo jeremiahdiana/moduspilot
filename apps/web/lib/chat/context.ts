@@ -153,7 +153,7 @@ export async function fetchGoogleData(
       })(),
       new Promise<void>(resolve => setTimeout(resolve, 5000)), // hard cap — never block streaming
     ]);
-  } catch { /* non-fatal */ }
+  } catch (e) { console.error('[chat] google (gmail/calendar) context failed:', String(e)); }
   return { gmailBlock, calendarBlock };
 }
 
@@ -184,7 +184,7 @@ export async function fetchDriveBlock(uid: string, queryText: string): Promise<s
           files.map(f => `- ${mimeLabel(f.mimeType)}: ${f.name} — ${f.webViewLink} (modified ${f.modifiedTime.slice(0, 10)})`).join('\n');
       }
     }
-  } catch { /* non-fatal */ }
+  } catch (e) { console.error('[chat] drive context failed:', String(e)); }
   return '';
 }
 
@@ -246,7 +246,7 @@ export async function fetchConnectorData(
       })(),
       new Promise<void>(resolve => setTimeout(resolve, 4000)),
     ]);
-  } catch { /* non-fatal */ }
+  } catch (e) { console.error('[chat] connector (notion/slack/github) context failed:', String(e)); }
   return { connectorBlock, notionBlock, slackBlock, githubBlock };
 }
 
@@ -276,7 +276,7 @@ export async function fetchContactEmailMap(uid: string): Promise<Map<string, Con
         category,
       });
     }
-  } catch { /* non-fatal — map stays empty, Gmail shows without annotations */ }
+  } catch (e) { console.error('[chat] contact email map failed (Gmail shows without contact names):', String(e)); }
   return map;
 }
 
@@ -352,7 +352,7 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
     if (services.length > 0) lines.push(`\nServices (${services.length}):\n${services.join(', ')}`);
 
     return lines.join('').slice(0, 6000);
-  } catch { return ''; }
+  } catch (e) { console.error('[chat] contacts context failed:', String(e)); return ''; }
 }
 
 // Desktop-agent notes sync (MODUS Desktop, Phase 0 proof-of-concept — see
@@ -380,7 +380,7 @@ export async function fetchNotesBlock(uid: string, enabled = true): Promise<stri
       lines.push(`\n--- ${title} ---\n${body}`);
     }
     return lines.join('').slice(0, 8000);
-  } catch { return ''; }
+  } catch (e) { console.error('[chat] notes context failed (missing modifiedAt index?):', String(e)); return ''; }
 }
 
 // Desktop-agent iMessage sync (MODUS Desktop — see apps/desktop). Unlike
@@ -406,7 +406,7 @@ export async function fetchMessagesBlock(uid: string, enabled = true): Promise<s
       lines.push(`\n--- ${title} ---\n${body}`);
     }
     return lines.join('').slice(0, 8000);
-  } catch { return ''; }
+  } catch (e) { console.error('[chat] messages context failed (missing modifiedAt index?):', String(e)); return ''; }
 }
 
 // ── Pinned project resources (live data scoped to a project) ─────────────────

@@ -151,7 +151,7 @@ export default function ChatWindow({
   // Llama off as the model the user selected.
   const [modelNotice, setModelNotice] = useState<string | null>(null);
 
-  const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
+  const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop } = useChat({
     api: '/api/chat',
     onResponse: (response) => {
       if (response.headers.get('x-modus-downgraded') === '1') {
@@ -218,20 +218,51 @@ export default function ChatWindow({
     didInitialScrollRef.current = true;
   }, [messages]);
 
-  // Reset messages when conversation changes
+  // Reset messages when conversation changes. Abort any in-flight response FIRST
+  // — otherwise a stream started in the previous conversation keeps running and
+  // its tokens land in (or race against) the newly-selected conversation.
   useEffect(() => {
+    stop();
     setMessages(initialMessages);
     savedLengthRef.current = initialMessages.length;
   // Only run when conversationId changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
+  // Watchdog: guarantee the loading state always resolves. The server caps a
+  // request at 60s (maxDuration); if a connection instead stalls open with no
+  // finish/error, isLoading would stick true forever and the composer would stay
+  // disabled. After 75s of continuous loading, force-stop and surface an error.
+  useEffect(() => {
+    if (!isLoading) return;
+    const t = setTimeout(() => {
+      stop();
+      setChatError('That response timed out. Please try again.');
+    }, 75000);
+    return () => clearTimeout(t);
+  }, [isLoading, stop]);
+
   // Save to Firestore when AI finishes responding
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
     prevLoadingRef.current = isLoading;
 
-    if (!justFinished || messages.length === 0 || !onMessagesChange) return;
+    if (!justFinished) return;
+
+    // Universal backstop against a silent blank bubble: if the finished response
+    // is an assistant message with no text and no rich block, something dropped
+    // it (content filter, a reasoning model that spent its whole token budget, a
+    // provider hiccup). Tell the user and let them retry — never leave it empty.
+    const last = messages[messages.length - 1];
+    if (last?.role === 'assistant') {
+      const text = typeof last.content === 'string' ? last.content : '';
+      const hasBlock = /```(approval|draft_options|image|document|chart)/.test(text);
+      if (!hasBlock && text.trim() === '') {
+        setChatError('The model returned an empty response. Try again, or switch models below.');
+      }
+    }
+
+    if (messages.length === 0 || !onMessagesChange) return;
     if (messages.length <= savedLengthRef.current) return;
 
     savedLengthRef.current = messages.length;

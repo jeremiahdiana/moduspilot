@@ -49,6 +49,14 @@ import {
   type TaskContext,
 } from '@/lib/chat/prompt';
 
+// This route streams LLM output and does Firebase-admin/crypto work → Node
+// runtime, not Edge. Without an explicit maxDuration, Vercel applies a short
+// default and KILLS the function mid-stream on slower premium/reasoning models —
+// which the user experiences as the chat freezing with no answer. 60s is the
+// safe ceiling across Vercel tiers.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const key = process.env.GROQ_API_KEY ?? '';
@@ -102,6 +110,13 @@ export async function POST(req: Request) {
       webSearch?: boolean;
       attachments?: { name: string; text: string }[];
     };
+
+    // Validate payload before touching any model. A malformed/empty history is a
+    // client bug or a truncated request — return a clean 400 the UI can surface,
+    // never a 500 or an empty stream that looks like a silent drop.
+    if (!Array.isArray(body.messages) || body.messages.length === 0) {
+      return Response.json({ error: 'invalid_request' }, { status: 400 });
+    }
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
     const cappedMessages = body.messages
@@ -271,36 +286,55 @@ export async function POST(req: Request) {
       try {
         const mcpServers = await getMcpServers(uid);
         if (mcpServers.length > 0) {
-          const results = await Promise.allSettled(
-            mcpServers.map(server =>
-              Promise.race([
-                // Re-check at connection time: a stored URL could resolve to an
-                // internal address now (DNS rebinding) even if it was public when added.
-                assertPublicUrl(server.url).then(() =>
-                  connectMcpClient({ url: server.url, authHeader: server.authHeader, transport: server.transport }),
-                ),
-                new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error('timeout')), 4000)
-                ),
-              ])
-            )
+          // Reject a promise after `ms` without leaving the underlying work
+          // uncancelled leaking. Used to bound both connect and tools() so a slow
+          // plugin can never stall the whole chat.
+          const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> =>
+            Promise.race([
+              p,
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
+            ]);
+
+          const connections = await Promise.allSettled(
+            mcpServers.map(async (server) => {
+              // Re-check at connection time: a stored URL could resolve to an
+              // internal address now (DNS rebinding) even if it was public when added.
+              await assertPublicUrl(server.url);
+              const connectP = connectMcpClient({ url: server.url, authHeader: server.authHeader, transport: server.transport });
+              let gaveUp = false;
+              // If the socket opens AFTER we already timed out, close it so the
+              // connection never leaks (the previous Promise.race dropped it).
+              connectP.then(c => { if (gaveUp) c.close().catch(() => {}); }).catch(() => {});
+              const client = await Promise.race([
+                connectP,
+                new Promise<never>((_, reject) => setTimeout(() => { gaveUp = true; reject(new Error('connect timeout')); }, 4000)),
+              ]) as McpClient;
+              return { server, client };
+            })
           );
+
           const toolNamesByServer: string[] = [];
-          for (let i = 0; i < results.length; i++) {
-            const result = results[i];
-            if (result.status === 'fulfilled') {
-              const client = result.value as McpClient;
-              try {
-                const tools = await client.tools();
-                const names = Object.keys(tools);
-                if (names.length > 0) {
-                  mcpTools = { ...mcpTools, ...tools };
-                  toolNamesByServer.push(`${mcpServers[i].name}: ${names.join(', ')}`);
-                  mcpClients.push(client);
-                }
-              } catch {
+          for (const conn of connections) {
+            if (conn.status !== 'fulfilled') {
+              // Log instead of swallowing — a plugin that stopped working should
+              // be visible in logs, not silently dropped from the toolset.
+              console.error('[chat] MCP connect failed:', String((conn as PromiseRejectedResult).reason));
+              continue;
+            }
+            const { server, client } = conn.value;
+            try {
+              const tools = await withTimeout(client.tools(), 4000, 'tools');
+              const names = Object.keys(tools);
+              if (names.length > 0) {
+                mcpTools = { ...mcpTools, ...tools };
+                toolNamesByServer.push(`${server.name}: ${names.join(', ')}`);
+                mcpClients.push(client);
+              } else {
                 try { await client.close(); } catch {}
               }
+            } catch (e) {
+              console.error(`[chat] MCP tools() failed for ${server.name}:`, String(e));
+              try { await client.close(); } catch {}
             }
           }
           if (toolNamesByServer.length > 0) {
@@ -332,6 +366,16 @@ export async function POST(req: Request) {
       messages: cappedMessages,
       maxTokens,
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
+      onError: async ({ error }) => {
+        // onFinish does NOT fire when the stream errors, so without this the MCP
+        // sockets opened above would leak on every failed request. Also surfaces
+        // the raw provider error to logs (getErrorMessage below only sends the
+        // client a sanitized token).
+        console.error('[chat] streamText onError:', String(error));
+        for (const client of mcpClients) {
+          try { await client.close(); } catch {}
+        }
+      },
       onFinish: async ({ text, usage }) => {
         // Close MCP clients
         for (const client of mcpClients) {
