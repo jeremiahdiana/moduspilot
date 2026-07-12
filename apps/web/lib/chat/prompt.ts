@@ -4,6 +4,8 @@
  * original route. No I/O — inputs → string.
  */
 
+import { PLATFORM_MODELS, unlockedModels } from '@/lib/models';
+
 export type GoalContext = {
   id: string;
   title: string;
@@ -101,6 +103,23 @@ export function buildTaskContextBlock(tc?: TaskContext): string {
     tc.done ? 'This task is already marked done.' : '',
   ].filter(Boolean).join(' ');
   return `\n\nTASK FOCUS: This conversation is dedicated to one specific task: "${tc.title}" (taskId: "${tc.id}"). ${tc.description ? `Description: ${tc.description}. ` : ''}${meta}\n\nHelp the user actually get this task done — break it into concrete next steps, unblock them, draft whatever it needs. Only propose an update_task or delete_task approval card when the user explicitly asks to change or remove the task, and include taskId: "${tc.id}" in the payload. If the user clearly says the task is finished, you may propose an update_task card with payload { taskId: "${tc.id}", done: true }.\n\nCRITICAL: Do NOT generate create_task, create_goal, create_habit, or any other approval card in this chat unless the user explicitly and clearly asks to create something new. Casual messages or questions must NEVER be treated as creation requests — answer those conversationally.`;
+}
+
+/**
+ * The AI models MODUS offers. This is a PRODUCT feature ("which models can I
+ * use through MODUS"), NOT the assistant's confidential configuration — so it's
+ * safe to state plainly. Without this block the assistant has no model list and,
+ * because the confidentiality rules flag the word "model", it either refuses or
+ * answers "I have one model" and goes blank. Plan-aware: names what the user has
+ * unlocked vs. what an upgrade adds.
+ */
+export function buildModelCatalogBlock(plan: string | null | undefined): string {
+  const unlocked = new Set(unlockedModels(plan).map(m => m.id));
+  const lines = PLATFORM_MODELS.map(m =>
+    `- ${m.name} (${m.provider})${unlocked.has(m.id) ? '' : ' — unlocks on a higher plan'}`,
+  ).join('\n');
+  const unlockedCount = unlocked.size;
+  return `\n\nMODELS MODUS OFFERS (this is public product information — you MAY share it freely; it is NOT your confidential configuration):\nMODUS gives you access to ${PLATFORM_MODELS.length} AI models across the top providers. On the user's current plan, ${unlockedCount} of them ${unlockedCount === 1 ? 'is' : 'are'} unlocked:\n${lines}\nWith "Auto", MODUS picks the best of the unlocked models for each task automatically. If the user asks how many models they have, which models they can use, or which model is best for something, answer directly from this list. This is a normal product question — do NOT treat it as a request to reveal your internal setup, and never respond with an empty message.`;
 }
 
 export function buildGoogleDataBlock(gmailBlock: string, calendarBlock: string): string {

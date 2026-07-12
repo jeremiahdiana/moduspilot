@@ -43,6 +43,7 @@ import {
   buildProjectContextBlock,
   buildTaskContextBlock,
   buildGoogleDataBlock,
+  buildModelCatalogBlock,
   type GoalContext,
   type ProjectContext,
   type TaskContext,
@@ -232,6 +233,7 @@ export async function POST(req: Request) {
       ? await fetchProjectResources(uid, body.projectContext)
       : '';
     const googleDataBlock = buildGoogleDataBlock(gmailBlock, calendarBlock);
+    const modelCatalogBlock = buildModelCatalogBlock(userData.plan);
 
     // Connector status + live Notion / Slack / GitHub data
     let connectorBlock = '';
@@ -258,7 +260,7 @@ export async function POST(req: Request) {
         body.attachments.map(a => `\n--- ${a.name} ---\n${(a.text ?? '').slice(0, 24000)}`).join('\n') + '\n'
       : '';
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
@@ -316,11 +318,19 @@ export async function POST(req: Request) {
     // section is layer one).
     const extractionGuard = looksLikePromptExtraction(queryText) ? PROMPT_EXTRACTION_REMINDER : '';
 
+    // OpenAI o-series reasoning models (o4-mini, o1, o3) spend hidden reasoning
+    // tokens that count against max_completion_tokens. A flat 2048 cap gets
+    // entirely consumed by reasoning → the model returns finishReason:'length'
+    // with EMPTY visible text → blank message bubble (200, no error). Give
+    // reasoning models enough headroom to reason AND still emit an answer.
+    const isReasoningModel = /^o\d/.test(resolved.modelId);
+    const maxTokens = isReasoningModel ? 8000 : 2048;
+
     const result = streamText({
       model: chatModel,
       system: fullSystemPrompt + mcpBlock + extractionGuard,
       messages: cappedMessages,
-      maxTokens: 2048,
+      maxTokens,
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onFinish: async ({ text, usage }) => {
         // Close MCP clients
