@@ -10,6 +10,14 @@
     },
     {
       "collectionGroup": "conversations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "briefing", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conversations",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "briefing", "order": "ASCENDING" },
