@@ -20,8 +20,12 @@ function docKey(title: string, markdown: string): string {
 
 // MODUS document canvas (mobile). Renders the document inline and opens a
 // full-screen workspace to edit it (markdown editor + live preview) with edits
-// persisted to Firestore. One-click PDF export is web-only; here we use native
-// Share (Files / Notes / Messages).
+// persisted to Firestore. Exports a real PDF via expo-print + expo-sharing;
+// falls back to a plaintext Share sheet if those native modules aren't in the
+// running binary yet.
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 export function DocumentCard({ raw }: { raw: string }) {
   const c = useThemeColors();
   let data: DocPayload;
@@ -81,6 +85,48 @@ export function DocumentCard({ raw }: { raw: string }) {
     Share.share({ title: t, message: `${t}\n\n${md}` }).catch(() => {});
   }
 
+  const [exporting, setExporting] = useState(false);
+  async function exportPdf(t: string, md: string) {
+    setExporting(true);
+    try {
+      const [Print, Sharing, { marked }] = await Promise.all([
+        import('expo-print'),
+        import('expo-sharing'),
+        import('marked'),
+      ]);
+      const body = await marked.parse(md || '');
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; padding: 44px 40px; color: #18181b; line-height: 1.6; font-size: 15px; }
+  h1 { font-size: 26px; margin: 0 0 20px; color: #0a0a0f; }
+  h2 { font-size: 20px; margin: 28px 0 10px; color: #0a0a0f; }
+  h3 { font-size: 17px; margin: 22px 0 8px; color: #0a0a0f; }
+  code { background: #f4f4f5; padding: 2px 5px; border-radius: 4px; font-size: 90%; }
+  pre { background: #f4f4f5; padding: 14px; border-radius: 8px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #e4e4e7; padding: 8px 10px; text-align: left; }
+  th { background: #fafafa; }
+  blockquote { border-left: 3px solid #7c3aed; margin: 12px 0; padding: 2px 0 2px 16px; color: #52525b; }
+  a { color: #7c3aed; }
+  ul, ol { padding-left: 22px; }
+</style></head>
+<body><h1>${escapeHtml(t || 'Document')}</h1>${body}</body></html>`;
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { UTI: 'com.adobe.pdf', mimeType: 'application/pdf', dialogTitle: t });
+      } else {
+        share(t, md);
+      }
+    } catch {
+      // expo-print/expo-sharing not in this binary — degrade to plaintext share
+      share(t, md);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const dirty = draftTitle !== title || draftMd !== markdown;
 
   return (
@@ -105,6 +151,10 @@ export function DocumentCard({ raw }: { raw: string }) {
           <Icon name="ios-share" size={14} color={c.muted} />
           <Text className="text-muted text-xs">Share</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => exportPdf(title, markdown)} disabled={exporting} activeOpacity={0.7} className="flex-row items-center gap-1.5">
+          <Icon name="picture-as-pdf" size={14} color={c.muted} />
+          <Text className="text-muted text-xs">{exporting ? 'Exporting…' : 'PDF'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Full-screen editor workspace */}
@@ -120,6 +170,9 @@ export function DocumentCard({ raw }: { raw: string }) {
                 placeholderTextColor={c.muted}
                 className="flex-1 text-text text-base font-semibold"
               />
+              <TouchableOpacity onPress={() => exportPdf(draftTitle, draftMd)} disabled={exporting} hitSlop={8} activeOpacity={0.7}>
+                <Icon name="picture-as-pdf" size={20} color={c.muted} />
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => share(draftTitle, draftMd)} hitSlop={8} activeOpacity={0.7}>
                 <Icon name="ios-share" size={20} color={c.muted} />
               </TouchableOpacity>

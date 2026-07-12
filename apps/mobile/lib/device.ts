@@ -14,13 +14,27 @@ try {
   // keep all null — features gracefully disabled
 }
 
-// health is unavailable until react-native-health is replaced with a
-// new-architecture compatible HealthKit library
+// HealthKit is a Nitro module (@kingstinct/react-native-healthkit) — there's no
+// requireOptionalNativeModule for it, so we probe by calling the sync
+// isHealthDataAvailable(). If the native side isn't compiled into this binary
+// (e.g. running an OTA update on an older build, or Expo Go), the call throws
+// and we treat health as unavailable. Wrapped so a throw never breaks app boot.
+let _health = false;
+try {
+  if (Platform.OS === 'ios') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const HK = require('@kingstinct/react-native-healthkit');
+    _health = typeof HK.isHealthDataAvailable === 'function' && HK.isHealthDataAvailable() === true;
+  }
+} catch {
+  _health = false;
+}
+
 export const nativeAvailable = {
   contacts: _contacts !== null,
   photos: _media !== null,
   files: _docs !== null,
-  health: false,
+  health: _health,
 };
 
 // ── Contacts ──────────────────────────────────────────────────────────────────
@@ -188,8 +202,10 @@ export async function pickTextFile(): Promise<{ name: string; content: string } 
 }
 
 // ── HealthKit ─────────────────────────────────────────────────────────────────
-// react-native-health is incompatible with React Native new architecture (Expo SDK 56+).
-// Stubbed out until replaced with a new-arch compatible library.
+// Reads steps (daily cumulative), last-night sleep, and most-recent heart rate
+// via @kingstinct/react-native-healthkit (new-arch / Nitro). Every native call is
+// individually guarded so a single missing permission degrades one field to null
+// rather than failing the whole briefing.
 
 export interface HealthData {
   steps: number | null;
@@ -197,7 +213,75 @@ export interface HealthData {
   heartRate: number | null;
 }
 
-export async function initHealth(): Promise<boolean> { return false; }
+export async function initHealth(): Promise<boolean> {
+  if (!nativeAvailable.health) return false;
+  try {
+    const HK = await import('@kingstinct/react-native-healthkit');
+    const ok = await HK.isHealthDataAvailableAsync();
+    if (!ok) return false;
+    return await HK.requestAuthorization({
+      toRead: [
+        'HKQuantityTypeIdentifierStepCount',
+        'HKQuantityTypeIdentifierHeartRate',
+        'HKCategoryTypeIdentifierSleepAnalysis',
+      ],
+    });
+  } catch {
+    return false;
+  }
+}
+
 export async function getHealthData(): Promise<HealthData> {
-  return { steps: null, sleep: null, heartRate: null };
+  const empty: HealthData = { steps: null, sleep: null, heartRate: null };
+  if (!nativeAvailable.health) return empty;
+  try {
+    const HK = await import('@kingstinct/react-native-healthkit');
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Steps — cumulative sum since midnight
+    let steps: number | null = null;
+    try {
+      const stat = await HK.queryStatisticsForQuantity(
+        'HKQuantityTypeIdentifierStepCount',
+        ['cumulativeSum'],
+        { filter: { date: { startDate: startOfDay, endDate: now } } },
+      );
+      if (stat.sumQuantity) steps = Math.round(stat.sumQuantity.quantity);
+    } catch { /* leave null */ }
+
+    // Heart rate — most recent sample
+    let heartRate: number | null = null;
+    try {
+      const hr = await HK.getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate');
+      if (hr) heartRate = Math.round(hr.quantity);
+    } catch { /* leave null */ }
+
+    // Sleep — sum asleep intervals from the last 24h
+    let sleep: { hours: number; minutes: number } | null = null;
+    try {
+      const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const samples = await HK.queryCategorySamples(
+        'HKCategoryTypeIdentifierSleepAnalysis',
+        { filter: { date: { startDate: since, endDate: now } }, limit: 200, ascending: false },
+      );
+      // 1=asleepUnspecified, 3=asleepCore, 4=asleepDeep, 5=asleepREM (exclude 0=inBed, 2=awake)
+      const asleep = new Set([1, 3, 4, 5]);
+      let ms = 0;
+      for (const s of samples) {
+        if (asleep.has(s.value as number)) {
+          ms += new Date(s.endDate).getTime() - new Date(s.startDate).getTime();
+        }
+      }
+      if (ms > 0) {
+        const totalMin = Math.round(ms / 60000);
+        sleep = { hours: Math.floor(totalMin / 60), minutes: totalMin % 60 };
+      }
+    } catch { /* leave null */ }
+
+    return { steps, sleep, heartRate };
+  } catch {
+    return empty;
+  }
 }

@@ -83,7 +83,14 @@
         }
       ],
       "expo-document-picker",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Allow MODUS to read your steps, sleep, and heart rate for your morning briefing."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
