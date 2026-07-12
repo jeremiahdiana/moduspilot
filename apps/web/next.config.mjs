@@ -40,4 +40,27 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry is opt-in: with no DSN the config is untouched (identical build). Set
+// NEXT_PUBLIC_SENTRY_DSN (+ SENTRY_ORG / SENTRY_PROJECT / SENTRY_AUTH_TOKEN for
+// source-map upload) to activate error reporting. See .env.local.example.
+let config = nextConfig;
+
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  const { withSentryConfig } = await import('@sentry/nextjs');
+  config = {
+    ...nextConfig,
+    experimental: { ...nextConfig.experimental, instrumentationHook: true },
+  };
+  config = withSentryConfig(config, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    disableLogger: true,
+    // Only upload source maps when an auth token is present (else the build
+    // would fail trying to authenticate).
+    sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  });
+}
+
+export default config;

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import { GlobalErrorCapture } from '@/components/GlobalErrorCapture';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://moduspilot.com'),
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ` }} />
       </head>
       <body>
+        <GlobalErrorCapture />
         <QueryProvider>
           {children}
         </QueryProvider>
