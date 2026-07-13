@@ -25,6 +25,10 @@ export default function ChartCard({ raw }: { raw: string }) {
     try {
       const parsed = JSON.parse(raw) as ChartSpec;
       if (!parsed || !Array.isArray(parsed.data) || parsed.data.length === 0) return null;
+      // Rows must be objects. The model can emit malformed data (e.g. [1,2,3] or
+      // [null]); `'label' in row` throws a TypeError on a primitive/null and would
+      // crash the whole message render instead of showing the fallback notice below.
+      if (typeof parsed.data[0] !== 'object' || parsed.data[0] === null) return null;
       return parsed;
     } catch {
       return null;
