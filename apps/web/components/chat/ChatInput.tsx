@@ -86,13 +86,26 @@ export default function ChatInput({
       const form = new FormData();
       form.append('audio', blob);
       const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/transcribe', {
-        method: 'POST',
-        headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
-        body: form,
-      });
-      const data = await res.json() as { text?: string };
-      if (data.text) onVoiceTranscript(data.text);
+      try {
+        const res = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+          body: form,
+        });
+        const data = await res.json().catch(() => ({})) as { text?: string; error?: string };
+        // Surface failures (rate limit, audio too large, transcription error) and
+        // empty transcriptions instead of silently doing nothing — the user just
+        // recorded and stopped, so no feedback reads as a broken feature.
+        if (!res.ok || !data.text) {
+          setVoiceError(data.error || 'Could not transcribe that. Try again.');
+          setTimeout(() => setVoiceError(''), 4000);
+          return;
+        }
+        onVoiceTranscript(data.text);
+      } catch {
+        setVoiceError('Could not transcribe that. Try again.');
+        setTimeout(() => setVoiceError(''), 4000);
+      }
     };
     recorder.start();
     mediaRef.current = recorder;
