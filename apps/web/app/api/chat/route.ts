@@ -8,7 +8,6 @@ import { getMcpServers } from '@/lib/mcp-servers';
 import { connectMcpClient } from '@/lib/mcp-client';
 import { assertPublicUrl } from '@/lib/ssrf';
 import {
-  enforceGuestRateLimit,
   enforceSubscriptionGate,
   enforcePaidTokenLimit,
   trackTokenUsage,
@@ -65,7 +64,8 @@ export async function POST(req: Request) {
       return Response.json({ error: 'API key not configured' }, { status: 500 });
     }
 
-    // Auth (optional — degrades gracefully for guests)
+    // Auth is REQUIRED — MODUS is accounts-only. A missing or invalid/expired
+    // token leaves uid null, which is rejected with a 401 just below.
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     let uid: string | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,20 +77,21 @@ export async function POST(req: Request) {
         const snap = await adminDb.collection('users').doc(uid).get();
         userData = snap.data() ?? {};
       } catch {
-        // Guest — no memory
+        // Invalid/expired token → treated as unauthenticated (401 below).
       }
     }
 
-    // Rate + usage limits (each returns a ready 4xx Response when blocked)
+    // MODUS is accounts-only — there is no guest/anonymous access. Reject any
+    // request without a valid signed-in user (missing OR invalid/expired token).
     if (!uid) {
-      const blocked = await enforceGuestRateLimit(req);
-      if (blocked) return blocked;
-    } else {
-      const gateBlocked = await enforceSubscriptionGate(uid, userData);
-      if (gateBlocked) return gateBlocked;
-      const paidBlocked = enforcePaidTokenLimit(userData);
-      if (paidBlocked) return paidBlocked;
+      return Response.json({ error: 'authentication_required' }, { status: 401 });
     }
+
+    // Rate + usage limits (each returns a ready 4xx Response when blocked)
+    const gateBlocked = await enforceSubscriptionGate(uid, userData);
+    if (gateBlocked) return gateBlocked;
+    const paidBlocked = enforcePaidTokenLimit(userData);
+    if (paidBlocked) return paidBlocked;
 
     const body = await req.json() as {
       messages: CoreMessage[];

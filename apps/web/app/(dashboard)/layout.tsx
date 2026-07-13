@@ -408,6 +408,7 @@ const SIDEBAR_DEFAULT = 224;
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const { hidden, workspaceCollapsed, toggleWorkspace } = useSidebarPrefs(user?.uid);
   const hasNotes = useHasNotes(user?.uid);
@@ -434,6 +435,13 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  // Accounts-only: MODUS requires an account — there is no anonymous/guest
+  // access. AuthProvider resolves auth before rendering us (it shows a spinner
+  // until then), so a null user here means signed-out → send them to login.
+  useEffect(() => {
+    if (!user) router.replace('/login');
+  }, [user, router]);
 
   // Global Cmd+K / Ctrl+K listener
   useEffect(() => {
@@ -471,6 +479,16 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+  }
+
+  // Guests never see the app shell — render a brief spinner while the redirect
+  // to /login fires (the effect above), matching AuthProvider's loading state.
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (

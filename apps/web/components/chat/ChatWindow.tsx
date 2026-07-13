@@ -196,7 +196,9 @@ export default function ChatWindow({
     },
     onError: (err) => {
       const msg = (err?.message ?? '').toLowerCase();
-      if (msg.includes('subscription_required')) {
+      if (msg.includes('authentication_required')) {
+        setChatError('Your session expired. Please sign in again.');
+      } else if (msg.includes('subscription_required')) {
         setChatError('Start your 3-day free trial to use MODUS.');
         onShowPaywall?.();
       } else if (msg.includes('token_limit_reached')) {
