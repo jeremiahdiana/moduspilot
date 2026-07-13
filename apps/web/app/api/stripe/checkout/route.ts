@@ -50,12 +50,19 @@ export async function POST(req: Request) {
     ? `${APP_URL}/dashboard?trial_started=1`
     : `${APP_URL}/settings?tab=billing&upgraded=1`;
 
+  // Abandoning checkout must not dead-end an account-only user with no access:
+  // from onboarding (returnTo=dashboard), send them back to the plan/Start step
+  // (?trial=1) so it's one tap to retry. Settings upgrades return to settings.
+  const cancelUrl = returnTo === 'dashboard'
+    ? `${APP_URL}/onboarding?trial=1`
+    : `${APP_URL}/settings?tab=billing`;
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
-    cancel_url: `${APP_URL}/settings?tab=billing`,
+    cancel_url: cancelUrl,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: email }),
     // Card required now; MODUS is billed after the 3-day trial. Stripe fires
     // checkout.session.completed + a `trialing` subscription (handled in the

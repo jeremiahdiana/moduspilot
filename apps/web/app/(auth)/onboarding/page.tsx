@@ -5,17 +5,18 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import { MODEL_LOGOS, ClaudeLogo, OpenAILogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
+import { ClaudeLogo, OpenAILogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
 import { useAuth } from '@/components/providers/AuthProvider';
 import {
   doc, setDoc, addDoc, collection,
-  getDoc, getDocs, serverTimestamp,
+  getDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // ── types ──────────────────────────────────────────────────────────────────────
-type Screen = 'welcome' | 'name' | 'role' | 'goal' | 'models' | 'google' | 'done';
-const QUESTION_SCREENS: Screen[] = ['name', 'role', 'goal', 'models', 'google'];
+type Screen = 'welcome' | 'name' | 'role' | 'models' | 'plan' | 'done';
+const QUESTION_SCREENS: Screen[] = ['name', 'role', 'models', 'plan'];
+type PlanId = 'modus' | 'pilot';
 
 // ── data ───────────────────────────────────────────────────────────────────────
 const ROLE_OPTIONS = [
@@ -24,6 +25,15 @@ const ROLE_OPTIONS = [
   { icon: '⚡', label: 'Professional',           desc: 'Employee, freelancer, or consultant' },
   { icon: '📚', label: 'Student',                desc: 'School, bootcamp, or self-study' },
   { icon: '🌐', label: 'Other',                  desc: '' },
+];
+
+// Premium model brands MODUS routes between — brand names only (no versions), so
+// nothing to keep updated. Reuses the shared marketing logo marks.
+const BRAND_MODELS = [
+  { name: 'ChatGPT', Logo: OpenAILogo },
+  { name: 'Claude',  Logo: ClaudeLogo },
+  { name: 'Gemini',  Logo: GeminiLogo },
+  { name: 'Grok',    Logo: GrokLogo },
 ];
 
 // ── animation helpers ──────────────────────────────────────────────────────────
@@ -88,7 +98,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   }, []);
 
   return (
-    <div className="w-full max-w-md px-6 py-12 space-y-10">
+    <div className="w-full max-w-md px-6 py-12 space-y-8">
       {/* Logo + headline */}
       <motion.div
         initial={{ opacity: 0, y: 28 }}
@@ -132,11 +142,21 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
 
         <div>
           <h1 className="text-[2.6rem] font-black text-text leading-[1.05] tracking-tight">
-            Your AI<br />chief of staff.
+            Every AI model.<br />One assistant.
           </h1>
           <p className="text-sm text-muted mt-3 leading-relaxed max-w-xs mx-auto">
-            Runs your inbox, calendar, and goals in the background — you just approve.
+            ChatGPT, Claude, Gemini, and Grok in one place — routed to the best one for every task, and put to work running your day.
           </p>
+        </div>
+
+        {/* Every-model strip */}
+        <div className="flex items-center justify-center gap-3">
+          {BRAND_MODELS.map(({ name, Logo }) => (
+            <div key={name} className="flex items-center gap-1.5">
+              <Logo className="w-4 h-4" />
+              <span className="text-[11px] font-semibold text-muted">{name}</span>
+            </div>
+          ))}
         </div>
       </motion.div>
 
@@ -325,46 +345,15 @@ function RoleStep({ role, setRole, name }: { role: string; setRole: (v: string) 
   );
 }
 
-// ── GoalStep ───────────────────────────────────────────────────────────────────
-function GoalStep({ goal, setGoal }: { goal: string; setGoal: (v: string) => void }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Your mission</p>
-        <h1 className="text-2xl font-black text-text leading-tight">What do you want to accomplish in the next 30 days?</h1>
-        <p className="text-sm text-muted mt-1.5">Be specific — MODUS will hold you to it.</p>
-      </div>
-
-      <textarea
-        autoFocus
-        value={goal}
-        onChange={e => setGoal(e.target.value)}
-        placeholder="e.g. Launch my first product and get 10 paying customers."
-        rows={4}
-        className="w-full bg-panel/70 border border-border/60 rounded-2xl px-5 py-4 text-sm text-text placeholder:text-muted/40 focus:outline-none focus:border-brand/60 transition-all resize-none"
-      />
-
-      <div className="bg-brand/6 border border-brand/20 rounded-xl px-4 py-3 flex items-start gap-3">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center shrink-0 mt-0.5">
-          <Image src="/logo.png" alt="M" width={13} height={13} className="object-contain opacity-90" />
-        </div>
-        <p className="text-xs text-muted leading-relaxed">
-          This becomes your first tracked goal. Daily briefings will reference your progress toward it.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ── ModelsShowcaseScreen ─────────────────────────────────────────────────────────
 // Promotes MODUS's core differentiator during onboarding: every frontier model in
 // one subscription, auto-routed per task. Echoes the marketing MultiModelSection's
-// routing-chip demo, trimmed for the onboarding column. Reuses ModelLogos assets.
+// routing-chip demo, trimmed for the onboarding column. Brand names only.
 const MODEL_DEMOS = [
-  { prompt: 'Write a cold email to a lapsed lead.',  model: 'Gemini', reason: 'natural writing',   Logo: GeminiLogo },
-  { prompt: 'Compare our two pricing plans.',         model: 'Claude', reason: 'analysis & research', Logo: ClaudeLogo },
-  { prompt: 'Why does my useEffect run twice?',       model: 'Grok',   reason: 'code & debugging',  Logo: GrokLogo },
-  { prompt: 'Draft a launch plan for next week.',     model: 'GPT-4o', reason: 'planning',          Logo: OpenAILogo },
+  { prompt: 'Write a cold email to a lapsed lead.',  model: 'Gemini',  reason: 'natural writing',    Logo: GeminiLogo },
+  { prompt: 'Compare our two pricing plans.',         model: 'Claude',  reason: 'analysis & research', Logo: ClaudeLogo },
+  { prompt: 'Why does my useEffect run twice?',       model: 'Grok',    reason: 'code & debugging',   Logo: GrokLogo },
+  { prompt: 'Draft a launch plan for next week.',     model: 'ChatGPT', reason: 'planning',           Logo: OpenAILogo },
 ];
 
 function ModelsShowcaseScreen() {
@@ -382,7 +371,7 @@ function ModelsShowcaseScreen() {
         <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Your unfair advantage</p>
         <h1 className="text-2xl font-black text-text leading-tight">One subscription.<br />Every model.</h1>
         <p className="text-sm text-muted mt-1.5">
-          GPT-4o, Claude, Gemini, Grok — MODUS routes each task to whichever is best. Or pick one yourself.
+          ChatGPT, Claude, Gemini, Grok — MODUS routes each task to whichever is best. Or pick one yourself.
         </p>
       </div>
 
@@ -416,15 +405,12 @@ function ModelsShowcaseScreen() {
 
       {/* All models */}
       <div className="flex flex-wrap gap-2">
-        {MODEL_LOGOS.map(m => {
-          const L = m.logo;
-          return (
-            <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel/60 border border-border/60 rounded-full pl-2 pr-3 py-1.5">
-              <L className="w-4 h-4" />
-              <span className="text-xs font-semibold text-text">{m.name}</span>
-            </span>
-          );
-        })}
+        {BRAND_MODELS.map(({ name, Logo: L }) => (
+          <span key={name} className="inline-flex items-center gap-1.5 bg-panel/60 border border-border/60 rounded-full pl-2 pr-3 py-1.5">
+            <L className="w-4 h-4" />
+            <span className="text-xs font-semibold text-text">{name}</span>
+          </span>
+        ))}
       </div>
 
       <p className="text-xs text-muted/70 leading-relaxed">
@@ -434,126 +420,97 @@ function ModelsShowcaseScreen() {
   );
 }
 
-// ── GoogleStep ─────────────────────────────────────────────────────────────────
-function GoogleStep({ googleEmail, onConnect, connecting, error, onSkip }: {
-  googleEmail: string; onConnect: () => void; connecting: boolean; error?: string; onSkip: () => void;
-}) {
-  const services = [
-    { icon: '✉️', name: 'Gmail',    desc: 'Triage inbox, draft and send replies',     color: '#EA4335' },
-    { icon: '📅', name: 'Calendar', desc: 'Manage schedule, block time, join meetings', color: '#4285F4' },
-    { icon: '📁', name: 'Drive',    desc: 'Access docs for context in chat',            color: '#34A853' },
-  ];
+// ── PlanStep ───────────────────────────────────────────────────────────────────
+// Lets the user pick which plan to start their 3-day trial on, before checkout.
+const PLAN_OPTIONS: { id: PlanId; name: string; price: string; tagline: string; popular?: boolean; features: string[] }[] = [
+  {
+    id: 'modus', name: 'MODUS', price: '$24', tagline: 'Every model, auto-routed',
+    features: ['Claude + ChatGPT, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
+  },
+  {
+    id: 'pilot', name: 'PILOT', price: '$59', tagline: 'Everything, higher limits', popular: true,
+    features: ['Everything in MODUS', 'Every model — + Gemini, Grok, Opus', 'Much higher usage limits', 'Manual model pick per message'],
+  },
+];
 
+function PlanStep({ selected, setSelected }: { selected: PlanId; setSelected: (v: PlanId) => void }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">The core connection</p>
-        <h1 className="text-2xl font-black text-text leading-tight">Connect Google to unlock your daily chief of staff.</h1>
-        <p className="text-sm text-muted mt-1.5">This is what lets MODUS work in the background for you.</p>
+        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Pick your plan</p>
+        <h1 className="text-2xl font-black text-text leading-tight">Choose your plan.</h1>
+        <p className="text-sm text-muted mt-1.5">Both start with a 3-day free trial. Cancel anytime.</p>
       </div>
 
-      <div className="space-y-2">
-        {services.map((s, i) => (
-          <motion.div
-            key={s.name}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-              googleEmail ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border/60 bg-panel/60'
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: `${s.color}18` }}>
-              {s.icon}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-text">{s.name}</p>
-              <p className="text-xs text-muted">{s.desc}</p>
-            </div>
-            {googleEmail && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 18, delay: i * 0.08 }}
-                className="flex items-center gap-1.5"
-              >
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <svg viewBox="0 0 12 12" fill="none" stroke="#22c55e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
-                    <path d="M2 6l3 3 5-5" />
-                  </svg>
+      <div className="space-y-3">
+        {PLAN_OPTIONS.map(p => {
+          const active = selected === p.id;
+          return (
+            <motion.button
+              key={p.id}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setSelected(p.id)}
+              className={`relative w-full p-4 rounded-2xl border text-left transition-all duration-200 ${
+                active
+                  ? 'border-brand/60 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15),0_4px_20px_rgba(124,58,237,0.12)]'
+                  : 'border-border/60 bg-panel/60 hover:border-brand/25'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-black tracking-wide ${active ? 'text-brand' : 'text-text'}`}>{p.name}</span>
+                    {p.popular && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-brand bg-brand/15 px-1.5 py-0.5 rounded-full">Popular</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted mt-0.5">{p.tagline}</p>
                 </div>
-                <span className="text-xs font-semibold text-emerald-400">Connected</span>
-              </motion.div>
-            )}
-          </motion.div>
-        ))}
+                <div className="text-right">
+                  <span className="text-xl font-black text-text">{p.price}</span>
+                  <span className="text-xs text-muted">/mo</span>
+                </div>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors ${active ? 'border-brand bg-brand' : 'border-muted/40'}`}>
+                  {active && (
+                    <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
+                      <path d="M2 6l3 3 5-5" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-1.5">
+                {p.features.map(f => (
+                  <div key={f} className="flex items-center gap-2">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={`w-2.5 h-2.5 shrink-0 ${active ? 'text-brand' : 'text-muted'}`}>
+                      <path d="M2 6l3 3 5-5" />
+                    </svg>
+                    <span className="text-xs text-text/80">{f}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
 
-      {googleEmail ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-emerald-500/8 border border-emerald-500/25 rounded-2xl p-4 text-center space-y-1"
-        >
-          <p className="text-sm font-bold text-text">Connected as {googleEmail}</p>
-          <p className="text-xs text-muted">Gmail, Calendar, and Drive are active</p>
-        </motion.div>
-      ) : (
-        <div className="space-y-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onConnect}
-            disabled={connecting}
-            className="w-full py-3.5 bg-white text-gray-800 text-sm font-bold rounded-2xl border border-gray-200 flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors disabled:opacity-60 shadow-sm"
-          >
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            {connecting ? 'Connecting...' : 'Connect Google Account'}
-          </motion.button>
-
-          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
-
-          <div className="flex items-start gap-2.5 bg-panel/60 border border-border/60 rounded-xl px-4 py-3">
-            <span className="text-base shrink-0 mt-0.5">🔒</span>
-            <p className="text-xs text-muted leading-relaxed">
-              You may see an &ldquo;unverified app&rdquo; warning — verification is in progress. Click{' '}
-              <span className="text-text font-medium">Advanced</span> →{' '}
-              <span className="text-text font-medium">Go to Modus Pilot</span>.
-            </p>
-          </div>
-
-          <button
-            onClick={onSkip}
-            className="w-full text-center text-xs text-muted/60 hover:text-muted transition-colors py-1"
-          >
-            Skip for now — connect later in Settings
-          </button>
-        </div>
-      )}
+      <p className="text-xs text-muted/70 text-center leading-relaxed">
+        You won&apos;t be charged today. Card required to start · cancel anytime before day 3.
+      </p>
     </div>
   );
 }
 
 // ── CompletionScreen ───────────────────────────────────────────────────────────
-function CompletionScreen({ name, goal, googleEmail, onEnter }: {
-  name: string; goal: string; googleEmail: string; onEnter: () => void;
+function CompletionScreen({ name, planName, onEnter }: {
+  name: string; planName: string; onEnter: () => void;
 }) {
-  const hour    = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const today   = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const items = [
-    { check: true,  label: `Profile personalized${name.trim() ? ` for ${name.trim()}` : ''}` },
-    ...(goal.trim() ? [{ check: true,  label: `Goal set: "${goal.trim().slice(0, 52)}${goal.trim().length > 52 ? '…' : ''}"` }] : []),
-    { check: true,  label: 'Daily Review habit — streak starts today' },
-    googleEmail
-      ? { check: true,  label: 'Gmail, Calendar, Drive — active' }
-      : { check: false, label: 'Connect Google in Settings to unlock your inbox' },
+    { label: `Profile personalized${name.trim() ? ` for ${name.trim()}` : ''}` },
+    { label: 'Every model unlocked — ChatGPT, Claude, Gemini, Grok' },
+    { label: 'Daily Review habit — streak starts today' },
   ];
 
   // 10 burst particles
@@ -610,10 +567,10 @@ function CompletionScreen({ name, goal, googleEmail, onEnter }: {
         >
           <div className="flex items-center justify-center gap-1.5 mb-2">
             <motion.div animate={{ opacity: [1, 0.35, 1] }} transition={{ duration: 1.8, repeat: Infinity }} className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-xs text-emerald-400 font-semibold tracking-wide uppercase">MODUS is live</span>
+            <span className="text-xs text-emerald-400 font-semibold tracking-wide uppercase">Ready to go</span>
           </div>
           <h1 className="text-3xl font-black text-text leading-tight">
-            {name.trim() ? `You're in, ${name.trim()}.` : "You're in."}
+            {name.trim() ? `You're set, ${name.trim()}.` : "You're set."}
           </h1>
           <p className="text-sm text-muted mt-1.5">{today}</p>
         </motion.div>
@@ -636,18 +593,12 @@ function CompletionScreen({ name, goal, googleEmail, onEnter }: {
               transition={{ delay: 0.55 + i * 0.1 }}
               className="flex items-start gap-3"
             >
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${item.check ? 'bg-brand/20' : 'bg-border/30'}`}>
-                {item.check ? (
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-brand">
-                    <path d="M2 6l3 3 5-5" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-muted">
-                    <path d="M2 6h8M6 2l4 4-4 4" />
-                  </svg>
-                )}
+              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-brand/20">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-brand">
+                  <path d="M2 6l3 3 5-5" />
+                </svg>
               </div>
-              <p className={`text-sm leading-snug ${item.check ? 'text-text' : 'text-muted'}`}>{item.label}</p>
+              <p className="text-sm leading-snug text-text">{item.label}</p>
             </motion.div>
           ))}
         </div>
@@ -666,9 +617,9 @@ function CompletionScreen({ name, goal, googleEmail, onEnter }: {
           onClick={onEnter}
           className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
         >
-          {greeting}{name.trim() ? `, ${name.trim()}` : ''} — Open your dashboard →
+          Start my 3-day {planName} trial →
         </motion.button>
-        <p className="text-xs text-muted text-center">MODUS will scan your inbox and prepare today&apos;s briefing.</p>
+        <p className="text-xs text-muted text-center">You won&apos;t be charged today · Cancel anytime</p>
       </motion.div>
     </motion.div>
   );
@@ -679,101 +630,56 @@ export default function OnboardingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const [screen,    setScreen]    = useState<Screen>('welcome');
+  // ?trial=1 = user bounced back from an abandoned checkout — jump them straight
+  // to the plan/Start step instead of the onboardingComplete→dashboard redirect.
+  const [trialMode] = useState<boolean>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('trial') === '1'
+  );
+
+  const [screen,    setScreen]    = useState<Screen>(trialMode ? 'plan' : 'welcome');
   const [direction, setDirection] = useState(1);
   const [saving,    setSaving]    = useState(false);
 
-  const [name,        setName]        = useState('');
-  const [role,        setRole]        = useState('');
-  const [goal,        setGoal]        = useState('');
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [connecting,  setConnecting]  = useState(false);
-  const [googleError, setGoogleError] = useState('');
-
-  const [oauthConnectedEmail] = useState<string | null>(() =>
-    typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('connected')
-      : null
-  );
-
-  // Restore state after Google OAuth redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const connectedEmail = params.get('connected');
-    const oauthError     = params.get('error');
-    if (!connectedEmail && !oauthError) return;
-
-    const saved = sessionStorage.getItem('onboarding_state');
-    if (saved) {
-      try {
-        const s = JSON.parse(saved);
-        setName(s.name ?? '');
-        setRole(s.role ?? '');
-        setGoal(s.goal ?? '');
-        sessionStorage.removeItem('onboarding_state');
-      } catch {}
-    }
-
-    if (connectedEmail) {
-      setGoogleEmail(decodeURIComponent(connectedEmail));
-    } else if (oauthError) {
-      setGoogleError('Connection failed. Please try again.');
-    }
-    window.history.replaceState({}, '', '/onboarding');
-    setScreen('google');
-  }, []);
-
-  // Pre-populate Google email from Firestore
-  useEffect(() => {
-    if (!user) return;
-    getDocs(collection(db, 'users', user.uid, 'google_accounts')).then(snap => {
-      if (!snap.empty && !googleEmail) {
-        setGoogleEmail((snap.docs[0].data() as { email: string }).email);
-      }
-    }).catch(() => {});
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('modus');
 
   // Auth guard
   useEffect(() => {
     if (!loading && !user) {
-      if (oauthConnectedEmail) return;
       router.push('/login');
       return;
     }
-    if (user && !oauthConnectedEmail) {
+    // Returning already-onboarded user (not in trial re-entry) → straight to app.
+    if (user && !trialMode) {
       getDoc(doc(db, 'users', user.uid)).then(snap => {
         if (snap.data()?.onboardingComplete) router.push('/dashboard');
       });
     }
-  }, [user, loading, router, oauthConnectedEmail]);
+  }, [user, loading, router, trialMode]);
 
-  if (loading || (!user && !oauthConnectedEmail)) return null;
+  if (loading || !user) return null;
 
   function go(next: Screen, dir = 1) {
     setDirection(dir);
     setScreen(next);
   }
 
-  async function handleConnectGoogle() {
-    if (!user) return;
-    setConnecting(true);
+  // New users start their 3-day card-required trial via Stripe Checkout for the
+  // plan they picked. If checkout can't be created, fall through to the app — the
+  // chat gate surfaces the paywall. Abandoning checkout returns to /onboarding?trial=1.
+  async function startTrial() {
     try {
-      sessionStorage.setItem('onboarding_state', JSON.stringify({ name, role, goal }));
-      const token = await user.getIdToken();
-      const res = await fetch('/api/auth/google/connect', {
+      const token = await user!.getIdToken();
+      const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ origin: 'onboarding' }),
+        body: JSON.stringify({ plan: selectedPlan, returnTo: 'dashboard' }),
       });
-      if (!res.ok) throw new Error();
       const data = await res.json();
-      if (!data.url) throw new Error();
-      window.location.href = data.url;
-    } catch {
-      sessionStorage.removeItem('onboarding_state');
-      setGoogleError('Connection failed. Please try again.');
-      setConnecting(false);
-    }
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+    } catch { /* fall through to dashboard */ }
+    router.push('/dashboard');
   }
 
   async function handleFinish() {
@@ -781,18 +687,22 @@ export default function OnboardingPage() {
     setSaving(true);
     go('done');
     try {
-      const uid        = user!.uid;
-      const roleLabel  = role.trim() || 'Other';
+      const uid = user!.uid;
+      // Idempotent: a trial re-entry (?trial=1) is already onboarded — don't
+      // duplicate the seeded habit/memories.
+      const existing = await getDoc(doc(db, 'users', uid));
+      if (existing.data()?.onboardingComplete === true) return;
+
+      const roleLabel = role.trim() || 'Other';
       const personalContext = [
         name.trim() && `My name is ${name.trim()}.`,
         roleLabel   && `I am a ${roleLabel}.`,
-        goal.trim() && `My 30-day goal: ${goal.trim()}.`,
       ].filter(Boolean).join(' ');
 
       await setDoc(doc(db, 'users', uid), {
         displayName: name.trim() || null,
         onboardingComplete: true,
-        onboardingAnswers: { role: roleLabel, thirtyDayGoal: goal.trim() },
+        onboardingAnswers: { role: roleLabel },
         settings: {
           personalContext,
           responseStyle: 'normal',
@@ -803,17 +713,6 @@ export default function OnboardingPage() {
           customStyle: '',
         },
       }, { merge: true });
-
-      if (goal.trim()) {
-        await addDoc(collection(db, 'users', uid, 'goals'), {
-          title: goal.trim(),
-          description: '',
-          status: 'active',
-          progress: 0,
-          source: 'onboarding',
-          createdAt: serverTimestamp(),
-        });
-      }
 
       await addDoc(collection(db, 'users', uid, 'habits'), {
         name: 'Daily Review',
@@ -830,7 +729,6 @@ export default function OnboardingPage() {
       const memories = [
         name.trim() && `My name is ${name.trim()}.`,
         roleLabel   && `I am a ${roleLabel}.`,
-        goal.trim() && `My 30-day goal: ${goal.trim()}.`,
       ].filter(Boolean) as string[];
 
       const token = await user!.getIdToken();
@@ -850,19 +748,19 @@ export default function OnboardingPage() {
   }
 
   // Navigation maps
-  const NEXT: Partial<Record<Screen, Screen>> = { name: 'role', role: 'goal', goal: 'models', models: 'google' };
-  const PREV: Partial<Record<Screen, Screen>> = { role: 'name', goal: 'role', models: 'goal', google: 'models' };
+  const NEXT: Partial<Record<Screen, Screen>> = { name: 'role', role: 'models', models: 'plan' };
+  const PREV: Partial<Record<Screen, Screen>> = { role: 'name', models: 'role', plan: 'models' };
   const isValid: Record<Screen, boolean> = {
     welcome: true,
     name:    name.trim() !== '',
     role:    role !== '',
-    goal:    goal.trim() !== '',
     models:  true,
-    google:  true,
+    plan:    true,
     done:    true,
   };
 
   const stepIndex = QUESTION_SCREENS.indexOf(screen) + 1;
+  const selectedPlanName = PLAN_OPTIONS.find(p => p.id === selectedPlan)?.name ?? 'MODUS';
 
   // ── welcome ────────────────────────────────────────────────────────────────
   if (screen === 'welcome') {
@@ -895,23 +793,6 @@ export default function OnboardingPage() {
   }
 
   // ── done ───────────────────────────────────────────────────────────────────
-  // New users start their 3-day card-required trial via Stripe Checkout right
-  // after onboarding. If checkout can't be created, fall through to the app —
-  // the chat gate will surface the paywall when they try to use it.
-  async function startTrial() {
-    try {
-      const token = await user!.getIdToken();
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: 'modus', returnTo: 'dashboard' }),
-      });
-      const data = await res.json();
-      if (res.ok && data.url) { window.location.href = data.url; return; }
-    } catch { /* fall through to dashboard */ }
-    router.push('/dashboard');
-  }
-
   if (screen === 'done') {
     return (
       <div className="relative min-h-screen flex flex-col items-center overflow-y-auto">
@@ -919,8 +800,7 @@ export default function OnboardingPage() {
         <div className="relative z-10 py-10">
           <CompletionScreen
             name={name}
-            goal={goal}
-            googleEmail={googleEmail}
+            planName={selectedPlanName}
             onEnter={startTrial}
           />
         </div>
@@ -928,8 +808,8 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── role / goal / google ───────────────────────────────────────────────────
-  const isLast = screen === 'google';
+  // ── role / models / plan ────────────────────────────────────────────────────
+  const isLast = screen === 'plan';
 
   return (
     <div className="relative min-h-screen flex flex-col items-center">
@@ -954,17 +834,8 @@ export default function OnboardingPage() {
             transition={slideTx}
           >
             {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
-            {screen === 'goal'   && <GoalStep goal={goal} setGoal={setGoal} />}
             {screen === 'models' && <ModelsShowcaseScreen />}
-            {screen === 'google' && (
-              <GoogleStep
-                googleEmail={googleEmail}
-                onConnect={handleConnectGoogle}
-                connecting={connecting}
-                error={googleError}
-                onSkip={handleFinish}
-              />
-            )}
+            {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -993,9 +864,7 @@ export default function OnboardingPage() {
             disabled={!isValid[screen] || saving}
             className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
           >
-            {isLast
-              ? (googleEmail ? 'Launch MODUS →' : 'Continue without Google →')
-              : 'Continue →'}
+            {isLast ? 'Review & start →' : 'Continue →'}
           </motion.button>
         </div>
       </div>
