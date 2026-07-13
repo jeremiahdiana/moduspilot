@@ -207,6 +207,7 @@ export default function GoalDetailPage() {
   const prevLoadingRef  = useRef(false);
   const seededRef       = useRef(false);
   const bottomRef       = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
 
   // ── Effects ──────────────────────────────────────────────────────────────────
 
@@ -387,8 +388,12 @@ export default function GoalDetailPage() {
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
+  // Scroll ONLY the messages container (separate chat column) — never
+  // scrollIntoView, which scrolls every scrollable ancestor and can crop the
+  // page (the bug that hit the main /chat).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
   // ── Chat helpers ──────────────────────────────────────────────────────────────
@@ -1228,7 +1233,7 @@ export default function GoalDetailPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <div ref={messagesScrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.map((m, idx) => (
               <MessageBubble key={m.id} message={m} isStreaming={isLoading && idx === messages.length - 1} />
             ))}

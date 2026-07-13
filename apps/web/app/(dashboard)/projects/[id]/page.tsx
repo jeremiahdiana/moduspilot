@@ -13,6 +13,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
+import ModelSwitcher from '@/components/chat/ModelSwitcher';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type ProjectTab = 'overview' | 'resources' | 'tasks' | 'notes';
@@ -84,7 +85,23 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const { settings } = useUserSettings(user);
+  const { settings, plan, loading: settingsLoading } = useUserSettings(user);
+
+  // In-chat model picker (mirrors the main chat). Defaults to the saved Brain
+  // model; users can switch per project chat.
+  const [modelChoice, setModelChoice] = useState('auto');
+  const didInitModelRef = useRef(false);
+  const handleModelChange = useCallback((v: string) => setModelChoice(v), []);
+  useEffect(() => {
+    if (didInitModelRef.current || settingsLoading) return;
+    const msx = settings.modelSettings;
+    setModelChoice(
+      msx?.provider === 'openai' || msx?.provider === 'anthropic'
+        ? 'default'
+        : (msx?.model ?? 'auto'),
+    );
+    didInitModelRef.current = true;
+  }, [settings, settingsLoading]);
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,6 +157,7 @@ export default function ProjectDetailPage() {
   const prevLoadingRef  = useRef(false);
   const seededRef       = useRef(false);
   const bottomRef       = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
 
   // ── Auth token ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -248,6 +266,7 @@ export default function ProjectDetailPage() {
       personalContext: settings.personalContext ?? '',
       responseStyle: settings.responseStyle ?? 'normal',
       customStyle: settings.customStyle ?? '',
+      modelChoice,
       projectContext: project
         ? { id: project.id, title: project.title, description: project.description, resources: project.resources, activeChatId }
         : undefined,
@@ -286,8 +305,12 @@ export default function ProjectDetailPage() {
     saveConversation(messages);
   }, [isLoading, messages, saveConversation]);
 
+  // Pin the chat to the bottom by scrolling ONLY the messages container — never
+  // scrollIntoView, which scrolls every scrollable ancestor (incl. the page) and
+  // can crop the layout (the bug that hit the main /chat).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
   // ── Chat helpers ──────────────────────────────────────────────────────────────
@@ -1273,7 +1296,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div ref={messagesScrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.map(m => (
             <MessageBubble key={m.id} message={m} />
           ))}
@@ -1300,6 +1323,11 @@ export default function ProjectDetailPage() {
               {chip}
             </button>
           ))}
+        </div>
+
+        {/* Model switcher */}
+        <div className="shrink-0 border-t border-border px-3 py-2 flex items-center">
+          <ModelSwitcher value={modelChoice} onChange={handleModelChange} plan={plan} />
         </div>
 
         {/* Input */}
