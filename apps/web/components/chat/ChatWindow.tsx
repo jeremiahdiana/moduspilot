@@ -209,8 +209,10 @@ export default function ChatWindow({
         setChatError('AI service configuration error. Contact support.');
       } else if (msg.includes('provider_down') || msg.includes('503') || msg.includes('502') || msg.includes('unavailable') || msg.includes('overloaded')) {
         setChatError('AI service is down. Try again in a moment.');
-      } else if (msg.includes('message_too_large')) {
-        setChatError('That message was too long for the fast model. Try again or shorten it.');
+      } else if (msg.includes('all_models_busy') || msg.includes('message_too_large')) {
+        // NOT a message-length problem — the server already tried every model and
+        // all were briefly throttled. Honest transient copy, no "shorten it".
+        setChatError('The AI is briefly busy right now. Wait a few seconds and try again, or switch models below.');
       } else {
         setChatError('Something went wrong. Please try again.');
       }

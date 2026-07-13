@@ -12,6 +12,14 @@ function visionOpenAIModel(model: string): string {
 
 const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY ?? '', baseURL: 'https://api.groq.com/openai/v1' });
 export const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
+// Second free Groq model — a SEPARATE per-minute (TPM) budget from the primary
+// Llama, so a throttled first model can immediately retry here at no cost. Also
+// used as the fallback in proactive-model.ts / briefing.ts.
+const GROQ_FALLBACK_SECONDARY = 'llama-3.1-8b-instant';
+
+// The concrete language-model object type (LanguageModel is `string | model`; a
+// resolved chat model is always the object form).
+type LM = Exclude<LanguageModel, string>;
 
 /** A premium (paid-tier) model id — anything that isn't the free Llama default. */
 function isPremiumModel(id: string): boolean {
@@ -111,4 +119,89 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
     downgraded: !!requestedPremium,
     requestedId: requestedPremium,
   };
+}
+
+// Provider errors worth failing over on: transient rate / size / availability
+// limits (Groq's per-minute TPM 429 "request too large", overload, 5xx). NOT
+// auth/config errors — those would fail on every model, so retrying is pointless.
+function isFailoverError(err: unknown): boolean {
+  const s = String(err).toLowerCase();
+  return (
+    s.includes('429') ||
+    s.includes('rate limit') ||
+    s.includes('too many') ||
+    s.includes('too large') ||
+    s.includes('tokens per') ||
+    s.includes('reduce') ||
+    s.includes('quota') ||
+    s.includes('overloaded') ||
+    s.includes('capacity') ||
+    s.includes('503') ||
+    s.includes('502')
+  );
+}
+
+/**
+ * Wrap an ordered list of models into a single LanguageModel that transparently
+ * fails over: if a model's request is rejected with a transient rate/size/
+ * availability error (e.g. Groq's per-minute TPM 429), the next model is tried.
+ * Groq rejects over-limit requests at request time — BEFORE any token — so the
+ * rejection surfaces here in doStream/doGenerate and the user never sees an error.
+ * A Proxy is used so every other property/method delegates to the primary model.
+ */
+export function createFallbackModel(
+  models: LM[],
+  onFallback?: (fromId: string, toId: string, err: unknown) => void,
+): LM {
+  if (models.length <= 1) return models[0];
+  const attempt = async <T>(run: (m: LM) => PromiseLike<T>): Promise<T> => {
+    let lastErr: unknown;
+    for (let i = 0; i < models.length; i++) {
+      try {
+        return await run(models[i]);
+      } catch (e) {
+        lastErr = e;
+        if (i < models.length - 1 && isFailoverError(e)) {
+          onFallback?.(models[i].modelId, models[i + 1].modelId, e);
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw lastErr;
+  };
+  return new Proxy(models[0], {
+    get(target, prop, receiver) {
+      if (prop === 'doStream') {
+        return (options: Parameters<LM['doStream']>[0]) => attempt((m) => m.doStream(options));
+      }
+      if (prop === 'doGenerate') {
+        return (options: Parameters<LM['doGenerate']>[0]) => attempt((m) => m.doGenerate(options));
+      }
+      // Delegate everything else (modelId, provider, specificationVersion,
+      // supportsUrl, …) to the primary model, preserving its `this`.
+      void receiver;
+      return Reflect.get(target, prop, target);
+    },
+  });
+}
+
+/**
+ * Build the ordered failover chain for a chat request: the resolved primary model
+ * first, then a free Groq model with a SEPARATE TPM budget, then a paid safety net
+ * (gpt-4o-mini) so MODUS ALWAYS answers instead of surfacing "ran out / too long".
+ * Duplicates (e.g. primary already gpt-4o-mini) are skipped.
+ */
+export function chatFallbackChain(primary: LM): LM[] {
+  const chain: LM[] = [primary];
+  const seen = new Set<string>([primary.modelId]);
+  const add = (model: LM) => {
+    if (seen.has(model.modelId)) return;
+    seen.add(model.modelId);
+    chain.push(model);
+  };
+  if (process.env.GROQ_API_KEY?.trim()) add(groq(GROQ_FALLBACK_SECONDARY));
+  const openAIKey = process.env.OPENAI_API_KEY?.trim();
+  if (openAIKey) add(createOpenAI({ apiKey: openAIKey })('gpt-4o-mini'));
+  return chain;
 }

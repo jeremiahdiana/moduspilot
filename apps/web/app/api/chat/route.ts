@@ -13,7 +13,7 @@ import {
   enforcePaidTokenLimit,
   trackTokenUsage,
 } from '@/lib/chat/limits';
-import { resolveChatModel, LLAMA_FALLBACK } from '@/lib/chat/model';
+import { resolveChatModel, LLAMA_FALLBACK, chatFallbackChain, createFallbackModel } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
 import { isModelUnlocked } from '@/lib/models';
 import {
@@ -395,8 +395,19 @@ export async function POST(req: Request) {
     const isReasoningModel = /^o\d/.test(resolved.modelId);
     const maxTokens = isReasoningModel ? 16000 : 2048;
 
+    // Transparent model failover: if the chosen model rejects the request with a
+    // transient rate/size limit (e.g. Groq's per-minute TPM 429 on the free
+    // model), retry the next model in the chain — a second free Groq model with a
+    // fresh TPM budget, then a paid gpt-4o-mini safety net — so MODUS always
+    // answers instead of showing "ran out / too long". Groq rejects at request
+    // time (before any token), so the switch is invisible to the user.
+    const failoverModel = createFallbackModel(
+      chatFallbackChain(chatModel as Parameters<typeof createFallbackModel>[0][number]),
+      (from, to, err) => console.log(`[chat] failover: ${from}→${to} (${String(err).slice(0, 140)})`),
+    );
+
     const result = streamText({
-      model: chatModel,
+      model: failoverModel,
       system: fullSystemPrompt + mcpBlock + extractionGuard,
       messages: cappedMessages,
       maxTokens,
@@ -439,6 +450,12 @@ export async function POST(req: Request) {
       headers: {
         // Honest labeling: what actually answered this message, so the client can
         // show a notice when a premium pick was downgraded to the free default.
+        // NOTE: headers are computed before streaming begins, so if the runtime
+        // failover (createFallbackModel) had to switch models mid-stream, this
+        // still reflects the model we ATTEMPTED first. Same-class Groq→Groq
+        // switches keep this accurate ("the fast model"); the rare paid-net hop
+        // is logged server-side. Reflecting the exact answering model here would
+        // require a trailing annotation — out of scope for this fix.
         'x-modus-model': resolved.modelId,
         // Auto mode picked this model for the task → client shows a routing chip.
         ...(wasAutoRouted ? { 'x-modus-auto': '1' } : {}),
@@ -455,7 +472,12 @@ export async function POST(req: Request) {
         if (sl.includes('rate limit') || sl.includes('429') || sl.includes('too many')) return 'rate_limit_reached';
         if (sl.includes('401') || sl.includes('api key') || sl.includes('unauthorized')) return 'api_key_error';
         if (sl.includes('503') || sl.includes('502') || sl.includes('overloaded')) return 'provider_down';
-        if (sl.includes('too large') || sl.includes('tokens per minute') || sl.includes('reduce your message')) return 'message_too_large';
+        // "too large"/TPM from Groq is a TRANSIENT per-minute throttle, not a
+        // permanent "your message is too long" — and the failover chain above
+        // already tried every model, so reaching here means all were briefly
+        // busy. Surface that honestly (never tell the user to shorten a 2-char
+        // message). Kept the `message_too_large` alias for older cached clients.
+        if (sl.includes('too large') || sl.includes('tokens per minute') || sl.includes('reduce') || sl.includes('message_too_large')) return 'all_models_busy';
         // Don't leak raw provider/internal error text to the client.
         return 'chat_error';
       },
