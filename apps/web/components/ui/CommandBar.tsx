@@ -236,7 +236,8 @@ export default function CommandBar({ open, onClose, user }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (showSearch && filtered.length > 0) {
+    // selectedIndex === filtered.length is the "Ask MODUS" fallback row (below).
+    if (showSearch && filtered.length > 0 && selectedIndex < filtered.length) {
       router.push(filtered[selectedIndex].href);
       onClose();
     } else if (q.trim()) {
@@ -246,16 +247,23 @@ export default function CommandBar({ open, onClose, user }: Props) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    const total = showSearch ? filtered.length : QUICK_ACTIONS.length;
+    // When searching, there's one extra navigable row after the results — the
+    // "Ask MODUS" fallback at index filtered.length — so total is +1.
+    const total = showSearch ? filtered.length + 1 : QUICK_ACTIONS.length;
     if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, total - 1)); }
     if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)); }
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (showSearch && filtered.length > 0) {
-        router.push(filtered[selectedIndex].href); onClose();
-      } else if (showSearch && q.trim()) {
-        router.push(`/chat?q=${encodeURIComponent(q.trim())}`); onClose();
-      } else if (!showSearch) {
+      if (showSearch) {
+        // Only index a real result; the fallback row (selectedIndex ===
+        // filtered.length, reachable by arrow or mouse-hover) sends to chat.
+        // Guarding this prevents filtered[filtered.length].href from throwing.
+        if (filtered.length > 0 && selectedIndex < filtered.length) {
+          router.push(filtered[selectedIndex].href); onClose();
+        } else if (q.trim()) {
+          router.push(`/chat?q=${encodeURIComponent(q.trim())}`); onClose();
+        }
+      } else {
         const action = QUICK_ACTIONS[selectedIndex];
         if (action) handleAction(action);
       }
