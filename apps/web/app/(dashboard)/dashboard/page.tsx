@@ -9,6 +9,7 @@ import DashboardGrid from '@/components/dashboard/DashboardGrid';
 import NeedsYou from '@/components/dashboard/NeedsYou';
 import BriefingHero from '@/components/dashboard/BriefingHero';
 import { useLayoutPrefs } from '@/hooks/useLayoutPrefs';
+import { localDateStr } from '@/lib/dates';
 import Link from 'next/link';
 
 function greeting() {
@@ -33,7 +34,7 @@ function useStats(uid: string | null): Stats {
 
   useEffect(() => {
     if (!uid) return;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDateStr();
 
     const unsubGoals = onSnapshot(
       query(collection(db, 'users', uid, 'goals'), where('status', '==', 'active')),
@@ -62,7 +63,7 @@ function useFocusTask(uid: string | null) {
 
   useEffect(() => {
     if (!uid) return;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDateStr();
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     let unsubTasks: (() => void) | undefined;
 

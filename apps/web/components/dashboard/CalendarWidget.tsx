@@ -48,7 +48,9 @@ export default function CalendarWidget() {
           : '/api/google/today';
         const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
-        if (data.notConnected) setNotConnected(true);
+        // Reset on every fetch, not just latch true — otherwise a single
+        // transient failure left the widget stuck on "not connected" forever.
+        setNotConnected(!!data.notConnected);
         setEvents(data.events ?? []);
       } catch { /* non-fatal */ }
       finally { setLoading(false); }

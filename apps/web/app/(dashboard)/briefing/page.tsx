@@ -15,6 +15,7 @@ import type { Message } from 'ai';
 import type { BriefingData, BriefingScheduleItem } from '@/lib/briefing';
 import type { GmailThread } from '@/lib/google-gmail';
 import type { CalendarEvent } from '@/lib/google-calendar';
+import { localDateStr } from '@/lib/dates';
 import MessageBubble from '@/components/chat/MessageBubble';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -767,7 +768,7 @@ function useYesterdayStats(uid: string | null): YesterdayStats | null {
   useEffect(() => {
     if (!uid) return;
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-    const yStr = yesterday.toISOString().slice(0, 10);
+    const yStr = localDateStr(yesterday);
     const yStart = new Date(yStr + 'T00:00:00');
     const yEnd   = new Date(yStr + 'T23:59:59');
     let tasksDone = 0, habitsDone = 0, habitsTotal = 0;
@@ -1074,7 +1075,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const savedLengthRef = useRef(1);
   const prevLoadingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateStr();
 
   // Per-user briefing section visibility (Settings → Display). Hidden cards
   // are omitted; core header/narrative always render.
@@ -1213,7 +1214,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
     let streak = 0;
     const check = new Date();
     if (done) check.setDate(check.getDate() - 1);
-    for (const d of sorted) { if (d === check.toISOString().slice(0,10)) { streak++; check.setDate(check.getDate()-1); } else break; }
+    for (const d of sorted) { if (d === localDateStr(check)) { streak++; check.setDate(check.getDate()-1); } else break; }
     await updateDoc(doc(db, 'users', user.uid, 'habits', h.id), { completedDates: newDates, streak });
   }
 

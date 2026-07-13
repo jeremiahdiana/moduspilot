@@ -24,11 +24,15 @@ function UsageBar({ value, max }: { value: number; max: number }) {
   );
 }
 
+// Must match the server's getWeekKey (lib/chat/limits.ts) EXACTLY — it computes
+// the Monday-of-week key in UTC and stores it as `tokenWeek`. Computing it in
+// local time here made the keys disagree for non-UTC users near week boundaries,
+// so `usage.tokenWeek === weekKey` failed and the weekly bar read 0% mid-week.
 function getWeekKey() {
   const now = new Date();
-  const day = now.getDay();
+  const day = now.getUTCDay();
   const monday = new Date(now);
-  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setUTCDate(now.getUTCDate() - (day === 0 ? 6 : day - 1));
   return monday.toISOString().slice(0, 10);
 }
 

@@ -11,6 +11,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import confetti from 'canvas-confetti';
 import { SkeletonList, SkeletonRow } from '@/components/ui/Skeleton';
 import CalendarWidget from '@/components/dashboard/CalendarWidget';
+import { localDateStr } from '@/lib/dates';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -51,10 +52,6 @@ const PRIORITY_LABEL: Record<string, string> = {
 const PRIORITY_FILTER_OPTS = ['all', 'high', 'medium', 'low'] as const;
 type PriorityFilter = typeof PRIORITY_FILTER_OPTS[number];
 
-function localDateStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 function isOverdue(d?: string) { return d && d < localDateStr(); }
 
 // ── Heatmap helpers ────────────────────────────────────────────────────────────
@@ -62,7 +59,7 @@ function isOverdue(d?: string) { return d && d < localDateStr(); }
 function buildWeeks(completedDates: string[]): GridDay[][] {
   const doneSet = new Set(completedDates);
   const now = new Date(); now.setHours(0, 0, 0, 0);
-  const todayIso = now.toISOString().slice(0, 10);
+  const todayIso = localDateStr(now);
   const start = new Date(now);
   start.setDate(start.getDate() - start.getDay() - 51 * 7);
   const weeks: GridDay[][] = [];
@@ -70,7 +67,7 @@ function buildWeeks(completedDates: string[]): GridDay[][] {
   for (let w = 0; w < 53; w++) {
     const week: GridDay[] = [];
     for (let d = 0; d < 7; d++) {
-      const dateStr = cursor.toISOString().slice(0, 10);
+      const dateStr = localDateStr(cursor);
       const isFuture = cursor > now;
       week.push({ date: dateStr, done: !isFuture && doneSet.has(dateStr), isToday: dateStr === todayIso, isFuture });
       cursor.setDate(cursor.getDate() + 1);
@@ -90,7 +87,7 @@ function monthLabels(weeks: GridDay[][]): (string | null)[] {
 }
 
 function computeStats(completedDates: string[]) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr();
   const done = completedDates.filter(d => d <= today).sort();
   let best = 0, run = 0;
   let prev: Date | null = null;
@@ -101,7 +98,7 @@ function computeStats(completedDates: string[]) {
     best = Math.max(best, run);
     prev = curr;
   }
-  const last7 = new Set(Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); }));
+  const last7 = new Set(Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return localDateStr(d); }));
   const thisWeek = done.filter(d => last7.has(d)).length;
   const monthPrefix = today.slice(0, 7);
   const thisMonth = done.filter(d => d.startsWith(monthPrefix)).length;
@@ -225,7 +222,7 @@ export default function RemindersPage() {
     let streak = 0;
     const check = new Date();
     for (const d of sorted) {
-      if (d === check.toISOString().slice(0, 10)) { streak++; check.setDate(check.getDate() - 1); }
+      if (d === localDateStr(check)) { streak++; check.setDate(check.getDate() - 1); }
       else break;
     }
     await updateDoc(doc(db, 'users', user.uid, 'habits', habit.id), { completedDates: newDates, streak });
