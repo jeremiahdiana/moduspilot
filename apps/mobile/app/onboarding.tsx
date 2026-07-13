@@ -27,6 +27,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { API_BASE, getAuthHeader, startCheckout } from '@/lib/api';
 import { AuthButtons } from '@/components/AuthButtons';
 import { Icon, type IconName } from '@/components/Icon';
+import { OpenAILogo, AnthropicLogo, GeminiLogo, XaiLogo, MetaLogo } from '@/components/BrandLogo';
 import { Logo } from '@/components/ui/Logo';
 import { AppBackground } from '@/components/AppBackground';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -300,7 +301,101 @@ function PaywallScreen({
   );
 }
 
-type Screen = 'name' | number | 'paywall' | 'done';
+// Multi-model showcase — MODUS's core differentiator, surfaced right before the
+// paywall so it justifies the trial. Reuses the BrandLogo provider marks + the
+// Auto-routing copy from model-settings.tsx.
+const MODEL_ROUTES: { task: string; model: string; Logo: React.ComponentType<{ size?: number }> }[] = [
+  { task: 'Write a cold email',   model: 'Gemini', Logo: GeminiLogo },
+  { task: 'Debug my code',        model: 'Grok',   Logo: XaiLogo },
+  { task: 'Research a market',    model: 'Claude', Logo: AnthropicLogo },
+  { task: 'Plan my week',         model: 'GPT-4o', Logo: OpenAILogo },
+];
+
+function ModelsScreen({ name, onContinue, onBack }: { name: string; onContinue: () => void; onBack: () => void }) {
+  const c = useThemeColors();
+  return (
+    <View className="flex-1 bg-bg">
+      <AppBackground />
+      <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View entering={FadeInDown.delay(0).duration(400)} className="items-center pt-4 pb-5">
+            <View className="mb-4"><Logo width={48} opticalCenter /></View>
+            <GradientText className="text-[28px] font-black leading-tight">
+              {'Every model.\nOne app.'}
+            </GradientText>
+            <Text className="text-muted text-sm text-center mt-2 px-2">
+              GPT-4o, Claude, Gemini, Grok{name.trim() ? '' : ''} — MODUS routes each task to whichever is best. Or pick one yourself.
+            </Text>
+          </Animated.View>
+
+          {/* Provider logos */}
+          <AnimatedRow index={0}>
+            <View className="flex-row justify-center gap-3 mb-6">
+              {[OpenAILogo, AnthropicLogo, GeminiLogo, XaiLogo, MetaLogo].map((L, i) => (
+                <View key={i} className="w-11 h-11 rounded-2xl bg-surface border border-border items-center justify-center">
+                  <L size={22} />
+                </View>
+              ))}
+            </View>
+          </AnimatedRow>
+
+          {/* Auto highlight */}
+          <AnimatedRow index={1}>
+            <View className="bg-brand/10 border-2 border-brand rounded-2xl p-4 mb-5 flex-row items-center gap-3">
+              <View className="w-11 h-11 rounded-2xl bg-brand/20 items-center justify-center shrink-0">
+                <Icon name="auto-awesome" tone="brand" size={22} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-brand-light font-bold text-[15px]">Auto — MODUS picks for you</Text>
+                <Text className="text-muted text-xs mt-0.5 leading-relaxed">
+                  Claude for writing & analysis, a reasoning model for code & math, real-time for research, fast Llama for everyday.
+                </Text>
+              </View>
+            </View>
+          </AnimatedRow>
+
+          {/* Routing examples */}
+          <AnimatedRow index={2}>
+            <Text className="text-muted text-[10px] uppercase tracking-widest font-semibold mb-2 px-1">How Auto routes</Text>
+          </AnimatedRow>
+          <View className="gap-2 mb-2">
+            {MODEL_ROUTES.map((r, i) => (
+              <AnimatedRow key={r.task} index={i + 3}>
+                <View className="flex-row items-center gap-3 bg-surface border border-border rounded-2xl p-3.5">
+                  <Text className="text-text text-sm flex-1">{r.task}</Text>
+                  <Icon name="arrow-forward" color={c.muted} size={14} />
+                  <View className="flex-row items-center gap-1.5 bg-surface-2 border border-brand/25 rounded-full pl-2 pr-2.5 py-1">
+                    <r.Logo size={14} />
+                    <Text className="text-text text-xs font-semibold">{r.model}</Text>
+                  </View>
+                </View>
+              </AnimatedRow>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Bottom nav */}
+        <View className="px-7 pb-6 pt-3 border-t border-border gap-3">
+          <GradientButton
+            label="Continue"
+            icon="arrow-forward"
+            onPress={onContinue}
+            size="lg"
+            style={{ alignSelf: 'stretch' }}
+          />
+          <TouchableOpacity onPress={onBack} className="py-1">
+            <Text className="text-muted text-sm">← Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+type Screen = 'name' | number | 'models' | 'paywall' | 'done';
 const TOTAL = 8;
 
 export default function OnboardingScreen() {
@@ -523,6 +618,17 @@ export default function OnboardingScreen() {
     );
   }
 
+  // ── models showcase screen ──
+  if (screen === 'models') {
+    return (
+      <ModelsScreen
+        name={name}
+        onContinue={() => goForward('paywall')}
+        onBack={() => goBack(7)}
+      />
+    );
+  }
+
   // ── paywall screen ──
   if (screen === 'paywall') {
     const industryLabel = industry === 'Other' ? industryOther.trim() : industry;
@@ -533,7 +639,7 @@ export default function OnboardingScreen() {
         industry={industryLabel}
         goals={goalsArr}
         onContinue={() => goForward(8)}
-        onBack={() => goBack(7)}
+        onBack={() => goBack('models')}
       />
     );
   }
@@ -790,7 +896,7 @@ export default function OnboardingScreen() {
             <GradientButton
               label="Continue"
               icon="arrow-forward"
-              onPress={() => goForward(step === 7 ? 'paywall' : step + 1)}
+              onPress={() => goForward(step === 7 ? 'models' : step + 1)}
               disabled={!stepValid[step]}
               size="md"
             />

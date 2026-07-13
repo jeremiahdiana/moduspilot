@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
+import { MODEL_LOGOS, ClaudeLogo, OpenAILogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
 import { useAuth } from '@/components/providers/AuthProvider';
 import {
   doc, setDoc, addDoc, collection,
@@ -13,8 +14,8 @@ import {
 import { db } from '@/lib/firebase';
 
 // ── types ──────────────────────────────────────────────────────────────────────
-type Screen = 'welcome' | 'name' | 'role' | 'goal' | 'google' | 'done';
-const QUESTION_SCREENS: Screen[] = ['name', 'role', 'goal', 'google'];
+type Screen = 'welcome' | 'name' | 'role' | 'goal' | 'models' | 'google' | 'done';
+const QUESTION_SCREENS: Screen[] = ['name', 'role', 'goal', 'models', 'google'];
 
 // ── data ───────────────────────────────────────────────────────────────────────
 const ROLE_OPTIONS = [
@@ -351,6 +352,84 @@ function GoalStep({ goal, setGoal }: { goal: string; setGoal: (v: string) => voi
           This becomes your first tracked goal. Daily briefings will reference your progress toward it.
         </p>
       </div>
+    </div>
+  );
+}
+
+// ── ModelsShowcaseScreen ─────────────────────────────────────────────────────────
+// Promotes MODUS's core differentiator during onboarding: every frontier model in
+// one subscription, auto-routed per task. Echoes the marketing MultiModelSection's
+// routing-chip demo, trimmed for the onboarding column. Reuses ModelLogos assets.
+const MODEL_DEMOS = [
+  { prompt: 'Write a cold email to a lapsed lead.',  model: 'Gemini', reason: 'natural writing',   Logo: GeminiLogo },
+  { prompt: 'Compare our two pricing plans.',         model: 'Claude', reason: 'analysis & research', Logo: ClaudeLogo },
+  { prompt: 'Why does my useEffect run twice?',       model: 'Grok',   reason: 'code & debugging',  Logo: GrokLogo },
+  { prompt: 'Draft a launch plan for next week.',     model: 'GPT-4o', reason: 'planning',          Logo: OpenAILogo },
+];
+
+function ModelsShowcaseScreen() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI(x => (x + 1) % MODEL_DEMOS.length), 2600);
+    return () => clearInterval(t);
+  }, []);
+  const d = MODEL_DEMOS[i];
+  const Logo = d.Logo;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Your unfair advantage</p>
+        <h1 className="text-2xl font-black text-text leading-tight">One subscription.<br />Every model.</h1>
+        <p className="text-sm text-muted mt-1.5">
+          GPT-4o, Claude, Gemini, Grok — MODUS routes each task to whichever is best. Or pick one yourself.
+        </p>
+      </div>
+
+      {/* Mini routing demo */}
+      <div className="bg-panel/70 border border-border/60 rounded-2xl p-5 backdrop-blur-sm min-h-[128px] flex flex-col justify-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-3"
+          >
+            <div className="flex justify-end">
+              <div className="bg-brand text-white rounded-2xl rounded-br-sm px-3.5 py-2 max-w-[85%]">
+                <p className="text-sm leading-snug">{d.prompt}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-muted">MODUS routed this to</span>
+              <span className="inline-flex items-center gap-1.5 bg-brand/5 border border-brand/25 rounded-full pl-1.5 pr-2.5 py-1">
+                <Logo className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold text-text">{d.model}</span>
+              </span>
+              <span className="text-[11px] text-muted/70">· best for {d.reason}</span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* All models */}
+      <div className="flex flex-wrap gap-2">
+        {MODEL_LOGOS.map(m => {
+          const L = m.logo;
+          return (
+            <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel/60 border border-border/60 rounded-full pl-2 pr-3 py-1.5">
+              <L className="w-4 h-4" />
+              <span className="text-xs font-semibold text-text">{m.name}</span>
+            </span>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-muted/70 leading-relaxed">
+        Leave it on <span className="text-text font-medium">Auto</span> and MODUS picks per task, or switch models anytime in the composer.
+      </p>
     </div>
   );
 }
@@ -771,13 +850,14 @@ export default function OnboardingPage() {
   }
 
   // Navigation maps
-  const NEXT: Partial<Record<Screen, Screen>> = { name: 'role', role: 'goal', goal: 'google' };
-  const PREV: Partial<Record<Screen, Screen>> = { role: 'name', goal: 'role', google: 'goal' };
+  const NEXT: Partial<Record<Screen, Screen>> = { name: 'role', role: 'goal', goal: 'models', models: 'google' };
+  const PREV: Partial<Record<Screen, Screen>> = { role: 'name', goal: 'role', models: 'goal', google: 'models' };
   const isValid: Record<Screen, boolean> = {
     welcome: true,
     name:    name.trim() !== '',
     role:    role !== '',
     goal:    goal.trim() !== '',
+    models:  true,
     google:  true,
     done:    true,
   };
@@ -875,6 +955,7 @@ export default function OnboardingPage() {
           >
             {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
             {screen === 'goal'   && <GoalStep goal={goal} setGoal={setGoal} />}
+            {screen === 'models' && <ModelsShowcaseScreen />}
             {screen === 'google' && (
               <GoogleStep
                 googleEmail={googleEmail}
