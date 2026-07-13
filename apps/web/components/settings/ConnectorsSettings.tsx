@@ -203,8 +203,12 @@ export default function ConnectorsSettings({ user }: Props) {
     try {
       const token = await user.getIdToken();
       const res = await fetch(endpoint, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-      const { url } = await res.json();
-      window.location.href = url;
+      const data = await res.json().catch(() => ({}));
+      // Guard the redirect: without this, a failed/misconfigured connect endpoint
+      // (no `url` in the response) navigates the browser to "undefined" → a 404,
+      // with no error shown.
+      if (!res.ok || !data.url) { setError(`Failed to start ${key} auth. Try again.`); setConnecting(null); return; }
+      window.location.href = data.url;
     } catch {
       setError(`Failed to start ${key} auth. Try again.`);
       setConnecting(null);
@@ -217,8 +221,9 @@ export default function ConnectorsSettings({ user }: Props) {
     try {
       const token = await user.getIdToken();
       const res = await fetch('/api/auth/google/connect', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-      const { url } = await res.json();
-      window.location.href = url;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) { setError('Failed to start Google auth. Try again.'); setConnecting(null); return; }
+      window.location.href = data.url;
     } catch {
       setError('Failed to start Google auth. Try again.');
       setConnecting(null);
