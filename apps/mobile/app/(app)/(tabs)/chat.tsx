@@ -239,6 +239,19 @@ export default function ChatScreen() {
     }).catch(() => {});
   }, [user]);
 
+  // Watchdog: `streaming` must always resolve. The server caps a request at 60s
+  // (maxDuration); if a socket instead stalls open, streaming would stick true and
+  // the composer (editable={!streaming}) would stay disabled. After 75s, abort and
+  // surface an error. The abort runs the AbortError path → finally sets streaming false.
+  useEffect(() => {
+    if (!streaming) return;
+    const t = setTimeout(() => {
+      abortRef.current?.abort();
+      Alert.alert('Timed out', 'That response timed out. Please try again.');
+    }, 75000);
+    return () => clearTimeout(t);
+  }, [streaming]);
+
   const handleModelChange = useCallback((v: string) => {
     setModelChoice(v);
     modelChoiceRef.current = v;
@@ -296,6 +309,7 @@ export default function ChatScreen() {
 
   async function openConversation(id: string) {
     if (!user) return;
+    abortRef.current?.abort();
     setHistoryOpen(false);
     setScope(null);
     try {
@@ -400,6 +414,7 @@ export default function ChatScreen() {
     const files = extra?.attachments ?? [];
     if ((!text.trim() && !image && files.length === 0) || streaming) return;
     haptics.medium();
+    const sendConvId = convIdRef.current;
 
     const fallback = image ? 'Image' : files.length ? `📎 ${files.map(f => f.name).join(', ')}` : '';
     const userMsg: UIMessage = {
@@ -437,12 +452,24 @@ export default function ChatScreen() {
         scrollToBottom();
       }
       // Persist the completed exchange (creates the conversation on first send).
-      void persist([...priorMessages, userMsg, { id: assistantId, role: 'assistant', content: acc }]);
+      const hasRichBlock = /```(approval|draft_options|image|document|chart)/.test(acc);
+      if (acc.trim() === '' && !hasRichBlock) {
+        // Finished OK but produced nothing (content filter, a reasoning model that spent
+        // its whole token budget, a provider hiccup). Never leave a silent blank bubble.
+        setMessages(prev => prev.filter(m => m.id !== assistantId));
+        Alert.alert('Empty response', 'The model returned an empty response. Try again, or switch models below.');
+      } else if (convIdRef.current === sendConvId) {
+        void persist([...priorMessages, userMsg, { id: assistantId, role: 'assistant', content: acc }]);
+      }
     } catch (e: unknown) {
       const name = (e as Error)?.name;
       if (name === 'AbortError') {
         // Keep whatever streamed so far if the user stopped it.
-        if (acc.trim()) void persist([...priorMessages, userMsg, { id: assistantId, role: 'assistant', content: acc }]);
+        if (acc.trim() && convIdRef.current === sendConvId) {
+          void persist([...priorMessages, userMsg, { id: assistantId, role: 'assistant', content: acc }]);
+        } else if (!acc.trim()) {
+          setMessages(prev => prev.filter(m => m.id !== assistantId));
+        }
       } else {
         const msg = (e as Error)?.message ?? 'Something went wrong';
         if (msg.includes('subscription_required')) {
