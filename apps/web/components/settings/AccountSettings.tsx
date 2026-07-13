@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateProfile, deleteUser } from 'firebase/auth';
-import { doc, deleteDoc, collection, getDocs } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { updateProfile, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 
 interface Props {
@@ -46,21 +45,22 @@ export default function AccountSettings({ user }: Props) {
     setDeleting(true);
     setError('');
     try {
-      const subcols = ['conversations', 'goals', 'tasks', 'habits', 'memories', 'google_accounts', 'integrations'];
-      for (const sub of subcols) {
-        const snap = await getDocs(collection(db, 'users', user.uid, sub));
-        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-      }
-      await deleteDoc(doc(db, 'users', user.uid));
-      await deleteUser(user);
+      // Deletion runs server-side via the Admin SDK: Firestore rules hard-block
+      // clients from deleting the user doc (so nobody can wipe + recreate to
+      // reset their trial), so the old client-side delete always failed with
+      // permission-denied. The route removes all Firestore data + the Auth user.
+      const token = await user.getIdToken();
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('delete_failed');
       setDeleted(true);
+      // The Auth user no longer exists server-side — clear the stale session.
+      await signOut(auth).catch(() => {});
       timerRef.current = setTimeout(() => router.push('/login'), 2500);
-    } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes('requires-recent-login')) {
-        setError('Please sign out and sign back in, then try again.');
-      } else {
-        setError('Failed to delete account. Please try again.');
-      }
+    } catch {
+      setError('Failed to delete account. Please try again.');
       setDeleting(false);
     }
   };
