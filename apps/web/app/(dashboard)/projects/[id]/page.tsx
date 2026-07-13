@@ -260,7 +260,7 @@ export default function ProjectDetailPage() {
     } catch (e) { console.error('[project chat] save failed:', e); }
   }, [user, id, project]);
 
-  const { messages, input, handleInputChange, append, isLoading, setInput, setMessages } = useChat({
+  const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop } = useChat({
     api: '/api/chat',
     initialMessages: [],
     id: `project-${id}`,
@@ -329,6 +329,10 @@ export default function ProjectDetailPage() {
   const extraChats = allChats.filter(c => c.id !== mainChatId);
 
   function switchChat(chat: ProjectChat) {
+    // Abort any in-flight stream first — otherwise a response from the chat we're
+    // leaving keeps streaming and the finish-effect saves it into the chat we
+    // just switched TO (activeChatIdRef), bleeding one conversation into another.
+    stop();
     setActiveChatId(chat.id);
     setMessages(chat.messages.length ? chat.messages : []);
     savedLengthRef.current = chat.messages.length;
@@ -338,6 +342,7 @@ export default function ProjectDetailPage() {
     if (!user) return;
     await updateDoc(doc(db, 'users', user.uid, 'conversations', chatId), { deleted: true });
     if (activeChatId === chatId) {
+      stop();
       const main = allChats.find(c => c.id === mainChatId);
       if (main) switchChat(main);
       else { setActiveChatId(mainChatId); setMessages([]); savedLengthRef.current = 0; }
@@ -352,6 +357,7 @@ export default function ProjectDetailPage() {
 
   async function startNewChat() {
     if (!user) return;
+    stop(); // abort any in-flight stream so it can't save into the new chat
     const ref = await addDoc(collection(db, 'users', user.uid, 'conversations'), {
       projectId: id, title: 'New chat', messages: [],
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(), deleted: false,
