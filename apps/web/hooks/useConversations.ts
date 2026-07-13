@@ -78,7 +78,15 @@ export function useConversations(uid: string | null) {
   const saveMessages = useCallback(async (convId: string, messages: Message[], title?: string) => {
     if (!uid || !convId) return;
     const update: Record<string, unknown> = {
-      messages: messages.map(m => ({ id: m.id, role: m.role, content: m.content })),
+      // Keep `annotations` when present (used to persist which model Auto routed
+      // a message to, so the "routed this to <model>" chip survives a reload).
+      messages: messages.map(m => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const annotations = (m as any).annotations;
+        return annotations
+          ? { id: m.id, role: m.role, content: m.content, annotations }
+          : { id: m.id, role: m.role, content: m.content };
+      }),
       updatedAt: serverTimestamp(),
     };
     if (title) update.title = title;

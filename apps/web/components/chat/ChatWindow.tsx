@@ -16,6 +16,18 @@ interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
 }
 
+// Reads the auto-routed model id stashed on a message's annotations (persisted to
+// Firestore), so the "MODUS routed this to <model>" chip survives a reload.
+function readRoutedAnnotation(m: Message): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anns = (m as any).annotations as any[] | undefined;
+  if (!Array.isArray(anns)) return undefined;
+  for (const a of anns) {
+    if (a && typeof a === 'object' && typeof a.modusRoutedModel === 'string') return a.modusRoutedModel;
+  }
+  return undefined;
+}
+
 function timeGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -112,6 +124,12 @@ export default function ChatWindow({
   const [authToken, setAuthToken] = useState<string | null>(null);
   const prevLoadingRef = useRef(false);
   const savedLengthRef = useRef(initialMessages.length);
+  // When the composer is on "Auto", the server reports which model it picked via
+  // the x-modus-model + x-modus-auto response headers. routedRef holds the pick
+  // for the in-flight response; routedByMsgId maps it onto the assistant message
+  // once it appears, driving the "MODUS routed this to <model>" chip.
+  const routedRef = useRef<{ modelId: string; auto: boolean } | null>(null);
+  const [routedByMsgId, setRoutedByMsgId] = useState<Record<string, string>>({});
 
   // onIdTokenChanged fires on login AND whenever Firebase refreshes the token (~1h),
   // so requests stay authenticated without a page reload.
@@ -154,6 +172,10 @@ export default function ChatWindow({
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop } = useChat({
     api: '/api/chat',
     onResponse: (response) => {
+      // Capture the model that will answer this message + whether Auto chose it.
+      const routedModelId = response.headers.get('x-modus-model') || '';
+      const auto = response.headers.get('x-modus-auto') === '1';
+      routedRef.current = routedModelId ? { modelId: routedModelId, auto } : null;
       if (response.headers.get('x-modus-downgraded') === '1') {
         const requested = response.headers.get('x-modus-requested-model') || '';
         const label = requested ? modelName(requested) : 'The selected model';
@@ -242,6 +264,18 @@ export default function ChatWindow({
     return () => clearTimeout(t);
   }, [isLoading, stop]);
 
+  // Tag the current assistant message with the Auto-routed model as soon as it
+  // appears, so the "routed this to <model>" chip shows while the answer streams.
+  // Only for Auto — a manual model pick doesn't need a routing chip.
+  useEffect(() => {
+    const r = routedRef.current;
+    if (!r?.auto || !r.modelId) return;
+    const last = messages[messages.length - 1];
+    if (last?.role === 'assistant') {
+      setRoutedByMsgId(prev => (prev[last.id] === r.modelId ? prev : { ...prev, [last.id]: r.modelId }));
+    }
+  }, [messages]);
+
   // Save to Firestore when AI finishes responding
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
@@ -273,8 +307,21 @@ export default function ChatWindow({
       ? (typeof firstUserMsg.content === 'string' ? firstUserMsg.content.slice(0, 45) : 'New chat')
       : undefined;
 
-    onMessagesChange(messages, title);
-  }, [isLoading, messages, onMessagesChange]);
+    // Persist the Auto-routed model per assistant message as an annotation, so the
+    // routing chip survives a reload. Earlier turns keep their tag via routedByMsgId;
+    // the just-finished one is read straight from the header ref (state may not have
+    // flushed yet). Messages without a tag are saved unchanged (keeps any existing
+    // annotation from a reloaded conversation).
+    const messagesToSave = messages.map(m => {
+      const routed = routedByMsgId[m.id]
+        ?? (m.id === last?.id && routedRef.current?.auto ? routedRef.current.modelId : undefined);
+      return routed
+        ? { ...m, annotations: [{ modusRoutedModel: routed }] }
+        : m;
+    });
+
+    onMessagesChange(messagesToSave, title);
+  }, [isLoading, messages, onMessagesChange, routedByMsgId]);
 
   function handleVoiceTranscript(text: string) {
     setInput(text);
@@ -393,6 +440,7 @@ export default function ChatWindow({
             message={m}
             showAvatar={messages[idx - 1]?.role !== m.role}
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
+            routedModel={routedByMsgId[m.id] ?? readRoutedAnnotation(m)}
             onAppend={(text) => {
               setChatError(null);
               onUserMessage?.();

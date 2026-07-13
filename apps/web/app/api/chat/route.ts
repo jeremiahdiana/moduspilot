@@ -197,6 +197,10 @@ export async function POST(req: Request) {
     // resolveChatModel still falls back to Llama if a model isn't unlocked.
     const modelChoice = body.modelChoice;
     let forcedModelId: string | undefined;
+    // Whether MODUS auto-picked the model for this message (composer on "Auto").
+    // Surfaced to the client (x-modus-auto header) so it can show a
+    // "MODUS routed this to <model>" chip above the answer.
+    let wasAutoRouted = false;
     // The "+" menu web-search toggle forces it for this message; Auto-routing can also.
     let forceWebSearch = body.webSearch === true;
     if (uid && queryText) {
@@ -208,6 +212,7 @@ export async function POST(req: Request) {
         || ((!modelChoice || modelChoice === 'default') && savedIsPlatform && savedModel?.model === 'auto');
 
       if (wantsAuto) {
+        wasAutoRouted = true;
         const routed = await routeTask(queryText, userData.plan);
         forcedModelId = routed.modelId;
         forceWebSearch = routed.webSearch;
@@ -405,6 +410,8 @@ export async function POST(req: Request) {
         // Honest labeling: what actually answered this message, so the client can
         // show a notice when a premium pick was downgraded to the free default.
         'x-modus-model': resolved.modelId,
+        // Auto mode picked this model for the task → client shows a routing chip.
+        ...(wasAutoRouted ? { 'x-modus-auto': '1' } : {}),
         ...(resolved.downgraded
           ? { 'x-modus-downgraded': '1', 'x-modus-requested-model': resolved.requestedId ?? '' }
           : {}),

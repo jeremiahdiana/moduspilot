@@ -7,6 +7,8 @@ import ImageCard from './ImageCard';
 import DocumentCard from './DocumentCard';
 import ChartCard from './ChartCard';
 import MarkdownMessage from './MarkdownMessage';
+import { modelName, PLATFORM_MODELS } from '@/lib/models';
+import { ProviderLogo } from '@/components/marketing/BrandLogos';
 
 type BlockType = 'approval' | 'draft_options' | 'image' | 'document' | 'chart';
 type Part =
@@ -49,16 +51,32 @@ function ModusAvatar() {
   );
 }
 
+// "MODUS routed this to <model>" chip shown above an Auto-routed assistant answer.
+function RoutedChip({ modelId }: { modelId: string }) {
+  const info = PLATFORM_MODELS.find(m => m.id === modelId);
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted">
+      <span>MODUS routed this to</span>
+      <span className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-md border border-border bg-panel text-text font-medium">
+        <ProviderLogo provider={info?.provider ?? ''} className="w-3 h-3" />
+        {modelName(modelId)}
+      </span>
+    </div>
+  );
+}
+
 export default function MessageBubble({
   message,
   isStreaming = false,
   showAvatar = true,
+  routedModel,
   onAppend,
   onApproved,
 }: {
   message: Message;
   isStreaming?: boolean;
   showAvatar?: boolean;
+  routedModel?: string;
   onAppend?: (text: string) => void;
   onApproved?: (text: string) => void;
 }) {
@@ -117,6 +135,7 @@ export default function MessageBubble({
     >
       {showAvatar ? <ModusAvatar /> : <div className="w-7 shrink-0" aria-hidden />}
       <div className="max-w-[85%] space-y-3">
+        {routedModel && <RoutedChip modelId={routedModel} />}
         {parts.map((part, i) =>
           part.type === 'approval' ? (
             <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />
