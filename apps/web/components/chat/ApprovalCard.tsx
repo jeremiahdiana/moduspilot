@@ -149,23 +149,34 @@ export default function ApprovalCard({ raw, onApproved }: { raw: string; onAppro
   const [googleAccounts, setGoogleAccounts] = useState<{ email: string }[]>([]);
   const [selectedAccount, setSelectedAccount] = useState('');
 
-  let data: ApprovalPayload;
-  try { data = JSON.parse(raw); } catch { return null; }
+  // Parse via useMemo so the "invalid JSON" bail-out (below) happens AFTER every
+  // hook has run. A `return null` here — before the useEffect that follows —
+  // would be a rules-of-hooks violation: the hook count would change if `raw`
+  // ever flipped between parseable and not. (Same bug class fixed in DraftOptionsCard.)
+  const parsed = useMemo<ApprovalPayload | null>(() => {
+    try { return JSON.parse(raw) as ApprovalPayload; } catch { return null; }
+  }, [raw]);
 
   useEffect(() => {
-    if (data.type !== 'send_email') return;
+    if (!parsed || parsed.type !== 'send_email') return;
     auth.currentUser?.getIdToken().then(async token => {
       try {
         const res = await fetch('/api/google/status', { headers: { Authorization: `Bearer ${token}` } });
         const d = await res.json();
         const accounts: { email: string }[] = d.accounts ?? [];
         setGoogleAccounts(accounts);
-        const payloadAccount = data.payload?.from_account as string | undefined;
+        const payloadAccount = parsed.payload?.from_account as string | undefined;
         setSelectedAccount(payloadAccount || accounts[0]?.email || '');
       } catch { /* non-fatal */ }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.type]);
+  }, [parsed?.type]);
+
+  // Invalid JSON — bail out only now that all hooks above have run. Alias to a
+  // non-null `data` so the rest of the component (and the approve() closure) keep
+  // their existing narrowed type.
+  if (!parsed) return null;
+  const data = parsed;
 
   async function approve(title: string, overridePayload?: Record<string, unknown>) {
     setLoading(true);
