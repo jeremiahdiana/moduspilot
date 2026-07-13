@@ -24,17 +24,22 @@ export default function DraftOptionsCard({
   raw: string;
   onAppend: (text: string) => void;
 }) {
-  let data: DraftOptionsPayload;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-
+  // Hooks must run unconditionally — parse/validate AFTER them, never before, or
+  // a malformed block would change the hook count between renders (rules-of-hooks).
   const [selected, setSelected] = useState<number | null>(null);
   const [custom, setCustom] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submittedLabel, setSubmittedLabel] = useState('');
+
+  let parsed: DraftOptionsPayload | null = null;
+  try {
+    const p = JSON.parse(raw) as DraftOptionsPayload;
+    // Require a real options array — valid JSON that's missing it (e.g. `{}`)
+    // would otherwise crash the render on data.options.length.
+    if (p && Array.isArray(p.options)) parsed = p;
+  } catch { /* malformed block — render nothing */ }
+  if (!parsed) return null;
+  const data = parsed; // non-null + const → safe inside the handlers/JSX below
 
   const isCustomSelected = selected === data.options.length;
   const canSubmit = selected !== null && (!isCustomSelected || custom.trim().length > 0);

@@ -64,6 +64,7 @@ function useFocusTask(uid: string | null) {
     if (!uid) return;
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    let unsubTasks: (() => void) | undefined;
 
     const unsubBriefing = onSnapshot(
       query(
@@ -81,7 +82,10 @@ function useFocusTask(uid: string | null) {
           setFocus({ title: top3[0].task, source: 'briefing' });
           return;
         }
-        onSnapshot(
+        // Replace (never stack) the fallback task listener — this callback can
+        // fire many times, and the old code leaked a new listener each time.
+        unsubTasks?.();
+        unsubTasks = onSnapshot(
           query(collection(db, 'users', uid, 'tasks'), where('done', '==', false), where('dueDate', '==', todayStr), limit(1)),
           tSnap => {
             const t = tSnap.docs[0];
@@ -92,7 +96,7 @@ function useFocusTask(uid: string | null) {
       },
       () => {},
     );
-    return unsubBriefing;
+    return () => { unsubBriefing(); unsubTasks?.(); };
   }, [uid]);
 
   return focus;

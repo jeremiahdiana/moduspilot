@@ -13,6 +13,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
+import ModelSwitcher from '@/components/chat/ModelSwitcher';
 import { motion } from 'framer-motion';
 
 type Timeframe = 'short' | 'long';
@@ -141,7 +142,21 @@ export default function GoalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const { settings } = useUserSettings(user);
+  const { settings, plan, loading: settingsLoading } = useUserSettings(user);
+
+  // In-chat model picker (mirrors the main + project chat) + error surface.
+  const [modelChoice, setModelChoice] = useState('auto');
+  const didInitModelRef = useRef(false);
+  const handleModelChange = useCallback((v: string) => setModelChoice(v), []);
+  const [chatError, setChatError] = useState<string | null>(null);
+  useEffect(() => {
+    if (didInitModelRef.current || settingsLoading) return;
+    const msx = settings.modelSettings;
+    setModelChoice(
+      msx?.provider === 'openai' || msx?.provider === 'anthropic' ? 'default' : (msx?.model ?? 'auto'),
+    );
+    didInitModelRef.current = true;
+  }, [settings, settingsLoading]);
 
   const [goal, setGoal] = useState<Goal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -212,7 +227,9 @@ export default function GoalDetailPage() {
   // ── Effects ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async u => {
+    // onIdTokenChanged (not onAuthStateChanged) so the cached token refreshes
+    // when Firebase rotates it (~1h) — otherwise the chat 401s after an hour open.
+    const unsub = auth.onIdTokenChanged(async u => {
       setAuthToken(u ? await u.getIdToken() : null);
     });
     return unsub;
@@ -354,9 +371,18 @@ export default function GoalDetailPage() {
       personalContext: settings.personalContext ?? '',
       responseStyle: settings.responseStyle ?? 'normal',
       customStyle: settings.customStyle ?? '',
+      modelChoice,
       goalContext: goal
         ? { id: goal.id, title: goal.title, description: goal.description, progress: goal.progress, timeframe: goal.timeframe, activeChatId }
         : undefined,
+    },
+    onError: (err) => {
+      const m = (err?.message ?? '').toLowerCase();
+      if (m.includes('authentication_required')) setChatError('Your session expired — refresh and sign in again.');
+      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use MODUS.');
+      else if (m.includes('token_limit_reached')) setChatError("You've hit your daily AI limit. Resets at midnight.");
+      else if (m.includes('all_models_busy') || m.includes('rate') || m.includes('busy') || m.includes('429')) setChatError('The AI is briefly busy. Try again in a moment.');
+      else setChatError('Something went wrong. Please try again.');
     },
   });
 
@@ -458,6 +484,7 @@ export default function GoalDetailPage() {
     if (!input.trim() || isLoading) return;
     const val = input.trim();
     setInput('');
+    setChatError(null);
     await append({ role: 'user', content: val });
   }
 
@@ -1254,6 +1281,19 @@ export default function GoalDetailPage() {
                 {chip}
               </button>
             ))}
+          </div>
+
+          {chatError && (
+            <div className="shrink-0 mx-3 mt-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center justify-between gap-2">
+              <p className="text-xs text-red-400">{chatError}</p>
+              <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300 shrink-0" aria-label="Dismiss">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="w-3 h-3"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+
+          <div className="shrink-0 border-t border-border px-3 py-2 flex items-center">
+            <ModelSwitcher value={modelChoice} onChange={handleModelChange} plan={plan} />
           </div>
 
           <div className="shrink-0 border-t border-border">
