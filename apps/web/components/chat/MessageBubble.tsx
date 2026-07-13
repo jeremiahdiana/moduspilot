@@ -134,7 +134,7 @@ export default function MessageBubble({
       className="flex justify-start gap-2.5"
     >
       {showAvatar ? <ModusAvatar /> : <div className="w-7 shrink-0" aria-hidden />}
-      <div className="max-w-[85%] space-y-3">
+      <div className="max-w-[85%] min-w-0 space-y-3">
         {routedModel && <RoutedChip modelId={routedModel} />}
         {parts.map((part, i) =>
           part.type === 'approval' ? (

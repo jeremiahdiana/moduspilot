@@ -11,6 +11,7 @@ import PaywallModal from '@/components/chat/PaywallModal';
 import { isPaidPlan } from '@/lib/plan';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Message } from 'ai';
 
 type Plan = 'free' | 'modus' | 'pilot' | 'group';
@@ -37,6 +38,9 @@ export default function ChatPage() {
   const [plan, setPlan] = useState<Plan>('free');
   const [grandfathered, setGrandfathered] = useState(false);
   const [connectedToast, setConnectedToast] = useState('');
+  // Mobile-only: the conversation list is a slide-in drawer on narrow screens
+  // (on desktop it's the always-visible left column).
+  const [convDrawerOpen, setConvDrawerOpen] = useState(false);
   const initDone = useRef(false);
   const pendingConvIdRef = useRef<string | null>(null);
   const [inFlightMessages, setInFlightMessages] = useState<Message[]>([]);
@@ -110,12 +114,14 @@ export default function ChatPage() {
     pendingConvIdRef.current = null;
     setActiveId(null);
     setIsDraft(true);
+    setConvDrawerOpen(false);
   }, []);
 
   const handleSelect = useCallback((id: string) => {
     setInFlightMessages([]);
     setIsDraft(false);
     setActiveId(id);
+    setConvDrawerOpen(false);
   }, []);
 
   const handleDelete = useCallback(async (id: string) => {
@@ -131,6 +137,7 @@ export default function ChatPage() {
     setShowDeleted(false);
     setIsDraft(false);
     setActiveId(id);
+    setConvDrawerOpen(false);
   }, [restoreConversation]);
 
   const handleMessagesChange = useCallback(async (messages: Message[], title?: string) => {
@@ -173,56 +180,70 @@ export default function ChatPage() {
           {connectedToast}
         </div>
       )}
-      {/* Conversation sidebar — signed in only */}
+      {/* Conversation sidebar — signed in only. Desktop: always-visible left
+          column. Mobile: hidden here and opened as a drawer (below) via the
+          header button, so the chat itself gets the full narrow screen. */}
       {!isGuest && (
-        <div className="w-52 shrink-0 border-r border-border flex flex-col py-4">
-          <div className="px-3 mb-3 flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted uppercase tracking-wider">Chats</span>
-            <button
-              onClick={() => setShowDeleted(s => !s)}
-              className="text-xs text-muted hover:text-text transition-colors"
-            >
-              {showDeleted ? 'Active' : 'Trash'}
-            </button>
-          </div>
-
-          {showDeleted ? (
-            <DeletedList uid={uid} onRestore={handleRestore} restoreFn={restoreConversation} />
-          ) : (
-            <ConversationList
-              conversations={conversations}
-              activeId={activeId}
-              onSelect={handleSelect}
-              onNew={handleNew}
-              onDelete={handleDelete}
-              onRename={renameConversation}
-              user={user}
-            />
-          )}
-
-          {/* No subscription — prompt to start the trial */}
-          {needsSubscription && (
-            <div className="px-3 pt-3 border-t border-border mt-auto">
-              <div className="flex justify-between text-xs text-muted mb-1">
-                <span>Trial not started</span>
-                <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Start trial</button>
-              </div>
-              <p className="text-[11px] text-muted/70 leading-snug">Start your 3-day free trial to use MODUS.</p>
-            </div>
-          )}
-
-          {isPaid && (
-            <div className="px-3 pt-3 border-t border-border mt-auto">
-              <p className="text-xs text-brand font-semibold uppercase tracking-wider">{plan === 'pilot' ? 'Pilot' : 'Modus'}</p>
-            </div>
-          )}
+        <div className="hidden md:block w-52 shrink-0 border-r border-border h-full">
+          <ConversationPanel
+            uid={uid} showDeleted={showDeleted} setShowDeleted={setShowDeleted}
+            conversations={conversations} activeId={activeId}
+            onSelect={handleSelect} onNew={handleNew} onDelete={handleDelete}
+            onRename={renameConversation} onRestore={handleRestore}
+            restoreConversation={restoreConversation} user={user}
+            needsSubscription={needsSubscription} setShowPaywall={setShowPaywall}
+            isPaid={isPaid} plan={plan}
+          />
         </div>
+      )}
+
+      {/* Mobile conversation drawer */}
+      {!isGuest && (
+        <AnimatePresence>
+          {convDrawerOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                onClick={() => setConvDrawerOpen(false)}
+              />
+              <motion.div
+                initial={{ x: -288 }} animate={{ x: 0 }} exit={{ x: -288 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] bg-bg border-r border-border md:hidden"
+              >
+                <ConversationPanel
+                  uid={uid} showDeleted={showDeleted} setShowDeleted={setShowDeleted}
+                  conversations={conversations} activeId={activeId}
+                  onSelect={handleSelect} onNew={handleNew} onDelete={handleDelete}
+                  onRename={renameConversation} onRestore={handleRestore}
+                  restoreConversation={restoreConversation} user={user}
+                  needsSubscription={needsSubscription} setShowPaywall={setShowPaywall}
+                  isPaid={isPaid} plan={plan}
+                />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       )}
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="border-b border-border shrink-0">
-        <div className="max-w-6xl mx-auto w-full px-8 py-3 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 py-3 flex items-center gap-3">
+          {/* Mobile: open the conversation drawer (desktop has the sidebar) */}
+          {!isGuest && (
+            <button
+              onClick={() => setConvDrawerOpen(true)}
+              className="md:hidden w-8 h-8 -ml-1 flex items-center justify-center text-muted hover:text-text transition-colors rounded-lg hover:bg-panel shrink-0"
+              aria-label="Open chats"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </button>
+          )}
           {isGuest && (
             <button onClick={handleNew} className="text-xs bg-panel border border-border px-3 py-1.5 rounded-lg text-muted hover:text-text transition-colors">
               + New chat
@@ -275,7 +296,7 @@ export default function ChatPage() {
                 </div>
                 <p className="text-xs text-muted">Loading your chat…</p>
               </div>
-              <div className="px-8 py-4 border-t border-border shrink-0" aria-hidden>
+              <div className="px-4 md:px-8 py-4 border-t border-border shrink-0" aria-hidden>
                 <div className="flex items-center gap-3 bg-panel border border-border rounded-2xl px-4 py-3">
                   <span className="w-5 h-5 rounded bg-muted/10 shrink-0" />
                   <span className="flex-1 text-sm text-muted/30">Talk to MODUS…</span>
@@ -313,6 +334,77 @@ export default function ChatPage() {
 
       {showPaywall && (
         <PaywallModal onClose={() => setShowPaywall(false)} />
+      )}
+    </div>
+  );
+}
+
+// The conversation list column, shared by the desktop sidebar and the mobile
+// drawer so both stay in sync. The caller supplies the outer width/border via
+// its wrapper; this owns the internal flex-column layout (list + pinned footer).
+function ConversationPanel({
+  uid, showDeleted, setShowDeleted, conversations, activeId,
+  onSelect, onNew, onDelete, onRename, onRestore, restoreConversation, user,
+  needsSubscription, setShowPaywall, isPaid, plan,
+}: {
+  uid: string | null;
+  showDeleted: boolean;
+  setShowDeleted: React.Dispatch<React.SetStateAction<boolean>>;
+  conversations: ReturnType<typeof useConversations>['conversations'];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
+  onRestore: (id: string) => void;
+  restoreConversation: (id: string) => Promise<void>;
+  user: ReturnType<typeof useAuth>['user'];
+  needsSubscription: boolean;
+  setShowPaywall: (v: boolean) => void;
+  isPaid: boolean;
+  plan: Plan;
+}) {
+  return (
+    <div className="flex flex-col h-full py-4">
+      <div className="px-3 mb-3 flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Chats</span>
+        <button
+          onClick={() => setShowDeleted(s => !s)}
+          className="text-xs text-muted hover:text-text transition-colors"
+        >
+          {showDeleted ? 'Active' : 'Trash'}
+        </button>
+      </div>
+
+      {showDeleted ? (
+        <DeletedList uid={uid} onRestore={onRestore} restoreFn={restoreConversation} />
+      ) : (
+        <ConversationList
+          conversations={conversations}
+          activeId={activeId}
+          onSelect={onSelect}
+          onNew={onNew}
+          onDelete={onDelete}
+          onRename={onRename}
+          user={user}
+        />
+      )}
+
+      {/* No subscription — prompt to start the trial */}
+      {needsSubscription && (
+        <div className="px-3 pt-3 border-t border-border mt-auto">
+          <div className="flex justify-between text-xs text-muted mb-1">
+            <span>Trial not started</span>
+            <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Start trial</button>
+          </div>
+          <p className="text-[11px] text-muted/70 leading-snug">Start your 3-day free trial to use MODUS.</p>
+        </div>
+      )}
+
+      {isPaid && (
+        <div className="px-3 pt-3 border-t border-border mt-auto">
+          <p className="text-xs text-brand font-semibold uppercase tracking-wider">{plan === 'pilot' ? 'Pilot' : 'Modus'}</p>
+        </div>
       )}
     </div>
   );

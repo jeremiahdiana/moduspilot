@@ -161,7 +161,7 @@ export default function ChatInput({
       <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
       <input ref={docRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleDocChange} />
 
-      <div className="max-w-6xl mx-auto px-8 py-4">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-4">
         {/* Attachment chips */}
         {(attachedImage || attachedFiles.length > 0 || extracting) && (
           <div className="mb-2 flex flex-wrap gap-2">
@@ -249,7 +249,7 @@ export default function ChatInput({
             onKeyDown={handleKeyDown}
             placeholder="Talk to MODUS..."
             rows={1}
-            className="flex-1 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
+            className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
           />
 
           {webSearchOn && (
@@ -290,7 +290,9 @@ export default function ChatInput({
           {plan && onModelChange ? (
             <ModelSwitcher value={modelChoice ?? 'auto'} onChange={onModelChange} plan={plan} />
           ) : <span />}
-          <p className="text-muted text-xs">Enter to send · Shift+Enter for new line</p>
+          {/* Keyboard hint is desktop-only — no Enter/Shift key on mobile, and it
+              overflowed the narrow composer row. */}
+          <p className="hidden sm:block text-muted text-xs shrink-0">Enter to send · Shift+Enter for new line</p>
         </div>
       </div>
     </form>

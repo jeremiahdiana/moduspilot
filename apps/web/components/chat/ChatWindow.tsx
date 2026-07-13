@@ -368,7 +368,7 @@ export default function ChatWindow({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="min-h-full flex flex-col items-center justify-center gap-5 px-8 py-8"
+            className="min-h-full flex flex-col items-center justify-center gap-5 px-4 md:px-8 py-8"
           >
             {/* Avatar */}
             <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
@@ -437,7 +437,7 @@ export default function ChatWindow({
             )}
           </motion.div>
         ) : (
-          <div className="px-8 py-6 space-y-4 max-w-6xl mx-auto w-full">
+          <div className="px-4 md:px-8 py-6 space-y-4 max-w-6xl mx-auto w-full">
         {messages.map((m, idx) => (
           <MessageBubble
             key={m.id}
@@ -478,7 +478,7 @@ export default function ChatWindow({
       </div>
 
       {modelNotice && (
-        <div className="mx-8 mb-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-3">
+        <div className="mx-4 md:mx-8 mb-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-3">
           <p className="text-sm text-amber-500">{modelNotice}</p>
           <button onClick={() => setModelNotice(null)} className="text-amber-500 hover:text-amber-400 shrink-0" aria-label="Dismiss">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -489,7 +489,7 @@ export default function ChatWindow({
       )}
 
       {chatError && (
-        <div className="mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
+        <div className="mx-4 md:mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
           <p className="text-sm text-red-400">{chatError}</p>
           <button
             onClick={() => { setChatError(null); reload(); }}
@@ -506,7 +506,7 @@ export default function ChatWindow({
       )}
 
       {isAtLimit ? (
-        <div className="px-8 py-4 border-t border-border text-center">
+        <div className="px-4 md:px-8 py-4 border-t border-border text-center">
           <p className="text-muted text-sm mb-2">You&apos;ve used your free messages for today.</p>
           <button
             onClick={onShowPaywall}
