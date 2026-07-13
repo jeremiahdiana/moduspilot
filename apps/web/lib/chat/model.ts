@@ -11,7 +11,7 @@ function visionOpenAIModel(model: string): string {
 }
 
 const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY ?? '', baseURL: 'https://api.groq.com/openai/v1' });
-const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
+export const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
 
 /** A premium (paid-tier) model id — anything that isn't the free Llama default. */
 function isPremiumModel(id: string): boolean {

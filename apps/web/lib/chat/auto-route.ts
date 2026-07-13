@@ -27,10 +27,11 @@ const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   writing:   ['claude-sonnet-4-6', 'claude-opus-4-8', 'gpt-4o'],
   // Up-to-date / factual digging — real-time model first, then broad generalist.
   research:  ['grok-3', 'gpt-4o', 'claude-sonnet-4-6'],
-  // Code & math — dedicated reasoning model first.
-  code:      ['o4-mini', 'gpt-4o', 'claude-sonnet-4-6'],
+  // Code & math — reliably-streaming models first; o4-mini has a recurring
+  // empty-response failure mode (burns its token budget on hidden reasoning).
+  code:      ['gpt-4o', 'claude-sonnet-4-6', 'o4-mini'],
   // Hard multi-step reasoning / strategy.
-  reasoning: ['o4-mini', 'claude-opus-4-8', 'claude-sonnet-4-6', 'gpt-4o'],
+  reasoning: ['claude-opus-4-8', 'gpt-4o', 'claude-sonnet-4-6', 'o4-mini'],
   // Everyday chat — fast & free.
   general:   ['llama-3.3-70b-versatile'],
 };
@@ -72,6 +73,12 @@ export async function routeTask(
 ): Promise<RouteResult> {
   const fallback: RouteResult = { category: 'general', modelId: LLAMA, webSearch: false };
   if (!queryText.trim() || !process.env.GROQ_API_KEY) return fallback;
+
+  // Code-shaped prompts must never fall to the LLM classifier's 'general' bucket
+  // (→ Llama). Route them straight to a code-capable model.
+  if (/```|\bdef |\bfunction\b|\bimport |\bclass |=>|console\.|std::|public (static|class)/.test(queryText)) {
+    return { category: 'code', modelId: pickModel('code', plan), webSearch: false };
+  }
 
   try {
     // Bound the classifier: it runs BEFORE the main stream starts, so if Groq

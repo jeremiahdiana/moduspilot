@@ -13,7 +13,7 @@ import {
   enforcePaidTokenLimit,
   trackTokenUsage,
 } from '@/lib/chat/limits';
-import { resolveChatModel } from '@/lib/chat/model';
+import { resolveChatModel, LLAMA_FALLBACK } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
 import { isModelUnlocked } from '@/lib/models';
 import {
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     }
 
     // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
-    const cappedMessages = body.messages
+    let cappedMessages = body.messages
       .slice(-20)
       .map(msg => ({
         ...msg,
@@ -233,8 +233,8 @@ export async function POST(req: Request) {
 
     // Resolve model — an in-chat/Auto override wins for this message, else BYOK
     // keys, then the platform default (Groq). hasImage forces a vision model.
-    const resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
-    const chatModel = resolved.model;
+    let resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
+    let chatModel = resolved.model;
     if (resolved.downgraded) {
       // Loud + alertable: a premium model was requested but we served Llama
       // (missing provider key or plan gate). Previously silent — a rotated/removed
@@ -280,7 +280,37 @@ export async function POST(req: Request) {
         body.attachments.map(a => `\n--- ${a.name} ---\n${(a.text ?? '').slice(0, 24000)}`).join('\n') + '\n'
       : '';
 
-    const fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    let fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+
+    // Size guard: Groq/Llama has a hard ~12k tokens-per-minute cap. A large request
+    // (big system prompt + injected context + a long user message) sent to Llama 429s
+    // with "Request too large" → empty/errored reply. If we'd use Llama and the request
+    // is large, upgrade to a large-context model the user can access; else trim to fit.
+    const LLAMA_TPM_SAFE_TOKENS = 9000;
+    const approxTokens = Math.ceil((fullSystemPrompt.length + JSON.stringify(cappedMessages).length) / 4);
+    if (resolved.modelId === LLAMA_FALLBACK && approxTokens > LLAMA_TPM_SAFE_TOKENS) {
+      let upgraded = false;
+      for (const up of ['gpt-4o', 'claude-sonnet-4-6']) {
+        const cand = resolveChatModel(userData, { hasImage, modelId: up });
+        if (cand.modelId === up) {
+          resolved = cand;
+          chatModel = cand.model;
+          upgraded = true;
+          console.log(`[chat] size-guard: upgraded Llama→${up} (~${approxTokens} tokens)`);
+          break;
+        }
+      }
+      if (!upgraded) {
+        // Free/guest — only Llama available. Trim so Llama can accept the request.
+        fullSystemPrompt = MODUS_SYSTEM_PROMPT + modelCatalogBlock + styleBlock;
+        cappedMessages = cappedMessages.map(m =>
+          typeof m.content === 'string' && m.content.length > 24000
+            ? { ...m, content: m.content.slice(0, 24000) }
+            : m,
+        ) as CoreMessage[];
+        console.log(`[chat] size-guard: trimmed oversized request for Llama (~${approxTokens} tokens)`);
+      }
+    }
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
@@ -363,7 +393,7 @@ export async function POST(req: Request) {
     // with EMPTY visible text → blank message bubble (200, no error). Give
     // reasoning models enough headroom to reason AND still emit an answer.
     const isReasoningModel = /^o\d/.test(resolved.modelId);
-    const maxTokens = isReasoningModel ? 8000 : 2048;
+    const maxTokens = isReasoningModel ? 16000 : 2048;
 
     const result = streamText({
       model: chatModel,
@@ -425,6 +455,7 @@ export async function POST(req: Request) {
         if (sl.includes('rate limit') || sl.includes('429') || sl.includes('too many')) return 'rate_limit_reached';
         if (sl.includes('401') || sl.includes('api key') || sl.includes('unauthorized')) return 'api_key_error';
         if (sl.includes('503') || sl.includes('502') || sl.includes('overloaded')) return 'provider_down';
+        if (sl.includes('too large') || sl.includes('tokens per minute') || sl.includes('reduce your message')) return 'message_too_large';
         // Don't leak raw provider/internal error text to the client.
         return 'chat_error';
       },

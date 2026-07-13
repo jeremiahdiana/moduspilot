@@ -169,7 +169,7 @@ export default function ChatWindow({
   // Llama off as the model the user selected.
   const [modelNotice, setModelNotice] = useState<string | null>(null);
 
-  const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop } = useChat({
+  const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop, reload } = useChat({
     api: '/api/chat',
     onResponse: (response) => {
       // Capture the model that will answer this message + whether Auto chose it.
@@ -209,6 +209,8 @@ export default function ChatWindow({
         setChatError('AI service configuration error. Contact support.');
       } else if (msg.includes('provider_down') || msg.includes('503') || msg.includes('502') || msg.includes('unavailable') || msg.includes('overloaded')) {
         setChatError('AI service is down. Try again in a moment.');
+      } else if (msg.includes('message_too_large')) {
+        setChatError('That message was too long for the fast model. Try again or shorten it.');
       } else {
         setChatError('Something went wrong. Please try again.');
       }
@@ -260,7 +262,7 @@ export default function ChatWindow({
     const t = setTimeout(() => {
       stop();
       setChatError('That response timed out. Please try again.');
-    }, 75000);
+    }, 65000);
     return () => clearTimeout(t);
   }, [isLoading, stop]);
 
@@ -487,6 +489,12 @@ export default function ChatWindow({
       {chatError && (
         <div className="mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
           <p className="text-sm text-red-400">{chatError}</p>
+          <button
+            onClick={() => { setChatError(null); reload(); }}
+            className="text-red-400 hover:text-red-300 text-sm font-medium shrink-0"
+          >
+            Regenerate
+          </button>
           <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300 shrink-0" aria-label="Dismiss">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
