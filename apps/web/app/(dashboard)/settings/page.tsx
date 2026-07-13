@@ -39,7 +39,7 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory } = useUserSettings(user);
+  const { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory, clearMemories } = useUserSettings(user);
 
   const rawTab = searchParams.get('tab') ?? 'general';
   const validKeys = TABS.map(t => t.key) as string[];
@@ -186,6 +186,7 @@ function SettingsContent() {
                     onSave={saveSettings}
                     onAdd={addMemory}
                     onDelete={deleteMemory}
+                    onClearAll={clearMemories}
                   />
                 </div>
               )}

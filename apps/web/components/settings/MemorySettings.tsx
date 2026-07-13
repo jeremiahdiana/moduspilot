@@ -25,6 +25,7 @@ interface Props {
   onSave: (updates: Partial<UserSettings>) => Promise<void>;
   onAdd: (content: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onClearAll: () => Promise<void>;
 }
 
 type ImportTab = 'file' | 'paste';
@@ -64,7 +65,7 @@ function parseMemories(raw: string): string[] {
     .filter(line => line.length > 3);
 }
 
-export default function MemorySettings({ settings, memories, saving, onSave, onAdd, onDelete }: Props) {
+export default function MemorySettings({ settings, memories, saving, onSave, onAdd, onDelete, onClearAll }: Props) {
   const [newMemory, setNewMemory] = useState('');
   const [adding, setAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -140,12 +141,10 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
     setClearing(true);
     setClearDone(false);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) { alert('Not signed in.'); return; }
-      await fetch('/api/memory/clear', {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Delegates to useUserSettings.clearMemories, which hits the API AND empties
+      // the local list — so the Stored Memories list clears immediately instead of
+      // showing stale entries (and "N total") until a reload.
+      await onClearAll();
       setClearDone(true);
       setTimeout(() => setClearDone(false), 3000);
     } catch {

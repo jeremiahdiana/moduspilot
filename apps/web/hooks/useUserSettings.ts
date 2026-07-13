@@ -180,5 +180,19 @@ export function useUserSettings(user: User | null) {
     setMemories(prev => prev.filter(m => m.id !== id));
   }, [user]);
 
-  return { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory };
+  // Clears every memory (Firestore + Pinecone) via the API, then empties the
+  // local list so the UI reflects the wipe immediately instead of showing stale
+  // memories until the next reload. Throws on failure so the caller can alert.
+  const clearMemories = useCallback(async () => {
+    if (!user) return;
+    const token = await user.getIdToken();
+    const res = await fetch('/api/memory/clear', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Failed to clear memories');
+    setMemories([]);
+  }, [user]);
+
+  return { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory, clearMemories };
 }
