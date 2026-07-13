@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { ClaudeLogo, OpenAILogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
-import { DemoWindow } from '@/components/marketing/ModelDemo';
 import { useAuth } from '@/components/providers/AuthProvider';
 import {
   doc, setDoc, addDoc, collection,
@@ -357,7 +356,7 @@ const MODEL_DEMOS = [
   { prompt: 'Draft a launch plan for next week.',     model: 'ChatGPT', reason: 'planning',           Logo: OpenAILogo },
 ];
 
-function ModelsShowcaseScreen({ showDemo = true }: { showDemo?: boolean } = {}) {
+function ModelsShowcaseScreen() {
   const [i, setI] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setI(x => (x + 1) % MODEL_DEMOS.length), 2600);
@@ -369,15 +368,14 @@ function ModelsShowcaseScreen({ showDemo = true }: { showDemo?: boolean } = {}) 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm font-bold text-brand uppercase tracking-[0.18em] mb-3">Your unfair advantage</p>
-        <h1 className="text-2xl md:text-3xl font-black text-text leading-tight">One subscription.<br />Every model.</h1>
+        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Your unfair advantage</p>
+        <h1 className="text-2xl font-black text-text leading-tight">One subscription.<br />Every model.</h1>
         <p className="text-sm text-muted mt-1.5">
           ChatGPT, Claude, Gemini, Grok — MODUS routes each task to whichever is best. Or pick one yourself.
         </p>
       </div>
 
-      {/* Mini routing demo (hidden when the big demo is shown alongside) */}
-      {showDemo && (
+      {/* Mini routing demo */}
       <div className="bg-panel/70 border border-border/60 rounded-2xl p-5 backdrop-blur-sm min-h-[128px] flex flex-col justify-center">
         <AnimatePresence mode="wait">
           <motion.div
@@ -404,7 +402,6 @@ function ModelsShowcaseScreen({ showDemo = true }: { showDemo?: boolean } = {}) 
           </motion.div>
         </AnimatePresence>
       </div>
-      )}
 
       {/* All models */}
       <div className="flex flex-wrap gap-2">
@@ -501,71 +498,6 @@ function PlanStep({ selected, setSelected }: { selected: PlanId; setSelected: (v
         You won&apos;t be charged today. Card required to start · cancel anytime before day 3.
       </p>
     </div>
-  );
-}
-
-// ── Showcase pane (desktop only) ─────────────────────────────────────────────
-// Fills the empty desktop space beside each step with the real, scripted
-// multi-model demo (reused from the homepage) + a rotating strip of features —
-// so the value is on screen the whole way through onboarding.
-const SHOWCASE_FEATURES: { icon: string; title: string; desc: string }[] = [
-  { icon: '☀', title: 'Daily briefing',        desc: 'Top 3 priorities + inbox triage, before you open Gmail.' },
-  { icon: '✓', title: 'You approve everything', desc: 'Every action is a card you sign off on — nothing runs without you.' },
-  { icon: '◎', title: 'Goals → habits → tasks', desc: 'Set a goal in chat; MODUS breaks it into habits and tasks.' },
-  { icon: '✎', title: 'Images & documents',     desc: 'Generate images and editable PDFs inside the conversation.' },
-  { icon: '⊙', title: 'Memory that persists',   desc: 'Remembers your goals and decisions across every chat.' },
-];
-
-function RotatingFeature() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI(x => (x + 1) % SHOWCASE_FEATURES.length), 3200);
-    return () => clearInterval(t);
-  }, []);
-  const f = SHOWCASE_FEATURES[i];
-  return (
-    <div>
-      <div className="min-h-[54px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-start gap-3"
-          >
-            <span className="text-brand text-lg leading-none mt-0.5 shrink-0">{f.icon}</span>
-            <div>
-              <p className="text-sm font-semibold text-text">{f.title}</p>
-              <p className="text-xs text-muted leading-relaxed">{f.desc}</p>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-      <div className="flex gap-1 mt-3">
-        {SHOWCASE_FEATURES.map((_, idx) => (
-          <span key={idx} className={`h-1 rounded-full transition-all duration-300 ${idx === i ? 'w-4 bg-brand' : 'w-1 bg-border'}`} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ShowcasePane() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full space-y-5"
-    >
-      <DemoWindow showRail={false} />
-      <div className="border-t border-border/50 pt-5">
-        <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">Plus everything else MODUS runs</p>
-        <RotatingFeature />
-      </div>
-    </motion.div>
   );
 }
 
@@ -876,46 +808,7 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── models (its own step: rich demo left, pitch right on desktop) ────────────
-  if (screen === 'models') {
-    return (
-      <div className="relative min-h-screen flex flex-col">
-        <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
-        <PageBackground />
-
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-6 pt-8 pb-2">
-          <DotProgress step={stepIndex} />
-        </div>
-
-        <div className="relative z-10 w-full max-w-5xl mx-auto flex-1 px-6 pt-6 pb-32 flex items-center">
-          {/* Mobile: compact showcase (includes its own mini demo) */}
-          <div className="lg:hidden w-full max-w-md mx-auto">
-            <ModelsShowcaseScreen />
-          </div>
-          {/* Desktop: the rich multi-model demo on the left, pitch on the right */}
-          <div className="hidden lg:grid lg:grid-cols-2 gap-12 items-center w-full">
-            <ShowcasePane />
-            <ModelsShowcaseScreen showDemo={false} />
-          </div>
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center px-6 pb-8 pt-4 bg-gradient-to-t from-bg via-bg/90 to-transparent">
-          <div className="w-full max-w-5xl flex items-center justify-between">
-            <button onClick={() => go('role', -1)} className="text-sm text-muted hover:text-text transition-colors py-2 pr-4">← Back</button>
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => go('plan')}
-              className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
-            >
-              Continue →
-            </motion.button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── role / plan (original single-column) ─────────────────────────────────────
+  // ── role / models / plan (original single-column) ────────────────────────────
   const isLast = screen === 'plan';
 
   return (
@@ -940,8 +833,9 @@ export default function OnboardingPage() {
             exit="exit"
             transition={slideTx}
           >
-            {screen === 'role' && <RoleStep role={role} setRole={setRole} name={name} />}
-            {screen === 'plan' && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} />}
+            {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
+            {screen === 'models' && <ModelsShowcaseScreen />}
+            {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} />}
           </motion.div>
         </AnimatePresence>
       </div>
