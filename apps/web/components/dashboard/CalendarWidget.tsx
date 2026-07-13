@@ -43,9 +43,13 @@ export default function CalendarWidget() {
     setLoading(true);
     user.getIdToken().then(async token => {
       try {
-        const url = selectedAccount
-          ? `/api/google/today?account=${encodeURIComponent(selectedAccount)}`
-          : '/api/google/today';
+        // Send the browser timezone so /api/google/today computes "today" in the
+        // user's local day, not UTC — otherwise the agenda shows tomorrow's (or
+        // yesterday's) events near midnight for anyone not on UTC.
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const params = new URLSearchParams({ tz });
+        if (selectedAccount) params.set('account', selectedAccount);
+        const url = `/api/google/today?${params.toString()}`;
         const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         // Reset on every fetch, not just latch true — otherwise a single
