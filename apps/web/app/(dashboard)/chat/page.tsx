@@ -207,11 +207,14 @@ export default function ChatPage() {
               onCollapse={convRail.toggle}
             />
           )}
-          {/* Drag handle stays live while collapsed so the rail can be pulled back out */}
-          <div
-            className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-20"
-            onMouseDown={convRail.startDrag}
-          />
+          {/* Collapsed width is 0, so a handle here would sit on top of the app
+              sidebar's own handle. Reopen via the tab instead. */}
+          {!convRail.collapsed && (
+            <div
+              className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-20"
+              onMouseDown={convRail.startDrag}
+            />
+          )}
         </div>
       )}
 

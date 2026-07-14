@@ -79,7 +79,7 @@ function NavLink({ item, pathname, onNavClick, collapsed }: { item: NavItem; pat
       onClick={onNavClick}
       aria-label={collapsed ? item.label : undefined}
       className={`relative flex items-center rounded-xl text-sm font-medium transition-colors ${
-        collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
+        collapsed ? 'w-full justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
       } ${active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'}`}
     >
       {active && (
@@ -93,7 +93,7 @@ function NavLink({ item, pathname, onNavClick, collapsed }: { item: NavItem; pat
       {!collapsed && <span className="relative">{item.label}</span>}
     </Link>
   );
-  return collapsed ? <Tooltip label={item.label} side="right">{link}</Tooltip> : link;
+  return collapsed ? <Tooltip label={item.label} side="right" className="w-full">{link}</Tooltip> : link;
 }
 
 // Live-subscribes to the user's sidebar prefs (hidden items + collapse state),
@@ -148,7 +148,7 @@ function NavLinkWithBriefingDot({ item, pathname, onNavClick, collapsed }: { ite
       onClick={onNavClick}
       aria-label={collapsed ? item.label : undefined}
       className={`relative flex items-center rounded-xl text-sm font-medium transition-colors ${
-        collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
+        collapsed ? 'w-full justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
       } ${active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'}`}
     >
       {active && (
@@ -168,7 +168,7 @@ function NavLinkWithBriefingDot({ item, pathname, onNavClick, collapsed }: { ite
       )}
     </Link>
   );
-  return collapsed ? <Tooltip label={item.label} side="right">{link}</Tooltip> : link;
+  return collapsed ? <Tooltip label={item.label} side="right" className="w-full">{link}</Tooltip> : link;
 }
 
 // True when the user has at least one synced note. Notes are read-only and only
@@ -280,16 +280,16 @@ function SidebarContent({
           <>
             <Image src="/logo.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 block dark:hidden" />
             <Image src="/logo-dark.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 hidden dark:block" />
-            <div className="flex flex-col leading-none">
-              <span className="text-sm font-black tracking-widest text-brand">MODUS</span>
-              <span className="text-[9px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+            <div className="flex flex-col leading-none min-w-0 flex-1 overflow-hidden">
+              <span className="text-sm font-black tracking-widest text-brand truncate">MODUS</span>
+              <span className="text-[9px] font-semibold text-muted tracking-widest uppercase truncate">pilot</span>
             </div>
             {onToggleCollapse && (
               <Tooltip label="Collapse sidebar" side="right">
                 <button
                   onClick={onToggleCollapse}
                   aria-label="Collapse sidebar"
-                  className="ml-auto w-7 h-7 hidden md:flex items-center justify-center rounded-lg text-muted/60 hover:text-text hover:bg-panel transition-colors"
+                  className="ml-auto shrink-0 w-7 h-7 hidden md:flex items-center justify-center rounded-lg text-muted/60 hover:text-text hover:bg-panel transition-colors"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                     <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
@@ -303,11 +303,11 @@ function SidebarContent({
 
       {/* Ask MODUS button */}
       {collapsed ? (
-        <Tooltip label="Ask MODUS  ⌘K" side="right">
+        <Tooltip label="Ask MODUS  ⌘K" side="right" className="w-full">
           <button
             onClick={onCmdOpen}
             aria-label="Ask MODUS"
-            className="flex items-center justify-center mb-4 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all"
+            className="w-full flex items-center justify-center mb-4 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -349,7 +349,8 @@ function SidebarContent({
           {visibleWorkspace.length > 0 && (
             <div className="mt-3">
               {collapsed ? (
-                <div className="mx-2 mb-1.5 h-px bg-border" />
+                /* Matches the bottom group's border-border/50, not full-strength */
+                <div className="mx-2 mb-1.5 h-px bg-border/50" />
               ) : (
                 <button
                   onClick={onToggleWorkspace}
@@ -429,7 +430,7 @@ function SidebarContent({
           collapsed ? (
             /* Icons-only: the avatar links straight to Settings — a dropdown has
                nowhere to sit in a 64px rail. */
-            <Tooltip label={user.displayName || user.email || 'Account'} side="right">
+            <Tooltip label={user.displayName || user.email || 'Account'} side="right" className="w-full">
               <Link href="/settings" onClick={onNavClick} aria-label="Account"
                 className="flex items-center justify-center w-full py-2 rounded-xl hover:bg-panel transition-colors">
                 {user.photoURL ? (
@@ -471,7 +472,11 @@ function SidebarContent({
   );
 }
 
-const SIDEBAR_MIN = 180;
+// 180 was narrower than the header needs (logo + wordmark + collapse button),
+// so at the low end the button overflowed the aside and landed on the next
+// panel. Measured: the wordmark starts truncating below ~216, so 220 is the
+// narrowest width the header actually fits in.
+const SIDEBAR_MIN = 220;
 const SIDEBAR_MAX = 320;
 const SIDEBAR_DEFAULT = 224;
 // Icons-only rail. Drag narrower than SIDEBAR_SNAP and it snaps to this.
