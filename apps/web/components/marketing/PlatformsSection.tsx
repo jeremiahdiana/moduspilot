@@ -22,7 +22,7 @@ const PLATFORMS = [
     desc: 'A native desktop app with your notes, iMessage, reminders, and calendar synced in — plus native notifications on your Mac.',
     detail: 'Signed & auto-updating · Apple Silicon',
     cta: 'Download for Mac →',
-    href: 'https://github.com/joinFITR/moduspilot/releases/latest',
+    href: '/download/mac',
   },
   {
     icon: <AppleLogo className="w-8 h-8" />,
@@ -85,8 +85,7 @@ export default function PlatformsSection() {
               {p.href && p.cta && (
                 <a
                   href={p.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  {...(p.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   className="inline-flex items-center mt-4 text-sm font-semibold text-brand hover:underline"
                 >
                   {p.cta}

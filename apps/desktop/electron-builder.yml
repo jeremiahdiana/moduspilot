@@ -3,6 +3,10 @@ productName: MODUS Desktop
 directories:
   output: out
   buildResources: build
+# No ${version} here on purpose: moduspilot.com/download/mac points at a fixed
+# GitHub "releases/latest/download/<name>" URL, which only resolves if the name
+# stays identical across releases.
+artifactName: MODUS-Desktop-${arch}.${ext}
 files:
   - dist/**/*
   - assets/**/*
