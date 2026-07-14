@@ -131,6 +131,13 @@ export default function ChatWindow({
   const routedRef = useRef<{ modelId: string; auto: boolean } | null>(null);
   const [routedByMsgId, setRoutedByMsgId] = useState<Record<string, string>>({});
 
+  // The model Auto picked for the previous turn, sent with the next message so a
+  // short follow-up ("make it shorter") isn't re-classified as generic chat and
+  // demoted to the fast default. Only reports models Auto itself chose — an
+  // explicit pick by the user is already carried by modelChoice.
+  const lastAutoRoutedModel = () =>
+    routedRef.current?.auto ? routedRef.current.modelId : undefined;
+
   // onIdTokenChanged fires on login AND whenever Firebase refreshes the token (~1h),
   // so requests stay authenticated without a page reload.
   useEffect(() => {
@@ -358,7 +365,7 @@ export default function ChatWindow({
     onUserMessage?.();
     await append(
       { role: 'user', content } as Parameters<typeof append>[0],
-      { body: { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend } },
+      { body: { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend, lastRoutedModel: lastAutoRoutedModel() } },
     );
   }
 
@@ -450,7 +457,7 @@ export default function ChatWindow({
             onAppend={(text) => {
               setChatError(null);
               onUserMessage?.();
-              append({ role: 'user', content: text }, { body: { modelChoice: modelChoiceRef.current } });
+              append({ role: 'user', content: text }, { body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } });
             }}
             onApproved={(text) => {
               append({ role: 'assistant', content: text } as Parameters<typeof append>[0]);

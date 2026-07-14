@@ -1,6 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { PLATFORM_MODELS, effectivePlan } from '@/lib/models';
+import { SMALL_TALK } from '@/lib/chat/context';
 
 /**
  * Auto model routing. When a user leaves the in-chat model switcher on "Auto",
@@ -64,6 +65,26 @@ export interface RouteResult {
 }
 
 /**
+ * Confident-only regex routing. Returns null when unsure so the caller falls
+ * through to the LLM classifier — these patterns must be high-precision, not
+ * high-recall. Order matters: code is checked first because code questions
+ * often also contain writing/reasoning verbs ("write a function", "solve this
+ * bug"), and misrouting code to Llama is the worst outcome.
+ */
+function heuristicCategory(q: string): TaskCategory | null {
+  // Code-shaped prompts must never fall to the classifier's 'general' bucket (→ Llama).
+  if (/```|\bdef |\bfunction\b|\bimport |\bclass |=>|console\.|std::|public (static|class)/.test(q)) return 'code';
+  const t = q.trim();
+  // Greetings/acks and ultra-short asks are 'general' by definition — no round trip.
+  if (SMALL_TALK.test(t) || t.split(/\s+/).length < 4) return 'general';
+  if (/\b(debug|refactor|stack ?trace|compile|typescript|python|javascript|sql query|regex|api endpoint)\b/i.test(t)) return 'code';
+  if (/\b(latest|news|current(ly)?|today'?s|price of|search for|look ?up|who won|stock|weather)\b/i.test(t)) return 'research';
+  if (/\b(write|draft|rewrite|edit|essay|blog post|caption|copy|linkedin post|tweet|reply to)\b/i.test(t)) return 'writing';
+  if (/\b(plan|strategy|prove|calculate|solve|trade-?offs?|step by step)\b/i.test(t)) return 'reasoning';
+  return null;
+}
+
+/**
  * Classify `queryText` and resolve the best unlocked model for it. Never throws —
  * returns the Llama/general default on any error or empty input.
  */
@@ -74,10 +95,15 @@ export async function routeTask(
   const fallback: RouteResult = { category: 'general', modelId: LLAMA, webSearch: false };
   if (!queryText.trim() || !process.env.GROQ_API_KEY) return fallback;
 
-  // Code-shaped prompts must never fall to the LLM classifier's 'general' bucket
-  // (→ Llama). Route them straight to a code-capable model.
-  if (/```|\bdef |\bfunction\b|\bimport |\bclass |=>|console\.|std::|public (static|class)/.test(queryText)) {
-    return { category: 'code', modelId: pickModel('code', plan), webSearch: false };
+  // ── Heuristic fast-path ────────────────────────────────────────────────────
+  // The classifier is a network round trip that BLOCKS the stream (see below).
+  // When a cheap regex is already confident, skip it entirely. Same idea as the
+  // code-shaped check that was already here, widened to the other categories.
+  // Anything ambiguous still falls through to the LLM classifier.
+  const heuristic = heuristicCategory(queryText);
+  if (heuristic) {
+    console.log(`[route] heuristic=${heuristic}`);
+    return { category: heuristic, modelId: pickModel(heuristic, plan), webSearch: heuristic === 'research' };
   }
 
   try {
@@ -93,13 +119,16 @@ export async function routeTask(
         maxTokens: 4,
         temperature: 0,
       }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('classifier timeout')), 3500)),
+      // 1200ms, was 3500. llama-3.1-8b-instant with maxTokens:4 answers well
+      // inside this; slower than that and the route was going to be stale anyway.
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('classifier timeout')), 1200)),
     ]);
     const word = text.trim().toLowerCase().replace(/[^a-z]/g, '');
     const category: TaskCategory =
       (['writing', 'research', 'code', 'reasoning', 'general'] as const).includes(word as TaskCategory)
         ? (word as TaskCategory)
         : 'general';
+    console.log(`[route] llm=${category}`);
     return { category, modelId: pickModel(category, plan), webSearch: category === 'research' };
   } catch {
     return fallback;

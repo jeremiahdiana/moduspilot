@@ -70,6 +70,10 @@ export async function POST(req: Request) {
     let uid: string | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let userData: Record<string, any> = {};
+    // Body parsing is independent of auth, so read it concurrently rather than
+    // after. The user-doc read still waits on verifyIdToken — it needs the uid,
+    // and it gates the paywall, so it must be a real read of real identity.
+    const bodyPromise = req.json().catch(() => null);
     if (token) {
       try {
         const decoded = await adminAuth.verifyIdToken(token);
@@ -93,7 +97,7 @@ export async function POST(req: Request) {
     const paidBlocked = enforcePaidTokenLimit(userData);
     if (paidBlocked) return paidBlocked;
 
-    const body = await req.json() as {
+    const body = await bodyPromise as {
       messages: CoreMessage[];
       personalContext?: string;
       responseStyle?: string;
@@ -106,11 +110,19 @@ export async function POST(req: Request) {
       // In-chat model switcher: 'auto' (MODUS picks per task), a specific model
       // id, or undefined/'default' (use the saved Brain setting).
       modelChoice?: string;
+      // The model Auto picked for the PREVIOUS turn. Lets a short follow-up
+      // ("make it shorter") stay on the model that wrote the thing it refers to.
+      lastRoutedModel?: string;
       // Per-message "+" menu: force a web search for this message, and any files
       // the user attached (PDF text extracted server-side, text files read client-side).
       webSearch?: boolean;
       attachments?: { name: string; text: string }[];
     };
+
+    // req.json() rejects on a malformed body; bodyPromise swallows that into null.
+    if (!body) {
+      return Response.json({ error: 'invalid_request' }, { status: 400 });
+    }
 
     // Validate payload before touching any model. A malformed/empty history is a
     // client bug or a truncated request — return a clean 400 the UI can surface,
@@ -119,13 +131,32 @@ export async function POST(req: Request) {
       return Response.json({ error: 'invalid_request' }, { status: 400 });
     }
 
-    // Cap message history (last 20) and individual message length (8000 chars) to limit token costs
-    let cappedMessages = body.messages
-      .slice(-20)
-      .map(msg => ({
-        ...msg,
-        content: typeof msg.content === 'string' ? msg.content.slice(0, 8000) : msg.content,
-      })) as CoreMessage[];
+    // Cap history by TOTAL size, walking backwards from the newest message.
+    // The old cap was per-message (20 × 8000 chars), which bounded nothing in
+    // practice: a long chat could ship ~160k chars (~40k tokens) of history on
+    // every single turn. Keep the newest turns whole and stop at the budget.
+    const HISTORY_CHAR_BUDGET = 24_000;
+    const MAX_HISTORY_MESSAGES = 20;
+    const recent = body.messages.slice(-MAX_HISTORY_MESSAGES);
+    const kept: CoreMessage[] = [];
+    let historyChars = 0;
+    for (let i = recent.length - 1; i >= 0; i--) {
+      const msg = recent[i];
+      // Spread only in the string branch — spreading across the whole CoreMessage
+      // union widens `content` and breaks the per-role discrimination.
+      const trimmed: CoreMessage = typeof msg.content === 'string'
+        ? ({ ...msg, content: msg.content.slice(0, 8000) } as CoreMessage)
+        : msg;
+      const size = typeof trimmed.content === 'string'
+        ? trimmed.content.length
+        : JSON.stringify(trimmed.content).length;
+      // Always keep the newest message even if it alone blows the budget —
+      // dropping the thing the user just asked would be worse than the cost.
+      if (kept.length > 0 && historyChars + size > HISTORY_CHAR_BUDGET) break;
+      historyChars += size;
+      kept.unshift(trimmed);
+    }
+    let cappedMessages = kept;
 
     let personalContext = (body.personalContext ?? '').slice(0, 2000);
     let responseStyle = body.responseStyle ?? '';
@@ -217,6 +248,23 @@ export async function POST(req: Request) {
         const routed = await routeTask(queryText, userData.plan);
         forcedModelId = routed.modelId;
         forceWebSearch = routed.webSearch;
+
+        // Sticky Auto. The router only ever sees the LATEST message, so a short
+        // follow-up like "make it shorter" or "try again" classifies as 'general'
+        // → Llama, and Llama rewrites the code Claude just wrote. When the
+        // follow-up carries no task signal of its own, stay on the model that
+        // produced the thing it refers to.
+        const last = body.lastRoutedModel;
+        const isShortFollowUp = queryText.trim().split(/\s+/).length < 6;
+        if (
+          routed.category === 'general' &&
+          isShortFollowUp &&
+          cappedMessages.length > 1 &&
+          last && last !== forcedModelId && isModelUnlocked(last, userData.plan)
+        ) {
+          console.log(`[route] sticky: follow-up stays on ${last} (router said general)`);
+          forcedModelId = last;
+        }
       } else if (modelChoice && modelChoice !== 'default' && isModelUnlocked(modelChoice, userData.plan)) {
         forcedModelId = modelChoice;
       }
@@ -276,10 +324,28 @@ export async function POST(req: Request) {
     }
 
     // Files the user attached via the composer "+" menu — treat as primary context.
-    const attachmentsBlock = (body.attachments && body.attachments.length)
-      ? '\n\nATTACHED FILES (the user attached these to their latest message — use them as primary context for their question; cite by file name):\n' +
-        body.attachments.map(a => `\n--- ${a.name} ---\n${(a.text ?? '').slice(0, 24000)}`).join('\n') + '\n'
-      : '';
+    // Budgeted in TOTAL, not per-file: the per-file 24k cap left the file COUNT
+    // unbounded, so 10 attachments meant ~60k tokens on one request.
+    const ATTACHMENT_CHAR_BUDGET = 48_000;
+    const MAX_ATTACHMENTS = 10;
+    let attachmentsBlock = '';
+    if (body.attachments && body.attachments.length) {
+      const parts: string[] = [];
+      let used = 0;
+      for (const a of body.attachments.slice(0, MAX_ATTACHMENTS)) {
+        if (used >= ATTACHMENT_CHAR_BUDGET) break;
+        const text = (a.text ?? '').slice(0, Math.min(24_000, ATTACHMENT_CHAR_BUDGET - used));
+        used += text.length;
+        parts.push(`\n--- ${a.name} ---\n${text}`);
+      }
+      if (parts.length > 0) {
+        attachmentsBlock = '\n\nATTACHED FILES (the user attached these to their latest message — use them as primary context for their question; cite by file name):\n' +
+          parts.join('\n') + '\n';
+      }
+      if (parts.length < body.attachments.length) {
+        console.log(`[chat] attachments truncated: ${parts.length}/${body.attachments.length} included (${used} chars)`);
+      }
+    }
 
     let fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
 
@@ -349,29 +415,43 @@ export async function POST(req: Request) {
             })
           );
 
-          const toolNamesByServer: string[] = [];
-          for (const conn of connections) {
-            if (conn.status !== 'fulfilled') {
-              // Log instead of swallowing — a plugin that stopped working should
-              // be visible in logs, not silently dropped from the toolset.
-              console.error('[chat] MCP connect failed:', String((conn as PromiseRejectedResult).reason));
-              continue;
-            }
-            const { server, client } = conn.value;
-            try {
-              const tools = await withTimeout(client.tools(), 4000, 'tools');
-              const names = Object.keys(tools);
-              if (names.length > 0) {
-                mcpTools = { ...mcpTools, ...tools };
-                toolNamesByServer.push(`${server.name}: ${names.join(', ')}`);
-                mcpClients.push(client);
-              } else {
-                try { await client.close(); } catch {}
+          // tools() must run in PARALLEL across servers. It used to sit in a
+          // sequential for-loop, so each server serialised its own 4s cap —
+          // three plugins could add up to 12s before the first token, not 4s.
+          const fetched = await Promise.all(
+            connections.map(async (conn) => {
+              if (conn.status !== 'fulfilled') {
+                // Log instead of swallowing — a plugin that stopped working should
+                // be visible in logs, not silently dropped from the toolset.
+                console.error('[chat] MCP connect failed:', String((conn as PromiseRejectedResult).reason));
+                return null;
               }
-            } catch (e) {
-              console.error(`[chat] MCP tools() failed for ${server.name}:`, String(e));
-              try { await client.close(); } catch {}
-            }
+              const { server, client } = conn.value;
+              try {
+                const tools = await withTimeout(client.tools(), 4000, 'tools');
+                if (Object.keys(tools).length === 0) {
+                  try { await client.close(); } catch {}
+                  return null;
+                }
+                return { server, client, tools };
+              } catch (e) {
+                console.error(`[chat] MCP tools() failed for ${server.name}:`, String(e));
+                try { await client.close(); } catch {}
+                return null;
+              }
+            })
+          );
+
+          // Merge in a stable, name-sorted order. Object key order feeds the
+          // provider's tool serialisation, which is the first thing in an
+          // Anthropic cache prefix — non-deterministic order would break caching
+          // (see the Phase 2 plan) and makes logs harder to diff.
+          const toolNamesByServer: string[] = [];
+          for (const ok of fetched.filter(x => x !== null).sort((a, b) => a!.server.name.localeCompare(b!.server.name))) {
+            const { server, client, tools } = ok!;
+            mcpTools = { ...mcpTools, ...tools };
+            toolNamesByServer.push(`${server.name}: ${Object.keys(tools).join(', ')}`);
+            mcpClients.push(client);
           }
           if (toolNamesByServer.length > 0) {
             mcpBlock = '\n\nMCP TOOLS AVAILABLE (use these when the user asks for actions your connected servers can perform):\n' +

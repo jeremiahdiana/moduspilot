@@ -68,13 +68,31 @@ export function needsMessagesCtx(q: string): boolean {
 // Gating on this (instead of injecting the whole contact list on every message)
 // keeps unrelated queries — code, notes, calendar, general chat — from paying
 // the ~1.5k-token contacts tax.
+// The bare verbs call|text|message|email used to be in here, which meant an
+// everyday "email me the summary" or "send him a message" dragged in the whole
+// address book (~1.5k tokens). Keep the person-shaped phrasings, and match those
+// verbs only when they're followed by a capitalised name ("email Sarah").
 export function needsContactsCtx(q: string): boolean {
-  return /\b(contacts?|phone ?numbers?|number for|email for|who is|who's|reach out|get in touch|call|text|message|email|birthday|anniversary|address for|introduce)\b/i.test(q);
+  return /\b(contacts?|phone ?numbers?|number for|email for|who is|who's|reach out|get in touch|birthday|anniversary|address for|introduce)\b/i.test(q)
+    || /\b(email|call|text|message|dm)\s+[A-Z][a-z]+/.test(q);
 }
-// Short or open-ended queries get Gmail + Calendar by default (most commonly useful)
+// Pure greetings/acknowledgements. Anchored ^…$ so only a bare greeting matches —
+// "hi, check my inbox" still takes the full context path via needsEmailCtx.
+// Deliberately does NOT include "morning": "good morning" is a briefing intent.
+export const SMALL_TALK = /^(hi|hey+|hello|yo|sup|thanks?|thank you|ty|ok(ay)?|cool|nice|got it|k|lol|np|sure|yes|no|hey there)\b[\s!.?,]*$/i;
+
+// Explicit "tell me what's going on" intent — these genuinely need live context.
+export function isBriefingIntent(q: string): boolean {
+  return /\b(focus|priorit|what('s| is) (next|up|happening|going on)|catch me up|status|brief|overview|update me|check in|morning|today)\b/i.test(q);
+}
+
+// Short or open-ended queries get Gmail + Calendar by default (most commonly useful).
+// The word-count arm used to swallow greetings too: "hi" is 1 word, so it pulled a
+// full Gmail + Calendar + contacts + notes fetch (~5s, ~5k tokens) to say "hey".
+// Small talk is now excluded; every other short query keeps the old behaviour.
 export function isVagueQuery(q: string): boolean {
-  return q.trim().split(/\s+/).length < 6 ||
-    /\b(focus|priorit|what('s| is) (next|up|happening|going on)|catch me up|status|brief|overview|update me|check in|morning|today)\b/i.test(q);
+  const t = q.trim();
+  return isBriefingIntent(t) || (t.split(/\s+/).length < 6 && !SMALL_TALK.test(t));
 }
 
 // ── Pinecone semantic memory ─────────────────────────────────────────────────
@@ -201,13 +219,20 @@ export async function fetchConnectorData(
   try {
     await Promise.race([
       (async () => {
+        // The *Accounts reads must always run — they build connectorBlock, which is
+        // what stops the model telling a connected user to "connect your Notion".
+        // The *Token reads are only used by the intent-gated data fetches below, so
+        // gate them the same way instead of fetching (and discarding) every message.
+        const wantsNotion = needsNotionCtx(queryText);
+        const wantsSlack  = needsSlackCtx(queryText);
+        const wantsGithub = needsGithubCtx(queryText);
         const [notionAccounts, slackAccounts, githubAccounts, notionToken, slackToken, githubToken] = await Promise.all([
           getNotionAccounts(uid),
           getSlackAccounts(uid),
           getGitHubAccounts(uid),
-          getFirstNotionToken(uid),
-          getFirstSlackToken(uid),
-          getFirstGitHubToken(uid),
+          wantsNotion ? getFirstNotionToken(uid) : Promise.resolve(null),
+          wantsSlack  ? getFirstSlackToken(uid)  : Promise.resolve(null),
+          wantsGithub ? getFirstGitHubToken(uid) : Promise.resolve(null),
         ]);
 
         const connected: string[] = ['Google (Gmail · Calendar · Drive)'];
@@ -222,10 +247,12 @@ export async function fetchConnectorData(
         if (notConnected.length > 0) connectorBlock += `\nNOT YET CONNECTED: ${notConnected.join(', ')} — generate a connect card if the user asks about these services`;
 
         // Fetch live data only when the query is about that service
+        // Tokens are already intent-gated above, so a non-null token means the
+        // query wanted that service — no need to re-test intent here.
         const [notionPages, slackMessages, githubItems] = await Promise.all([
-          notionToken  && needsNotionCtx(queryText)  ? getRecentNotionPages(notionToken.token, 5)                  : Promise.resolve([]),
-          slackToken   && needsSlackCtx(queryText)   ? getRecentSlackActivity(slackToken.token, 8)                 : Promise.resolve([]),
-          githubToken  && needsGithubCtx(queryText)  ? getGitHubWorkItems(githubToken.token, githubToken.login, 8) : Promise.resolve([]),
+          notionToken ? getRecentNotionPages(notionToken.token, 5)                  : Promise.resolve([]),
+          slackToken  ? getRecentSlackActivity(slackToken.token, 8)                 : Promise.resolve([]),
+          githubToken ? getGitHubWorkItems(githubToken.token, githubToken.login, 8) : Promise.resolve([]),
         ]);
 
         if (notionPages.length > 0) {
@@ -252,18 +279,36 @@ export async function fetchConnectorData(
 
 // ── Device contacts (synced from iOS address book) ───────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ContactDoc = Record<string, any>;
+
+// fetchContactEmailMap and fetchContactsBlock each independently read the SAME
+// 500-doc collection, so an email-about-a-person query paid for it twice. Share
+// one short-lived snapshot between them. Contacts sync from the phone and change
+// rarely, so a few seconds of staleness is immaterial.
+const CONTACTS_TTL_MS = 30_000;
+const contactsCache = new Map<string, { docs: ContactDoc[]; exp: number }>();
+
+async function fetchContactDocs(uid: string): Promise<ContactDoc[]> {
+  const hit = contactsCache.get(uid);
+  if (hit && hit.exp > Date.now()) return hit.docs;
+  const snap = await adminDb.collection('users').doc(uid).collection('contacts').limit(500).get();
+  const docs = snap.docs.map(d => d.data() as ContactDoc);
+  contactsCache.set(uid, { docs, exp: Date.now() + CONTACTS_TTL_MS });
+  return docs;
+}
+
 // Builds a lightweight email → contact map for Gmail sender cross-referencing.
 // Called only when an email-relevant query is detected — separate from fetchContactsBlock
 // so we don't double-fetch on non-email queries.
 export async function fetchContactEmailMap(uid: string): Promise<Map<string, ContactEmailEntry>> {
   const map = new Map<string, ContactEmailEntry>();
   try {
-    const snap = await adminDb.collection('users').doc(uid).collection('contacts').limit(500).get();
-    for (const d of snap.docs) {
-      const data = d.data() as {
-        name?: string; email?: string; company?: string;
-        userCategory?: 'personal' | 'professional' | 'service' | 'excluded';
-      };
+    const docs = await fetchContactDocs(uid);
+    for (const data of docs as {
+      name?: string; email?: string; company?: string;
+      userCategory?: 'personal' | 'professional' | 'service' | 'excluded';
+    }[]) {
       if (!data.name || !data.email) continue;
       const rawEmail = data.email.replace(/[\r\n\t<>]/g, '').trim();
       if (!rawEmail) continue;
@@ -283,12 +328,9 @@ export async function fetchContactEmailMap(uid: string): Promise<Map<string, Con
 export async function fetchContactsBlock(uid: string, enabled = true): Promise<string> {
   if (!enabled) return '';
   try {
-    const snap = await adminDb
-      .collection('users').doc(uid)
-      .collection('contacts')
-      .limit(500)
-      .get();
-    if (snap.empty) return '';
+    // Shares the snapshot with fetchContactEmailMap — see fetchContactDocs.
+    const contactDocs = await fetchContactDocs(uid);
+    if (contactDocs.length === 0) return '';
 
     const today = new Date();
 
@@ -303,8 +345,7 @@ export async function fetchContactsBlock(uid: string, enabled = true): Promise<s
     const professional: string[] = [];
     const services: string[] = [];
 
-    for (const d of snap.docs) {
-      const data = d.data() as RawDoc;
+    for (const data of contactDocs as RawDoc[]) {
       if (!data.name) continue;
       const name = data.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80);
       if (!name) continue;
