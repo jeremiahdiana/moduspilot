@@ -5,8 +5,10 @@ import { motion } from 'framer-motion';
 export default function FinalCTA() {
   return (
     <section className="relative py-40 px-6 overflow-hidden">
-      <div className="absolute inset-0 bg-panel" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(15,15,20,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(15,15,20,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      <div className="absolute inset-0 bg-bg" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(15,15,20,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(15,15,20,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,black,transparent)]" />
+      {/* Single restrained purple bloom behind the closing statement */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_55%_at_50%_50%,rgba(124,58,237,0.10),transparent_70%)]" />
 
       <div className="relative max-w-3xl mx-auto text-center">
         <motion.div
@@ -15,9 +17,9 @@ export default function FinalCTA() {
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-text leading-tight mb-6">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text leading-tight mb-6">
             Your goals deserve more than<br />
-            <span className="text-text/60">another productivity app.</span>
+            <span className="text-brand dark:text-brand-light">another productivity app.</span>
           </h2>
           <p className="text-muted text-lg mb-10 max-w-xl mx-auto">
             MODUS runs the system. You make the calls. Try it free for 3 days.

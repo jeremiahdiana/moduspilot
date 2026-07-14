@@ -17,7 +17,7 @@ export default function MultiModelSection() {
           className="text-center mb-10"
         >
           <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">One chat. Every model.</p>
-          <h2 className="text-4xl md:text-6xl font-black text-text leading-[1.1] tracking-tight mb-5">
+          <h2 className="text-4xl md:text-6xl font-semibold text-text leading-[1.1] tracking-tight mb-5">
             <span className="block whitespace-normal sm:whitespace-nowrap">Write with Gemini.</span>
             <span className="block whitespace-normal sm:whitespace-nowrap">Research with Claude.</span>
             <span className="block whitespace-normal sm:whitespace-nowrap">Ask ChatGPT.</span>

@@ -32,7 +32,7 @@ export default function CompareSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">
             Why pay for one AI<br className="hidden sm:block" /> when you can have them all?
           </h2>
           <p className="text-muted text-lg max-w-xl mx-auto">

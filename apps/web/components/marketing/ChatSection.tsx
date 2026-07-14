@@ -92,7 +92,7 @@ export default function ChatSection() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
           >
-            <h2 className="text-4xl md:text-5xl font-black text-text mb-6 leading-tight">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-6 leading-tight">
               One Message.<br />Your Entire Life.
             </h2>
             <p className="text-muted text-base leading-relaxed mb-6">

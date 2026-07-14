@@ -86,7 +86,7 @@ export default function FAQSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">Questions</h2>
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">Questions</h2>
           <p className="text-muted text-lg">Everything you'd ask before signing up.</p>
         </motion.div>
 

@@ -202,9 +202,9 @@ export default function Navbar({ solid = false }: Props) {
                 <Link
                   href="/login"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-center w-full py-2.5 bg-brand text-white text-sm font-semibold rounded-lg"
+                  className="btn-primary flex items-center justify-center w-full py-2.5 text-white text-sm font-semibold rounded-lg"
                 >
-                  Get Started free
+                  Get started free
                 </Link>
               </div>
             </div>

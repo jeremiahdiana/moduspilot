@@ -60,7 +60,7 @@ export default function CoreLoop() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-14"
         >
-          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">
             How MODUS Works
           </h2>
           <p className="text-muted text-lg">Four steps. Zero micromanagement.</p>
@@ -108,7 +108,7 @@ export default function CoreLoop() {
               <div>
                 <div className="mb-4">
                   <div className="text-xs font-bold text-brand uppercase tracking-widest mb-1">{STEPS[active].num}</div>
-                  <h3 className="text-2xl font-black text-text">{STEPS[active].label}</h3>
+                  <h3 className="text-2xl font-semibold tracking-tight text-text">{STEPS[active].label}</h3>
                 </div>
                 <p className="text-base text-muted leading-relaxed mb-4 max-w-lg">
                   {STEPS[active].desc}

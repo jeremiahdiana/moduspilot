@@ -41,7 +41,7 @@ export default function FeaturesSection() {
           className="mb-16"
         >
           <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">What MODUS does</p>
-          <h2 className="text-4xl md:text-5xl font-black text-text leading-tight max-w-xl">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text leading-tight max-w-xl">
             Built around how you actually work.
           </h2>
         </motion.div>

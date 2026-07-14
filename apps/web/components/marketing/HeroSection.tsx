@@ -81,7 +81,7 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
           className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.08] tracking-tight mb-6"
         >
-          <span className="text-text/60">The AI That</span><br />
+          <span className="text-brand dark:text-brand-light">The AI That</span><br />
           <span className="text-text">Runs Your Life.</span>
         </motion.h1>
 

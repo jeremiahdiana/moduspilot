@@ -57,7 +57,7 @@ export default function PlatformsSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">Everywhere You Work</h2>
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">Everywhere you work</h2>
           <p className="text-muted text-lg">Live on web &amp; Mac. iPhone app in beta.</p>
         </motion.div>
 

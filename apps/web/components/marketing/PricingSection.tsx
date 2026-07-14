@@ -64,8 +64,11 @@ const item = {
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="py-32 px-6 bg-panel/30 overflow-hidden">
-      <div className="max-w-6xl mx-auto">
+    <section id="pricing" className="relative py-32 px-6 overflow-hidden">
+      {/* Neutral base so the raised plan cards carry the elevation themselves */}
+      <div className="absolute inset-0 bg-bg" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_50%_at_50%_0%,rgba(124,58,237,0.07),transparent_70%)]" />
+      <div className="relative max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -73,7 +76,7 @@ export default function PricingSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-black text-text mb-4">One subscription. Every model.</h2>
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">One subscription. Every model.</h2>
           <p className="text-muted text-lg max-w-2xl mx-auto">
             Write with Gemini, research with Claude, ask ChatGPT, for one price, with far higher limits than paying for any of them alone. Try it free for 3 days. Card required · cancel anytime.
           </p>
@@ -82,7 +85,7 @@ export default function PricingSection() {
             <span>ChatGPT Plus</span><span className="text-muted/40">+</span>
             <span>Claude Pro</span><span className="text-muted/40">+</span>
             <span>Gemini Advanced</span>
-            <span className="text-brand font-semibold">for less.</span>
+            <span className="text-brand dark:text-brand-light font-semibold">for less.</span>
           </div>
         </motion.div>
 
@@ -91,7 +94,7 @@ export default function PricingSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start max-w-3xl mx-auto pt-4"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto pt-4"
         >
           {PLANS.map(plan => (
             <motion.div
@@ -101,18 +104,24 @@ export default function PricingSection() {
               className="relative"
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                  <span className="bg-brand text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg shadow-brand/30 whitespace-nowrap">Most Popular</span>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                  <span className="btn-primary inline-block text-white text-[11px] font-bold px-3.5 py-1 rounded-full whitespace-nowrap">Most Popular</span>
                 </div>
               )}
               <div
                 className={`relative bg-panel rounded-2xl overflow-hidden flex flex-col h-full ${
-                  plan.popular ? 'shadow-2xl shadow-black/50' : ''
+                  plan.popular
+                    ? 'shadow-2xl shadow-black/60 ring-1 ring-brand/25'
+                    : 'shadow-xl shadow-black/30'
                 }`}
               >
+              {plan.popular && (
+                /* Top edge catches the accent, mirroring the /pricing card */
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent" />
+              )}
               <div className="px-8 pt-8 pb-6">
                 <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">{plan.tier}</p>
-                <p className="text-4xl font-black text-text mb-1">
+                <p className="text-4xl font-semibold tracking-tight text-text mb-1">
                   {plan.price}<span className="text-base font-normal text-muted">/mo</span>
                 </p>
                 <p className="text-sm text-muted mt-2">{plan.sub}</p>
@@ -134,8 +143,8 @@ export default function PricingSection() {
                   href="/login"
                   className={`block w-full py-3.5 rounded-xl text-sm font-bold text-center transition-all ${
                     plan.popular
-                      ? 'bg-brand text-white hover:bg-brand/90'
-                      : 'bg-text/[0.06] text-muted hover:text-text'
+                      ? 'btn-primary text-white hover:scale-[1.02] active:scale-100'
+                      : 'bg-text/[0.06] text-muted hover:bg-text/10 hover:text-text'
                   }`}
                 >
                   {plan.cta}

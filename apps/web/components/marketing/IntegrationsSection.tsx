@@ -154,7 +154,7 @@ export default function IntegrationsSection() {
           className="text-center mb-12"
         >
           <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Integrations</p>
-          <h2 className="text-4xl md:text-5xl font-black text-text leading-tight mb-4">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text leading-tight mb-4">
             Your tools. All connected. Actually live.
           </h2>
           <p className="text-muted text-base leading-relaxed max-w-2xl mx-auto mb-4">
