@@ -15,6 +15,20 @@ export const metadata: Metadata = {
     url: 'https://moduspilot.com',
     siteName: 'Modus',
     type: 'website',
+    images: [
+      {
+        url: '/og.png',
+        width: 1200,
+        height: 630,
+        alt: 'Modus — the AI that runs your life. Every frontier model, one subscription.',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Modus — AI Life OS',
+    description: 'The AI personal operating system. Connects your goals, habits, inbox, and calendar. Acts with your approval. Nothing runs without you.',
+    images: ['/og.png'],
   },
 };
 

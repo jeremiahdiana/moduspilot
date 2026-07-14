@@ -12,6 +12,13 @@ export const metadata: Metadata = {
     url: 'https://moduspilot.com/how-it-works',
     siteName: 'Modus',
     type: 'website',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Modus — the AI that runs your life.' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'How Modus Works',
+    description: 'One message. Everything handled. See how Modus goes from your words to real action.',
+    images: ['/og.png'],
   },
 };
 

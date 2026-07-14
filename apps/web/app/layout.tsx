@@ -32,16 +32,18 @@ export const metadata: Metadata = {
     siteName: 'Modus',
     images: [
       {
-        url: '/logo-with-text.png',
-        alt: 'Modus',
+        url: '/og.png',
+        width: 1200,
+        height: 630,
+        alt: 'Modus — the AI that runs your life. Every frontier model, one subscription.',
       },
     ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'Modus — AI Life OS',
     description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
-    images: ['/logo-with-text.png'],
+    images: ['/og.png'],
   },
 };
 

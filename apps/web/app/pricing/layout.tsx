@@ -12,6 +12,13 @@ export const metadata: Metadata = {
     url: 'https://moduspilot.com/pricing',
     siteName: 'Modus',
     type: 'website',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Modus — every frontier model, one subscription.' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Modus Pricing',
+    description: 'Free to start. $24/mo for the full operating system. $59/mo for founders and executives.',
+    images: ['/og.png'],
   },
 };
 
