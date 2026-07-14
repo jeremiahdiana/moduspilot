@@ -205,6 +205,21 @@ export async function POST(req: Request) {
         ? queryMemoryContext(uid, queryText)
         : Promise.resolve('');
 
+    // Auto routing depends only on the query text, never on the fetched context —
+    // but it used to be awaited AFTER the Gmail/Calendar fetch, so a context-heavy
+    // turn paid Google's 5s cap and the classifier's back to back. Start it here
+    // and collect it below; it now overlaps the context fetch instead.
+    // (Same trick as memoryPromise above.)
+    const savedModelSetting = userData.settings?.modelSettings as { provider?: string; model?: string } | undefined;
+    const savedIsPlatformModel = !savedModelSetting?.provider || savedModelSetting.provider === 'platform';
+    const wantsAutoRoute = !!uid && !!queryText && (
+      body.modelChoice === 'auto'
+      || ((!body.modelChoice || body.modelChoice === 'default') && savedIsPlatformModel && savedModelSetting?.model === 'auto')
+    );
+    const routePromise = wantsAutoRoute
+      ? routeTask(queryText, userData.plan)
+      : null;
+
     // Live Google data only when relevant to the query
     let gmailBlock = '';
     let calendarBlock = '';
@@ -238,14 +253,10 @@ export async function POST(req: Request) {
     if (uid && queryText) {
       // Saved Brain: 'auto' means MODUS routes per task. Used when the composer
       // sends no explicit per-message choice (or sends 'default').
-      const savedModel = userData.settings?.modelSettings as { provider?: string; model?: string } | undefined;
-      const savedIsPlatform = !savedModel?.provider || savedModel.provider === 'platform';
-      const wantsAuto = modelChoice === 'auto'
-        || ((!modelChoice || modelChoice === 'default') && savedIsPlatform && savedModel?.model === 'auto');
-
-      if (wantsAuto) {
+      // wantsAutoRoute + routePromise were resolved before the context fetch above.
+      if (routePromise) {
         wasAutoRouted = true;
-        const routed = await routeTask(queryText, userData.plan);
+        const routed = await routePromise;
         forcedModelId = routed.modelId;
         forceWebSearch = routed.webSearch;
 
