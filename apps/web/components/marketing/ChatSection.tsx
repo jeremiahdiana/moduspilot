@@ -20,31 +20,31 @@ function ApprovalCardMockup() {
   }, []);
 
   return (
-    <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-2xl">
-      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+    <div className="bg-panel rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
+      <div className="px-4 py-3 flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
         <span className="text-xs text-muted font-medium">MODUS Chat</span>
       </div>
 
       <div className="p-4 space-y-4 min-h-[280px]">
         <div className="flex justify-end">
-          <div className="bg-brand/20 border border-brand/20 rounded-xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
-            <p className="text-sm text-text">
+          <div className="bg-brand rounded-xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
+            <p className="text-sm text-white">
               {typed}
-              <span className="inline-block w-0.5 h-4 bg-brand ml-0.5 animate-pulse align-middle" />
+              <span className="inline-block w-0.5 h-4 bg-white/80 ml-0.5 animate-pulse align-middle" />
             </p>
           </div>
         </div>
 
         <div className="flex gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-xs font-black text-brand shrink-0 mt-0.5">M</div>
+          <div className="w-7 h-7 rounded-full bg-brand/15 flex items-center justify-center text-xs font-black text-brand shrink-0 mt-0.5">M</div>
           <div className="flex-1 space-y-3">
-            <div className="bg-bg border border-border rounded-xl rounded-tl-sm px-4 py-2.5">
+            <div className="bg-bg rounded-xl rounded-tl-sm px-4 py-2.5">
               <p className="text-xs text-muted mb-1">Reviewing…</p>
               <p className="text-sm text-text">Three actions queued. Approval card ready.</p>
             </div>
 
-            <div className="bg-bg border border-brand/30 rounded-xl p-4 space-y-3">
+            <div className="bg-bg rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-brand" />
                 <span className="text-xs font-semibold text-brand uppercase tracking-wider">Approval Required</span>
@@ -53,10 +53,10 @@ function ApprovalCardMockup() {
                 {[
                   'Draft reply to Marcus re: Q3 roadmap',
                   'Block 9–12am tomorrow as Deep Work',
-                  'Move 3 PM → Friday 3 PM',
+                  'Move 3 PM to Friday 3 PM',
                 ].map((action, i) => (
                   <div key={i} className="flex items-center gap-2.5 text-sm text-muted">
-                    <div className="w-4 h-4 rounded border border-border flex items-center justify-center">
+                    <div className="w-4 h-4 rounded bg-text/10 flex items-center justify-center shrink-0">
                       <div className="w-2 h-2 rounded-sm bg-brand/60" />
                     </div>
                     {action}
@@ -65,15 +65,15 @@ function ApprovalCardMockup() {
               </div>
               <div className="flex gap-2 pt-1">
                 <button className="flex-1 py-1.5 bg-brand text-white text-xs font-semibold rounded-lg">Approve All</button>
-                <button className="flex-1 py-1.5 border border-border text-muted text-xs rounded-lg">Edit</button>
+                <button className="flex-1 py-1.5 bg-text/[0.06] text-muted text-xs rounded-lg">Edit</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3 border-t border-border">
-        <div className="bg-bg border border-border rounded-xl px-3 py-2 text-xs text-muted/40">
+      <div className="px-4 py-3">
+        <div className="bg-bg rounded-xl px-3 py-2 text-xs text-muted/50">
           Message MODUS…
         </div>
       </div>
@@ -96,11 +96,11 @@ export default function ChatSection() {
               One Message.<br />Your Entire Life.
             </h2>
             <p className="text-muted text-base leading-relaxed mb-6">
-              The chat is not a feature — it's the operating surface MODUS is built on.
+              The chat is not a feature. It's the operating surface MODUS is built on.
               From a single message you can connect integrations, execute cross-app actions,
               surface a decision you made three months ago, or restructure your goals entirely.
             </p>
-            <div className="bg-panel border border-border rounded-xl px-4 py-3 mb-8">
+            <div className="bg-panel rounded-xl px-4 py-3 mb-8">
               <p className="text-sm text-muted italic">
                 "Draft a reply to Marcus, block tomorrow morning, move my 3 PM to Friday."
                 <span className="text-text not-italic"> One message. Three actions. One approval card.</span>

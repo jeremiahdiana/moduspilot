@@ -9,19 +9,19 @@
 :root {
   --font-display: 'Clash Display', system-ui, sans-serif;
   --font-sans: 'Satoshi', system-ui, sans-serif;
-  --color-bg: 250 249 255;
+  --color-bg: 250 250 251;
   --color-panel: 255 255 255;
-  --color-border: 226 220 244;
-  --color-text: 13 13 20;
-  --color-muted: 100 90 122;
+  --color-border: 229 229 233;
+  --color-text: 13 13 16;
+  --color-muted: 98 98 108;
 }
 
 .dark {
-  --color-bg: 10 10 15;
-  --color-panel: 17 17 24;
-  --color-border: 30 30 46;
-  --color-text: 232 232 240;
-  --color-muted: 107 107 128;
+  --color-bg: 8 8 9;
+  --color-panel: 22 22 24;
+  --color-border: 32 32 35;
+  --color-text: 237 237 240;
+  --color-muted: 140 140 148;
 }
 
 * {
@@ -46,21 +46,19 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
 
-/* Light mode: rich gradient background + dot grid */
+/* Light mode: restrained gradient background + dot grid */
 :root body {
   background:
-    radial-gradient(ellipse 90% 55% at 5% 0%,   rgba(124,58,237,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 65% at 95% 15%,  rgba(167,139,250,0.14) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 50% at 60% 60%,  rgba(192,132,252,0.10) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 40% at 10% 90%,  rgba(139,92,246,0.12)  0%, transparent 55%),
-    rgb(248, 246, 255);
+    radial-gradient(ellipse 90% 55% at 5% 0%,   rgba(124,58,237,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 40% at 10% 90%, rgba(139,92,246,0.04)  0%, transparent 55%),
+    rgb(250, 250, 251);
 }
 
 :root body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: radial-gradient(rgba(124,58,237,0.09) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(15,15,20,0.05) 1px, transparent 1px);
   background-size: 28px 28px;
   pointer-events: none;
   z-index: 0;

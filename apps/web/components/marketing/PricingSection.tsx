@@ -10,8 +10,8 @@ const PLANS = [
     cta: 'Start 3-day trial',
     popular: true,
     features: [
-      'AI Chat — unlimited, full context',
-      'Multiple AI models — Claude + GPT, auto-routed',
+      'AI Chat, unlimited with full context',
+      'Multiple AI models: Claude + GPT, auto-routed',
       'Generate images & editable PDFs',
       'Unlimited briefings + goals + habit engine',
       'Voice interface',
@@ -36,7 +36,7 @@ const PLANS = [
     popular: false,
     features: [
       'Everything in MODUS',
-      'Every frontier model — Claude, GPT, Gemini, Grok, o4-mini',
+      'Every frontier model: Claude, GPT, Gemini, Grok, o4-mini',
       'Unlimited context memory',
       'Wearable sync (HealthKit, Oura, Whoop)',
       'Financial pulse via Plaid',
@@ -75,14 +75,14 @@ export default function PricingSection() {
         >
           <h2 className="text-4xl md:text-5xl font-black text-text mb-4">One subscription. Every model.</h2>
           <p className="text-muted text-lg max-w-2xl mx-auto">
-            Write with Gemini, research with Claude, ask ChatGPT — for one price, with far higher limits than paying for any of them alone. Try it free for 3 days. Card required · cancel anytime.
+            Write with Gemini, research with Claude, ask ChatGPT, for one price, with far higher limits than paying for any of them alone. Try it free for 3 days. Card required · cancel anytime.
           </p>
-          <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted bg-panel border border-border rounded-full px-4 py-2">
+          <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted bg-panel rounded-full px-4 py-2">
             <span className="text-text font-semibold">Replaces</span>
             <span>ChatGPT Plus</span><span className="text-muted/40">+</span>
             <span>Claude Pro</span><span className="text-muted/40">+</span>
             <span>Gemini Advanced</span>
-            <span className="text-brand font-semibold">— for less.</span>
+            <span className="text-brand font-semibold">for less.</span>
           </div>
         </motion.div>
 
@@ -106,15 +106,11 @@ export default function PricingSection() {
                 </div>
               )}
               <div
-                className={`relative bg-panel rounded-2xl overflow-hidden flex flex-col border h-full ${
-                  plan.popular ? 'border-brand shadow-[0_0_40px_rgba(124,58,237,0.15)]' : 'border-border'
+                className={`relative bg-panel rounded-2xl overflow-hidden flex flex-col h-full ${
+                  plan.popular ? 'shadow-2xl shadow-black/50' : ''
                 }`}
               >
-              {plan.popular && (
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand to-transparent" />
-              )}
-
-              <div className="p-8 border-b border-border">
+              <div className="px-8 pt-8 pb-6">
                 <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">{plan.tier}</p>
                 <p className="text-4xl font-black text-text mb-1">
                   {plan.price}<span className="text-base font-normal text-muted">/mo</span>
@@ -122,11 +118,11 @@ export default function PricingSection() {
                 <p className="text-sm text-muted mt-2">{plan.sub}</p>
               </div>
 
-              <div className="p-8 flex-1">
+              <div className="px-8 pb-6 flex-1">
                 <ul className="space-y-3">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-start gap-2.5 text-sm text-muted">
-                      <span className="text-brand mt-0.5 shrink-0">◆</span>
+                      <span aria-hidden className="w-1 h-1 rounded-full bg-brand mt-2 shrink-0" />
                       {f}
                     </li>
                   ))}
@@ -138,8 +134,8 @@ export default function PricingSection() {
                   href="/login"
                   className={`block w-full py-3.5 rounded-xl text-sm font-bold text-center transition-all ${
                     plan.popular
-                      ? 'bg-brand text-white hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]'
-                      : 'border border-border text-muted hover:text-text hover:border-brand/40'
+                      ? 'bg-brand text-white hover:bg-brand/90'
+                      : 'bg-text/[0.06] text-muted hover:text-text'
                   }`}
                 >
                   {plan.cta}
@@ -157,7 +153,7 @@ export default function PricingSection() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mt-12 text-center space-y-2"
         >
-          <p className="text-sm text-muted">Annual billing available — 2 months free.</p>
+          <p className="text-sm text-muted">Annual billing available, 2 months free.</p>
           <p className="text-xs text-muted/60 max-w-lg mx-auto">
             Superhuman charges $30/mo for email alone. A part-time assistant runs $1,500+/mo.
             MODUS at $24 replaces an entire cognitive workflow category.

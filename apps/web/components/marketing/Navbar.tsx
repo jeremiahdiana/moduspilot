@@ -65,14 +65,12 @@ export default function Navbar({ solid = false }: Props) {
           >
             {/* Base glass fill */}
             <div className="absolute inset-0 bg-bg/80" />
-            {/* Directional brand tint — left edge warmer */}
-            <div className="absolute inset-0 bg-gradient-to-r from-brand/10 via-transparent to-violet-600/6" />
             {/* Subtle top-to-bottom depth */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent dark:from-black/20" />
             {/* Top highlight line */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
-            {/* Bottom brand accent line */}
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/45 to-transparent" />
+            {/* Bottom edge definition */}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -114,8 +112,8 @@ export default function Navbar({ solid = false }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex items-center gap-2"
               >
-                <div className="w-7 h-7 rounded-full bg-border/60 animate-pulse" />
-                <div className="hidden sm:block w-16 h-4 rounded bg-border/60 animate-pulse" />
+                <div className="w-7 h-7 rounded-full bg-text/10 animate-pulse" />
+                <div className="hidden sm:block w-16 h-4 rounded bg-text/10 animate-pulse" />
               </motion.div>
             ) : authedUser ? (
               <motion.div
@@ -127,7 +125,7 @@ export default function Navbar({ solid = false }: Props) {
                 className="flex items-center gap-2"
               >
                 <div className="flex items-center gap-2 text-sm text-muted">
-                  <div className="w-7 h-7 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center text-xs font-bold text-brand">
+                  <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand">
                     {(authedUser.name || authedUser.email || '?')[0].toUpperCase()}
                   </div>
                   <span className="hidden sm:block text-text font-medium">
@@ -183,7 +181,7 @@ export default function Navbar({ solid = false }: Props) {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative md:hidden border-t border-brand/15 overflow-hidden bg-bg/80"
+            className="relative md:hidden overflow-hidden bg-bg/80"
           >
             <div className="px-4 py-4 flex flex-col gap-1">
               {navLinks.map(link => (
@@ -200,13 +198,13 @@ export default function Navbar({ solid = false }: Props) {
                   {link.label}
                 </Link>
               ))}
-              <div className="mt-2 pt-2 border-t border-border/60">
+              <div className="mt-2 pt-2">
                 <Link
                   href="/login"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center justify-center w-full py-2.5 bg-brand text-white text-sm font-semibold rounded-lg"
                 >
-                  Get Started — free
+                  Get Started free
                 </Link>
               </div>
             </div>

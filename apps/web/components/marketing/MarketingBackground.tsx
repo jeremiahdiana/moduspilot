@@ -13,30 +13,22 @@ export function ScrollProgress() {
 }
 
 export function MarketingBackground() {
-  // Static ambient violet glows — depth without perpetual drift.
+  // Neutral depth only. Color is reserved for interactive elements.
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
       <div
         className="absolute rounded-full"
         style={{
           width: '70vw', height: '70vw', top: '-20%', left: '-15%',
-          background: 'radial-gradient(circle, rgba(124,58,237,0.16) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.022) 0%, transparent 65%)',
           filter: 'blur(60px)',
         }}
       />
       <div
         className="absolute rounded-full"
         style={{
-          width: '60vw', height: '60vw', top: '3%', right: '-14%',
-          background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 65%)',
-          filter: 'blur(72px)',
-        }}
-      />
-      <div
-        className="absolute rounded-full"
-        style={{
           width: '50vw', height: '50vw', bottom: '-8%', left: '-6%',
-          background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.016) 0%, transparent 65%)',
           filter: 'blur(70px)',
         }}
       />

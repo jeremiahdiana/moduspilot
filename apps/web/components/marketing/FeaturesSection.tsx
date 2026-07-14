@@ -4,40 +4,28 @@ import { motion } from 'framer-motion';
 
 const FEATURES = [
   {
-    icon: '◇',
     title: 'Every AI Model, One Chat',
-    desc: 'Claude, GPT-4o, Gemini, Grok — pick the model you want, or let MODUS auto-route each task to the best one. Switch anytime, right in the chat.',
-    accent: 'from-brand/10 to-transparent',
+    desc: 'Claude, GPT-4o, Gemini, Grok. Pick the model you want, or let MODUS auto-route each task to the best one. Switch anytime, right in the chat.',
   },
   {
-    icon: '✎',
     title: 'Create Images & Documents',
-    desc: 'Ask MODUS to generate an image or a formatted PDF — edit the document in a live canvas and download it. All inside the same conversation.',
-    accent: 'from-violet-500/10 to-transparent',
+    desc: 'Ask MODUS to generate an image or a formatted PDF, then edit the document in a live canvas and download it. All inside the same conversation.',
   },
   {
-    icon: '☀',
     title: 'Daily Briefing',
-    desc: 'Every morning MODUS comes to you — not the other way around. Energy check, top 3 priorities, inbox triage, habit streaks. Done before you open Gmail.',
-    accent: 'from-amber-500/10 to-transparent',
+    desc: 'Every morning MODUS comes to you, not the other way around. Energy check, top 3 priorities, inbox triage, habit streaks. Done before you open Gmail.',
   },
   {
-    icon: '✓',
     title: 'You Approve Everything',
     desc: 'Every action surfaces as an approval card. See exactly what MODUS plans to do. Edit anything, skip anything. Nothing executes without your sign-off.',
-    accent: 'from-emerald-500/10 to-transparent',
   },
   {
-    icon: '◎',
-    title: 'Goals → Habits → Tasks',
-    desc: 'Set a goal in chat. MODUS breaks it into milestones, links daily habits, and surfaces tasks automatically — adjusting when life gets in the way.',
-    accent: 'from-brand/10 to-transparent',
+    title: 'Goals, Habits, Tasks',
+    desc: 'Set a goal in chat. MODUS breaks it into milestones, links daily habits, and surfaces tasks automatically, adjusting when life gets in the way.',
   },
   {
-    icon: '⊙',
     title: 'Memory That Persists',
     desc: 'Remembers your goals, decisions, and commitments across every conversation. The longer you use MODUS, the more precisely it knows you.',
-    accent: 'from-violet-500/10 to-transparent',
   },
 ];
 
@@ -67,14 +55,10 @@ export default function FeaturesSection() {
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.5, delay: i * 0.08, ease: 'easeOut' }}
               whileHover={{ y: -2, transition: { duration: 0.2 } }}
-              className={`group relative bg-panel border border-border rounded-2xl p-7 overflow-hidden transition-all hover:border-brand/30 hover:shadow-lg hover:shadow-brand/5`}
+              className="group relative bg-panel rounded-2xl p-7 overflow-hidden transition-shadow hover:shadow-lg hover:shadow-black/30"
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${f.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-              <div className="relative">
-                <div className="text-2xl mb-5 text-brand">{f.icon}</div>
-                <h3 className="text-lg font-bold text-text mb-2">{f.title}</h3>
-                <p className="text-sm text-muted leading-relaxed">{f.desc}</p>
-              </div>
+              <h3 className="text-lg font-bold text-text mb-2">{f.title}</h3>
+              <p className="text-sm text-muted leading-relaxed">{f.desc}</p>
             </motion.div>
           ))}
         </div>

@@ -8,7 +8,7 @@ export default function MultiModelSection() {
   return (
     <section id="models" className="py-28 px-6 overflow-hidden">
       <div className="max-w-6xl mx-auto">
-        {/* Centered header — uses the full width */}
+        {/* Centered header, using the full width */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -23,7 +23,7 @@ export default function MultiModelSection() {
             <span className="block whitespace-normal sm:whitespace-nowrap">Ask ChatGPT.</span>
           </h2>
           <p className="text-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-            Every frontier model lives in one chat. Pick the one you want — or leave it on
+            Every frontier model lives in one chat. Pick the one you want, or leave it on
             <span className="text-text font-semibold"> Auto</span> and MODUS routes each task to whichever model is best. Switch anytime, right in the composer.
           </p>
 
@@ -32,7 +32,7 @@ export default function MultiModelSection() {
             {MODEL_LOGOS.map(m => {
               const Logo = m.logo;
               return (
-                <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel border border-border rounded-full pl-2 pr-3 py-1.5">
+                <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel rounded-full pl-2 pr-3 py-1.5">
                   <Logo className="w-4 h-4" />
                   <span className="text-xs font-semibold text-text">{m.name}</span>
                 </span>
@@ -53,7 +53,7 @@ export default function MultiModelSection() {
         </motion.div>
 
         <p className="text-center text-sm text-muted mt-6 max-w-2xl mx-auto">
-          <span className="text-brand">✦</span> <span className="text-text font-medium">PILOT</span> unlocks every model — Claude, GPT-4o, Gemini, Grok, o4-mini — with manual pick per message.
+          <span className="text-text font-medium">PILOT</span> unlocks every model (Claude, GPT-4o, Gemini, Grok, o4-mini) with manual pick per message.
         </p>
       </div>
     </section>

@@ -28,16 +28,16 @@ function Typewriter() {
 
 /* ── Scrolling live activity ticker ── */
 const TICKER = [
-  '✅  Deep work blocked — 9 to 12 AM',
-  '📬  4 emails triaged, 2 drafts queued',
-  '🔥  Running streak: 14 days',
-  '🎯  Milestone reached — Ship landing page',
-  '✅  3 tasks approved by you',
-  '📅  3 PM moved to Friday — approved',
-  '💡  Pattern detected: energy dips after lunch',
-  '🔥  Read 20 min — streak: 21 days',
-  '✅  Weekly review ready for your approval',
-  '📬  Reply sent to Marcus — approved',
+  'Deep work blocked, 9 to 12 AM',
+  '4 emails triaged, 2 drafts queued',
+  'Running streak: 14 days',
+  'Milestone reached: Ship landing page',
+  '3 tasks approved by you',
+  '3 PM moved to Friday, approved',
+  'Pattern detected: energy dips after lunch',
+  'Read 20 min, streak: 21 days',
+  'Weekly review ready for your approval',
+  'Reply sent to Marcus, approved',
 ];
 function Ticker() {
   const items = [...TICKER, ...TICKER];
@@ -48,10 +48,10 @@ function Ticker() {
       <motion.div
         animate={{ x: ['0%', '-50%'] }}
         transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-        className="flex gap-4 whitespace-nowrap"
+        className="flex gap-3 whitespace-nowrap"
       >
         {items.map((item, i) => (
-          <span key={i} className="inline-flex items-center gap-2 text-xs text-muted/70 bg-panel/50 dark:bg-panel/40 border border-border/40 rounded-full px-3 py-1.5">
+          <span key={i} className="inline-flex items-center gap-2 text-xs text-muted bg-text/[0.05] rounded-full px-3.5 py-1.5">
             {item}
           </span>
         ))}
@@ -65,25 +65,24 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 pt-20 pb-16">
 
-      {/* Background — one calm violet wash + a faint static dot grid. */}
+      {/* Background: neutral depth and a faint static dot grid. No color wash. */}
       <div className="absolute inset-0 -z-10">
-        {/* Base — visible violet in light mode, deep dark in dark mode */}
-        <div className="absolute inset-0 bg-gradient-to-b from-violet-300/70 via-violet-200/30 to-bg dark:from-violet-950/60 dark:via-bg dark:to-bg" />
-        {/* Sweeping arc from top */}
-        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.45),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(124,58,237,0.28),transparent_65%)]" />
+        <div className="absolute inset-0 bg-bg" />
+        {/* Soft overhead light, achromatic so the page reads black */}
+        <div className="absolute top-0 left-0 right-0 h-[80%] bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(0,0,0,0.04),transparent_65%)] dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-5%,rgba(255,255,255,0.05),transparent_65%)]" />
         {/* Faint static dot grid for texture */}
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.16)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(124,58,237,0.12)_1px,transparent_1px)] bg-[size:28px_28px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(15,15,20,0.07)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:28px_28px]" />
       </div>
 
-      {/* Text block — w-full forces it to fill the flex container so text-center works correctly on mobile */}
+      {/* Text block. w-full forces it to fill the flex container so text-center works correctly on mobile */}
       <div className="relative w-full max-w-3xl mx-auto text-center z-10 mb-12 pt-14">
         <motion.h1
           initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
           className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.08] tracking-tight mb-6"
         >
-          <span className="text-text">The AI That</span><br />
-          <span className="hero-gradient-text">Runs Your Life.</span>
+          <span className="text-text/60">The AI That</span><br />
+          <span className="text-text">Runs Your Life.</span>
         </motion.h1>
 
         <motion.p
@@ -91,7 +90,7 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.22, ease: 'easeOut' }}
           className="text-base sm:text-lg text-muted max-w-xl mx-auto mb-5 leading-relaxed"
         >
-          Tell MODUS your goals. It <Typewriter /> — every morning.
+          Tell MODUS your goals. It <Typewriter />, every morning.
           You approve every action. Nothing runs without you.
         </motion.p>
 
@@ -110,10 +109,9 @@ export default function HeroSection() {
         >
           <a
             href="/login"
-            className="btn-primary group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand text-white text-sm sm:text-base font-bold rounded-xl transition-all hover:scale-[1.03] hover:shadow-[0_0_56px_rgba(124,58,237,0.60)] active:scale-100 text-center"
+            className="btn-primary group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand text-white text-sm sm:text-base font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-100 text-center"
           >
             <span className="relative z-10">Start your 3-day free trial</span>
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-600 via-brand to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </a>
           <a href="#features" className="flex items-center gap-1.5 text-sm text-muted hover:text-text transition-colors">
             See how it works
@@ -124,11 +122,12 @@ export default function HeroSection() {
         {/* Trust bar */}
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.5 }}
-          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted/60"
+          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-muted"
         >
-          {['Every frontier model', 'Gmail & Calendar', 'Web & Mac · iPhone beta', 'Cancel anytime'].map(t => (
-            <span key={t} className="flex items-center gap-1.5">
-              <span className="text-brand/60">✓</span> {t}
+          {['Every frontier model', 'Gmail & Calendar', 'Web & Mac · iPhone beta', 'Cancel anytime'].map((t, i) => (
+            <span key={t} className="flex items-center gap-3">
+              {i > 0 && <span aria-hidden className="hidden sm:block w-px h-3 bg-muted/25" />}
+              {t}
             </span>
           ))}
         </motion.div>

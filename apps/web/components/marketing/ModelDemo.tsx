@@ -7,13 +7,13 @@ import { MODEL_LOGOS, ClaudeLogo, GeminiLogo, OpenAILogo, GrokLogo } from './Mod
 // ─── Rich reply renderers ───────────────────────────────────────────────────
 // Each demo answers with real, formatted output (not a flat sentence) so the
 // demo actually shows what MODUS can produce: drafts, tables, charts, generated
-// images, code, checklists. All self-contained — no APIs, no assets. Shared by
+// images, code, checklists. All self-contained: no APIs, no assets. Shared by
 // the marketing MultiModelSection and the onboarding showcase.
 
 function EmailReply({ subject, body }: { subject: string; body: string }) {
   return (
     <div className="w-full">
-      <div className="border-b border-border/60 pb-2 mb-2.5">
+      <div className="pb-2 mb-2.5">
         <p className="text-[11px] text-muted">To: Sarah Chen · <span className="text-brand">Draft ready</span></p>
         <p className="text-sm font-semibold text-text mt-0.5">{subject}</p>
       </div>
@@ -31,8 +31,8 @@ function TableReply() {
   ];
   return (
     <div className="w-full">
-      <p className="text-sm text-text/90 mb-2.5">Here&apos;s the 2026 breakdown — federal credit plus each state&apos;s rebate:</p>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <p className="text-sm text-text/90 mb-2.5">Here&apos;s the 2026 breakdown, federal credit plus each state&apos;s rebate:</p>
+      <div className="overflow-x-auto rounded-lg bg-bg/60">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="bg-brand/5">
@@ -43,7 +43,7 @@ function TableReply() {
           </thead>
           <tbody>
             {rows.map((r, ri) => (
-              <tr key={ri} className={ri < rows.length - 1 ? 'border-b border-border/50' : ''}>
+              <tr key={ri} className={ri < rows.length - 1 ? 'bg-text/[0.02]' : ''}>
                 {r.map((cell, ci) => (
                   <td key={ci} className={`px-3 py-2 whitespace-nowrap ${ci === 0 ? 'font-semibold text-text' : 'text-text/80'}`}>{cell}</td>
                 ))}
@@ -64,7 +64,7 @@ function ChartReply() {
   const max = 47;
   return (
     <div className="w-full">
-      <p className="text-xs font-semibold text-text mb-0.5">MRR — last 6 months</p>
+      <p className="text-xs font-semibold text-text mb-0.5">MRR, last 6 months</p>
       <p className="text-[11px] text-muted mb-3">+292% · $12k → $47k</p>
       <div className="flex items-end gap-2 h-28">
         {bars.map((b, idx) => (
@@ -87,8 +87,8 @@ function ChartReply() {
 function ImageReply() {
   return (
     <div className="w-full">
-      <p className="text-sm text-text/90 mb-2.5">Done — here&apos;s a launch hero, dark and violet:</p>
-      <div className="relative aspect-[16/9] w-full max-w-sm rounded-xl overflow-hidden border border-border bg-[#0a0a12]">
+      <p className="text-sm text-text/90 mb-2.5">Done. Here&apos;s a launch hero, dark and violet:</p>
+      <div className="relative aspect-[16/9] w-full max-w-sm rounded-xl overflow-hidden bg-[#0a0a12]">
         <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 120% at 28% 18%, rgba(124,58,237,0.6), transparent 60%), radial-gradient(100% 100% at 82% 92%, rgba(192,132,252,0.4), transparent 55%)' }} />
         <div className="absolute left-0 right-0 bottom-0 h-2/5" style={{ background: 'linear-gradient(to top, rgba(124,58,237,0.45), transparent)' }} />
         <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.4) 1px,transparent 1px)', backgroundSize: '26px 26px' }} />
@@ -113,11 +113,11 @@ function CodeReply() {
   return (
     <div className="w-full">
       <p className="text-sm text-text/90 mb-2.5">
-        That&apos;s <span className="font-semibold text-text">StrictMode</span> double-invoking effects in dev to surface bugs — it won&apos;t happen in production. Add a cleanup to be safe:
+        That&apos;s <span className="font-semibold text-text">StrictMode</span> double-invoking effects in dev to surface bugs. It won&apos;t happen in production. Add a cleanup to be safe:
       </p>
-      <pre className="rounded-lg border border-border bg-[#0d0d14] p-3 overflow-x-auto">
+      <pre className="rounded-lg bg-[#0d0d14] p-3 overflow-x-auto">
         <code className="text-[11.5px] leading-relaxed font-mono">
-          <span className="text-[#6b7280]">{'// runs twice in dev only — cleanup handles it'}</span>{'\n'}
+          <span className="text-[#6b7280]">{'// runs twice in dev only, cleanup handles it'}</span>{'\n'}
           <span className="text-[#c084fc]">useEffect</span>{'(() => {\n'}
           {'  '}<span className="text-[#a78bfa]">const</span>{' ctrl = '}<span className="text-[#a78bfa]">new</span>{' '}<span className="text-[#7dd3fc]">AbortController</span>{'();\n'}
           {'  '}<span className="text-[#7dd3fc]">fetchData</span>{'({ signal: ctrl.signal });\n'}
@@ -130,10 +130,10 @@ function CodeReply() {
 }
 
 function ChecklistReply() {
-  const items = ['Stripe Atlas — file the C-corp (~$500)', 'EIN + bylaws + stock issuance included', '83(b) election prep in the same flow', 'Bank + cap table ready in 2–3 days'];
+  const items = ['Stripe Atlas: file the C-corp (~$500)', 'EIN + bylaws + stock issuance included', '83(b) election prep in the same flow', 'Bank + cap table ready in 2-3 days'];
   return (
     <div className="w-full">
-      <p className="text-sm text-text/90 mb-2.5">Fastest path — <span className="font-semibold text-text">Stripe Atlas</span>, done in 2–3 days:</p>
+      <p className="text-sm text-text/90 mb-2.5">Fastest path: <span className="font-semibold text-text">Stripe Atlas</span>, done in 2-3 days:</p>
       <div className="space-y-2">
         {items.map((it, idx) => (
           <motion.div
@@ -143,7 +143,7 @@ function ChecklistReply() {
             transition={{ duration: 0.3, delay: 0.08 * idx }}
             className="flex items-center gap-2.5"
           >
-            <span className="w-4 h-4 rounded-full bg-brand/15 border border-brand/40 flex items-center justify-center shrink-0">
+            <span className="w-4 h-4 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-2.5 h-2.5 text-brand">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
               </svg>
@@ -172,7 +172,7 @@ const DEMOS: Demo[] = [
     render: () => (
       <EmailReply
         subject="We're a different company than 6 months ago"
-        body={'Hi Sarah — last we spoke we were pre-revenue.\n\nSince then: $47k MRR, a team of 8, and two of your portfolio founders now use us daily. Worth a fresh look?'}
+        body={'Hi Sarah, last we spoke we were pre-revenue.\n\nSince then: $47k MRR, a team of 8, and two of your portfolio founders now use us daily. Worth a fresh look?'}
       />
     ),
   },
@@ -182,7 +182,7 @@ const DEMOS: Demo[] = [
     render: () => <TableReply />,
   },
   {
-    prompt: 'Generate a launch hero image — dark, violet, futuristic.',
+    prompt: 'Generate a launch hero image: dark, violet, futuristic.',
     Logo: OpenAILogo, model: 'GPT-4o', reason: 'image generation',
     render: () => <ImageReply />,
   },
@@ -224,16 +224,16 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
   const Logo = d.Logo;
 
   return (
-    <div className="bg-panel border border-border rounded-2xl overflow-hidden shadow-2xl shadow-brand/10 w-full">
+    <div className="bg-panel rounded-2xl overflow-hidden shadow-2xl shadow-black/40 w-full">
       {/* window chrome */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg/50">
+      <div className="flex items-center gap-3 px-4 py-3 bg-bg/50">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-400/50" />
           <div className="w-3 h-3 rounded-full bg-yellow-400/50" />
           <div className="w-3 h-3 rounded-full bg-green-400/50" />
         </div>
         <div className="flex-1 flex justify-center">
-          <div className="bg-panel border border-border rounded-lg px-4 py-1 text-[11px] text-muted/60 font-mono">
+          <div className="bg-panel rounded-lg px-4 py-1 text-[11px] text-muted/60 font-mono">
             moduspilot.com/chat
           </div>
         </div>
@@ -242,9 +242,9 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
 
       <div className={`flex ${compact ? 'min-h-[300px]' : 'min-h-[480px]'}`}>
         {/* model rail (real switcher) */}
-        <div className={`w-56 shrink-0 border-r border-border bg-bg/30 p-3 ${showRail ? 'hidden md:flex' : 'hidden'} flex-col gap-1`}>
+        <div className={`w-56 shrink-0 bg-bg/40 p-3 ${showRail ? 'hidden md:flex' : 'hidden'} flex-col gap-1`}>
           <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-2 pb-1">Model</p>
-          <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-brand/10 border border-brand/25">
+          <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-brand/10">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand shrink-0">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
             </svg>
@@ -253,7 +253,7 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
               <p className="text-[10px] text-muted leading-tight">picks the best model</p>
             </div>
           </div>
-          <div className="my-1 border-t border-border/60" />
+          <div className="my-1 h-px bg-text/[0.06]" />
           {MODEL_LOGOS.map(m => {
             const M = m.logo;
             const active = m.name === d.model;
@@ -261,8 +261,8 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
               <motion.div
                 key={m.name}
                 animate={active ? { scale: 1.02 } : { scale: 1 }}
-                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-colors ${
-                  active ? 'bg-brand/5 border-brand/40' : 'border-transparent'
+                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors ${
+                  active ? 'bg-brand/10' : ''
                 }`}
               >
                 <M className="w-4 h-4 shrink-0" />
@@ -298,7 +298,7 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
               {stage >= 1 && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex items-center gap-2 self-start flex-wrap">
                   <span className="text-[11px] text-muted">MODUS routed this to</span>
-                  <span className="inline-flex items-center gap-1.5 bg-brand/5 border border-brand/25 rounded-full pl-1.5 pr-2.5 py-1">
+                  <span className="inline-flex items-center gap-1.5 bg-brand/10 rounded-full pl-1.5 pr-2.5 py-1">
                     <Logo className="w-3.5 h-3.5" />
                     <span className="text-xs font-semibold text-text">{d.model}</span>
                   </span>
@@ -309,7 +309,7 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
               {/* reply */}
               {stage >= 2 ? (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="flex justify-start">
-                  <div className="bg-bg border border-border rounded-2xl rounded-bl-sm px-4 py-3 w-full max-w-[95%]">
+                  <div className="bg-bg rounded-2xl rounded-bl-sm px-4 py-3 w-full max-w-[95%]">
                     {d.render()}
                   </div>
                 </motion.div>
@@ -326,9 +326,9 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
       </div>
 
       {/* progress dots */}
-      <div className="flex items-center justify-center gap-1.5 py-3 border-t border-border">
+      <div className="flex items-center justify-center gap-1.5 py-3">
         {DEMOS.map((_, idx) => (
-          <span key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === i ? 'w-5 bg-brand' : 'w-1.5 bg-border'}`} />
+          <span key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === i ? 'w-5 bg-brand' : 'w-1.5 bg-text/15'}`} />
         ))}
       </div>
     </div>

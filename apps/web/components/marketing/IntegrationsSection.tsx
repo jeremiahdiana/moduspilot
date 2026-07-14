@@ -158,7 +158,7 @@ export default function IntegrationsSection() {
             Your tools. All connected. Actually live.
           </h2>
           <p className="text-muted text-base leading-relaxed max-w-2xl mx-auto mb-4">
-            Not &ldquo;coming soon.&rdquo; MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub — and on your Mac and iPhone, it reaches your iMessage, notes, reminders, photos, health, and even your Obsidian vault.
+            Not &ldquo;coming soon.&rdquo; MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone, it reaches your iMessage, notes, reminders, photos, health, and even your Obsidian vault.
           </p>
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -181,7 +181,7 @@ export default function IntegrationsSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: (i % 4) * 0.05, ease: 'easeOut' }}
               whileHover={{ y: -2, transition: { duration: 0.15 } }}
-              className="bg-panel border border-border rounded-xl p-4 hover:border-brand/25 hover:shadow-md hover:shadow-brand/5 transition-all"
+              className="bg-panel rounded-xl p-4 transition-shadow hover:shadow-md hover:shadow-black/30"
             >
               <div className="flex items-start justify-between gap-2 mb-2.5">
                 <div className="shrink-0">{int.svg}</div>

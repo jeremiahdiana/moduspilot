@@ -36,7 +36,7 @@ export default function CompareSection() {
             Why pay for one AI<br className="hidden sm:block" /> when you can have them all?
           </h2>
           <p className="text-muted text-lg max-w-xl mx-auto">
-            One subscription. Every frontier model, plus an assistant that actually runs your day — not another chatbot that only answers.
+            One subscription. Every frontier model, plus an assistant that actually runs your day, not another chatbot that only answers.
           </p>
         </motion.div>
 
@@ -45,13 +45,13 @@ export default function CompareSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-          className="bg-panel border border-border rounded-2xl overflow-hidden"
+          className="bg-panel rounded-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="grid grid-cols-5 border-b border-border">
+          <div className="grid grid-cols-5">
             <div className="col-span-2 px-6 py-4" />
             {['MODUS', 'ChatGPT', 'Notion'].map((col, i) => (
-              <div key={col} className={`px-4 py-4 text-center ${i === 0 ? 'bg-brand/5 border-l border-r border-brand/20' : ''}`}>
+              <div key={col} className={`px-4 py-4 text-center ${i === 0 ? 'bg-brand/10' : ''}`}>
                 <span className={`text-xs font-bold uppercase tracking-widest ${i === 0 ? 'text-brand' : 'text-muted'}`}>{col}</span>
               </div>
             ))}
@@ -61,10 +61,10 @@ export default function CompareSection() {
           {ROWS.map((row, i) => (
             <div
               key={row.feature}
-              className={`grid grid-cols-5 border-b border-border/50 last:border-b-0 ${i % 2 === 0 ? '' : 'bg-bg/30'}`}
+              className={`grid grid-cols-5 ${i % 2 === 0 ? '' : 'bg-bg/40'}`}
             >
               <div className="col-span-2 px-6 py-4 text-sm text-muted">{row.feature}</div>
-              <div className="px-4 py-4 text-center bg-brand/5 border-l border-r border-brand/20">
+              <div className="px-4 py-4 text-center bg-brand/10">
                 <Cell value={row.modus} />
               </div>
               <div className="px-4 py-4 text-center"><Cell value={row.chatgpt} /></div>

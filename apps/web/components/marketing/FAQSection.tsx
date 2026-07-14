@@ -6,11 +6,11 @@ import { useState } from 'react';
 const FAQS = [
   {
     q: 'What does MODUS actually do day-to-day?',
-    a: "Every morning MODUS sends you a briefing — energy check-in, top 3 priorities, overdue tasks, habits at risk. During the day you can message it to draft emails, reschedule meetings, update goals, or log habits. It queues every action as an approval card before anything runs. You're always in control.",
+    a: "Every morning MODUS sends you a briefing: energy check-in, top 3 priorities, overdue tasks, habits at risk. During the day you can message it to draft emails, reschedule meetings, update goals, or log habits. It queues every action as an approval card before anything runs. You're always in control.",
   },
   {
     q: 'How is this different from just using ChatGPT?',
-    a: "ChatGPT answers questions in a vacuum. MODUS has persistent memory across every conversation, connects to your Gmail and Google Calendar, tracks your goals and habits over time, and proactively reaches out to you — you don't go to it. Different category entirely.",
+    a: "ChatGPT answers questions in a vacuum. MODUS has persistent memory across every conversation, connects to your Gmail and Google Calendar, tracks your goals and habits over time, and proactively reaches out to you. You don't go to it. Different category entirely.",
   },
   {
     q: 'Which AI models does MODUS use?',
@@ -18,15 +18,15 @@ const FAQS = [
   },
   {
     q: 'Can I use my own OpenAI or Claude API key?',
-    a: 'Yes. Under Settings → Brain you can connect your own OpenAI (GPT-4o) or Anthropic (Claude) key — or just use the models MODUS already includes, no key needed. Either way MODUS handles the orchestration and routing.',
+    a: 'Yes. Under Settings → Brain you can connect your own OpenAI (GPT-4o) or Anthropic (Claude) key, or just use the models MODUS already includes, no key needed. Either way MODUS handles the orchestration and routing.',
   },
   {
     q: 'Can MODUS create images and PDFs?',
-    a: 'Yes. Ask MODUS to generate an image or a document and it makes it right in the chat — images you can download, and formatted PDFs you can edit in a live canvas before exporting.',
+    a: 'Yes. Ask MODUS to generate an image or a document and it makes it right in the chat: images you can download, and formatted PDFs you can edit in a live canvas before exporting.',
   },
   {
     q: 'What integrations does MODUS support?',
-    a: 'On the web: Gmail, Google Calendar, Drive, Notion, Slack and GitHub — MODUS reads your inbox, drafts replies, and syncs meetings into your briefing. On your Mac and iPhone it also reaches iMessage, Apple Notes, Reminders, Contacts, Photos, Apple Health, iCloud files and even your Obsidian vault. The Mac app is live and the iPhone app is in beta.',
+    a: 'On the web: Gmail, Google Calendar, Drive, Notion, Slack and GitHub. MODUS reads your inbox, drafts replies, and syncs meetings into your briefing. On your Mac and iPhone it also reaches iMessage, Apple Notes, Reminders, Contacts, Photos, Apple Health, iCloud files and even your Obsidian vault. The Mac app is live and the iPhone app is in beta.',
   },
   {
     q: 'Is my data private?',
@@ -47,7 +47,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
-      className="border border-border rounded-xl overflow-hidden"
+      className="rounded-xl overflow-hidden"
     >
       <button
         onClick={() => setOpen(o => !o)}
@@ -65,7 +65,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <p className="px-6 py-4 text-sm text-muted leading-relaxed border-t border-border bg-bg/30">
+            <p className="px-6 py-4 text-sm text-muted leading-relaxed bg-bg/60">
               {a}
             </p>
           </motion.div>

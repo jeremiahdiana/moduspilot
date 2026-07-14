@@ -17,11 +17,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative bg-panel border-t border-border px-6 pt-16 pb-10 overflow-hidden">
-      {/* gradient top glow */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-[radial-gradient(ellipse_at_top,rgba(124,58,237,0.12),transparent)] pointer-events-none" />
-
+    <footer className="relative bg-panel px-6 pt-16 pb-10 overflow-hidden">
       <div className="max-w-6xl mx-auto relative">
         {/* Top row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-14">
@@ -32,7 +28,7 @@ export default function Footer() {
               <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
             </div>
             <p className="text-sm text-muted leading-relaxed max-w-[200px]">
-              The AI that runs your life — so you can focus on what matters.
+              The AI that runs your life, so you can focus on what matters.
             </p>
           </div>
 
@@ -54,7 +50,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom row */}
-        <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted/50">© 2026 Modus · All rights reserved</p>
           <div className="flex items-center gap-4">
             <a href="/privacy" className="text-xs text-muted/50 hover:text-muted transition-colors">Privacy</a>

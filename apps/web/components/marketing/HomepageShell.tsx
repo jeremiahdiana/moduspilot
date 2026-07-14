@@ -18,9 +18,9 @@ import Footer from './Footer';
 function Divider() {
   return (
     <div className="flex items-center justify-center py-2 px-6 relative z-10">
-      <div className="flex-1 h-px bg-brand/10 max-w-xs" />
-      <div className="mx-4 w-1.5 h-1.5 rounded-full bg-brand/25" />
-      <div className="flex-1 h-px bg-brand/10 max-w-xs" />
+      <div className="flex-1 h-px bg-text/[0.06] max-w-xs" />
+      <div className="mx-4 w-1 h-1 rounded-full bg-text/15" />
+      <div className="flex-1 h-px bg-text/[0.06] max-w-xs" />
     </div>
   );
 }

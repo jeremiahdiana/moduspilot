@@ -9,7 +9,7 @@ const PLATFORMS = [
     title: 'Web App',
     badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
-    desc: 'The full MODUS — dashboard, AI chat, goals, habits, tasks, and briefings at app.moduspilot.com. No install. Works everywhere.',
+    desc: 'The full MODUS: dashboard, AI chat, goals, habits, tasks, and briefings at app.moduspilot.com. No install. Works everywhere.',
     detail: 'Same account, real-time sync',
     cta: 'Open the web app →',
     href: 'https://app.moduspilot.com',
@@ -19,7 +19,7 @@ const PLATFORMS = [
     title: 'Mac App',
     badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
-    desc: 'A native desktop app with your notes, iMessage, reminders, and calendar synced in — plus native notifications on your Mac.',
+    desc: 'A native desktop app with your notes, iMessage, reminders, and calendar synced in, plus native notifications on your Mac.',
     detail: 'Signed & auto-updating · Apple Silicon',
     cta: 'Download for Mac →',
     href: '/download/mac',
@@ -29,7 +29,7 @@ const PLATFORMS = [
     title: 'iPhone App',
     badge: 'Beta',
     badgeColor: 'bg-brand/15 text-brand',
-    desc: 'MODUS in your pocket — chat, model switcher, image & document creation, and push notifications so it reaches you. Rolling out now.',
+    desc: 'MODUS in your pocket: chat, model switcher, image & document creation, and push notifications so it reaches you. Rolling out now.',
     detail: 'TestFlight beta',
     cta: null,
     href: null,
@@ -72,7 +72,7 @@ export default function PlatformsSection() {
             <motion.div
               key={p.title}
               variants={item}
-              className="bg-panel border border-border rounded-2xl p-6 hover:border-brand/30 transition-all group relative overflow-hidden"
+              className="bg-panel rounded-2xl p-6 transition-shadow hover:shadow-lg hover:shadow-black/30 group relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="text-3xl text-brand/60 group-hover:text-brand transition-colors mb-4">{p.icon}</div>
