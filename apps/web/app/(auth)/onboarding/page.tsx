@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { ClaudeLogo, OpenAILogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
+import { DemoWindow } from '@/components/marketing/ModelDemo';
 import { useAuth } from '@/components/providers/AuthProvider';
 import {
   doc, setDoc, addDoc, collection,
@@ -229,6 +230,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
 }
 
 // ── NameScreen ─────────────────────────────────────────────────────────────────
+// Content only — the StepShell provides the width, progress, and Back/Continue nav.
 function NameScreen({ name, setName, onNext }: {
   name: string; setName: (v: string) => void; onNext: () => void;
 }) {
@@ -239,16 +241,11 @@ function NameScreen({ name, setName, onNext }: {
     : `${greeting}. I'm MODUS. What are we working on today?`;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-md px-6 space-y-8"
-    >
+    <div className="space-y-6">
       <div>
         <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">First things first</p>
-        <h1 className="text-3xl font-black text-text leading-tight">What should MODUS<br />call you?</h1>
-        <p className="text-sm text-muted mt-2">Your assistant needs a name for you.</p>
+        <h1 className="text-2xl font-black text-text leading-tight">What should MODUS call you?</h1>
+        <p className="text-sm text-muted mt-1.5">Your assistant needs a name for you.</p>
       </div>
 
       <input
@@ -272,17 +269,7 @@ function NameScreen({ name, setName, onNext }: {
           <p className="text-sm text-text leading-relaxed">&ldquo;{preview}&rdquo;</p>
         </div>
       </motion.div>
-
-      <motion.button
-        whileHover={name.trim() ? { scale: 1.02 } : {}}
-        whileTap={name.trim() ? { scale: 0.97 } : {}}
-        onClick={onNext}
-        disabled={!name.trim()}
-        className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40"
-      >
-        Continue →
-      </motion.button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -346,25 +333,10 @@ function RoleStep({ role, setRole, name }: { role: string; setRole: (v: string) 
 }
 
 // ── ModelsShowcaseScreen ─────────────────────────────────────────────────────────
-// Promotes MODUS's core differentiator during onboarding: every frontier model in
-// one subscription, auto-routed per task. Echoes the marketing MultiModelSection's
-// routing-chip demo, trimmed for the onboarding column. Brand names only.
-const MODEL_DEMOS = [
-  { prompt: 'Write a cold email to a lapsed lead.',  model: 'Gemini',  reason: 'natural writing',    Logo: GeminiLogo },
-  { prompt: 'Compare our two pricing plans.',         model: 'Claude',  reason: 'analysis & research', Logo: ClaudeLogo },
-  { prompt: 'Why does my useEffect run twice?',       model: 'Grok',    reason: 'code & debugging',   Logo: GrokLogo },
-  { prompt: 'Draft a launch plan for next week.',     model: 'ChatGPT', reason: 'planning',           Logo: OpenAILogo },
-];
-
+// Left-column pitch for MODUS's core differentiator: every frontier model in one
+// subscription, auto-routed per task. The real cycling demo (prompt → routed →
+// rich reply) lives in the StepShell's right/demo column (DemoWindow).
 function ModelsShowcaseScreen() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI(x => (x + 1) % MODEL_DEMOS.length), 2600);
-    return () => clearInterval(t);
-  }, []);
-  const d = MODEL_DEMOS[i];
-  const Logo = d.Logo;
-
   return (
     <div className="space-y-6">
       <div>
@@ -373,34 +345,6 @@ function ModelsShowcaseScreen() {
         <p className="text-sm text-muted mt-1.5">
           ChatGPT, Claude, Gemini, Grok — MODUS routes each task to whichever is best. Or pick one yourself.
         </p>
-      </div>
-
-      {/* Mini routing demo */}
-      <div className="bg-panel/70 border border-border/60 rounded-2xl p-5 backdrop-blur-sm min-h-[128px] flex flex-col justify-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-3"
-          >
-            <div className="flex justify-end">
-              <div className="bg-brand text-white rounded-2xl rounded-br-sm px-3.5 py-2 max-w-[85%]">
-                <p className="text-sm leading-snug">{d.prompt}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] text-muted">MODUS routed this to</span>
-              <span className="inline-flex items-center gap-1.5 bg-brand/5 border border-brand/25 rounded-full pl-1.5 pr-2.5 py-1">
-                <Logo className="w-3.5 h-3.5" />
-                <span className="text-xs font-semibold text-text">{d.model}</span>
-              </span>
-              <span className="text-[11px] text-muted/70">· best for {d.reason}</span>
-            </div>
-          </motion.div>
-        </AnimatePresence>
       </div>
 
       {/* All models */}
@@ -413,8 +357,26 @@ function ModelsShowcaseScreen() {
         ))}
       </div>
 
+      {/* Value points */}
+      <div className="space-y-2.5">
+        {[
+          'Auto-routed to the best model for every task',
+          'No juggling four subscriptions — one price',
+          'Switch models yourself anytime in the composer',
+        ].map(point => (
+          <div key={point} className="flex items-start gap-2.5">
+            <span className="w-4 h-4 rounded-full bg-brand/15 border border-brand/40 flex items-center justify-center shrink-0 mt-0.5">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-brand">
+                <path d="M2 6l3 3 5-5" />
+              </svg>
+            </span>
+            <span className="text-sm text-text/85 leading-snug">{point}</span>
+          </div>
+        ))}
+      </div>
+
       <p className="text-xs text-muted/70 leading-relaxed">
-        Leave it on <span className="text-text font-medium">Auto</span> and MODUS picks per task, or switch models anytime in the composer.
+        Leave it on <span className="text-text font-medium">Auto</span> and MODUS picks per task — watch it route live. →
       </p>
     </div>
   );
@@ -773,25 +735,6 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── name ───────────────────────────────────────────────────────────────────
-  if (screen === 'name') {
-    return (
-      <div className="relative min-h-screen flex flex-col">
-        <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
-        <PageBackground />
-        <div className="relative z-10 w-full max-w-md mx-auto px-6 pt-8 pb-2">
-          <div className="flex items-center justify-between">
-            <DotProgress step={1} />
-            <button onClick={() => go('welcome', -1)} className="text-sm text-muted hover:text-text transition-colors">← Back</button>
-          </div>
-        </div>
-        <div className="relative z-10 flex-1 flex items-center justify-center py-8">
-          <NameScreen name={name} setName={setName} onNext={() => name.trim() && go('role')} />
-        </div>
-      </div>
-    );
-  }
-
   // ── done ───────────────────────────────────────────────────────────────────
   if (screen === 'done') {
     return (
@@ -808,64 +751,78 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── role / models / plan (original single-column) ────────────────────────────
+  // ── name / role / models / plan — unified wide two-column shell ──────────────
+  // One consistent layout for every question step: a wide, vertically-centered
+  // card with the step content (+ Back/Continue in the same spot every time) on
+  // the left and a persistent live demo on the right. Stacks to one column on
+  // mobile (content + nav first, demo below). The DemoWindow lives outside the
+  // per-step AnimatePresence so it keeps cycling smoothly as steps slide.
   const isLast = screen === 'plan';
+  const handleNext = () => {
+    if (isLast) { handleFinish(); return; }
+    const next = NEXT[screen];
+    if (next && isValid[screen]) go(next);
+  };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center">
+    <div className="relative min-h-screen flex flex-col">
       <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
       <PageBackground />
 
-      {/* Top bar */}
-      <div className="relative z-10 w-full max-w-md px-6 pt-8 pb-2">
-        <DotProgress step={stepIndex} />
-      </div>
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 sm:py-20">
+        <div className="w-full max-w-5xl mx-auto">
+          {/* Progress */}
+          <div className="mb-8 flex justify-center lg:justify-start">
+            <DotProgress step={stepIndex} />
+          </div>
 
-      {/* Step content */}
-      <div className="relative z-10 w-full max-w-md flex-1 px-6 pt-6 pb-32">
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={screen}
-            custom={direction}
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={slideTx}
-          >
-            {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
-            {screen === 'models' && <ModelsShowcaseScreen />}
-            {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} />}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* Left — step content + consistent nav */}
+            <div className="flex flex-col">
+              <div className="min-h-[300px] sm:min-h-[420px] flex flex-col justify-center">
+                <AnimatePresence mode="wait" custom={direction}>
+                  <motion.div
+                    key={screen}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={slideTx}
+                  >
+                    {screen === 'name'   && <NameScreen name={name} setName={setName} onNext={handleNext} />}
+                    {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
+                    {screen === 'models' && <ModelsShowcaseScreen />}
+                    {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} />}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
 
-      {/* Bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center px-6 pb-8 pt-4 bg-gradient-to-t from-bg via-bg/90 to-transparent">
-        <div className="w-full max-w-md flex items-center justify-between">
-          <button
-            onClick={() => go(PREV[screen] ?? 'welcome', -1)}
-            className="text-sm text-muted hover:text-text transition-colors py-2 pr-4"
-          >
-            ← Back
-          </button>
+              {/* Nav — same position on every step */}
+              <div className="mt-8 flex items-center justify-between">
+                <button
+                  onClick={() => go(PREV[screen] ?? 'welcome', -1)}
+                  className="text-sm text-muted hover:text-text transition-colors py-2 pr-4"
+                >
+                  ← Back
+                </button>
+                <motion.button
+                  whileHover={isValid[screen] ? { scale: 1.03 } : {}}
+                  whileTap={isValid[screen] ? { scale: 0.97 } : {}}
+                  onClick={handleNext}
+                  disabled={!isValid[screen] || saving}
+                  className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
+                >
+                  {isLast ? 'Review & start →' : 'Continue →'}
+                </motion.button>
+              </div>
+            </div>
 
-          <motion.button
-            whileHover={isValid[screen] ? { scale: 1.03 } : {}}
-            whileTap={isValid[screen] ? { scale: 0.97 } : {}}
-            onClick={() => {
-              if (isLast) {
-                handleFinish();
-              } else {
-                const next = NEXT[screen];
-                if (next && isValid[screen]) go(next);
-              }
-            }}
-            disabled={!isValid[screen] || saving}
-            className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
-          >
-            {isLast ? 'Review & start →' : 'Continue →'}
-          </motion.button>
+            {/* Right — persistent live demo (real drafts / tables / charts / code) */}
+            <div className="w-full min-w-0">
+              <DemoWindow showRail={false} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
