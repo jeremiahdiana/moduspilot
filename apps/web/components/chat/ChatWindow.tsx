@@ -303,7 +303,9 @@ export default function ChatWindow({
     const last = messages[messages.length - 1];
     if (last?.role === 'assistant') {
       const text = typeof last.content === 'string' ? last.content : '';
-      const hasBlock = /```(approval|draft_options|image|document|chart)/.test(text);
+      // Must list every block type MessageBubble can render — a reply that is
+      // ONLY a block (no prose) would otherwise trip the empty-response error.
+      const hasBlock = /```(approval|draft_options|options|image|document|chart)/.test(text);
       if (!hasBlock && text.trim() === '') {
         setChatError('The model returned an empty response. Try again, or switch models below.');
       }

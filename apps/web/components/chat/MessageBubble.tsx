@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import ApprovalCard from './ApprovalCard';
 import DraftOptionsCard from './DraftOptionsCard';
+import OptionsCard from './OptionsCard';
 import ImageCard from './ImageCard';
 import DocumentCard from './DocumentCard';
 import ChartCard from './ChartCard';
@@ -10,14 +11,16 @@ import MarkdownMessage from './MarkdownMessage';
 import { modelName, PLATFORM_MODELS } from '@/lib/models';
 import { ProviderLogo } from '@/components/marketing/BrandLogos';
 
-type BlockType = 'approval' | 'draft_options' | 'image' | 'document' | 'chart';
+type BlockType = 'approval' | 'draft_options' | 'options' | 'image' | 'document' | 'chart';
 type Part =
   | { type: 'text'; value: string }
   | { type: BlockType; value: string };
 
 function parseBlocks(content: string): Part[] {
   const parts: Part[] = [];
-  const regex = /```(approval|draft_options|image|document|chart)\n([\s\S]*?)```/g;
+  // draft_options is listed before options for readability; the ``` prefix and the
+  // trailing \n make the two unambiguous regardless of alternation order.
+  const regex = /```(approval|draft_options|options|image|document|chart)\n([\s\S]*?)```/g;
   let last = 0;
   let match;
   while ((match = regex.exec(content)) !== null) {
@@ -110,15 +113,18 @@ export default function MessageBubble({
 
   const rawText = extractTextContent(message.content);
 
-  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```image') || rawText.includes('```document') || rawText.includes('```chart');
+  // '```options' is not a substring of '```draft_options' (the backticks sit
+  // directly before the tag), so these two never collide.
+  const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```options') || rawText.includes('```image') || rawText.includes('```document') || rawText.includes('```chart');
   const specialLabel = rawText.includes('```image') ? 'Creating image…'
     : rawText.includes('```document') ? 'Writing document…'
     : rawText.includes('```chart') ? 'Building chart…'
+    : rawText.includes('```options') ? 'Preparing question…'
     : 'Preparing action…';
   const streamingText = hasSpecialBlock
     ? rawText
-        .replace(/```(approval|draft_options|image|document|chart)[\s\S]*?```/g, '')
-        .replace(/```(approval|draft_options|image|document|chart)[\s\S]*$/g, '')
+        .replace(/```(approval|draft_options|options|image|document|chart)[\s\S]*?```/g, '')
+        .replace(/```(approval|draft_options|options|image|document|chart)[\s\S]*$/g, '')
         .trimEnd()
     : rawText;
 
@@ -141,6 +147,8 @@ export default function MessageBubble({
             <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />
           ) : part.type === 'draft_options' ? (
             <DraftOptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
+          ) : part.type === 'options' ? (
+            <OptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
           ) : part.type === 'image' ? (
             <ImageCard key={i} raw={part.value} />
           ) : part.type === 'document' ? (
