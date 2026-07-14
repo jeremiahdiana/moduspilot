@@ -1,6 +1,6 @@
 import { streamText, experimental_createMCPClient } from 'ai';
 import type { CoreMessage } from 'ai';
-import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER } from '@/lib/claude';
+import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER, PROJECT_CHAT_RULES } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
@@ -347,7 +347,20 @@ export async function POST(req: Request) {
       }
     }
 
-    let fullSystemPrompt = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    // Project-chat rules only apply when a project is actually in scope; they
+    // were previously in MODUS_SYSTEM_PROMPT, costing every other message ~210
+    // tokens of instructions about blocks that weren't present.
+    const projectRules = body.projectContext ? PROJECT_CHAT_RULES : '';
+
+    // Split for Anthropic prompt caching. Caching is a PREFIX match, so the
+    // stable half must be byte-identical across this user's messages and the
+    // volatile half must come after it — anything that changes per message
+    // sitting early would invalidate the whole thing every turn.
+    //   stable   = the ~5.2k-token constant + this user's fixed preferences
+    //   volatile = live context (inbox, notes, memory, connectors, …)
+    let stableSystem = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
+    let volatileSystem = projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    let fullSystemPrompt = stableSystem + volatileSystem;
 
     // Size guard: Groq/Llama has a hard ~12k tokens-per-minute cap. A large request
     // (big system prompt + injected context + a long user message) sent to Llama 429s
@@ -369,7 +382,12 @@ export async function POST(req: Request) {
       }
       if (!upgraded) {
         // Free/guest — only Llama available. Trim so Llama can accept the request.
-        fullSystemPrompt = MODUS_SYSTEM_PROMPT + modelCatalogBlock + styleBlock;
+        // Keep the stable/volatile split consistent with fullSystemPrompt; this
+        // path is Llama-only so it never reaches the Anthropic cache branch, but
+        // letting them drift would be a trap for the next change.
+        stableSystem = MODUS_SYSTEM_PROMPT + modelCatalogBlock + styleBlock;
+        volatileSystem = '';
+        fullSystemPrompt = stableSystem;
         cappedMessages = cappedMessages.map(m =>
           typeof m.content === 'string' && m.content.length > 24000
             ? { ...m, content: m.content.slice(0, 24000) }
@@ -487,10 +505,45 @@ export async function POST(req: Request) {
       (from, to, err) => console.log(`[chat] failover: ${from}→${to} (${String(err).slice(0, 140)})`),
     );
 
+    // ── Anthropic prompt caching ──────────────────────────────────────────────
+    // Claude re-reads the same ~5.2k-token prefix on every message at full price.
+    // cache_control drops cached input to ~10% and cuts time-to-first-token — but
+    // @ai-sdk/anthropic only attaches it to a system message carrying
+    // providerOptions (dist/index.mjs:196), and `system:` is a bare string with
+    // nowhere to hang it. So Claude gets the two-system-message form instead.
+    //
+    // Only Claude. Every other provider keeps the exact string it gets today:
+    // Groq can't cache, and gpt-4o already caches automatically for free.
+    const systemTail = volatileSystem + mcpBlock + extractionGuard;
+    const useAnthropicCache = resolved.modelId.startsWith('claude-');
+
+    if (useAnthropicCache) {
+      // Correctness never depends on this working: if the AI SDK routes these
+      // through its UI-message path (which drops providerOptions, index.mjs:1742)
+      // the prompt text is still delivered in full — we just lose the cache. Log
+      // it so a silent zero-hit-rate is visible rather than mysterious.
+      const uiShaped = cappedMessages.some(m =>
+        m != null && typeof m === 'object' &&
+        ('parts' in m || 'toolInvocations' in m || 'experimental_attachments' in m),
+      );
+      if (uiShaped) console.log('[chat] cache: skipped — messages are UI-shaped, providerOptions would be dropped');
+      else console.log(`[chat] cache: breakpoint on ${Math.ceil(stableSystem.length / 4)}~tok stable prefix (${resolved.modelId})`);
+    }
+
+    const cachedSystemMessages: CoreMessage[] = [
+      {
+        role: 'system',
+        content: stableSystem,
+        providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+      },
+      ...(systemTail ? [{ role: 'system' as const, content: systemTail }] : []),
+    ];
+
     const result = streamText({
       model: failoverModel,
-      system: fullSystemPrompt + mcpBlock + extractionGuard,
-      messages: cappedMessages,
+      ...(useAnthropicCache
+        ? { messages: [...cachedSystemMessages, ...cappedMessages] }
+        : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: cappedMessages }),
       maxTokens,
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onError: async ({ error }) => {
