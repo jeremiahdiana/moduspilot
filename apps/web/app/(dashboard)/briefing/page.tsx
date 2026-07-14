@@ -10,6 +10,8 @@ import { db, auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useConversations } from '@/hooks/useConversations';
+import { useResizableSidebar } from '@/hooks/useResizableSidebar';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useChat } from 'ai/react';
 import type { Message } from 'ai';
 import type { BriefingData, BriefingScheduleItem } from '@/lib/briefing';
@@ -961,6 +963,10 @@ export default function BriefingPage() {
   const { user } = useAuth();
   const { settings } = useUserSettings(user);
   const { saveMessages } = useConversations(user?.uid ?? null);
+  // Same drag/collapse behaviour as the app sidebar and the chat rail.
+  const rail = useResizableSidebar({
+    storageKey: 'briefing-rail', defaultWidth: 192, min: 160, max: 320, snap: 130, collapsedWidth: 0,
+  });
 
   const [briefings, setBriefings] = useState<Briefing[]>([]);
   const [selected, setSelected] = useState<Briefing | null>(null);
@@ -1034,23 +1040,63 @@ export default function BriefingPage() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      <aside className="w-48 shrink-0 border-r border-border flex flex-col">
-        <div className="px-4 py-4 border-b border-border">
-          <h2 className="text-xs font-semibold text-muted uppercase tracking-widest">Briefings</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto py-2">
-          {sidebarBriefings.map(b => (
-            <button key={b.id} onClick={() => setSelected(b)}
-              className={`w-full text-left px-4 py-3 transition-colors ${selected?.id === b.id ? 'bg-brand/10 border-r-2 border-brand' : 'hover:bg-panel'}`}>
-              <div className="flex items-center gap-2">
-                {!b.read && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
-                <p className={`text-xs font-medium truncate ${selected?.id === b.id ? 'text-brand' : 'text-text'}`}>{fmtShort(b.createdAt)}</p>
-              </div>
-              <p className="text-[11px] text-muted mt-0.5 truncate">{b.briefingData?.openingLine ?? b.content.slice(0, 50)}</p>
-            </button>
-          ))}
-        </div>
+      <aside
+        className={`shrink-0 flex flex-col relative ${rail.collapsed ? '' : 'border-r border-border'} ${rail.dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
+        style={{ width: rail.width }}
+      >
+        {!rail.collapsed && (
+          <>
+            <div className="px-4 py-4 border-b border-border flex items-center gap-2">
+              <h2 className="flex-1 text-xs font-semibold text-muted uppercase tracking-widest">Briefings</h2>
+              <Tooltip label="Hide briefings" side="right">
+                <button
+                  onClick={rail.toggle}
+                  aria-label="Hide briefings"
+                  className="w-6 h-6 flex items-center justify-center rounded-md text-muted/60 hover:text-text hover:bg-panel transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
+                  </svg>
+                </button>
+              </Tooltip>
+            </div>
+            <div className="flex-1 overflow-y-auto py-2">
+              {sidebarBriefings.map(b => (
+                <button key={b.id} onClick={() => setSelected(b)}
+                  className={`w-full text-left px-4 py-3 transition-colors ${selected?.id === b.id ? 'bg-brand/10 border-r-2 border-brand' : 'hover:bg-panel'}`}>
+                  <div className="flex items-center gap-2">
+                    {!b.read && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
+                    <p className={`text-xs font-medium truncate ${selected?.id === b.id ? 'text-brand' : 'text-text'}`}>{fmtShort(b.createdAt)}</p>
+                  </div>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{b.briefingData?.openingLine ?? b.content.slice(0, 50)}</p>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {/* Drag handle stays live while collapsed so the rail can be pulled back out */}
+        <div
+          className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-20"
+          onMouseDown={rail.startDrag}
+        />
       </aside>
+
+      {/* Reopen tab — the only way back when the rail is fully collapsed */}
+      {rail.collapsed && (
+        <div className="shrink-0 flex items-start pt-3 pl-2">
+          <Tooltip label="Show briefings" side="right">
+            <button
+              onClick={rail.toggle}
+              aria-label="Show briefings"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-text hover:bg-panel transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
+              </svg>
+            </button>
+          </Tooltip>
+        </div>
+      )}
 
       {selected && (
         <BriefingContent key={selected.id} briefing={selected}

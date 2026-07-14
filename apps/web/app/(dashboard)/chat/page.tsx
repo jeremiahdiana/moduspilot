@@ -7,6 +7,8 @@ import ConversationList from '@/components/chat/ConversationList';
 import { useConversations } from '@/hooks/useConversations';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useResizableSidebar } from '@/hooks/useResizableSidebar';
+import { Tooltip } from '@/components/ui/Tooltip';
 import PaywallModal from '@/components/chat/PaywallModal';
 import { isPaidPlan } from '@/lib/plan';
 import { doc, getDoc } from 'firebase/firestore';
@@ -25,6 +27,11 @@ export default function ChatPage() {
 
   const { conversations, loading, createConversation, saveMessages, renameConversation, deleteConversation, restoreConversation } = useConversations(uid);
   const { settings, loading: settingsLoading, saveSettings } = useUserSettings(user);
+  // Conversation rail: same drag/collapse behaviour as the app sidebar. A chat
+  // list has no icons to shrink to, so collapsed hides it behind a reopen tab.
+  const convRail = useResizableSidebar({
+    storageKey: 'chat-conversations', defaultWidth: 208, min: 180, max: 340, snap: 140, collapsedWidth: 0,
+  });
 
   const [activeId, setActiveId] = useState<string | null>(null);
   // Draft = "New chat" clicked but nothing typed yet. No Firestore doc exists;
@@ -184,16 +191,44 @@ export default function ChatPage() {
           column. Mobile: hidden here and opened as a drawer (below) via the
           header button, so the chat itself gets the full narrow screen. */}
       {!isGuest && (
-        <div className="hidden md:block w-52 shrink-0 border-r border-border h-full">
-          <ConversationPanel
-            uid={uid} showDeleted={showDeleted} setShowDeleted={setShowDeleted}
-            conversations={conversations} activeId={activeId}
-            onSelect={handleSelect} onNew={handleNew} onDelete={handleDelete}
-            onRename={renameConversation} onRestore={handleRestore}
-            restoreConversation={restoreConversation} user={user}
-            needsSubscription={needsSubscription} setShowPaywall={setShowPaywall}
-            isPaid={isPaid} plan={plan}
+        <div
+          className={`hidden md:block shrink-0 h-full relative ${convRail.collapsed ? '' : 'border-r border-border'} ${convRail.dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
+          style={{ width: convRail.width }}
+        >
+          {!convRail.collapsed && (
+            <ConversationPanel
+              uid={uid} showDeleted={showDeleted} setShowDeleted={setShowDeleted}
+              conversations={conversations} activeId={activeId}
+              onSelect={handleSelect} onNew={handleNew} onDelete={handleDelete}
+              onRename={renameConversation} onRestore={handleRestore}
+              restoreConversation={restoreConversation} user={user}
+              needsSubscription={needsSubscription} setShowPaywall={setShowPaywall}
+              isPaid={isPaid} plan={plan}
+              onCollapse={convRail.toggle}
+            />
+          )}
+          {/* Drag handle stays live while collapsed so the rail can be pulled back out */}
+          <div
+            className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-20"
+            onMouseDown={convRail.startDrag}
           />
+        </div>
+      )}
+
+      {/* Reopen tab — the only way back when the rail is fully collapsed */}
+      {!isGuest && convRail.collapsed && (
+        <div className="hidden md:flex shrink-0 items-start pt-3 pl-2">
+          <Tooltip label="Show chats" side="right">
+            <button
+              onClick={convRail.toggle}
+              aria-label="Show chats"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:text-text hover:bg-panel transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
+              </svg>
+            </button>
+          </Tooltip>
         </div>
       )}
 
@@ -345,9 +380,10 @@ export default function ChatPage() {
 function ConversationPanel({
   uid, showDeleted, setShowDeleted, conversations, activeId,
   onSelect, onNew, onDelete, onRename, onRestore, restoreConversation, user,
-  needsSubscription, setShowPaywall, isPaid, plan,
+  needsSubscription, setShowPaywall, isPaid, plan, onCollapse,
 }: {
   uid: string | null;
+  onCollapse?: () => void;
   showDeleted: boolean;
   setShowDeleted: React.Dispatch<React.SetStateAction<boolean>>;
   conversations: ReturnType<typeof useConversations>['conversations'];
@@ -368,12 +404,27 @@ function ConversationPanel({
     <div className="flex flex-col h-full py-4">
       <div className="px-3 mb-3 flex items-center justify-between">
         <span className="text-xs font-semibold text-muted uppercase tracking-wider">Chats</span>
-        <button
-          onClick={() => setShowDeleted(s => !s)}
-          className="text-xs text-muted hover:text-text transition-colors"
-        >
-          {showDeleted ? 'Active' : 'Trash'}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowDeleted(s => !s)}
+            className="text-xs text-muted hover:text-text transition-colors"
+          >
+            {showDeleted ? 'Active' : 'Trash'}
+          </button>
+          {onCollapse && (
+            <Tooltip label="Hide chats" side="right">
+              <button
+                onClick={onCollapse}
+                aria-label="Hide chats"
+                className="w-6 h-6 hidden md:flex items-center justify-center rounded-md text-muted/60 hover:text-text hover:bg-panel transition-colors"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
+                </svg>
+              </button>
+            </Tooltip>
+          )}
+        </div>
       </div>
 
       {showDeleted ? (

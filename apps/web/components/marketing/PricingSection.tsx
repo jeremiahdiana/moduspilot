@@ -141,11 +141,7 @@ export default function PricingSection() {
               <div className="px-8 pb-8">
                 <a
                   href="/login"
-                  className={`block w-full py-3.5 rounded-xl text-sm font-bold text-center transition-all ${
-                    plan.popular
-                      ? 'btn-primary text-white hover:scale-[1.02] active:scale-100'
-                      : 'bg-text/[0.06] text-muted hover:bg-text/10 hover:text-text'
-                  }`}
+                  className="btn-primary block w-full py-3.5 rounded-xl text-sm font-bold text-center text-white transition-all hover:scale-[1.02] active:scale-100"
                 >
                   {plan.cta}
                 </a>

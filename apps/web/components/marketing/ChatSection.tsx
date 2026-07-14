@@ -64,7 +64,7 @@ function ApprovalCardMockup() {
                 ))}
               </div>
               <div className="flex gap-2 pt-1">
-                <button className="flex-1 py-1.5 bg-brand text-white text-xs font-semibold rounded-lg">Approve All</button>
+                <button className="btn-primary flex-1 py-1.5 text-white text-xs font-semibold rounded-lg">Approve All</button>
                 <button className="flex-1 py-1.5 bg-text/[0.06] text-muted text-xs rounded-lg">Edit</button>
               </div>
             </div>

@@ -9,11 +9,14 @@
 :root {
   --font-display: 'Clash Display', system-ui, sans-serif;
   --font-sans: 'Satoshi', system-ui, sans-serif;
-  --color-bg: 250 250 251;
-  --color-panel: 255 255 255;
-  --color-border: 229 229 233;
-  --color-text: 13 13 16;
-  --color-muted: 98 98 108;
+  /* The page is a soft grey, not paper-white — pure white on near-white read as
+     blinding and left panels with no elevation to separate them. Panel stays the
+     lightest surface so raised cards work the same way they do in dark mode. */
+  --color-bg: 240 240 243;
+  --color-panel: 252 252 253;
+  --color-border: 222 222 228;
+  --color-text: 15 15 18;
+  --color-muted: 92 92 102;
 }
 
 .dark {
@@ -51,7 +54,7 @@ h1, h2, h3, h4, h5, h6 {
   background:
     radial-gradient(ellipse 90% 55% at 5% 0%,   rgba(124,58,237,0.05) 0%, transparent 55%),
     radial-gradient(ellipse 80% 40% at 10% 90%, rgba(139,92,246,0.04)  0%, transparent 55%),
-    rgb(250, 250, 251);
+    rgb(240, 240, 243);
 }
 
 :root body::before {

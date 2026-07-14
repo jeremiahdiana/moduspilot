@@ -108,10 +108,10 @@ const GROUP_FEATURES = [
 ];
 
 const COMPARISONS = [
+  { tool: 'ChatGPT + Claude + Gemini', price: '$200+/mo', what: 'Three tabs, three bills, no memory of you' },
   { tool: 'Superhuman', price: '$30/mo', what: 'Email only' },
-  { tool: 'Notion AI', price: '$10/mo', what: 'Passive notes' },
   { tool: 'Part-time EA', price: '$1,500+/mo', what: 'One person, limited hours' },
-  { tool: 'MODUS', price: '$24/mo', what: 'Entire cognitive workflow', highlight: true },
+  { tool: 'MODUS', price: '$24/mo', what: 'Every model + your entire workflow', highlight: true },
 ];
 
 const FAQS = [
@@ -136,8 +136,8 @@ const FAQS = [
     a: 'One Group plan covers up to 5 people for $79/mo. The owner subscribes and invites the rest by email. Each member gets their own separate MODUS with their own account and data, and joins at no extra cost. The group shares a space for trips and plans, and MODUS can check a teammate\'s availability, but only what each person chooses to share is ever shared.',
   },
   {
-    q: 'Does MODUS replace my existing apps?',
-    a: "It connects to them (Gmail, Calendar, Notion, Slack) and becomes the intelligence layer on top. You don't abandon your tools. MODUS handles the cognitive overhead of juggling them.",
+    q: 'Does MODUS replace my other AI subscriptions?',
+    a: "Yes. That's the point. ChatGPT Plus, Claude Pro and Gemini Advanced are $20-$30 each, so running all three costs $200+/mo and you still have to pick the right tab yourself. MODUS gives you every frontier model in one place for $24, routes each task to whichever one is best, and remembers everything across all of them. Cancel the rest. Your everyday tools (Gmail, Calendar, Notion, Slack) you keep, and MODUS runs on top of them.",
   },
   {
     q: 'Is my data private?',
@@ -267,11 +267,11 @@ export default function PricingPage() {
               <p className="text-xs font-bold tracking-widest text-muted uppercase mb-8 text-center">Why these numbers</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {COMPARISONS.map((c, i) => (
-                  <RevealOnScroll key={c.tool} delay={i * 0.08} direction="up">
+                  <RevealOnScroll key={c.tool} delay={i * 0.08} direction="up" className="h-full">
                     <motion.div
                       whileHover={{ scale: 1.03, y: -2 }}
                       transition={{ type: 'spring', stiffness: 400 }}
-                      className={`rounded-2xl p-5 text-center transition-all ${
+                      className={`h-full rounded-2xl p-5 text-center transition-all ${
                         c.highlight
                           ? 'bg-brand/10 ring-1 ring-brand/30 shadow-lg shadow-brand/10'
                           : 'bg-text/[0.04]'
@@ -290,8 +290,9 @@ export default function PricingPage() {
               </div>
               <RevealOnScroll direction="none" delay={0.3}>
                 <p className="text-sm text-muted mt-8 leading-relaxed text-center max-w-2xl mx-auto">
-                  Superhuman charges $30/mo for email alone. A part-time assistant runs $1,500+/mo.
-                  MODUS at $24 replaces an entire cognitive workflow: goals, tasks, habits, triage, memory, and execution in one place.
+                  Paying for ChatGPT Plus, Claude Pro and Gemini Advanced separately runs past $200/mo, and none of them
+                  know your calendar, your inbox, or what you decided last week. MODUS is $24, gives you all of them,
+                  and puts them to work on your actual life.
                 </p>
               </RevealOnScroll>
             </div>
@@ -354,11 +355,7 @@ export default function PricingPage() {
                   <div className="relative px-8 pb-8">
                     <Link
                       href={plan.href}
-                      className={`block w-full py-4 rounded-2xl text-sm font-bold text-center transition-all ${
-                        plan.popular
-                          ? 'btn-primary text-white hover:scale-[1.02] active:scale-100'
-                          : 'bg-text/[0.06] text-muted hover:bg-text/10 hover:text-text'
-                      }`}
+                      className="btn-primary block w-full py-4 rounded-2xl text-sm font-bold text-center text-white transition-all hover:scale-[1.02] active:scale-100"
                     >
                       {plan.cta}
                     </Link>

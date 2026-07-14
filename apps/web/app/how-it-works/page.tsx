@@ -87,7 +87,7 @@ function ActionCard({ actions, buttons }: { actions: { label: string; detail: st
       </div>
       {buttons && (
         <div className="px-4 py-3 border-t border-text/[0.06] flex gap-2">
-          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">{buttons[0]}</button>
+          <button className="btn-primary flex-1 py-2 text-white text-xs font-semibold rounded-lg">{buttons[0]}</button>
           {buttons[1] && <button className="flex-1 py-2 bg-bg/80 hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">{buttons[1]}</button>}
         </div>
       )}
@@ -162,7 +162,7 @@ const SCENES: Record<string, SceneItem[]> = {
           ))}
         </div>
         <div className="px-4 py-3 border-t border-text/[0.06] flex gap-2">
-          <button className="flex-1 py-2 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-lg transition-colors">Approve plan</button>
+          <button className="btn-primary flex-1 py-2 text-white text-xs font-semibold rounded-lg">Approve plan</button>
           <button className="flex-1 py-2 bg-bg/80 hover:bg-border text-muted text-xs font-semibold rounded-lg transition-colors">Adjust</button>
         </div>
       </motion.div>
@@ -193,7 +193,7 @@ const SCENES: Record<string, SceneItem[]> = {
           <p className="text-xs text-muted/60">Newsletters, promos, notifications, all archived.</p>
         </div>
         <div className="px-4 py-3 flex gap-2">
-          <button className="flex-1 py-2 bg-brand text-white text-xs font-semibold rounded-lg">Approve all 3</button>
+          <button className="btn-primary flex-1 py-2 text-white text-xs font-semibold rounded-lg">Approve all 3</button>
           <button className="flex-1 py-2 bg-bg/80 text-muted text-xs font-semibold rounded-lg">Review drafts</button>
         </div>
       </motion.div>
@@ -213,7 +213,7 @@ const SCENES: Record<string, SceneItem[]> = {
           <p className="text-sm text-brand font-medium">It's week 6 of Q2. Want to start building that out now?</p>
         </div>
         <div className="px-4 py-3 border-t border-text/[0.06] flex gap-2">
-          <button className="flex-1 py-2 bg-brand text-white text-xs font-semibold rounded-lg">Yes, let's plan it</button>
+          <button className="btn-primary flex-1 py-2 text-white text-xs font-semibold rounded-lg">Yes, let's plan it</button>
           <button className="flex-1 py-2 bg-bg/80 text-muted text-xs font-semibold rounded-lg">Not yet</button>
         </div>
       </motion.div>
@@ -249,23 +249,37 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
 
   const scene = SCENES[tabId] ?? [];
   const renderItems = scene.filter(s => s.type !== 'thinking');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Follow the conversation as it plays. Needed because the scroll container is
+  // the outer div now (see below), so new messages land below the fold.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [visibleCount, showThinking]);
 
   return (
     <div className="relative">
-      <div className="space-y-3 p-5 pb-14 h-[460px] overflow-y-auto flex flex-col justify-end">
-        <AnimatePresence>
-          {renderItems.slice(0, visibleCount).map((item, i) => (
-            <div key={`${tabId}-${replayKey}-${i}`}>
-              {item.type === 'msg' && <ChatMsg role={item.role} text={item.text} />}
-              {item.type === 'card' && item.component}
-            </div>
-          ))}
-          {showThinking && (
-            <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ThinkingDots />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* The scroller must be a plain block: a flex column with justify-end makes
+          overflow past the TOP unreachable (and visually clipped), which cut the
+          first message off once a scene grew past the fixed height. The inner
+          min-h-full child keeps short scenes pinned to the bottom instead. */}
+      <div ref={scrollRef} className="h-[460px] overflow-y-auto">
+        <div className="min-h-full flex flex-col justify-end space-y-3 p-5 pb-14">
+          <AnimatePresence>
+            {renderItems.slice(0, visibleCount).map((item, i) => (
+              <div key={`${tabId}-${replayKey}-${i}`}>
+                {item.type === 'msg' && <ChatMsg role={item.role} text={item.text} />}
+                {item.type === 'card' && item.component}
+              </div>
+            ))}
+            {showThinking && (
+              <motion.div key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ThinkingDots />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
       <AnimatePresence>
         {done && (
@@ -284,8 +298,8 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
 }
 
 const STEPS = [
-  { n: '01', title: 'Connect your life', desc: 'Calendar, email, health data, apps. MODUS reads across all of it. The more context it has, the less you have to explain.', tags: ['Gmail', 'Calendar', 'Drive', 'Notion', 'Slack', 'GitHub'] },
-  { n: '02', title: 'MODUS learns your style', desc: 'Through onboarding and ongoing usage, MODUS understands your goals, schedule, priorities, and how you like to work.', tags: ['Goals', 'Habits', 'Preferences', 'Memory'] },
+  { n: '01', title: 'Every model, one subscription', desc: 'Write with Gemini, research with Claude, ask ChatGPT. MODUS routes each task to whichever model does it best, so you stop paying for three and picking the right tab yourself.', tags: ['ChatGPT', 'Claude', 'Gemini', 'Grok', 'Auto-routed'] },
+  { n: '02', title: 'Connect your life', desc: 'Calendar, email, health data, apps. MODUS reads across all of it, and learns your goals, priorities, and how you like to work. The more context it has, the less you have to explain.', tags: ['Gmail', 'Calendar', 'Drive', 'Notion', 'Slack', 'Memory'] },
   { n: '03', title: 'It acts, or asks first', desc: 'Reminders set. Emails drafted. Blocks on your calendar. For anything that touches the outside world, MODUS surfaces an approval card.', tags: ['Approval cards', 'Edit', 'Skip'] },
   { n: '04', title: 'You approve in one tap', desc: "You're not managing software. You're the executive. MODUS brings decisions to you. You say yes, edit, or redirect.", tags: ['One tap', 'Full control', 'Audit trail'] },
 ];

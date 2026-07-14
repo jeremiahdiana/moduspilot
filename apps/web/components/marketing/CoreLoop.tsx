@@ -6,15 +6,15 @@ import { useState, useRef, useEffect } from 'react';
 const STEPS = [
   {
     num: '01',
-    label: 'Monitor',
-    desc: 'MODUS reads your calendar, inbox, goals, and habits in real time, building a live picture of your day before you even open your eyes.',
-    detail: 'Gmail · Google Calendar · Goals · Habits · Tasks',
+    label: 'Every model',
+    desc: 'Write with Gemini, research with Claude, ask ChatGPT. One subscription gets you every frontier model, and MODUS routes each task to whichever one does it best.',
+    detail: 'ChatGPT · Claude · Gemini · Grok · Auto-routed',
   },
   {
     num: '02',
-    label: 'Decide',
-    desc: 'It runs quietly in the background, drafting replies, detecting conflicts, flagging patterns, surfacing what actually matters today.',
-    detail: 'Pattern recognition · Priority scoring · Conflict detection',
+    label: 'Monitor',
+    desc: 'It reads your calendar, inbox, goals, and habits in real time, drafting replies, detecting conflicts, and surfacing what actually matters today.',
+    detail: 'Gmail · Calendar · Pattern recognition · Priority scoring',
   },
   {
     num: '03',

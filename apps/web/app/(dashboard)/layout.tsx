@@ -71,15 +71,16 @@ const BOTTOM: NavItem[] = [
   { key: 'capabilities', href: '/capabilities', label: 'Capabilities', icon: 'connections' },
 ];
 
-function NavLink({ item, pathname, onNavClick }: { item: NavItem; pathname: string; onNavClick?: () => void }) {
+function NavLink({ item, pathname, onNavClick, collapsed }: { item: NavItem; pathname: string; onNavClick?: () => void; collapsed?: boolean }) {
   const active = pathname === item.href;
-  return (
+  const link = (
     <Link
       href={item.href}
       onClick={onNavClick}
-      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-        active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
-      }`}
+      aria-label={collapsed ? item.label : undefined}
+      className={`relative flex items-center rounded-xl text-sm font-medium transition-colors ${
+        collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
+      } ${active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'}`}
     >
       {active && (
         <motion.div
@@ -88,9 +89,11 @@ function NavLink({ item, pathname, onNavClick }: { item: NavItem; pathname: stri
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         />
       )}
-      <Ico d={ICONS[item.icon]} className="relative" /><span className="relative">{item.label}</span>
+      <Ico d={ICONS[item.icon]} className="relative" />
+      {!collapsed && <span className="relative">{item.label}</span>}
     </Link>
   );
+  return collapsed ? <Tooltip label={item.label} side="right">{link}</Tooltip> : link;
 }
 
 // Live-subscribes to the user's sidebar prefs (hidden items + collapse state),
@@ -122,7 +125,7 @@ function useSidebarPrefs(uid: string | undefined) {
 
 // A NavLink that also shows an unread-briefing dot. Used for the Dashboard item
 // now that the briefing lives on the dashboard (no standalone Briefing nav item).
-function NavLinkWithBriefingDot({ item, pathname, onNavClick }: { item: NavItem; pathname: string; onNavClick?: () => void }) {
+function NavLinkWithBriefingDot({ item, pathname, onNavClick, collapsed }: { item: NavItem; pathname: string; onNavClick?: () => void; collapsed?: boolean }) {
   const { user } = useAuth();
   const [unread, setUnread] = useState(false);
 
@@ -139,13 +142,14 @@ function NavLinkWithBriefingDot({ item, pathname, onNavClick }: { item: NavItem;
 
   const active = pathname === item.href;
 
-  return (
+  const link = (
     <Link
       href={item.href}
       onClick={onNavClick}
-      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-        active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
-      }`}
+      aria-label={collapsed ? item.label : undefined}
+      className={`relative flex items-center rounded-xl text-sm font-medium transition-colors ${
+        collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5'
+      } ${active ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'}`}
     >
       {active && (
         <motion.div
@@ -155,12 +159,16 @@ function NavLinkWithBriefingDot({ item, pathname, onNavClick }: { item: NavItem;
         />
       )}
       <Ico d={ICONS[item.icon]} className="relative" />
-      <span className="relative flex-1">{item.label}</span>
+      {!collapsed && <span className="relative flex-1">{item.label}</span>}
+      {/* Collapsed: the dot rides the icon corner instead of the row's right edge */}
       {unread && !active && (
-        <span className="relative w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
+        collapsed
+          ? <span className="absolute top-1.5 right-2.5 w-1.5 h-1.5 rounded-full bg-brand" />
+          : <span className="relative w-1.5 h-1.5 rounded-full bg-brand shrink-0" />
       )}
     </Link>
   );
+  return collapsed ? <Tooltip label={item.label} side="right">{link}</Tooltip> : link;
 }
 
 // True when the user has at least one synced note. Notes are read-only and only
@@ -221,6 +229,8 @@ function SidebarContent({
   groupVisible,
   workspaceCollapsed,
   onToggleWorkspace,
+  collapsed = false,
+  onToggleCollapse,
 }: {
   pathname: string;
   user: ReturnType<typeof useAuth>['user'];
@@ -233,6 +243,8 @@ function SidebarContent({
   groupVisible: boolean;
   workspaceCollapsed: boolean;
   onToggleWorkspace: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
   const visibleWorkspace = WORKSPACE.filter(i =>
     !hidden.has(i.key)
@@ -250,34 +262,76 @@ function SidebarContent({
   }, [setOpen]);
 
   return (
-    <div className="flex flex-col h-full py-5 px-3">
-      {/* Logo */}
-      <div className="mb-5 px-3 flex items-center gap-2">
-        <Image src="/logo.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 block dark:hidden" />
-        <Image src="/logo-dark.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 hidden dark:block" />
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-black tracking-widest text-brand">MODUS</span>
-          <span className="text-[9px] font-semibold text-muted tracking-widest uppercase">pilot</span>
-        </div>
+    <div className={`flex flex-col h-full py-5 ${collapsed ? 'px-2' : 'px-3'}`}>
+      {/* Logo. Collapsed: the wordmark drops and the mark alone doubles as the expander. */}
+      <div className={`mb-5 flex items-center ${collapsed ? 'justify-center' : 'px-3 gap-2'}`}>
+        {collapsed ? (
+          <Tooltip label="Expand sidebar" side="right">
+            <button
+              onClick={onToggleCollapse}
+              aria-label="Expand sidebar"
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-panel transition-colors"
+            >
+              <Image src="/logo.png" alt="MODUS" width={28} height={21} className="object-contain block dark:hidden" />
+              <Image src="/logo-dark.png" alt="MODUS" width={28} height={21} className="object-contain hidden dark:block" />
+            </button>
+          </Tooltip>
+        ) : (
+          <>
+            <Image src="/logo.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 block dark:hidden" />
+            <Image src="/logo-dark.png" alt="MODUS" width={64} height={48} className="object-contain shrink-0 hidden dark:block" />
+            <div className="flex flex-col leading-none">
+              <span className="text-sm font-black tracking-widest text-brand">MODUS</span>
+              <span className="text-[9px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+            </div>
+            {onToggleCollapse && (
+              <Tooltip label="Collapse sidebar" side="right">
+                <button
+                  onClick={onToggleCollapse}
+                  aria-label="Collapse sidebar"
+                  className="ml-auto w-7 h-7 hidden md:flex items-center justify-center rounded-lg text-muted/60 hover:text-text hover:bg-panel transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
+                  </svg>
+                </button>
+              </Tooltip>
+            )}
+          </>
+        )}
       </div>
 
       {/* Ask MODUS button */}
-      <motion.button
-        onClick={onCmdOpen}
-        whileHover={{ scale: 1.015, y: -1 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-        className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
-          <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-        </svg>
-        <span className="flex-1 text-xs font-medium">Ask MODUS</span>
-        <div className="flex items-center gap-0.5">
-          <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
-          <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>
-        </div>
-      </motion.button>
+      {collapsed ? (
+        <Tooltip label="Ask MODUS  ⌘K" side="right">
+          <button
+            onClick={onCmdOpen}
+            aria-label="Ask MODUS"
+            className="flex items-center justify-center mb-4 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+          </button>
+        </Tooltip>
+      ) : (
+        <motion.button
+          onClick={onCmdOpen}
+          whileHover={{ scale: 1.015, y: -1 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+          className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <span className="flex-1 text-xs font-medium">Ask MODUS</span>
+          <div className="flex items-center gap-0.5">
+            <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
+            <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>
+          </div>
+        </motion.button>
+      )}
 
       {/* Nav */}
       <LayoutGroup>
@@ -285,25 +339,31 @@ function SidebarContent({
           {/* Primary group — daily essentials */}
           {PRIMARY.filter(i => i.key === 'chat' || !hidden.has(i.key)).map(item =>
             item.special === 'briefing'
-              ? <NavLinkWithBriefingDot key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
-              : <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
+              ? <NavLinkWithBriefingDot key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} collapsed={collapsed} />
+              : <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} collapsed={collapsed} />
           )}
 
-          {/* Workspace group — collapsible */}
+          {/* Workspace group — collapsible. When the sidebar is icons-only there's
+              no room for the label, so the group header drops and its items always
+              show (a hidden group behind an invisible header would be unreachable). */}
           {visibleWorkspace.length > 0 && (
             <div className="mt-3">
-              <button
-                onClick={onToggleWorkspace}
-                className="flex items-center gap-1.5 w-full px-3 mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted/70 hover:text-muted transition-colors"
-              >
-                <span className="flex-1 text-left">Workspace</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round"
-                  className={`w-3 h-3 shrink-0 transition-transform ${workspaceCollapsed ? '-rotate-90' : ''}`}>
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </button>
+              {collapsed ? (
+                <div className="mx-2 mb-1.5 h-px bg-border" />
+              ) : (
+                <button
+                  onClick={onToggleWorkspace}
+                  className="flex items-center gap-1.5 w-full px-3 mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted/70 hover:text-muted transition-colors"
+                >
+                  <span className="flex-1 text-left">Workspace</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round"
+                    className={`w-3 h-3 shrink-0 transition-transform ${workspaceCollapsed ? '-rotate-90' : ''}`}>
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              )}
               <AnimatePresence initial={false}>
-                {!workspaceCollapsed && (
+                {(collapsed || !workspaceCollapsed) && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
@@ -312,7 +372,7 @@ function SidebarContent({
                     className="overflow-hidden flex flex-col gap-0.5"
                   >
                     {visibleWorkspace.map(item => (
-                      <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
+                      <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} collapsed={collapsed} />
                     ))}
                   </motion.div>
                 )}
@@ -323,43 +383,35 @@ function SidebarContent({
           {/* Bottom group — Capabilities + Settings */}
           <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-0.5">
             {BOTTOM.filter(i => !hidden.has(i.key)).map(item => (
-              <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} />
+              <NavLink key={item.key} item={item} pathname={pathname} onNavClick={onNavClick} collapsed={collapsed} />
             ))}
-            <Link href="/settings" onClick={onNavClick}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                pathname === '/settings' ? 'text-brand' : 'text-muted hover:text-text hover:bg-panel'
-              }`}
-            >
-              {pathname === '/settings' && (
-                <motion.div
-                  layoutId="nav-active-pill"
-                  className="absolute inset-0 rounded-xl bg-brand/10"
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                />
-              )}
-              <Ico d={ICONS.settings} className="relative" /><span className="relative">Settings</span>
-            </Link>
-            {/* Customize — subtle, revealed on sidebar hover */}
-            <Link href="/settings?tab=sidebar" onClick={onNavClick}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted/50 hover:text-muted opacity-0 group-hover/nav:opacity-100 focus:opacity-100 transition-opacity"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
-                <path d="M12 2a10 10 0 110 20A10 10 0 0112 2z" /><path d="M12 8v4l2.5 2.5" />
-              </svg>
-              Customize sidebar
-            </Link>
+            <NavLink
+              item={{ key: 'settings', href: '/settings', label: 'Settings', icon: 'settings' }}
+              pathname={pathname} onNavClick={onNavClick} collapsed={collapsed}
+            />
+            {/* Customize — subtle, revealed on sidebar hover. No room when icons-only. */}
+            {!collapsed && (
+              <Link href="/settings?tab=sidebar" onClick={onNavClick}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted/50 hover:text-muted opacity-0 group-hover/nav:opacity-100 focus:opacity-100 transition-opacity"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+                  <path d="M12 2a10 10 0 110 20A10 10 0 0112 2z" /><path d="M12 8v4l2.5 2.5" />
+                </svg>
+                Customize sidebar
+              </Link>
+            )}
           </div>
         </nav>
       </LayoutGroup>
 
       {/* User menu */}
       <div className="mt-auto pt-3 border-t border-border" ref={menuRef}>
-        <div className="px-2 pb-2 flex justify-end">
-          <Tooltip label="Toggle theme" side="left">
+        <div className={`px-2 pb-2 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
+          <Tooltip label="Toggle theme" side={collapsed ? 'right' : 'left'}>
             <AnimatedThemeToggler sound={false} />
           </Tooltip>
         </div>
-        {open && user && (
+        {open && user && !collapsed && (
           <div className="mb-2 bg-panel border border-border rounded-xl overflow-hidden shadow-lg">
             <Link href="/settings?tab=billing" onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-4 py-3 text-sm text-muted hover:text-text hover:bg-bg transition-colors">
@@ -374,27 +426,44 @@ function SidebarContent({
           </div>
         )}
         {user ? (
-          <button onClick={() => setOpen(!open)}
-            className="flex items-center gap-2.5 w-full px-2 py-2 rounded-xl hover:bg-panel transition-colors">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
-                <span className="text-xs text-brand font-semibold">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
+          collapsed ? (
+            /* Icons-only: the avatar links straight to Settings — a dropdown has
+               nowhere to sit in a 64px rail. */
+            <Tooltip label={user.displayName || user.email || 'Account'} side="right">
+              <Link href="/settings" onClick={onNavClick} aria-label="Account"
+                className="flex items-center justify-center w-full py-2 rounded-xl hover:bg-panel transition-colors">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                    <span className="text-xs text-brand font-semibold">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
+                  </div>
+                )}
+              </Link>
+            </Tooltip>
+          ) : (
+            <button onClick={() => setOpen(!open)}
+              className="flex items-center gap-2.5 w-full px-2 py-2 rounded-xl hover:bg-panel transition-colors">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                  <span className="text-xs text-brand font-semibold">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-xs text-text font-medium truncate">{user.displayName || user.email}</p>
+                <p className="text-[10px] text-muted">Account</p>
               </div>
-            )}
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs text-text font-medium truncate">{user.displayName || user.email}</p>
-              <p className="text-[10px] text-muted">Account</p>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-muted">
-              <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
-            </svg>
-          </button>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-muted">
+                <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+              </svg>
+            </button>
+          )
         ) : (
           <Link href="/login"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors">
-            <Ico d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />Sign in
+            className={`flex items-center rounded-xl text-sm font-medium text-muted hover:text-text hover:bg-panel transition-colors ${collapsed ? 'justify-center py-2.5' : 'gap-3 px-3 py-2.5'}`}>
+            <Ico d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />{!collapsed && 'Sign in'}
           </Link>
         )}
       </div>
@@ -405,6 +474,9 @@ function SidebarContent({
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 320;
 const SIDEBAR_DEFAULT = 224;
+// Icons-only rail. Drag narrower than SIDEBAR_SNAP and it snaps to this.
+const SIDEBAR_COLLAPSED = 64;
+const SIDEBAR_SNAP = 140;
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -417,11 +489,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [collapsed, setCollapsed] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(SIDEBAR_DEFAULT);
   const dragCurrentWidth = useRef(SIDEBAR_DEFAULT);
+  const dragCollapsed = useRef(false);
 
-  // Load persisted width
+  // Load persisted width + collapsed state
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-width');
     if (saved) {
@@ -431,6 +506,19 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         dragCurrentWidth.current = w;
       }
     }
+    if (localStorage.getItem('sidebar-collapsed') === '1') {
+      setCollapsed(true);
+      dragCollapsed.current = true;
+    }
+  }, []);
+
+  const toggleCollapse = useCallback(() => {
+    setCollapsed(c => {
+      const next = !c;
+      dragCollapsed.current = next;
+      localStorage.setItem('sidebar-collapsed', next ? '1' : '0');
+      return next;
+    });
   }, []);
 
   // Close mobile sidebar on route change
@@ -458,21 +546,39 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   function startSidebarDrag(e: React.MouseEvent) {
     dragStartX.current = e.clientX;
-    dragStartWidth.current = sidebarWidth;
+    // Drag from the rail's real edge when collapsed, so pulling right expands it.
+    dragStartWidth.current = collapsed ? SIDEBAR_COLLAPSED : sidebarWidth;
     dragCurrentWidth.current = sidebarWidth;
+    setDragging(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
     function onMove(ev: MouseEvent) {
-      const w = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, dragStartWidth.current + ev.clientX - dragStartX.current));
+      const raw = dragStartWidth.current + ev.clientX - dragStartX.current;
+      // Below the snap point the sidebar becomes the icons-only rail; drag back
+      // past it and it re-expands to the last real width.
+      if (raw < SIDEBAR_SNAP) {
+        if (!dragCollapsed.current) {
+          dragCollapsed.current = true;
+          setCollapsed(true);
+        }
+        return;
+      }
+      if (dragCollapsed.current) {
+        dragCollapsed.current = false;
+        setCollapsed(false);
+      }
+      const w = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, raw));
       setSidebarWidth(w);
       dragCurrentWidth.current = w;
     }
 
     function onUp() {
+      setDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       localStorage.setItem('sidebar-width', String(dragCurrentWidth.current));
+      localStorage.setItem('sidebar-collapsed', dragCollapsed.current ? '1' : '0');
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     }
@@ -495,14 +601,15 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-bg max-w-[100vw]">
       {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex shrink-0 border-r border-border flex-col relative"
-        style={{ width: sidebarWidth }}
+        className={`hidden md:flex shrink-0 border-r border-border flex-col relative ${dragging ? '' : 'transition-[width] duration-200 ease-out'}`}
+        style={{ width: collapsed ? SIDEBAR_COLLAPSED : sidebarWidth }}
       >
         <SidebarContent
           pathname={pathname} user={user} open={open} setOpen={setOpen}
           onCmdOpen={() => setCmdOpen(true)}
           hidden={hidden} hasNotes={hasNotes} groupVisible={groupVisible}
           workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
+          collapsed={collapsed} onToggleCollapse={toggleCollapse}
         />
         {/* Drag handle */}
         <div
