@@ -208,7 +208,7 @@ const DEMOS: Demo[] = [
  * "MODUS routed this to <model>" → a rich, formatted reply. Self-contained,
  * scripted ($0). Reused by the marketing section + onboarding showcase.
  */
-export function DemoWindow({ showRail = true }: { showRail?: boolean } = {}) {
+export function DemoWindow({ showRail = true, compact = false }: { showRail?: boolean; compact?: boolean } = {}) {
   const [i, setI] = useState(0);
   const [stage, setStage] = useState(0); // 0 prompt, 1 routing, 2 reply
 
@@ -240,7 +240,7 @@ export function DemoWindow({ showRail = true }: { showRail?: boolean } = {}) {
         <div className="w-[56px]" />
       </div>
 
-      <div className="flex min-h-[480px]">
+      <div className={`flex ${compact ? 'min-h-[300px]' : 'min-h-[480px]'}`}>
         {/* model rail (real switcher) */}
         <div className={`w-56 shrink-0 border-r border-border bg-bg/30 p-3 ${showRail ? 'hidden md:flex' : 'hidden'} flex-col gap-1`}>
           <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-2 pb-1">Model</p>
