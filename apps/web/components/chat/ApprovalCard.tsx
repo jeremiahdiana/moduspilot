@@ -53,10 +53,6 @@ const REDIRECT_TYPES = new Set(Object.keys(CONNECT_ENDPOINTS));
 const spring = { type: 'spring', stiffness: 300, damping: 26 } as const;
 const springFast = { type: 'spring', stiffness: 420, damping: 28 } as const;
 
-// Module-level counter gives each card instance a unique index within the page session,
-// preventing duplicate cards (e.g. two habits with the same name) from sharing a storage key.
-let _cardCount = 0;
-
 function buildFollowUpMessage(type: string, title: string, payload: Record<string, unknown>): string | null {
   switch (type) {
     case 'create_project': {
@@ -118,28 +114,48 @@ function buildFollowUpMessage(type: string, title: string, payload: Record<strin
   }
 }
 
-export default function ApprovalCard({ raw, onApproved }: { raw: string; onApproved?: (text: string) => void }) {
-  // Persist approved state so remounts (navigation, conversation switch) don't reset to pending
-  const instanceId = useMemo(() => ++_cardCount, []);
-  const cardKey = useMemo(() => {
-    try {
-      const sig = raw.slice(0, 120) + '|' + instanceId;
-      return 'mc-' + btoa(unescape(encodeURIComponent(sig))).slice(0, 32).replace(/[+/=]/g, '_');
-    } catch { return ''; }
-  }, [raw, instanceId]);
+export default function ApprovalCard({
+  raw,
+  cardId,
+  onApproved,
+}: {
+  raw: string;
+  /**
+   * Stable identity for THIS card: `<messageId>:<blockIndex>`. The message id is
+   * persisted to Firestore with the thread, so it is the same on every reload,
+   * in every tab, forever.
+   */
+  cardId?: string;
+  onApproved?: (text: string) => void;
+}) {
+  // Remember that this card was approved, so a remount never offers to do the
+  // work a second time. Two things used to break that, and an approval card
+  // doing its thing twice means an email sent twice:
+  //
+  //  - sessionStorage DIES WITH THE TAB. Approve, close the tab, reopen the
+  //    conversation, and an already-sent email showed as pending again.
+  //  - The key was a module counter incremented per mount, so it only lined up
+  //    while cards mounted in the same order in the same page session. Any drift
+  //    silently pointed at the wrong key, i.e. pending.
+  //
+  // localStorage keyed on the persisted message id fixes both. cardId is
+  // optional so a card rendered outside a saved thread still works — it just
+  // falls back to in-memory state, which is the honest behaviour when there is
+  // no durable identity to hang it on.
+  const storageKey = cardId ? `modus:approved:${cardId}` : '';
 
   const [status, setStatus] = useState<'pending' | 'editing' | 'approved' | 'dismissed'>(() => {
     try {
-      if (typeof window !== 'undefined' && cardKey && sessionStorage.getItem(cardKey) === 'approved') return 'approved';
+      if (typeof window !== 'undefined' && storageKey && localStorage.getItem(storageKey) === '1') return 'approved';
     } catch {}
     return 'pending';
   });
 
   useEffect(() => {
-    if (status === 'approved' && cardKey) {
-      try { sessionStorage.setItem(cardKey, 'approved'); } catch {}
+    if (status === 'approved' && storageKey) {
+      try { localStorage.setItem(storageKey, '1'); } catch {}
     }
-  }, [status, cardKey]);
+  }, [status, storageKey]);
 
   const [loading, setLoading] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');

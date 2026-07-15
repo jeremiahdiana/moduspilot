@@ -160,7 +160,10 @@ export default function MessageBubble({
         {routedModel && <RoutedChip modelId={routedModel} />}
         {parts.map((part, i) =>
           part.type === 'approval' ? (
-            <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />
+            // messageId:blockIndex — stable across reloads and tabs because the
+            // message id is persisted with the thread, unlike the mount-order
+            // counter this replaced.
+            <ApprovalCard key={i} raw={part.value} cardId={`${message.id}:${i}`} onApproved={onApproved} />
           ) : part.type === 'draft_options' ? (
             <DraftOptionsCard
               key={i}
