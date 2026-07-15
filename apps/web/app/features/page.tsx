@@ -8,6 +8,8 @@ import Navbar from '@/components/marketing/Navbar';
 import { MarketingBackground, ScrollProgress } from '@/components/marketing/MarketingBackground';
 import { MODEL_LOGOS } from '@/components/marketing/ModelLogos';
 import ModelCompareDemo from '@/components/marketing/ModelCompareDemo';
+import StackSection from '@/components/marketing/StackSection';
+import CreationsSection from '@/components/marketing/CreationsSection';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
@@ -298,12 +300,6 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
   );
 }
 
-const STEPS = [
-  { n: '01', title: 'Every model, one subscription', desc: 'Write with Gemini, research with Claude, ask ChatGPT. MODUS routes each task to whichever model does it best, so you stop paying for three and picking the right tab yourself.', tags: ['ChatGPT', 'Claude', 'Gemini', 'Grok', 'Auto-routed'] },
-  { n: '02', title: 'Connect your life', desc: 'Calendar, email, health data, apps. MODUS reads across all of it, and learns your goals, priorities, and how you like to work. The more context it has, the less you have to explain.', tags: ['Gmail', 'Calendar', 'Drive', 'Notion', 'Slack', 'Memory'] },
-  { n: '03', title: 'It acts, or asks first', desc: 'Reminders set. Emails drafted. Blocks on your calendar. For anything that touches the outside world, MODUS surfaces an approval card.', tags: ['Approval cards', 'Edit', 'Skip'] },
-  { n: '04', title: 'You approve in one tap', desc: "You're not managing software. You're the executive. MODUS brings decisions to you. You say yes, edit, or redirect.", tags: ['One tap', 'Full control', 'Audit trail'] },
-];
 
 export default function FeaturesPage() {
   const [activeTab, setActiveTab] = useState('morning');
@@ -321,17 +317,16 @@ export default function FeaturesPage() {
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16,1,0.3,1] }}>
             <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-4">Features</p>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-text leading-[1.08] mb-8 tracking-tight">
-              <span className="text-brand dark:text-brand-light">Every model.</span><br />
-              One assistant.<br />
-              That runs your day.
+              Every AI you pay for.<br />
+              <span className="text-brand dark:text-brand-light">One that knows you.</span>
             </h1>
             <div className="max-w-2xl space-y-4">
               <p className="text-muted text-lg leading-relaxed">
-                ChatGPT and Claude are tools you go to. MODUS uses all of them, routes each task to the model that does it best, and comes to you. It manages your schedule, sends your emails, creates what you need, and surfaces the decisions that need you.
+                ChatGPT, Claude and Gemini are tools you go to. You pick the tab, you paste the context, you explain yourself again. MODUS has all of them, sends each task to whichever is best, and already knows your week. Then it does the thing.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 mt-8">
-              {['Every AI model', 'Approval-based', 'Creates images & docs', 'Proactive, not reactive', 'Connected to your tools'].map(tag => (
+              {['Every frontier model', 'Reads your email & calendar', 'Makes images, charts, docs', 'Acts with your approval', 'One $24 bill'].map(tag => (
                 <span key={tag} className="text-xs font-medium text-brand dark:text-brand-light bg-brand/10 px-3 py-1.5 rounded-full">
                   {tag}
                 </span>
@@ -377,7 +372,7 @@ export default function FeaturesPage() {
               {[
                 { t: 'Auto-routing', d: 'MODUS reads the task and sends it to the model that does it best. You never pick a tab again.' },
                 { t: 'Manual pick', d: 'Want Claude for this one? Switch model right in the composer, mid-conversation.' },
-                { t: 'One subscription', d: '$200+/mo of separate AI tools, replaced by one $24 bill with memory of you.' },
+                { t: 'One subscription', d: '$140/mo of separate AI tools, replaced by one $24 bill with memory of you.' },
               ].map(c => (
                 <div key={c.t} className="bg-panel rounded-2xl p-5 ring-1 ring-brand/20">
                   <h3 className="text-sm font-bold text-text mb-1.5">{c.t}</h3>
@@ -387,6 +382,12 @@ export default function FeaturesPage() {
             </div>
           </RevealOnScroll>
         </section>
+
+        {/* The math — the reason to switch, stated in numbers a reader can check. */}
+        <StackSection />
+
+        {/* What it makes — the creative range, shown with real output. */}
+        <CreationsSection />
 
         {/* Scenarios */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
@@ -436,35 +437,9 @@ export default function FeaturesPage() {
           </RevealOnScroll>
         </section>
 
-        {/* 4 steps */}
-        <section className="px-6 py-20 max-w-5xl mx-auto">
-          <RevealOnScroll>
-            <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">The flow</p>
-            <h2 className="text-4xl font-semibold text-text mb-12">Four steps. Zero micromanagement.</h2>
-          </RevealOnScroll>
-          <div className="grid md:grid-cols-2 gap-5">
-            {STEPS.map((step, i) => (
-              <RevealOnScroll key={step.n} delay={i * 0.1}>
-                <motion.div
-                  whileHover={{ y: -4, boxShadow: '0 20px 60px rgba(124,58,237,0.12)' }}
-                  transition={{ duration: 0.2 }}
-                  className="bg-panel rounded-2xl p-7 shadow-lg shadow-black/20 transition-shadow group"
-                >
-                  <div className="mb-4">
-                    <span className="text-4xl font-semibold text-brand/25 group-hover:text-brand/40 transition-colors leading-none">{step.n}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-text mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted leading-relaxed mb-4">{step.desc}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {step.tags.map(t => (
-                      <span key={t} className="text-[10px] text-brand dark:text-brand-light bg-brand/10 px-2 py-0.5 rounded-full">{t}</span>
-                    ))}
-                  </div>
-                </motion.div>
-              </RevealOnScroll>
-            ))}
-          </div>
-        </section>
+        {/* The four generic "steps" cards lived here and were cut: they described
+            a flow in words on a page whose job is to SHOW things. StackSection and
+            CreationsSection now carry that weight with something to look at. */}
 
         {/* MODUS vs others */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
