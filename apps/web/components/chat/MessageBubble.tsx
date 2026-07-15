@@ -58,13 +58,23 @@ function ModusAvatar() {
 function RoutedChip({ modelId }: { modelId: string }) {
   const info = PLATFORM_MODELS.find(m => m.id === modelId);
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted">
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-center gap-1.5 text-xs text-muted"
+    >
       <span>MODUS routed this to</span>
-      <span className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-md border border-border bg-panel text-text font-medium">
+      <motion.span
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 26, delay: 0.05 }}
+        className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-md border border-border bg-panel text-text font-medium"
+      >
         <ProviderLogo provider={info?.provider ?? ''} className="w-3 h-3" />
         {modelName(modelId)}
-      </span>
-    </div>
+      </motion.span>
+    </motion.div>
   );
 }
 

@@ -12,7 +12,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import PaywallModal from '@/components/chat/PaywallModal';
 import { isPaidPlan } from '@/lib/plan';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Message } from 'ai';
 
@@ -25,7 +25,7 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? undefined;
 
-  const { conversations, loading, createConversation, saveMessages, renameConversation, deleteConversation, restoreConversation } = useConversations(uid);
+  const { conversations, loading, createConversation, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation } = useConversations(uid);
   const { settings, loading: settingsLoading, saveSettings } = useUserSettings(user);
   // Conversation rail: same drag/collapse behaviour as the app sidebar. A chat
   // list has no icons to shrink to, so collapsed hides it behind a reopen tab.
@@ -147,6 +147,32 @@ export default function ChatPage() {
     setConvDrawerOpen(false);
   }, [restoreConversation]);
 
+  // Asks the model to name the conversation from its first exchange, then
+  // renames it in place. Never throws into the send path.
+  const generateTitle = useCallback(async (convId: string, messages: Message[]) => {
+    try {
+      const firstUser = messages.find(m => m.role === 'user');
+      const firstAssistant = messages.find(m => m.role === 'assistant');
+      const userMessage = typeof firstUser?.content === 'string' ? firstUser.content : '';
+      if (!userMessage.trim()) return;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return;
+      const res = await fetch('/api/chat/title', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userMessage,
+          assistantMessage: typeof firstAssistant?.content === 'string' ? firstAssistant.content : '',
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json() as { title?: string | null };
+      if (data.title) await renameConversation(convId, data.title);
+    } catch {
+      // Keep the provisional title.
+    }
+  }, [renameConversation]);
+
   const handleMessagesChange = useCallback(async (messages: Message[], title?: string) => {
     if (isGuest || !uid) return;
     let convId = activeId ?? pendingConvIdRef.current;
@@ -158,7 +184,13 @@ export default function ChatPage() {
       setInFlightMessages(messages);
     }
     await saveMessages(convId, messages, title);
-  }, [isGuest, uid, activeId, createConversation, saveMessages]);
+
+    // `title` is only set on the first exchange, so this fires once per chat.
+    // The truncated title above is the provisional one (the sidebar should never
+    // sit blank); this replaces it with a real summary a beat later. Failure is
+    // silent by design — a worse title is not worth an error toast.
+    if (title) generateTitle(convId, messages);
+  }, [isGuest, uid, activeId, createConversation, saveMessages, generateTitle]);
 
   // Access is server-authoritative: the API returns subscription_required (402)
   // and the composer opens the paywall via onShowPaywall. Nothing to track here.
@@ -200,7 +232,7 @@ export default function ChatPage() {
               uid={uid} showDeleted={showDeleted} setShowDeleted={setShowDeleted}
               conversations={conversations} activeId={activeId}
               onSelect={handleSelect} onNew={handleNew} onDelete={handleDelete}
-              onRename={renameConversation} onRestore={handleRestore}
+              onRename={renameConversation} onTogglePin={togglePin} onRestore={handleRestore}
               restoreConversation={restoreConversation} user={user}
               needsSubscription={needsSubscription} setShowPaywall={setShowPaywall}
               isPaid={isPaid} plan={plan}
@@ -255,7 +287,7 @@ export default function ChatPage() {
                   uid={uid} showDeleted={showDeleted} setShowDeleted={setShowDeleted}
                   conversations={conversations} activeId={activeId}
                   onSelect={handleSelect} onNew={handleNew} onDelete={handleDelete}
-                  onRename={renameConversation} onRestore={handleRestore}
+                  onRename={renameConversation} onTogglePin={togglePin} onRestore={handleRestore}
                   restoreConversation={restoreConversation} user={user}
                   needsSubscription={needsSubscription} setShowPaywall={setShowPaywall}
                   isPaid={isPaid} plan={plan}
@@ -382,7 +414,7 @@ export default function ChatPage() {
 // its wrapper; this owns the internal flex-column layout (list + pinned footer).
 function ConversationPanel({
   uid, showDeleted, setShowDeleted, conversations, activeId,
-  onSelect, onNew, onDelete, onRename, onRestore, restoreConversation, user,
+  onSelect, onNew, onDelete, onRename, onTogglePin, onRestore, restoreConversation, user,
   needsSubscription, setShowPaywall, isPaid, plan, onCollapse,
 }: {
   uid: string | null;
@@ -395,6 +427,7 @@ function ConversationPanel({
   onNew: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  onTogglePin: (id: string, pinned: boolean) => void;
   onRestore: (id: string) => void;
   restoreConversation: (id: string) => Promise<void>;
   user: ReturnType<typeof useAuth>['user'];
@@ -440,6 +473,7 @@ function ConversationPanel({
           onNew={onNew}
           onDelete={onDelete}
           onRename={onRename}
+          onTogglePin={onTogglePin}
           user={user}
         />
       )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from 'firebase/auth';
 import type { Conversation } from '@/hooks/useConversations';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -12,6 +13,7 @@ interface Props {
   onNew: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  onTogglePin?: (id: string, pinned: boolean) => void;
   user: User | null;
 }
 
@@ -61,6 +63,40 @@ function CheckIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
       <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
+function PinIcon({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+      <path d="M12 17v5" />
+      <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+    </svg>
+  );
+}
+
+function DotsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+      <circle cx="12" cy="5" r="1.75" /><circle cx="12" cy="12" r="1.75" /><circle cx="12" cy="19" r="1.75" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   );
 }
@@ -188,9 +224,67 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
   );
 }
 
+/** The ⋯ overflow menu: rename / share / delete. Pin lives outside it, as its own toggle. */
+function RowMenu({ open, onOpen, onClose, onRename, onShare, onDelete }: {
+  open: boolean; onOpen: () => void; onClose: () => void;
+  onRename: (e: React.MouseEvent) => void; onShare: () => void; onDelete: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    function onEsc(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onEsc); };
+  }, [open, onClose]);
+
+  return (
+    <div ref={ref} className="relative">
+      <Tooltip label="More" side="bottom">
+        <button
+          onClick={(e) => { e.stopPropagation(); open ? onClose() : onOpen(); }}
+          className={`p-1 rounded transition-colors ${open ? 'text-brand' : 'text-muted hover:text-text'}`}
+          aria-label="More actions"
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          <DotsIcon />
+        </button>
+      </Tooltip>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, scale: 0.94, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -4 }}
+            transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+            onClick={e => e.stopPropagation()}
+            className="absolute right-0 top-7 z-50 w-36 origin-top-right bg-panel border border-border rounded-lg shadow-2xl p-1"
+          >
+            <button role="menuitem" onClick={(e) => { onClose(); onRename(e); }} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-text hover:bg-bg transition-colors">
+              <span className="text-muted"><PencilIcon /></span> Rename
+            </button>
+            <button role="menuitem" onClick={() => { onClose(); onShare(); }} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-text hover:bg-bg transition-colors">
+              <span className="text-muted"><ShareIcon /></span> Share
+            </button>
+            <div className="my-1 border-t border-border/60" />
+            <button role="menuitem" onClick={() => { onClose(); onDelete(); }} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-red-400 hover:bg-red-400/10 transition-colors">
+              <TrashIcon /> Delete
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 type Filter = 'all' | 'chats' | 'briefings';
 
-export default function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onRename, user }: Props) {
+export default function ConversationList({ conversations, activeId, onSelect, onNew, onDelete, onRename, onTogglePin, user }: Props) {
   // Filter the flood of MODUS-generated briefings/check-ins out of the chat list.
   // Defaults to "chats" (real conversations) since that's what the sidebar is for;
   // briefings live on the Briefing page + dashboard, and are one click away here.
@@ -208,9 +302,14 @@ export default function ConversationList({ conversations, activeId, onSelect, on
   const visible = conversations.filter(c =>
     filter === 'all' ? true : filter === 'chats' ? !c.system : c.system
   );
-  const todayConvs   = visible.filter(c => isToday(c.updatedAt));
-  const earlierConvs = visible.filter(c => !isToday(c.updatedAt));
+  // Pinned chats leave the date groups entirely — otherwise a pinned chat would
+  // render twice (once under Pinned, once under Today/Earlier).
+  const pinnedConvs  = visible.filter(c => c.pinned);
+  const unpinned     = visible.filter(c => !c.pinned);
+  const todayConvs   = unpinned.filter(c => isToday(c.updatedAt));
+  const earlierConvs = unpinned.filter(c => !isToday(c.updatedAt));
   const [shareModalId, setShareModalId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [shareOverrides, setShareOverrides] = useState<Record<string, string | undefined>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -238,12 +337,15 @@ export default function ConversationList({ conversations, activeId, onSelect, on
     const effectiveShareId = shareOverrides[conv.id] !== undefined ? shareOverrides[conv.id] : conv.shareId;
     const isSharedConv = !!effectiveShareId;
     const isShareOpen = shareModalId === conv.id;
+    const isMenuOpen = menuId === conv.id;
 
     const isEditing = editingId === conv.id;
 
     return (
-      <div
+      <motion.div
         key={conv.id}
+        layout="position"
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
         className={`group relative flex flex-col px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
           isActive ? 'bg-brand/10' : 'hover:bg-panel'
         }`}
@@ -275,10 +377,19 @@ export default function ConversationList({ conversations, activeId, onSelect, on
                 </svg>
               )}
               <span className="truncate">{conv.title}</span>
+              {/* Share state used to live in the row's share button; that button
+                  moved into the ⋯ menu, so the link state needs its own marker. */}
+              {isSharedConv && (
+                <Tooltip label="Shared link is live" side="bottom">
+                  <span className="text-brand shrink-0 opacity-80"><ShareIcon /></span>
+                </Tooltip>
+              )}
             </span>
           )}
           {!isEditing && (
-            <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap transition-opacity duration-150 group-hover:opacity-0">
+            <span className={`text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap transition-opacity duration-150 group-hover:opacity-0 ${
+              isMenuOpen || isShareOpen ? 'opacity-0' : ''
+            }`}>
               {relativeTime(conv.updatedAt)}
             </span>
           )}
@@ -287,38 +398,38 @@ export default function ConversationList({ conversations, activeId, onSelect, on
           <p className="text-[11px] text-muted truncate mt-0.5 pr-14">{preview}</p>
         )}
 
-        {/* Hover actions */}
+        {/* Row actions: pin toggle + an overflow menu (rename / share / delete).
+            Stays visible while its menu is open, or the menu would vanish the
+            moment the pointer left the row. Deliberately NOT force-shown for
+            pinned rows: the actions sit on top of the timestamp, and the
+            "Pinned" group header already says the chat is pinned. */}
         {!isEditing && (
-          <div className={`absolute right-1.5 top-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg px-0.5 py-0.5 shadow-sm ${isActive ? 'bg-brand/15' : 'bg-panel'}`}>
-            <Tooltip label="Rename" side="bottom">
-            <button
-              onClick={(e) => startEdit(conv, e)}
-              className="p-1 rounded text-muted hover:text-brand transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
+          <div
+            className={`absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-lg px-0.5 py-0.5 shadow-sm transition-all duration-150 ${isActive ? 'bg-brand/15' : 'bg-panel'} ${
+              isMenuOpen || isShareOpen
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 focus-within:opacity-100 focus-within:translate-x-0'
+            }`}
+          >
+            <Tooltip label={conv.pinned ? 'Unpin' : 'Pin'} side="bottom">
+              <motion.button
+                whileTap={{ scale: 0.82 }}
+                onClick={(e) => { e.stopPropagation(); onTogglePin?.(conv.id, !conv.pinned); }}
+                className={`p-1 rounded transition-colors ${conv.pinned ? 'text-brand' : 'text-muted hover:text-brand'}`}
+                aria-label={conv.pinned ? 'Unpin conversation' : 'Pin conversation'}
+                aria-pressed={!!conv.pinned}
+              >
+                <PinIcon filled={!!conv.pinned} />
+              </motion.button>
             </Tooltip>
-            <Tooltip label={isSharedConv ? 'Shared' : 'Share'} side="bottom">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShareModalId(isShareOpen ? null : conv.id); }}
-              className={`p-1 rounded transition-colors ${isSharedConv ? 'text-brand' : 'text-muted hover:text-brand'}`}
-            >
-              <ShareIcon />
-            </button>
-            </Tooltip>
-            <Tooltip label="Delete" side="bottom">
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-              className="p-1 rounded text-muted hover:text-red-400 transition-colors text-xs"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-            </Tooltip>
+            <RowMenu
+              open={isMenuOpen}
+              onOpen={() => setMenuId(conv.id)}
+              onClose={() => setMenuId(null)}
+              onRename={(e) => startEdit(conv, e)}
+              onShare={() => setShareModalId(conv.id)}
+              onDelete={() => onDelete(conv.id)}
+            />
           </div>
         )}
 
@@ -330,20 +441,22 @@ export default function ConversationList({ conversations, activeId, onSelect, on
             onShareIdChange={handleShareIdChange}
           />
         )}
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 pb-2.5">
-        <button
+        <motion.button
           onClick={onNew}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.12 }}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20 text-brand text-sm font-medium hover:bg-brand/20 transition-colors"
         >
           <span className="text-lg leading-none">+</span>
           New chat
-        </button>
+        </motion.button>
       </div>
 
       {/* Filter — hide the flood of MODUS briefings. Only shown when briefings exist. */}
@@ -354,11 +467,20 @@ export default function ConversationList({ conversations, activeId, onSelect, on
               <button
                 key={f}
                 onClick={() => changeFilter(f)}
-                className={`flex-1 text-[11px] font-medium px-2 py-1 rounded-md capitalize transition-colors ${
-                  filter === f ? 'bg-brand/15 text-brand' : 'text-muted hover:text-text'
+                className={`relative flex-1 text-[11px] font-medium px-2 py-1 rounded-md capitalize transition-colors ${
+                  filter === f ? 'text-brand' : 'text-muted hover:text-text'
                 }`}
               >
-                {f}
+                {/* Shared layoutId makes the active pill slide between filters
+                    instead of blinking on/off. */}
+                {filter === f && (
+                  <motion.span
+                    layoutId="chatFilterPill"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    className="absolute inset-0 bg-brand/15 rounded-md"
+                  />
+                )}
+                <span className="relative z-10">{f}</span>
               </button>
             ))}
           </div>
@@ -374,9 +496,18 @@ export default function ConversationList({ conversations, activeId, onSelect, on
           </p>
         )}
 
+        {pinnedConvs.length > 0 && (
+          <>
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted px-3 py-1.5">
+              <span className="opacity-70"><PinIcon filled /></span> Pinned
+            </p>
+            <div className="space-y-0.5">{pinnedConvs.map(renderConv)}</div>
+          </>
+        )}
+
         {todayConvs.length > 0 && (
           <>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted px-3 py-1.5">Today</p>
+            <p className={`text-[10px] font-semibold uppercase tracking-widest text-muted px-3 py-1.5 ${pinnedConvs.length > 0 ? 'mt-3' : ''}`}>Today</p>
             <div className="space-y-0.5">{todayConvs.map(renderConv)}</div>
           </>
         )}

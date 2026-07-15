@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PLATFORM_MODELS, effectivePlan, modelName } from '@/lib/models';
 import { logoForModel } from '@/components/marketing/ModelLogos';
 
@@ -55,13 +56,24 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
           (() => { const L = logoForModel(value); return <L className="w-3.5 h-3.5 shrink-0" />; })()
         )}
         <span className="truncate font-medium">{currentLabel(value)}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 shrink-0">
+        <motion.svg
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 shrink-0"
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-        </svg>
+        </motion.svg>
       </button>
 
+      <AnimatePresence>
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-60 bg-panel border border-border rounded-xl shadow-lg py-1.5 z-50 max-h-80 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.97, y: 6 }}
+          transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute bottom-full left-0 mb-2 w-60 origin-bottom-left bg-panel border border-border rounded-xl shadow-lg py-1.5 z-50 max-h-80 overflow-y-auto"
+        >
           <button
             type="button"
             onClick={() => select('auto')}
@@ -111,8 +123,9 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
               </button>
             );
           })}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

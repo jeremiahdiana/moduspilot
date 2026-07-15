@@ -20,6 +20,8 @@ export interface Conversation {
   goalId?: string;
   /** MODUS-generated (daily briefing, proactive nudge, check-in) vs. a real user chat. */
   system?: boolean;
+  /** Pinned chats sort into their own group above Today, newest first. */
+  pinned?: boolean;
 }
 
 export function useConversations(uid: string | null) {
@@ -48,6 +50,7 @@ export function useConversations(uid: string | null) {
             projectId: d.data().projectId as string | undefined,
             goalId: d.data().goalId as string | undefined,
             system: !!(d.data().system || d.data().briefing || d.data().checkin),
+            pinned: d.data().pinned ?? false,
           }))
           // Hide empty chats: a conversation is only created lazily on the first
           // message now, so any non-system chat with 0 messages is a stale ghost
@@ -98,6 +101,11 @@ export function useConversations(uid: string | null) {
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), { title: title.trim() || 'New chat' });
   }, [uid]);
 
+  const togglePin = useCallback(async (convId: string, pinned: boolean) => {
+    if (!uid || !convId) return;
+    await updateDoc(doc(db, 'users', uid, 'conversations', convId), { pinned });
+  }, [uid]);
+
   const deleteConversation = useCallback(async (convId: string) => {
     if (!uid) return;
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), { deleted: true });
@@ -108,5 +116,5 @@ export function useConversations(uid: string | null) {
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), { deleted: false });
   }, [uid]);
 
-  return { conversations, loading, createConversation, saveMessages, renameConversation, deleteConversation, restoreConversation };
+  return { conversations, loading, createConversation, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation };
 }

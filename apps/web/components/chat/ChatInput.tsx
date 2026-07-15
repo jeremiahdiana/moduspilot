@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect, type FormEvent, type ChangeEvent } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { auth } from '@/lib/firebase';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
+import FilePreviewModal from '@/components/chat/FilePreviewModal';
 
 interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
@@ -45,6 +47,8 @@ export default function ChatInput({
   const [menuOpen, setMenuOpen] = useState(false);
   const [extracting, setExtracting] = useState<string | null>(null);
   const [attachError, setAttachError] = useState('');
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const imageRef = useRef<HTMLInputElement>(null);
@@ -164,6 +168,8 @@ export default function ChatInput({
     }
   }
 
+  const canSend = !isLoading && (!!input.trim() || !!attachedImage || attachedFiles.length > 0);
+
   const services: { key: keyof ConnectedServices; label: string }[] = [
     { key: 'google', label: 'Google' }, { key: 'notion', label: 'Notion' },
     { key: 'slack', label: 'Slack' }, { key: 'github', label: 'GitHub' }, { key: 'contacts', label: 'Contacts' },
@@ -175,49 +181,134 @@ export default function ChatInput({
       <input ref={docRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleDocChange} />
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-4">
-        {/* Attachment chips */}
+        {/* Attachment chips. Each one is clickable and opens a preview, so a
+            wrong file is caught before sending rather than after. */}
         {(attachedImage || attachedFiles.length > 0 || extracting) && (
           <div className="mb-2 flex flex-wrap gap-2">
-            {attachedImage && (
-              <div className="relative inline-block">
-                <img src={`data:image/jpeg;base64,${attachedImage}`} alt="attachment" className="h-16 w-16 object-cover rounded-lg border border-border" />
-                <button type="button" onClick={onClearImage} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-border rounded-full text-muted text-xs flex items-center justify-center hover:text-text">×</button>
-              </div>
-            )}
-            {attachedFiles.map((f, i) => (
-              <span key={i} className="flex items-center gap-2 bg-panel border border-border rounded-lg pl-2 pr-1.5 py-1.5 max-w-[220px]">
-                <FileIcon />
-                <span className="text-xs text-text truncate">{f.name}</span>
-                <button type="button" onClick={() => onRemoveFile?.(i)} className="text-muted hover:text-text shrink-0" aria-label="Remove file">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-3 h-3"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
-                </button>
-              </span>
-            ))}
-            {extracting && (
-              <span className="flex items-center gap-2 bg-panel border border-border rounded-lg px-2.5 py-1.5">
-                <span className="w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-muted truncate max-w-[160px]">Reading {extracting}…</span>
-              </span>
-            )}
+            <AnimatePresence initial={false} mode="popLayout">
+              {attachedImage && (
+                <motion.div
+                  key="image"
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative inline-block group/img"
+                >
+                  <button type="button" onClick={() => setImagePreviewOpen(true)} aria-label="Preview attached image">
+                    <img src={`data:image/jpeg;base64,${attachedImage}`} alt="attachment" className="h-16 w-16 object-cover rounded-lg border border-border transition-transform group-hover/img:scale-[1.04]" />
+                  </button>
+                  <button type="button" onClick={onClearImage} aria-label="Remove image" className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-border rounded-full text-muted text-xs flex items-center justify-center hover:text-text transition-colors">×</button>
+                </motion.div>
+              )}
+              {attachedFiles.map((f, i) => (
+                <motion.button
+                  key={`${f.name}-${i}`}
+                  type="button"
+                  layout
+                  initial={{ opacity: 0, scale: 0.85, y: 4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.85, y: 4 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                  onClick={() => setPreviewIndex(i)}
+                  title={`${f.name} · click to preview`}
+                  className="flex items-center gap-2 bg-panel border border-border hover:border-brand/40 rounded-lg pl-2 pr-1.5 py-1.5 max-w-[220px] transition-colors group/file"
+                >
+                  <span className="text-muted group-hover/file:text-brand transition-colors"><FileIcon /></span>
+                  <span className="text-xs text-text truncate">{f.name}</span>
+                  <span className="text-[9px] text-muted/70 shrink-0 tabular-nums">
+                    {f.text.length > 999 ? `${Math.round(f.text.length / 1000)}k` : f.text.length}
+                  </span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); onRemoveFile?.(i); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onRemoveFile?.(i); } }}
+                    className="text-muted hover:text-red-400 shrink-0 cursor-pointer transition-colors"
+                    aria-label={`Remove ${f.name}`}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-3 h-3"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
+                  </span>
+                </motion.button>
+              ))}
+              {extracting && (
+                <motion.span
+                  key="extracting"
+                  layout
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.16 }}
+                  className="flex items-center gap-2 bg-panel border border-border rounded-lg px-2.5 py-1.5"
+                >
+                  <span className="w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-muted truncate max-w-[160px]">Reading {extracting}…</span>
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
         )}
+
+        <FilePreviewModal
+          file={previewIndex !== null ? attachedFiles[previewIndex] ?? null : null}
+          onClose={() => setPreviewIndex(null)}
+          onRemove={previewIndex !== null ? () => onRemoveFile?.(previewIndex) : undefined}
+        />
+
+        <AnimatePresence>
+          {imagePreviewOpen && attachedImage && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setImagePreviewOpen(false)}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
+            >
+              <motion.img
+                initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                src={`data:image/jpeg;base64,${attachedImage}`}
+                alt="Attached image preview"
+                onClick={e => e.stopPropagation()}
+                className="max-w-full max-h-full rounded-xl shadow-2xl"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="flex gap-3 items-end bg-panel border border-border rounded-2xl px-4 py-3">
           {/* "+" menu */}
           <div className="relative shrink-0" ref={menuRef}>
             <Tooltip label="Attach & tools" side="top">
-              <button
+              <motion.button
                 type="button"
                 onClick={() => setMenuOpen(o => !o)}
+                whileTap={{ scale: 0.88 }}
+                transition={{ duration: 0.12 }}
                 className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors ${menuOpen ? 'bg-brand/10 border-brand/40 text-brand' : 'border-border text-muted hover:text-text hover:border-brand/40'}`}
                 aria-label="Attach and tools"
+                aria-expanded={menuOpen}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="w-4 h-4"><path d="M12 5v14M5 12h14" /></svg>
-              </button>
+                {/* The + rotates into an × so the button reads as a toggle. */}
+                <motion.svg
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="w-4 h-4"
+                  animate={{ rotate: menuOpen ? 135 : 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </motion.svg>
+              </motion.button>
             </Tooltip>
 
+            <AnimatePresence>
             {menuOpen && (
-              <div className="absolute bottom-full mb-2 left-0 w-64 bg-panel border border-border rounded-xl shadow-2xl p-1.5 z-50">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 6 }}
+                transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute bottom-full mb-2 left-0 w-64 origin-bottom-left bg-panel border border-border rounded-xl shadow-2xl p-1.5 z-50"
+              >
                 <MenuItem onClick={() => { setMenuOpen(false); imageRef.current?.click(); }} icon={<PhotoIcon />} label="Attach photo" hint="PNG, JPG" />
                 <MenuItem onClick={() => { setMenuOpen(false); docRef.current?.click(); }} icon={<FileIcon />} label="Attach file" hint="PDF, Word, text" />
                 <div className="my-1 border-t border-border/60" />
@@ -228,8 +319,9 @@ export default function ChatInput({
                 >
                   <span className={webSearchOn ? 'text-brand' : 'text-muted'}><SearchIcon /></span>
                   <span className="flex-1 text-left">Web search</span>
-                  <span className={`w-8 rounded-full relative transition-colors ${webSearchOn ? 'bg-brand' : 'bg-border'}`} style={{ height: 18 }}>
-                    <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-all ${webSearchOn ? 'left-[15px]' : 'left-0.5'}`} />
+                  {/* Knob springs between ends instead of a linear slide. */}
+                  <span className={`w-8 rounded-full relative flex items-center px-0.5 transition-colors ${webSearchOn ? 'bg-brand justify-end' : 'bg-border justify-start'}`} style={{ height: 18 }}>
+                    <motion.span layout transition={{ type: 'spring', stiffness: 600, damping: 32 }} className="w-3.5 h-3.5 rounded-full bg-white" />
                   </span>
                 </button>
                 <div className="my-1 border-t border-border/60" />
@@ -251,8 +343,9 @@ export default function ChatInput({
                   <span className="flex-1 text-left">Manage connections</span>
                   <span>→</span>
                 </Link>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
 
           <textarea
@@ -265,36 +358,64 @@ export default function ChatInput({
             className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
           />
 
-          {webSearchOn && (
-            <button type="button" onClick={() => onToggleWebSearch?.()} className="shrink-0 flex items-center gap-1 text-[11px] font-medium text-brand bg-brand/10 border border-brand/25 rounded-full pl-2 pr-1.5 py-1" title="Web search on — click to turn off">
-              <SearchIcon className="w-3 h-3" />
-              Search
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-2.5 h-2.5"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
-            </button>
-          )}
+          <AnimatePresence>
+            {webSearchOn && (
+              <motion.button
+                type="button"
+                initial={{ opacity: 0, scale: 0.8, width: 0 }}
+                animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                exit={{ opacity: 0, scale: 0.8, width: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => onToggleWebSearch?.()}
+                className="shrink-0 overflow-hidden flex items-center gap-1 text-[11px] font-medium text-brand bg-brand/10 border border-brand/25 rounded-full pl-2 pr-1.5 py-1 whitespace-nowrap"
+                title="Web search on — click to turn off"
+              >
+                <SearchIcon className="w-3 h-3" />
+                Search
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-2.5 h-2.5"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
+              </motion.button>
+            )}
+          </AnimatePresence>
 
           <Tooltip label={recording ? 'Stop recording' : 'Voice input'} side="top" className="shrink-0">
-            <button
+            <motion.button
               type="button"
               onClick={toggleRecording}
-              className={`shrink-0 transition-colors pb-0.5 ${recording ? 'text-red-400 animate-pulse' : 'text-muted hover:text-text'}`}
+              whileTap={{ scale: 0.85 }}
+              className={`relative shrink-0 transition-colors pb-0.5 ${recording ? 'text-red-400' : 'text-muted hover:text-text'}`}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              {/* An expanding ring reads as "listening" better than a fade pulse. */}
+              {recording && (
+                <motion.span
+                  className="absolute inset-0 -m-1 rounded-full bg-red-400/25"
+                  animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeOut' }}
+                />
+              )}
+              <svg className="relative w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
               </svg>
-            </button>
+            </motion.button>
           </Tooltip>
 
           <Tooltip label="Send" side="top" className="shrink-0">
-            <button
+            <motion.button
               type="submit"
               disabled={isLoading || (!input.trim() && !attachedImage && attachedFiles.length === 0)}
-              className="shrink-0 w-8 h-8 rounded-lg bg-brand flex items-center justify-center disabled:opacity-30 transition-opacity hover:bg-brand/90"
+              whileTap={canSend ? { scale: 0.88 } : undefined}
+              animate={canSend ? { scale: 1, opacity: 1 } : { scale: 0.94, opacity: 0.3 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="shrink-0 w-8 h-8 rounded-lg bg-brand flex items-center justify-center hover:bg-brand/90 disabled:cursor-default"
             >
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-              </svg>
-            </button>
+              {/* Swaps to a spinner while streaming instead of just dimming. */}
+              {isLoading ? (
+                <span className="w-3.5 h-3.5 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+                </svg>
+              )}
+            </motion.button>
           </Tooltip>
         </div>
 
