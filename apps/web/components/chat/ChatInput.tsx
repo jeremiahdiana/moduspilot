@@ -33,6 +33,8 @@ interface Props {
   compareSelected?: string[];
   onToggleCompareModel?: (id: string) => void;
   connectedServices?: ConnectedServices | null;
+  /** MODUS asked a question and it's still unanswered — the composer says so. */
+  openQuestion?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
   /** When set (signed-in users), shows the model switcher. */
   plan?: string;
@@ -48,7 +50,7 @@ export default function ChatInput({
   attachedImage, onClearImage, attachedFiles = [], onFileAttach, onRemoveFile,
   webSearchOn = false, onToggleWebSearch, compareOn = false, onToggleCompare,
   compareSelected = [], onToggleCompareModel,
-  connectedServices, textareaRef, plan, modelChoice, onModelChange,
+  connectedServices, openQuestion = false, textareaRef, plan, modelChoice, onModelChange,
 }: Props) {
   const [recording, setRecording] = useState(false);
   const [voiceError, setVoiceError] = useState('');
@@ -382,7 +384,12 @@ export default function ChatInput({
                 ? compareSelected.length >= MIN_PICKED
                   ? `Ask ${compareSelected.length} models at once…`
                   : `Pick at least ${MIN_PICKED} models…`
-                : 'Talk to MODUS...'
+                : openQuestion
+                  // The question above is waiting. Typing here is allowed — it
+                  // just skips it — but the composer has to admit that, or the
+                  // card gets stranded mid-stepper with no acknowledgement.
+                  ? 'Answer above, or type to skip the question…'
+                  : 'Talk to MODUS...'
             }
             rows={1}
             className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { readOptionsAnswer } from '@/lib/chat/card-state';
 
 /**
  * Interactive question card. MODUS asks for what it needs before doing work it
@@ -17,8 +18,14 @@ import { motion, AnimatePresence } from 'framer-motion';
  * Sibling of DraftOptionsCard, not a replacement — that one is specialised to
  * email replies (its own chrome, copy, and prompt contract) and is live.
  *
- * Selection is component state only, so a reload replays a pristine card — same
- * as DraftOptionsCard. Acceptable because the answer is the very next message.
+ * A card is only answerable while it is the newest thing in the thread. Once any
+ * later message exists the question is settled — either it was answered (and the
+ * answer is that message) or the user moved on — so the card locks. Without that
+ * every card ever rendered stayed live: a tap on a question from twenty turns ago
+ * appended an answer to something the model had long forgotten asking.
+ *
+ * Answered-ness is read from the following turn rather than kept in state, which
+ * is what makes it survive a reload. See lib/chat/card-state.ts.
  */
 interface Option {
   label: string;
@@ -73,9 +80,15 @@ function normalize(p: OptionsPayload): Question[] | null {
 export default function OptionsCard({
   raw,
   onAppend,
+  locked = false,
+  followingUserText,
 }: {
   raw: string;
   onAppend: (text: string) => void;
+  /** A later message exists, so this question is no longer open. */
+  locked?: boolean;
+  /** The turn right after this card — the record of what was answered, if anything. */
+  followingUserText?: string;
 }) {
   // Hooks must run unconditionally — parse/validate AFTER them, never before, or
   // a malformed block would change the hook count between renders (rules-of-hooks).
@@ -126,6 +139,7 @@ export default function OptionsCard({
   }
 
   function choose(oi: number) {
+    if (locked) return;
     const isCustomRow = oi === customIndex;
     const next = q.multiple === true
       ? (picked(qi).includes(oi) ? picked(qi).filter(x => x !== oi) : [...picked(qi), oi])
@@ -152,7 +166,10 @@ export default function OptionsCard({
     else setStep(s => s + 1);
   }
 
-  if (submitted) {
+  // Answered in this session, or answered before a reload and read back off the
+  // thread — the same collapsed chip either way.
+  const answeredLabel = submitted ? submittedLabel : readOptionsAnswer(followingUserText);
+  if (answeredLabel) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.97 }}
@@ -160,9 +177,9 @@ export default function OptionsCard({
         transition={spring}
         className="border border-brand/20 bg-brand/5 rounded-xl px-4 py-3 flex items-center gap-2.5"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+        <span className={`w-1.5 h-1.5 rounded-full bg-brand shrink-0 ${submitted ? 'animate-pulse' : ''}`} />
         <span className="text-sm text-muted">
-          Going with: <span className="text-text font-medium">{submittedLabel}</span>
+          Going with: <span className="text-text font-medium">{answeredLabel}</span>
         </span>
       </motion.div>
     );
@@ -176,10 +193,23 @@ export default function OptionsCard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 14, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      // The dim is animated, NOT a class: framer-motion writes opacity inline,
+      // and an inline style beats `opacity-50`, so the class silently did
+      // nothing and a locked card rendered at full strength.
+      animate={{ opacity: locked ? 0.45 : 1, y: 0, scale: 1 }}
       transition={spring}
-      className="border border-brand/20 bg-panel rounded-xl overflow-hidden shadow-[0_0_24px_rgba(124,58,237,0.06)]"
+      aria-disabled={locked}
+      className={`rounded-xl overflow-hidden ${
+        locked
+          ? 'border border-border/60 bg-panel/40 pointer-events-none select-none'
+          : 'border border-brand/20 bg-panel shadow-[0_0_24px_rgba(124,58,237,0.06)]'
+      }`}
     >
+      {locked && (
+        <p className="px-4 pt-3 text-[11px] font-medium text-muted/70">
+          Skipped — you moved on before answering.
+        </p>
+      )}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={qi}

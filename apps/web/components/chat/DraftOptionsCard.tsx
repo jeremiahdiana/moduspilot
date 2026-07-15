@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { readDraftAnswer } from '@/lib/chat/card-state';
 
 interface DraftOption {
   label: string;
@@ -20,9 +21,15 @@ const spring = { type: 'spring', stiffness: 320, damping: 26 } as const;
 export default function DraftOptionsCard({
   raw,
   onAppend,
+  locked = false,
+  followingUserText,
 }: {
   raw: string;
   onAppend: (text: string) => void;
+  /** A later message exists, so this question is no longer open. */
+  locked?: boolean;
+  /** The turn right after this card — the record of what was chosen, if anything. */
+  followingUserText?: string;
 }) {
   // Hooks must run unconditionally — parse/validate AFTER them, never before, or
   // a malformed block would change the hook count between renders (rules-of-hooks).
@@ -45,7 +52,7 @@ export default function DraftOptionsCard({
   const canSubmit = selected !== null && (!isCustomSelected || custom.trim().length > 0);
 
   function handleGenerate() {
-    if (!canSubmit) return;
+    if (!canSubmit || locked) return;
 
     let direction: string;
     if (isCustomSelected) {
@@ -65,7 +72,10 @@ export default function DraftOptionsCard({
     );
   }
 
-  if (submitted) {
+  // Chosen in this session, or chosen before a reload and read back off the
+  // thread — the same collapsed chip either way.
+  const chosenLabel = submitted ? submittedLabel : readDraftAnswer(followingUserText);
+  if (chosenLabel) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.97 }}
@@ -73,9 +83,9 @@ export default function DraftOptionsCard({
         transition={spring}
         className="border border-brand/20 bg-brand/5 rounded-xl px-4 py-3 flex items-center gap-2.5"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+        <span className={`w-1.5 h-1.5 rounded-full bg-brand shrink-0 ${submitted ? 'animate-pulse' : ''}`} />
         <span className="text-sm text-muted">
-          Drafting with: <span className="text-text font-medium">{submittedLabel}</span>
+          Drafting with: <span className="text-text font-medium">{chosenLabel}</span>
         </span>
       </motion.div>
     );
@@ -84,10 +94,21 @@ export default function DraftOptionsCard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 14, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      // Animated, not a class — framer-motion's inline opacity beats `opacity-50`.
+      animate={{ opacity: locked ? 0.45 : 1, y: 0, scale: 1 }}
       transition={spring}
-      className="border border-brand/20 bg-panel rounded-xl overflow-hidden shadow-[0_0_24px_rgba(124,58,237,0.06)]"
+      aria-disabled={locked}
+      className={`rounded-xl overflow-hidden ${
+        locked
+          ? 'border border-border/60 bg-panel/40 pointer-events-none select-none'
+          : 'border border-brand/20 bg-panel shadow-[0_0_24px_rgba(124,58,237,0.06)]'
+      }`}
     >
+      {locked && (
+        <p className="px-4 pt-3 text-[11px] font-medium text-muted/70">
+          Skipped — you moved on before choosing.
+        </p>
+      )}
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-border/60">
         <div className="flex items-center gap-2 mb-1">

@@ -11,9 +11,14 @@ interface ImagePayload {
 
 // Renders MODUS-generated images. MODUS emits a ```image {"prompt":"..."}```
 // block; this card auto-generates once via /api/generate/image and shows the
-// result with download + regenerate. Images aren't persisted (data URLs are too
-// large for Firestore) — they live for the session; reloading history won't
-// restore them. Storage-backed persistence is a follow-up.
+// result with download + regenerate.
+//
+// Re-firing generate() on every mount is intentional and is NOT a re-bill: the
+// route caches by (uid, size, prompt) and serves the stored Storage URL back,
+// free and without touching the daily cap. Regenerate sends force:true to skip
+// that cache, which is the one path that costs. The exception is a failed
+// Storage upload — the route then returns an uncacheable inline data URL, and
+// that image really does regenerate on reload.
 export default function ImageCard({ raw }: { raw: string }) {
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
   const [image, setImage] = useState<string | null>(null);

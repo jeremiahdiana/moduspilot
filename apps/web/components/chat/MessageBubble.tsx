@@ -84,6 +84,8 @@ export default function MessageBubble({
   isStreaming = false,
   showAvatar = true,
   routedModel,
+  followingUserText,
+  isLatest = true,
   onAppend,
   onApproved,
 }: {
@@ -91,6 +93,10 @@ export default function MessageBubble({
   isStreaming?: boolean;
   showAvatar?: boolean;
   routedModel?: string;
+  /** The user turn right after this one, if any — how a card knows it was answered. */
+  followingUserText?: string;
+  /** False once a later message exists, which closes any question this one asked. */
+  isLatest?: boolean;
   onAppend?: (text: string) => void;
   onApproved?: (text: string) => void;
 }) {
@@ -156,9 +162,21 @@ export default function MessageBubble({
           part.type === 'approval' ? (
             <ApprovalCard key={i} raw={part.value} onApproved={onApproved} />
           ) : part.type === 'draft_options' ? (
-            <DraftOptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
+            <DraftOptionsCard
+              key={i}
+              raw={part.value}
+              onAppend={onAppend ?? (() => {})}
+              locked={!isLatest}
+              followingUserText={followingUserText}
+            />
           ) : part.type === 'options' ? (
-            <OptionsCard key={i} raw={part.value} onAppend={onAppend ?? (() => {})} />
+            <OptionsCard
+              key={i}
+              raw={part.value}
+              onAppend={onAppend ?? (() => {})}
+              locked={!isLatest}
+              followingUserText={followingUserText}
+            />
           ) : part.type === 'image' ? (
             <ImageCard key={i} raw={part.value} />
           ) : part.type === 'document' ? (

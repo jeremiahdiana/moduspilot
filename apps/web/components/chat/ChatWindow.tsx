@@ -29,6 +29,30 @@ function readRoutedAnnotation(m: Message): string | undefined {
   return undefined;
 }
 
+/** A message's plain text, whether it's a bare string or multimodal parts. */
+function messageText(m: Message): string {
+  if (typeof m.content === 'string') return m.content;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parts = m.content as any[];
+  if (!Array.isArray(parts)) return '';
+  return parts.filter(p => p.type === 'text').map(p => p.text as string).join('\n');
+}
+
+/**
+ * True when the newest message is MODUS asking a question and nothing has
+ * answered it yet.
+ *
+ * The card's answer arrives as a real user turn, so "the last message still
+ * carries the question block" IS "unanswered" — no cross-component state needed.
+ * The composer uses this to say the question is waiting, rather than letting the
+ * user type straight past it and leave the card stranded mid-stepper.
+ */
+function hasOpenQuestion(messages: Message[]): boolean {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== 'assistant') return false;
+  return /```(options|draft_options)\n/.test(messageText(last));
+}
+
 function timeGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -105,9 +129,14 @@ export default function ChatWindow({
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; text: string }[]>([]);
   const [webSearchOn, setWebSearchOn] = useState(false);
   // Compare mode: the next message is answered by 3 models side by side.
-  // comparePrompt !== null is what mounts the card.
+  // compare !== null is what mounts the card. It carries its own id because the
+  // prompt alone can't key the card — asking the same question twice would reuse
+  // the component and replay the first run's state.
   const [compareOn, setCompareOn] = useState(false);
-  const [comparePrompt, setComparePrompt] = useState<string | null>(null);
+  const [compare, setCompare] = useState<{ prompt: string; id: string } | null>(null);
+  // True once an answer has been folded into the thread as a real user turn, so
+  // the card's stand-in prompt bubble stops rendering a duplicate of it.
+  const [compareFolded, setCompareFolded] = useState(false);
   // The DEFAULT set only — the user picks the real one in ModelPicker. Seeded
   // with 3 unlocked models from DIFFERENT providers, since GPT-4o vs o4-mini
   // says much less than GPT-4o vs Claude vs Gemini.
@@ -277,6 +306,34 @@ export default function ChatWindow({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const didInitialScrollRef = useRef(false);
 
+  // Latest messages, for handlers that must not close over a stale array.
+  const messagesRef = useRef(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Adds turns we ALREADY have the text for, without calling the model.
+  //
+  // useChat's `append` is not an option here: it calls triggerRequest
+  // unconditionally, whatever the role, so using it to drop in an answer we
+  // already hold fires a second, racing generation and bills for it. setMessages
+  // is the non-triggering path — but the save effect only runs on an isLoading
+  // transition, so nothing would persist. Hence the explicit save.
+  const appendLocal = (additions: { role: 'user' | 'assistant'; content: string }[]) => {
+    // `parts` is not optional on a UIMessage and is what the SDK reads back, so
+    // build it rather than casting past it — a message without parts renders
+    // blank once it round-trips through the SDK.
+    const stamped = additions.map(m => ({
+      ...m,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      parts: [{ type: 'text' as const, text: m.content }],
+    }));
+    const next = [...messagesRef.current, ...stamped];
+    messagesRef.current = next;
+    setMessages(next);
+    savedLengthRef.current = next.length;
+    onMessagesChange?.(next);
+  };
+
   // Pre-fill input if navigated here with ?q= (Cmd+K)
   useEffect(() => {
     if (initialInput) {
@@ -306,6 +363,12 @@ export default function ChatWindow({
     stop();
     setMessages(initialMessages);
     savedLengthRef.current = initialMessages.length;
+    // The comparison belongs to the conversation it was started in. It lives in
+    // component state, not in messages, so without this it stays mounted and
+    // follows the user into whichever chat they open next.
+    setCompare(null);
+    setCompareFolded(false);
+    setCompareOn(false);
   // Only run when conversationId changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
@@ -394,10 +457,18 @@ export default function ChatWindow({
     if (isAtLimit) { onShowPaywall?.(); return; }
 
     // Compare mode short-circuits the normal send: the prompt goes to three
-    // models side by side instead of into the conversation. Attachments are
-    // deliberately not carried — the compare route takes a bare prompt.
+    // models side by side instead of into the conversation.
     if (compareOn && input.trim()) {
-      setComparePrompt(input.trim());
+      // /api/chat/compare takes a bare prompt, so an attachment cannot come
+      // along. Say so and keep it in the composer — this used to return here
+      // without clearing the attachment or sending it, so the file just sat
+      // there and the models answered a question about a file they never saw.
+      if (attachedImage || attachedFiles.length > 0) {
+        setModelNotice('Multi-model can’t read attachments yet. Remove the file to compare models, or turn multi-model off to send it.');
+        return;
+      }
+      setCompare({ prompt: input.trim(), id: crypto.randomUUID() });
+      setCompareFolded(false);
       setInput('');
       setCompareOn(false);
       return;
@@ -512,35 +583,50 @@ export default function ChatWindow({
             showAvatar={messages[idx - 1]?.role !== m.role}
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
             routedModel={routedByMsgId[m.id] ?? readRoutedAnnotation(m)}
+            isLatest={idx === messages.length - 1}
+            followingUserText={
+              messages[idx + 1]?.role === 'user' ? messageText(messages[idx + 1]) : undefined
+            }
             onAppend={(text) => {
               setChatError(null);
               onUserMessage?.();
               append({ role: 'user', content: text }, { body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } });
             }}
             onApproved={(text) => {
-              append({ role: 'assistant', content: text } as Parameters<typeof append>[0]);
+              // The approval already did the work and handed back its own
+              // confirmation line — appending it must not ask the model to
+              // generate a second one on top.
+              appendLocal([{ role: 'assistant', content: text }]);
             }}
           />
         ))}
 
-        {comparePrompt && (
+        {compare && (
           <div className="space-y-2">
-            <div className="flex justify-end">
-              <div className="bg-brand text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[72%]">
-                <p className="text-sm leading-relaxed">{comparePrompt}</p>
+            {/* Stand-in for the prompt until a real user turn exists for it —
+                once one does, that message renders it and this would double it. */}
+            {!compareFolded && (
+              <div className="flex justify-end">
+                <div className="bg-brand text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[72%]">
+                  <p className="text-sm leading-relaxed">{compare.prompt}</p>
+                </div>
               </div>
-            </div>
+            )}
             <CompareCard
-              key={comparePrompt}
-              prompt={comparePrompt}
+              key={compare.id}
+              prompt={compare.prompt}
               models={compareModels}
-              onClose={() => setComparePrompt(null)}
+              onClose={() => { setCompare(null); setCompareFolded(false); }}
               onUse={(text) => {
-                // Fold the winning answer into the real conversation, then drop
-                // the card — from here it's an ordinary chat turn.
-                setComparePrompt(null);
-                append({ role: 'user', content: comparePrompt } as Parameters<typeof append>[0]);
-                append({ role: 'assistant', content: text } as Parameters<typeof append>[0]);
+                // Fold an answer into the real conversation but LEAVE the card
+                // open, so a second model's answer can be taken too — closing on
+                // the first pick made "use two of these" impossible. The card is
+                // dismissed by its X, not by using it.
+                appendLocal([
+                  ...(compareFolded ? [] : [{ role: 'user' as const, content: compare.prompt }]),
+                  { role: 'assistant' as const, content: text },
+                ]);
+                setCompareFolded(true);
               }}
             />
           </div>
@@ -581,17 +667,21 @@ export default function ChatWindow({
       {chatError && (
         <div className="mx-4 md:mx-8 mb-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
           <p className="text-sm text-red-400">{chatError}</p>
-          <button
-            onClick={() => { setChatError(null); reload(); }}
-            className="text-red-400 hover:text-red-300 text-sm font-medium shrink-0"
-          >
-            Regenerate
-          </button>
-          <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300 shrink-0" aria-label="Dismiss">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+          {/* The actions are one group on the right — justify-between across
+              three children stranded Regenerate in the middle of the bar. */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => { setChatError(null); reload(); }}
+              className="text-red-400 hover:text-red-300 text-sm font-medium"
+            >
+              Regenerate
+            </button>
+            <button onClick={() => setChatError(null)} className="text-red-400 hover:text-red-300" aria-label="Dismiss">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -629,6 +719,7 @@ export default function ChatWindow({
           compareSelected={compareModels}
           onToggleCompareModel={toggleCompareModel}
           connectedServices={connectedServices}
+          openQuestion={hasOpenQuestion(messages)}
           textareaRef={inputAreaRef}
           plan={isGuest ? undefined : plan}
           modelChoice={modelChoice}
