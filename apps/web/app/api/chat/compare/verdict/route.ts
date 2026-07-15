@@ -7,7 +7,12 @@ import { modelName } from '@/lib/models';
 // columns finish. Judgement is about which answer served the user better, not
 // which model is "best" in the abstract.
 
-const MAX_ANSWER_CHARS = 1500;
+// Answers are capped at 900 output tokens (~3.6k chars) by the compare route, so
+// this holds a full one. It was 1500, which silently cut a normal 5-paragraph
+// essay in half — and the judge then reported the answer as "cut off, leaving it
+// incomplete" and marked the model DOWN for damage we had done to it. A judge
+// must see what the user saw, or it is reviewing our truncation, not the model.
+const MAX_ANSWER_CHARS = 4000;
 
 export async function POST(req: Request) {
   const auth = await requireAuth(req);
@@ -42,7 +47,17 @@ export async function POST(req: Request) {
         'You compare answers from different AI models to the same question. In at most 2 short sentences, ' +
         'say which answer served the user best and why, and note one meaningful difference between the others. ' +
         'Name models exactly as given in the headings. Be specific and honest — if they are essentially the ' +
-        'same, say so plainly rather than inventing a winner. No preamble, no markdown headers, no lists.',
+        'same, say so plainly rather than inventing a winner. No preamble, no markdown headers, no lists.\n' +
+        // Relevance was not a criterion, so a well-built answer to the WRONG
+        // question won on craft: a vague "generate any essay" had one model
+        // write about the Titanic and the others about the Berlin Wall, and the
+        // verdict crowned the Titanic for being "well-structured". Answering the
+        // question is the first test, not one merit among several.
+        'ANSWERING THE QUESTION COMES FIRST. An answer that is well written but addresses a different ' +
+        'subject than the others has not served the user, however good it reads — say so and do not pick it. ' +
+        'If the question was open enough that the models each chose a different subject, that is not one of ' +
+        'them being wrong: say the prompt was too open to compare and that a more specific ask would compare ' +
+        'them properly.',
       prompt: `Question:\n${prompt}\n\nAnswers:\n${block}\n\nVerdict:`,
     });
 

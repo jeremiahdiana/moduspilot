@@ -12,39 +12,28 @@
 import { config } from 'dotenv';
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+import { CLARIFY_SYSTEM } from '../lib/chat/clarify-prompt';
 
 config({ path: '.env.local' });
 
 const RUNS = Number(process.env.RUNS ?? 3);
 
-// Kept in sync with app/api/chat/compare/clarify/route.ts.
-const SYSTEM = `You decide whether a request needs clarifying before it is sent to several AI models at once.
-
-The user's prompt will be answered by 3 different models in parallel and compared side by side. If the request has a real ambiguity — length, tone, format, audience, scope, or which of several things they meant — every model will guess differently and the comparison will be useless. Ask first.
-
-If the request is clear enough to answer well, or is small talk, or is a simple factual question, reply with exactly:
-READY
-
-Otherwise reply with ONLY an options block and nothing else. No prose before or after.
-
-Work out every question you need BEFORE writing the block and put them all in one card (max 3 questions). Give 2-4 concrete options per question, with the likely answers pre-filled as choices. Never ask in prose.
-
-\`\`\`options
-{ "questions": [
-  { "header": "Length", "question": "How long should it be?", "options": [ { "label": "Short", "detail": "3 tight paragraphs" }, { "label": "Standard", "detail": "5-6 paragraphs with a clear arc" }, { "label": "Long-form", "detail": "Full narrative with sections" } ] },
-  { "header": "Tone", "question": "What tone?", "options": [ { "label": "Plain", "detail": "Direct and unadorned" }, { "label": "Persuasive", "detail": "Makes an argument" } ] }
-] }
-\`\`\`
-
-Rules:
-- Only ask what actually changes the answer. Two sharp questions beat four filler ones.
-- Never ask something the prompt already states.
-- The test is simple: would two good writers, given only this prompt, produce answers that differ in some way the user clearly cares about? If yes, ask. If the request has one obviously good answer, say READY.
-- Creative and open-ended work (essays, emails, plans, posts, strategies) almost always needs asking. Facts, math, definitions, small talk, and requests that already state their own format almost never do.`;
 
 const CASES: { prompt: string; wantAsk: boolean; why: string }[] = [
   { prompt: 'write me an essay',                                          wantAsk: true,  why: "his example — topic/length/tone all unknown" },
+  // 2026-07-16: his multi-model run on this fanned out WITHOUT a card and the
+  // three models wrote about three different subjects. The gate measures 3/3 on
+  // it, so the miss was the gate erroring and being skipped in silence, not the
+  // prompt. Pinned so a future prompt edit can't quietly make it a real gap.
+  { prompt: 'generate any essay',                                         wantAsk: true,  why: 'his exact wording — "any" makes topic wide open' },
   { prompt: 'write me an essay on the telephone',                         wantAsk: true,  why: 'topic known, length/tone still unknown' },
+  // ⚠️ KNOWN FAILING, PRE-EXISTING — measured 2026-07-16 at n=6: 0/6, a hard
+  // stable READY, not sampling noise. NOT a regression: the prompt was moved to
+  // lib/chat/clarify-prompt.ts byte-identically (verified by diff against the
+  // shipped copy) and behaviour is unchanged. Oddly phrasing-specific — "plan my
+  // week for me" asks 6/6 and "help me plan my week please" asks 5/6, so the gate
+  // understands the intent and balks only at this exact wording. Left alone
+  // deliberately: tuning the prompt against one case is how the other 9 break.
   { prompt: 'help me plan my week',                                       wantAsk: true,  why: 'scope genuinely unknown' },
   { prompt: 'write a cold email to a fitness brand about a partnership',  wantAsk: true,  why: 'tone/length matter a lot' },
   { prompt: "what's 2+2",                                                 wantAsk: false, why: 'obvious — a card here is friction' },
@@ -73,7 +62,7 @@ async function main() {
     const qCounts: number[] = [];
     for (let i = 0; i < RUNS; i++) {
       const { text } = await generateText({
-        model: openai('gpt-4o-mini'), temperature: 0, maxTokens: 400, system: SYSTEM, prompt: c.prompt,
+        model: openai('gpt-4o-mini'), temperature: 0, maxTokens: 400, system: CLARIFY_SYSTEM, prompt: c.prompt,
       });
       const m = /```options\s*([\s\S]*?)```/.exec(text);
       if (m) {

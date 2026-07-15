@@ -134,9 +134,6 @@ export default function ChatWindow({
   // the component and replay the first run's state.
   const [compareOn, setCompareOn] = useState(false);
   const [compare, setCompare] = useState<{ prompt: string; id: string } | null>(null);
-  // True once an answer has been folded into the thread as a real user turn, so
-  // the card's stand-in prompt bubble stops rendering a duplicate of it.
-  const [compareFolded, setCompareFolded] = useState(false);
   // The DEFAULT set only — the user picks the real one in ModelPicker. Seeded
   // with 3 unlocked models from DIFFERENT providers, since GPT-4o vs o4-mini
   // says much less than GPT-4o vs Claude vs Gemini.
@@ -367,7 +364,6 @@ export default function ChatWindow({
     // component state, not in messages, so without this it stays mounted and
     // follows the user into whichever chat they open next.
     setCompare(null);
-    setCompareFolded(false);
     setCompareOn(false);
   // Only run when conversationId changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -468,7 +464,6 @@ export default function ChatWindow({
         return;
       }
       setCompare({ prompt: input.trim(), id: crypto.randomUUID() });
-      setCompareFolded(false);
       setInput('');
       setCompareOn(false);
       return;
@@ -603,30 +598,29 @@ export default function ChatWindow({
 
         {compare && (
           <div className="space-y-2">
-            {/* Stand-in for the prompt until a real user turn exists for it —
-                once one does, that message renders it and this would double it. */}
-            {!compareFolded && (
-              <div className="flex justify-end">
-                <div className="bg-brand text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[72%]">
-                  <p className="text-sm leading-relaxed">{compare.prompt}</p>
-                </div>
+            {/* Stand-in for the prompt while the comparison runs. Picking a
+                model closes the card and writes the prompt as a real user turn,
+                so the two never render at once. */}
+            <div className="flex justify-end">
+              <div className="bg-brand text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[72%]">
+                <p className="text-sm leading-relaxed">{compare.prompt}</p>
               </div>
-            )}
+            </div>
             <CompareCard
               key={compare.id}
               prompt={compare.prompt}
               models={compareModels}
-              onClose={() => { setCompare(null); setCompareFolded(false); }}
+              onClose={() => setCompare(null)}
               onUse={(text) => {
-                // Fold an answer into the real conversation but LEAVE the card
-                // open, so a second model's answer can be taken too — closing on
-                // the first pick made "use two of these" impossible. The card is
-                // dismissed by its X, not by using it.
+                // Picking a model ENDS the comparison — Jeremiah, after living
+                // with the card staying open: "it should just be exited out if
+                // user chooses a model it still shows". Once you've chosen, the
+                // other two answers are noise sitting under the one you want.
                 appendLocal([
-                  ...(compareFolded ? [] : [{ role: 'user' as const, content: compare.prompt }]),
-                  { role: 'assistant' as const, content: text },
+                  { role: 'user', content: compare.prompt },
+                  { role: 'assistant', content: text },
                 ]);
-                setCompareFolded(true);
+                setCompare(null);
               }}
             />
           </div>

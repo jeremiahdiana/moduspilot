@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from 'firebase/auth';
 import type { Conversation } from '@/hooks/useConversations';
@@ -224,21 +225,66 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
   );
 }
 
-/** The ⋯ overflow menu: rename / share / delete. Pin lives outside it, as its own toggle. */
+/**
+ * The ⋯ overflow menu: rename / share / delete. Pin lives outside it, as its own toggle.
+ *
+ * The menu is PORTALLED to document.body and positioned fixed. Two reasons, both
+ * of which made it unusable in place:
+ *
+ *  - Each row is a `motion.div layout="position"`, and framer-motion's layout
+ *    prop applies a transform. A transformed element creates a stacking context,
+ *    which TRAPS the menu's z-index inside its own row — so every row below
+ *    painted straight over the menu, no matter how high the z-index went. That
+ *    is not a z-index bug and raising it cannot fix it.
+ *  - The list is an `overflow-y-auto` scroller, so an absolutely-positioned menu
+ *    on a row near the bottom gets clipped by the scroller regardless.
+ *
+ * A portal escapes both. The trade: fixed coords go stale when the list scrolls,
+ * so the menu closes on scroll rather than drifting away from its button.
+ */
 function RowMenu({ open, onOpen, onClose, onRename, onShare, onDelete }: {
   open: boolean; onOpen: () => void; onClose: () => void;
   onRename: (e: React.MouseEvent) => void; onShare: () => void; onDelete: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null);
+
+  // Measure off the trigger, and flip above it when there isn't room below —
+  // the menu is fixed to the viewport now, so it can't rely on the row for
+  // placement the way an absolutely-positioned child did.
+  useEffect(() => {
+    if (!open) { setCoords(null); return; }
+    const btn = ref.current?.getBoundingClientRect();
+    if (!btn) return;
+    const MENU_H = 116;
+    const below = window.innerHeight - btn.bottom;
+    setCoords({
+      top: below < MENU_H + 8 ? btn.top - MENU_H - 4 : btn.bottom + 4,
+      right: Math.max(8, window.innerWidth - btn.right),
+    });
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || menuRef.current?.contains(t)) return;
+      onClose();
     }
     function onEsc(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onEsc);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onEsc); };
+    // Fixed coords are a snapshot; any scroll invalidates them. Capture phase so
+    // the list's own scroller is heard, not just the window.
+    window.addEventListener('scroll', onClose, true);
+    window.addEventListener('resize', onClose);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+      window.removeEventListener('scroll', onClose, true);
+      window.removeEventListener('resize', onClose);
+    };
   }, [open, onClose]);
 
   return (
@@ -254,16 +300,16 @@ function RowMenu({ open, onOpen, onClose, onRename, onShare, onDelete }: {
           <DotsIcon />
         </button>
       </Tooltip>
-      <AnimatePresence>
-        {open && (
+      {open && coords && createPortal(
           <motion.div
+            ref={menuRef}
             role="menu"
             initial={{ opacity: 0, scale: 0.94, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -4 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
             onClick={e => e.stopPropagation()}
-            className="absolute right-0 top-7 z-50 w-36 origin-top-right bg-panel border border-border rounded-lg shadow-2xl p-1"
+            style={{ top: coords.top, right: coords.right }}
+            className="fixed z-[100] w-36 origin-top-right bg-panel border border-border rounded-lg shadow-2xl p-1"
           >
             <button role="menuitem" onClick={(e) => { onClose(); onRename(e); }} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-text hover:bg-bg transition-colors">
               <span className="text-muted"><PencilIcon /></span> Rename
@@ -275,9 +321,9 @@ function RowMenu({ open, onOpen, onClose, onRename, onShare, onDelete }: {
             <button role="menuitem" onClick={() => { onClose(); onDelete(); }} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-red-400 hover:bg-red-400/10 transition-colors">
               <TrashIcon /> Delete
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </motion.div>,
+          document.body,
+      )}
     </div>
   );
 }

@@ -70,7 +70,15 @@ export async function POST(req: Request) {
     model: resolved.model,
     system: SYSTEM,
     prompt,
-    maxTokens: 900,
+    // 900 could not deliver what the clarify gate OFFERS. That card's own
+    // example options include "Long-form — Full narrative with sections", and
+    // 900 tokens is ~675 words: pick long-form and the answer was guaranteed to
+    // stop mid-sentence, in all three columns, with nothing saying why. Never
+    // offer a length the pipe behind it cannot carry.
+    //
+    // This is a cap, not a target — a short answer bills what it generates, so
+    // raising it costs nothing except on the long answers the user asked for.
+    maxTokens: 2000,
     onFinish: () => {
       console.log(`[compare] ${resolved.modelId} finished in ${Date.now() - started}ms`);
     },

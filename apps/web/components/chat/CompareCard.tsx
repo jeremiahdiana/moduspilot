@@ -138,6 +138,8 @@ export default function CompareCard({
   // 'running' = fanned out. MODUS only asks when the ask is genuinely vague.
   const [phase, setPhase] = useState<'clarifying' | 'asking' | 'running'>('clarifying');
   const [optionsRaw, setOptionsRaw] = useState<string | null>(null);
+  // The clarify gate errored and we fanned out on the raw prompt anyway.
+  const [gateSkipped, setGateSkipped] = useState(false);
   const startedRef = useRef(false);
   const fannedRef = useRef(false);
   const abortRef = useRef<AbortController[]>([]);
@@ -209,11 +211,18 @@ export default function CompareCard({
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt }),
         });
+        if (!res.ok) throw new Error(String(res.status));
         const data = await res.json().catch(() => ({})) as { options?: string | null };
         if (data.options) { setOptionsRaw(data.options); setPhase('asking'); }
         else await fanOut(prompt);
       } catch {
-        // The gate is an optimisation, never a blocker.
+        // The gate stays an optimisation, never a blocker — a comparison the
+        // user asked for still runs. But it used to fail INVISIBLY, fanning a
+        // vague prompt out to 3 models (the exact thing the gate exists to
+        // prevent) while looking identical to a prompt that was clear enough not
+        // to need asking. If they each answer a different question, the user
+        // deserves to know we skipped the step that would have stopped it.
+        setGateSkipped(true);
         await fanOut(prompt);
       }
     })();
@@ -288,6 +297,16 @@ export default function CompareCard({
         <div className="flex items-center gap-2 px-3 py-4">
           <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
           <span className="text-xs text-muted">Checking what these models need to know…</span>
+        </div>
+      )}
+
+      {gateSkipped && phase === 'running' && (
+        <div className="flex items-start gap-2 px-3 py-2 border-b border-border/60 bg-amber-500/[0.06]">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 mt-1.5" />
+          <p className="text-[11px] text-amber-500/90 leading-relaxed">
+            MODUS couldn’t check whether this needed narrowing down first, so each model answered it as
+            written. If they went in different directions, ask again with more detail.
+          </p>
         </div>
       )}
 
