@@ -10,6 +10,7 @@ import { MODEL_LOGOS } from '@/components/marketing/ModelLogos';
 import ModelCompareDemo from '@/components/marketing/ModelCompareDemo';
 import StackSection from '@/components/marketing/StackSection';
 import CreationsSection from '@/components/marketing/CreationsSection';
+import { usePausableTimeout } from '@/hooks/usePausableTimeout';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
@@ -114,7 +115,11 @@ type SceneItem =
 
 const SCENES: Record<string, SceneItem[]> = {
   morning: [
-    { type: 'msg', role: 'modus', text: 'Good morning. Your HRV is up, so this is a good energy day. You have 3 emails that need replies, one meeting at 2 PM, and two tasks from yesterday still open. I\'ve queued up an action set.', delay: 400 },
+    // Steps, sleep and heart rate — not HRV. Those are the three signals
+    // getHealthData() actually reads from HealthKit (apps/mobile/lib/device.ts),
+    // and the briefing is built from what it returns. MODUS never reads HRV, so
+    // this line used to claim a signal the product doesn't have.
+    { type: 'msg', role: 'modus', text: 'Good morning. You slept 7h 20m and you\'re already at 2,400 steps, so this is a good energy day. You have 3 emails that need replies, one meeting at 2 PM, and two tasks from yesterday still open. I\'ve queued up an action set.', delay: 400 },
     { type: 'msg', role: 'user', text: 'Handle the emails and protect my morning.', delay: 1200 },
     { type: 'thinking', delay: 2000 },
     { type: 'card', delay: 2800, component: <ActionCard actions={[
@@ -224,6 +229,17 @@ const SCENES: Record<string, SceneItem[]> = {
   ],
 };
 
+/**
+ * How long a scene holds the stage: its own last beat plus time to read what
+ * landed. Derived from the scene rather than hardcoded, so adding a message to
+ * SCENES automatically buys it the time it needs instead of getting cut off.
+ */
+const SCENE_HOLD_MS = 4500;
+function sceneMs(tabId: string): number {
+  const scene = SCENES[tabId] ?? [];
+  return scene.reduce((max, s) => Math.max(max, s.delay), 0) + SCENE_HOLD_MS;
+}
+
 function ScenarioPlayer({ tabId }: { tabId: string }) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [showThinking, setShowThinking] = useState(false);
@@ -266,8 +282,15 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
       {/* The scroller must be a plain block: a flex column with justify-end makes
           overflow past the TOP unreachable (and visually clipped), which cut the
           first message off once a scene grew past the fixed height. The inner
-          min-h-full child keeps short scenes pinned to the bottom instead. */}
-      <div ref={scrollRef} className="h-[460px] overflow-y-auto">
+          min-h-full child keeps short scenes pinned to the bottom instead.
+
+          Height is measured, not guessed: at h-[460px] four of the six scenes
+          overflowed on desktop (inbox by 76px) and five of six on mobile (set-a-goal
+          by 216px), and because the player auto-scrolls to the newest message the
+          overflow ate the OPENING line — the scene's whole setup, cut mid-sentence,
+          on a section nobody is going to scroll by hand. These fit the tallest
+          scene measured on each breakpoint. If you add messages to SCENES, re-measure. */}
+      <div ref={scrollRef} className="h-[680px] sm:h-[560px] overflow-y-auto">
         <div className="min-h-full flex flex-col justify-end space-y-3 p-5 pb-14">
           <AnimatePresence>
             {renderItems.slice(0, visibleCount).map((item, i) => (
@@ -284,6 +307,10 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
           </AnimatePresence>
         </div>
       </div>
+      {/* Safety net for a scene that outgrows the box later: it fades the cut edge
+          instead of guillotining a line. Over a short scene it sits on empty space
+          and is invisible, so it costs nothing when everything fits. */}
+      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-panel to-transparent pointer-events-none" />
       <AnimatePresence>
         {done && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -301,9 +328,106 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
 }
 
 
-export default function FeaturesPage() {
+/**
+ * The scenarios play themselves and hand over to the next, the same way
+ * CreationsSection does — a visitor who scrolls here and does nothing used to
+ * see exactly one of the six and had to click through the rest by hand.
+ *
+ * Hovering pauses the HAND-OFF only, never the scene: pausing to read should not
+ * restart the conversation in your face. The bar is a CSS animation rather than
+ * framer for the same reason it is there — it has to freeze where it is, and
+ * `animate` can only be given a new target, which made a paused bar jump to 100%
+ * and lie about the time left. usePausableTimeout keeps the JS clock on the same
+ * remaining time the frozen bar is showing.
+ */
+function ScenariosSection() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { margin: '-120px 0px' });
   const [activeTab, setActiveTab] = useState('morning');
+  const [paused, setPaused] = useState(false);
+  // Bumped on re-entry so the CSS bar remounts and restarts with the JS clock
+  // instead of carrying on from wherever it got to off-screen.
+  const [runId, setRunId] = useState(0);
+  useEffect(() => { if (inView) setRunId(r => r + 1); }, [inView]);
 
+  const runKey = `${activeTab}-${runId}`;
+  const holdMs = sceneMs(activeTab);
+
+  usePausableTimeout(
+    () => {
+      const i = TABS.findIndex(t => t.id === activeTab);
+      setActiveTab(TABS[(i + 1) % TABS.length].id);
+    },
+    holdMs,
+    paused || !inView,
+    runKey,
+  );
+
+  return (
+    <section className="px-6 py-20 max-w-5xl mx-auto" ref={ref}>
+      <RevealOnScroll>
+        <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">Live scenarios</p>
+        <h2 className="text-4xl font-semibold text-text mb-2">See it in action.</h2>
+        <p className="text-muted mb-10 text-base">Real situations. One message each. Watch how MODUS handles it.</p>
+      </RevealOnScroll>
+
+      <RevealOnScroll delay={0.1}>
+        <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+          {/* Tab bar — same shape as the one on CreationsSection above it. */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {TABS.map(tab => {
+              const on = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative overflow-hidden px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    on ? 'text-white' : 'bg-panel text-muted hover:text-text hover:bg-text/[0.09]'
+                  }`}
+                >
+                  {on && (
+                    <>
+                      <span className="absolute inset-0 bg-brand/25" />
+                      <span
+                        key={runKey}
+                        className="absolute inset-y-0 left-0 bg-brand tab-fill"
+                        style={{ animationDuration: `${holdMs}ms`, animationPlayState: paused || !inView ? 'paused' : 'running' }}
+                      />
+                    </>
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Chat window */}
+          <div className="bg-panel rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-text/[0.06] bg-bg/40">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+              </div>
+              <div className="flex-1 flex items-center justify-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+                <span className="text-xs font-semibold text-muted/60 tracking-widest">MODUS</span>
+              </div>
+              <div className="w-[52px]" />
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                <ScenarioPlayer tabId={activeTab} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </RevealOnScroll>
+    </section>
+  );
+}
+
+export default function FeaturesPage() {
   return (
     <div className="bg-bg text-text min-h-screen relative overflow-x-hidden">
       <ScrollProgress />
@@ -389,53 +513,7 @@ export default function FeaturesPage() {
         {/* What it makes — the creative range, shown with real output. */}
         <CreationsSection />
 
-        {/* Scenarios */}
-        <section className="px-6 py-20 max-w-5xl mx-auto">
-          <RevealOnScroll>
-            <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">Live scenarios</p>
-            <h2 className="text-4xl font-semibold text-text mb-2">See it in action.</h2>
-            <p className="text-muted mb-10 text-base">Real situations. One message each. Watch how MODUS handles it.</p>
-          </RevealOnScroll>
-
-          <RevealOnScroll delay={0.1}>
-            {/* Tab bar */}
-            <div className="flex flex-wrap gap-2 mb-5">
-              {TABS.map(tab => (
-                <motion.button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-brand text-white shadow-lg shadow-brand/30'
-                      : 'bg-panel text-muted hover:text-text hover:bg-text/[0.09]'
-                  }`}
-                >
-                  {tab.label}
-                </motion.button>
-              ))}
-            </div>
-
-            {/* Chat window */}
-            <div className="bg-panel rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-text/[0.06] bg-bg/40">
-                <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
-                </div>
-                <div className="flex-1 flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-                  <span className="text-xs font-semibold text-muted/60 tracking-widest">MODUS</span>
-                </div>
-                <div className="w-[52px]" />
-              </div>
-              <AnimatePresence mode="wait">
-                <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <ScenarioPlayer tabId={activeTab} />
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </RevealOnScroll>
-        </section>
+        <ScenariosSection />
 
         {/* The four generic "steps" cards lived here and were cut: they described
             a flow in words on a page whose job is to SHOW things. StackSection and
@@ -445,7 +523,12 @@ export default function FeaturesPage() {
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
             <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">The difference</p>
-            <h2 className="text-4xl font-semibold text-text mb-10">Other AI answers. MODUS acts.</h2>
+            <h2 className="text-4xl font-semibold text-text mb-4">They give you one company&apos;s AI.<br />
+              <span className="text-brand dark:text-brand-light">MODUS gives you everyone&apos;s.</span>
+            </h2>
+            <p className="text-muted text-base leading-relaxed max-w-2xl mb-10">
+              Every row here is checkable, and we left out the ones we&apos;d lose. Verified July 2026.
+            </p>
           </RevealOnScroll>
           <RevealOnScroll delay={0.1}>
             <div className="bg-panel rounded-2xl overflow-hidden shadow-xl shadow-black/30">
@@ -454,11 +537,52 @@ export default function FeaturesPage() {
                 <div className="py-4 px-6 text-muted border-l border-text/[0.06]">ChatGPT / Claude</div>
                 <div className="py-4 px-6 text-brand dark:text-brand-light border-l border-text/[0.06] bg-brand/[0.07]">MODUS</div>
               </div>
+              {/*
+                THE OLD ROWS WERE STALE AND TWO OF THEM WERE FALSE. "No access to
+                your real life" and "conversation ends, no follow-through" stopped
+                being true when ChatGPT shipped Gmail/Calendar/Contacts plus 60+
+                connectors and scheduled tasks, and Claude shipped Google Workspace
+                + remote MCP. Both have memory. Both make images, charts and
+                documents. Claiming otherwise next to a Stripe button is the same
+                mistake as the old "$200+/mo" line.
+
+                So every row below is something that is STILL true in July 2026,
+                and the rows we would lose (connectors, memory, artifacts, acting
+                with approval) are deliberately absent. Re-verify before editing —
+                these competitors move fast, and a row that quietly goes false is
+                worse than no row.
+              */}
               {[
-                { dim: 'Mode', them: 'You go to it. Open a tab, type a prompt.', us: 'It comes to you. Briefings, alerts, check-ins.' },
-                { dim: 'Connected', them: 'Lives in a tab. No access to your real life.', us: 'Email, calendar, Notion, Slack, GitHub, all live.' },
-                { dim: 'After chat', them: 'Conversation ends. No follow-through.', us: 'Tracks, follows up, checks in until done.' },
-                { dim: 'Actions', them: 'Gives you advice. You do the work.', us: 'Approval card. One tap. It\'s done.' },
+                {
+                  dim: 'The models',
+                  them: 'ChatGPT gives you OpenAI\'s models. Claude gives you Anthropic\'s. To have both, you buy both.',
+                  us: 'Claude, GPT-4o, Gemini, Grok and Llama, in one thread, on one bill.',
+                },
+                {
+                  dim: 'Picking one',
+                  them: 'You pick the app, then the model inside it. Guess wrong and you get the wrong answer.',
+                  us: 'Auto reads the task and routes it to whichever model is best at it. You just type.',
+                },
+                {
+                  dim: 'A second opinion',
+                  them: 'One model, one answer. You never find out what it missed.',
+                  us: 'Ask three at once, side by side, and MODUS tells you which won and why.',
+                },
+                {
+                  dim: 'Your Mac and iPhone',
+                  them: 'Cloud connectors only. Your iMessage, Apple Notes and Health stay out of reach.',
+                  us: 'iMessage, Apple Notes, Reminders, Contacts and Health, read on your own devices.',
+                },
+                {
+                  dim: 'When you\'re not there',
+                  them: 'Scheduled tasks you set up and maintain yourself — five of them on Plus.',
+                  us: 'A briefing already waiting when you wake up, built from your inbox, calendar and sleep.',
+                },
+                {
+                  dim: 'The bill',
+                  them: '$20 for ChatGPT, $20 for Claude, $20 for Gemini, and up from there.',
+                  us: 'One $24 bill. The $140 stack above, replaced.',
+                },
               ].map((row, i) => (
                 <motion.div key={i} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
                   transition={{ delay: i * 0.06 }} className="grid grid-cols-3 border-b border-text/[0.06] last:border-0">
