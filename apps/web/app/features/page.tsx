@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Navbar from '@/components/marketing/Navbar';
 import { MarketingBackground, ScrollProgress } from '@/components/marketing/MarketingBackground';
 import { MODEL_LOGOS } from '@/components/marketing/ModelLogos';
+import ModelCompareDemo from '@/components/marketing/ModelCompareDemo';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
@@ -304,7 +305,7 @@ const STEPS = [
   { n: '04', title: 'You approve in one tap', desc: "You're not managing software. You're the executive. MODUS brings decisions to you. You say yes, edit, or redirect.", tags: ['One tap', 'Full control', 'Audit trail'] },
 ];
 
-export default function HowItWorksPage() {
+export default function FeaturesPage() {
   const [activeTab, setActiveTab] = useState('morning');
 
   return (
@@ -318,7 +319,7 @@ export default function HowItWorksPage() {
         {/* Hero */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16,1,0.3,1] }}>
-            <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-4">How it works</p>
+            <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-4">Features</p>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-text leading-[1.08] mb-8 tracking-tight">
               <span className="text-brand dark:text-brand-light">Every model.</span><br />
               One assistant.<br />
@@ -337,6 +338,54 @@ export default function HowItWorksPage() {
               ))}
             </div>
           </motion.div>
+        </section>
+
+        {/* Every model — promoted to the top: it's the reason to pick MODUS over
+            a single-model chatbot, and it used to sit 3 sections down. */}
+        <section className="px-6 py-20 max-w-5xl mx-auto">
+          <RevealOnScroll>
+            <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">Every model</p>
+            <h2 className="text-4xl md:text-5xl font-semibold text-text mb-4 tracking-tight">One prompt. Every model. One bill.</h2>
+            <p className="text-muted text-lg leading-relaxed max-w-2xl mb-8">
+              MODUS isn&apos;t tied to one AI. Write with Gemini, research with Claude, ask ChatGPT. Pick the model per message, leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best, or ask all three at once and see who wins.
+            </p>
+          </RevealOnScroll>
+
+          <RevealOnScroll delay={0.1}>
+            <div className="flex flex-wrap gap-2 mb-10">
+              {MODEL_LOGOS.map(m => {
+                const Logo = m.logo;
+                return (
+                  <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel rounded-full pl-2 pr-3 py-1.5">
+                    <Logo className="w-4 h-4" />
+                    <span className="text-xs font-semibold text-text">{m.name}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </RevealOnScroll>
+
+          <RevealOnScroll delay={0.15}>
+            <ModelCompareDemo />
+            <p className="text-sm text-muted mt-4">
+              <span className="text-text font-medium">Compare mode</span> — one prompt, three models, side by side, with a verdict. Live in chat on PILOT.
+            </p>
+          </RevealOnScroll>
+
+          <RevealOnScroll delay={0.2}>
+            <div className="grid sm:grid-cols-3 gap-4 mt-10">
+              {[
+                { t: 'Auto-routing', d: 'MODUS reads the task and sends it to the model that does it best. You never pick a tab again.' },
+                { t: 'Manual pick', d: 'Want Claude for this one? Switch model right in the composer, mid-conversation.' },
+                { t: 'One subscription', d: '$200+/mo of separate AI tools, replaced by one $24 bill with memory of you.' },
+              ].map(c => (
+                <div key={c.t} className="bg-panel rounded-2xl p-5 ring-1 ring-brand/20">
+                  <h3 className="text-sm font-bold text-text mb-1.5">{c.t}</h3>
+                  <p className="text-xs text-muted leading-relaxed">{c.d}</p>
+                </div>
+              ))}
+            </div>
+          </RevealOnScroll>
         </section>
 
         {/* Scenarios */}
@@ -415,30 +464,6 @@ export default function HowItWorksPage() {
               </RevealOnScroll>
             ))}
           </div>
-        </section>
-
-        {/* Every model */}
-        <section className="px-6 py-20 max-w-5xl mx-auto">
-          <RevealOnScroll>
-            <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">Every model</p>
-            <h2 className="text-4xl font-semibold text-text mb-4">MODUS speaks every model&apos;s language.</h2>
-            <p className="text-muted text-lg leading-relaxed max-w-2xl mb-8">
-              MODUS isn&apos;t tied to one AI. Write with Gemini, research with Claude, ask ChatGPT. Pick the model you want for any message, or leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best. It&apos;s the layer above every model, not just another chatbot.
-            </p>
-          </RevealOnScroll>
-          <RevealOnScroll delay={0.1}>
-            <div className="flex flex-wrap gap-2">
-              {MODEL_LOGOS.map(m => {
-                const Logo = m.logo;
-                return (
-                  <span key={m.name} className="inline-flex items-center gap-1.5 bg-panel rounded-full pl-2 pr-3 py-1.5">
-                    <Logo className="w-4 h-4" />
-                    <span className="text-xs font-semibold text-text">{m.name}</span>
-                  </span>
-                );
-              })}
-            </div>
-          </RevealOnScroll>
         </section>
 
         {/* MODUS vs others */}
