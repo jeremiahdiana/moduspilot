@@ -108,10 +108,10 @@ export default function ChatWindow({
   // comparePrompt !== null is what mounts the card.
   const [compareOn, setCompareOn] = useState(false);
   const [comparePrompt, setComparePrompt] = useState<string | null>(null);
-  // Pick 3 unlocked models from DIFFERENT providers — comparing GPT-4o against
-  // o4-mini says much less than comparing it against Claude and Gemini. Falls
-  // back to filling from whatever is unlocked if the plan has fewer providers.
-  const compareModels = useMemo(() => {
+  // The DEFAULT set only — the user picks the real one in ModelPicker. Seeded
+  // with 3 unlocked models from DIFFERENT providers, since GPT-4o vs o4-mini
+  // says much less than GPT-4o vs Claude vs Gemini.
+  const defaultCompareModels = useMemo(() => {
     const unlocked = unlockedModels(plan);
     const picked: typeof unlocked = [];
     for (const m of unlocked) {
@@ -124,6 +124,31 @@ export default function ChatWindow({
     }
     return picked.map(m => m.id);
   }, [plan]);
+  const [compareModels, setCompareModels] = useState<string[]>([]);
+
+  // Restore the last picked set, dropping any model this plan no longer unlocks
+  // (a downgrade would otherwise leave a locked model selected and 402 on send).
+  useEffect(() => {
+    const unlockedIds = unlockedModels(plan).map(m => m.id);
+    let restored: string[] = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem('modus:compareModels') ?? '[]') as unknown;
+      if (Array.isArray(saved)) {
+        restored = saved.filter((id): id is string => typeof id === 'string' && unlockedIds.includes(id)).slice(0, 3);
+      }
+    } catch { /* corrupt entry — fall through to the default */ }
+    setCompareModels(restored.length >= 2 ? restored : defaultCompareModels);
+  }, [plan, defaultCompareModels]);
+
+  const toggleCompareModel = (id: string) => {
+    setCompareModels(prev => {
+      const next = prev.includes(id)
+        ? prev.filter(m => m !== id)
+        : prev.length >= 3 ? prev : [...prev, id];
+      localStorage.setItem('modus:compareModels', JSON.stringify(next));
+      return next;
+    });
+  };
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
   // In-chat model selection ('auto' | model id | 'default'). Initialized from the
   // saved Brain (defaultModelChoice) and written back to it on change, so the
@@ -595,11 +620,15 @@ export default function ChatWindow({
           onRemoveFile={(i) => setAttachedFiles(f => f.filter((_, idx) => idx !== i))}
           webSearchOn={webSearchOn}
           onToggleWebSearch={() => setWebSearchOn(v => !v)}
-          // Compare needs 2+ unlocked models to mean anything, so a free plan
-          // (Llama only) never sees the toggle.
+          // Multi-model needs 2+ UNLOCKED models to mean anything, so a free
+          // plan (Llama only) never sees the toggle. Gated on what the plan
+          // unlocks, not on the current selection — otherwise deselecting down
+          // to one model would rip the toggle out mid-use.
           compareOn={compareOn}
-          onToggleCompare={compareModels.length >= 2 ? () => setCompareOn(v => !v) : undefined}
+          onToggleCompare={unlockedModels(plan).length >= 2 ? () => setCompareOn(v => !v) : undefined}
           compareModelNames={compareModels.map(m => modelName(m)).join(' · ')}
+          compareSelected={compareModels}
+          onToggleCompareModel={toggleCompareModel}
           connectedServices={connectedServices}
           textareaRef={inputAreaRef}
           plan={isGuest ? undefined : plan}

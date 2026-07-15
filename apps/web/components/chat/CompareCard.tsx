@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase';
 import { modelName } from '@/lib/models';
 import { logoForModel } from '@/components/marketing/ModelLogos';
 import MarkdownMessage from '@/components/chat/MarkdownMessage';
+import OptionsCard from '@/components/chat/OptionsCard';
 
 // Compare mode: one prompt, three models, side by side, streaming in parallel.
 // Each column owns its own fetch, so a slow model never blocks the others and
@@ -45,15 +46,27 @@ function StatusDot({ status }: { status: ColumnState['status'] }) {
   );
 }
 
-function ColumnHeader({ col }: { col: ColumnState }) {
+function ColumnHeader({ col, onExpand }: { col: ColumnState; onExpand?: () => void }) {
   const Logo = logoForModel(col.modelId);
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/60">
+    <div className="group/head flex items-center justify-between gap-2 px-3 py-2 border-b border-border/60">
       <span className="flex items-center gap-1.5 min-w-0">
         <Logo className="w-3.5 h-3.5 shrink-0" />
         <span className="text-xs font-semibold text-text truncate">{modelName(col.modelId)}</span>
       </span>
       <span className="flex items-center gap-1.5 shrink-0">
+        {onExpand && (
+          <button
+            onClick={onExpand}
+            aria-label={`Expand ${modelName(col.modelId)}`}
+            title="Expand to read"
+            className="opacity-0 group-hover/head:opacity-100 focus:opacity-100 text-muted hover:text-brand transition-all"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="w-3 h-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </button>
+        )}
         {col.ms !== undefined && col.status === 'done' && (
           <span className="text-[10px] text-muted tabular-nums">{(col.ms / 1000).toFixed(1)}s</span>
         )}
@@ -63,14 +76,16 @@ function ColumnHeader({ col }: { col: ColumnState }) {
   );
 }
 
-function ColumnBody({ col, onUse }: { col: ColumnState; onUse?: (text: string) => void }) {
+function ColumnBody({ col, onUse, expanded = false }: { col: ColumnState; onUse?: (text: string) => void; expanded?: boolean }) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex-1 overflow-y-auto px-3 py-2.5 min-h-[140px] max-h-[420px]">
+      {/* Expanded gets a readable measure and more height; a column stays short
+          so three of them still fit on one screen. */}
+      <div className={`flex-1 overflow-y-auto py-2.5 min-h-[140px] ${expanded ? 'px-4 max-h-[560px]' : 'px-3 max-h-[420px]'}`}>
         {col.status === 'error' ? (
           <p className="text-xs text-red-400">{col.error ?? 'This model failed to answer.'}</p>
         ) : col.text ? (
-          <div className="text-sm">
+          <div className={`text-sm ${expanded ? 'max-w-2xl' : ''}`}>
             <MarkdownMessage>{col.text}</MarkdownMessage>
           </div>
         ) : (
@@ -116,10 +131,18 @@ export default function CompareCard({
   const [verdict, setVerdict] = useState<string | null>(null);
   const [verdictLoading, setVerdictLoading] = useState(false);
   const [tab, setTab] = useState(0);
+  // null = every column at once (the comparison view); a number = that column
+  // expanded full width, for reading an essay rather than scanning three.
+  const [expanded, setExpanded] = useState<number | null>(null);
+  // 'clarifying' = waiting on the gate; an options block = card on screen;
+  // 'running' = fanned out. MODUS only asks when the ask is genuinely vague.
+  const [phase, setPhase] = useState<'clarifying' | 'asking' | 'running'>('clarifying');
+  const [optionsRaw, setOptionsRaw] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const fannedRef = useRef(false);
   const abortRef = useRef<AbortController[]>([]);
 
-  const runColumn = useCallback(async (modelId: string, index: number, token: string) => {
+  const runColumn = useCallback(async (modelId: string, index: number, token: string, finalPrompt: string) => {
     const ctrl = new AbortController();
     abortRef.current.push(ctrl);
     const t0 = performance.now();
@@ -127,7 +150,7 @@ export default function CompareCard({
       const res = await fetch('/api/chat/compare', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: modelId }),
+        body: JSON.stringify({ prompt: finalPrompt, model: modelId }),
         signal: ctrl.signal,
       });
 
@@ -155,25 +178,48 @@ export default function CompareCard({
       setColumns(c => c.map((col, i) => (i === index
         ? { ...col, status: 'error', error: 'Could not reach this model.' } : col)));
     }
-  }, [prompt]);
+  }, []);
 
-  // Fire all three at once. Runs exactly once — React 18 StrictMode double-mounts
-  // in dev, and without this guard every comparison would be billed twice.
+  /** Fan out to every model at once. Guarded so a re-render can't double-bill. */
+  const fanOut = useCallback(async (finalPrompt: string) => {
+    if (fannedRef.current) return;
+    fannedRef.current = true;
+    setPhase('running');
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      setColumns(c => c.map(col => ({ ...col, status: 'error', error: 'Not signed in.' })));
+      return;
+    }
+    await Promise.all(models.map((m, i) => runColumn(m, i, token, finalPrompt)));
+  }, [models, runColumn]);
+
+  // Ask MODUS whether anything needs clarifying first. A vague prompt sent to 3
+  // models produces 3 answers to 3 different questions, which compares nothing.
+  // Runs exactly once — React 18 StrictMode double-mounts in dev, and without
+  // this guard every comparison would be billed twice.
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    let cancelled = false;
     (async () => {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token || cancelled) {
-        setColumns(c => c.map(col => ({ ...col, status: 'error', error: 'Not signed in.' })));
-        return;
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) { await fanOut(prompt); return; }
+        const res = await fetch('/api/chat/compare/clarify', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json().catch(() => ({})) as { options?: string | null };
+        if (data.options) { setOptionsRaw(data.options); setPhase('asking'); }
+        else await fanOut(prompt);
+      } catch {
+        // The gate is an optimisation, never a blocker.
+        await fanOut(prompt);
       }
-      await Promise.all(models.map((m, i) => runColumn(m, i, token)));
     })();
     const controllers = abortRef.current;
-    return () => { cancelled = true; controllers.forEach(c => c.abort()); };
-  }, [models, runColumn]);
+    return () => { controllers.forEach(c => c.abort()); };
+  }, [prompt, fanOut]);
 
   // Verdict once every column has settled and at least two actually answered.
   const allSettled = columns.every(c => c.status !== 'streaming');
@@ -213,27 +259,114 @@ export default function CompareCard({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="w-3.5 h-3.5 text-brand">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v18M16 3v18M3 8h18M3 16h18" />
           </svg>
-          <span className="font-semibold text-text">Compare</span>
+          <span className="font-semibold text-text">Multi-model</span>
           <span className="text-muted/70">· {columns.length} models</span>
         </span>
-        <button onClick={onClose} aria-label="Close comparison" className="p-1 rounded text-muted hover:text-text transition-colors">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
-            <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
+        <span className="flex items-center gap-1">
+          {expanded !== null && (
+            <button
+              onClick={() => setExpanded(null)}
+              className="hidden sm:flex items-center gap-1 text-[11px] text-muted hover:text-brand px-1.5 py-0.5 rounded transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="w-3 h-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 0 0-2 2v4m18 0V5a2 2 0 0 0-2-2h-4M3 15v4a2 2 0 0 0 2 2h4m10 0h4a2 2 0 0 0 2-2v-4" />
+              </svg>
+              Compare all
+            </button>
+          )}
+          <button onClick={onClose} aria-label="Close comparison" className="p-1 rounded text-muted hover:text-text transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+              <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </span>
       </div>
+
+      {/* MODUS asks first, but only when the prompt is genuinely vague — three
+          models guessing three different essays compares nothing. */}
+      {phase === 'clarifying' && (
+        <div className="flex items-center gap-2 px-3 py-4">
+          <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
+          <span className="text-xs text-muted">Checking what these models need to know…</span>
+        </div>
+      )}
+
+      {phase === 'asking' && optionsRaw && (
+        <div className="p-3">
+          <OptionsCard
+            raw={optionsRaw}
+            onAppend={(answer) => {
+              // The card's answer normally becomes a user turn. Here it refines
+              // the prompt instead, so all models get the SAME clarified brief —
+              // which is the only way the comparison is fair.
+              setOptionsRaw(null);
+              fanOut(`${prompt}\n\n${answer}`);
+            }}
+          />
+        </div>
+      )}
 
       {/* Desktop: three real columns, so the race is visible. */}
-      <div className="hidden sm:grid sm:grid-cols-3 divide-x divide-border/60">
-        {columns.map(col => (
-          <div key={col.modelId} className="flex flex-col min-w-0">
-            <ColumnHeader col={col} />
-            <ColumnBody col={col} onUse={onUse} />
+      {/* Desktop: columns by default so the race is visible and answers can be
+          scanned against each other. Click one to expand it full width — an
+          essay in a 1/3-width column is unreadable, which is the whole reason
+          this has two modes. */}
+      {phase === 'running' && (
+      <div className="hidden sm:block">
+        {expanded === null ? (
+          <div className="grid grid-cols-3 divide-x divide-border/60">
+            {columns.map((col, i) => (
+              <div key={col.modelId} className="flex flex-col min-w-0">
+                <ColumnHeader col={col} onExpand={() => setExpanded(i)} />
+                <ColumnBody col={col} onUse={onUse} />
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <div>
+            <div className="flex items-center gap-0.5 p-1 border-b border-border/60">
+              {columns.map((col, i) => {
+                const Logo = logoForModel(col.modelId);
+                return (
+                  <button
+                    key={col.modelId}
+                    onClick={() => setExpanded(i)}
+                    className={`relative flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      expanded === i ? 'text-brand' : 'text-muted hover:text-text'
+                    }`}
+                  >
+                    {expanded === i && (
+                      <motion.span layoutId="compareExpandedTab" transition={{ type: 'spring', stiffness: 420, damping: 34 }} className="absolute inset-0 bg-brand/15 rounded-md" />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <Logo className="w-3.5 h-3.5" />
+                      {modelName(col.modelId)}
+                      <StatusDot status={col.status} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={expanded}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.16 }}
+                className="flex flex-col"
+              >
+                <ColumnHeader col={columns[expanded]} />
+                <ColumnBody col={columns[expanded]} onUse={onUse} expanded />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
       </div>
+      )}
 
       {/* Mobile: one column + a tab strip. Three columns at 390px is unreadable. */}
+      {phase === 'running' && (
       <div className="sm:hidden">
         <div className="flex items-center gap-0.5 p-1 border-b border-border/60">
           {columns.map((col, i) => {
@@ -267,10 +400,11 @@ export default function CompareCard({
             className="flex flex-col"
           >
             <ColumnHeader col={columns[tab]} />
-            <ColumnBody col={columns[tab]} onUse={onUse} />
+            <ColumnBody col={columns[tab]} onUse={onUse} expanded />
           </motion.div>
         </AnimatePresence>
       </div>
+      )}
 
       <AnimatePresence>
         {(verdict || verdictLoading) && (

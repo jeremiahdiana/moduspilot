@@ -7,6 +7,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { auth } from '@/lib/firebase';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
 import FilePreviewModal from '@/components/chat/FilePreviewModal';
+import ModelPicker, { MIN_PICKED } from '@/components/chat/ModelPicker';
 
 interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
@@ -28,8 +29,11 @@ interface Props {
   onToggleWebSearch?: () => void;
   compareOn?: boolean;
   onToggleCompare?: () => void;
-  /** Model names shown in the compare menu row, e.g. "GPT-4o · Claude · Gemini". */
+  /** Model names shown in the multi-model menu row, e.g. "GPT-4o · Claude · Gemini". */
   compareModelNames?: string;
+  /** The user's picked model ids for multi-model. */
+  compareSelected?: string[];
+  onToggleCompareModel?: (id: string) => void;
   connectedServices?: ConnectedServices | null;
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
   /** When set (signed-in users), shows the model switcher. */
@@ -45,6 +49,7 @@ export default function ChatInput({
   input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading,
   attachedImage, onClearImage, attachedFiles = [], onFileAttach, onRemoveFile,
   webSearchOn = false, onToggleWebSearch, compareOn = false, onToggleCompare, compareModelNames,
+  compareSelected = [], onToggleCompareModel,
   connectedServices, textareaRef, plan, modelChoice, onModelChange,
 }: Props) {
   const [recording, setRecording] = useState(false);
@@ -173,7 +178,11 @@ export default function ChatInput({
     }
   }
 
-  const canSend = !isLoading && (!!input.trim() || !!attachedImage || attachedFiles.length > 0);
+  // Multi-model with one model isn't a comparison — block the send rather than
+  // fan out to a single column.
+  const compareReady = !compareOn || compareSelected.length >= MIN_PICKED;
+  const canSend = !isLoading && compareReady
+    && (!!input.trim() || !!attachedImage || attachedFiles.length > 0);
 
   const services: { key: keyof ConnectedServices; label: string }[] = [
     { key: 'google', label: 'Google' }, { key: 'notion', label: 'Notion' },
@@ -186,6 +195,18 @@ export default function ChatInput({
       <input ref={docRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleDocChange} />
 
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-4">
+        {/* Multi-model picker — visible while the mode is on, so the chosen set
+            is in front of you at the moment you send. */}
+        {onToggleCompareModel && plan && (
+          <ModelPicker
+            open={compareOn}
+            selected={compareSelected}
+            plan={plan}
+            onToggleModel={onToggleCompareModel}
+            onClose={() => onToggleCompare?.()}
+          />
+        )}
+
         {/* Attachment chips. Each one is clickable and opens a preview, so a
             wrong file is caught before sending rather than after. */}
         {(attachedImage || attachedFiles.length > 0 || extracting) && (
@@ -337,7 +358,7 @@ export default function ChatInput({
                   >
                     <span className={compareOn ? 'text-brand' : 'text-muted'}><CompareIcon /></span>
                     <span className="flex-1 text-left">
-                      Compare models
+                      Multi-model
                       {compareModelNames && <span className="block text-[10px] text-muted/70 leading-tight">{compareModelNames}</span>}
                     </span>
                     <span className={`w-8 rounded-full relative flex items-center px-0.5 shrink-0 transition-colors ${compareOn ? 'bg-brand justify-end' : 'bg-border justify-start'}`} style={{ height: 18 }}>
@@ -374,7 +395,7 @@ export default function ChatInput({
             value={input}
             onChange={onChange}
             onKeyDown={handleKeyDown}
-            placeholder={compareOn ? 'Ask 3 models at once…' : 'Talk to MODUS...'}
+            placeholder={compareOn ? `Ask ${compareSelected.length || 'these'} models at once…` : 'Talk to MODUS...'}
             rows={1}
             className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
           />
@@ -405,10 +426,10 @@ export default function ChatInput({
                 transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 onClick={() => onToggleCompare?.()}
                 className="shrink-0 overflow-hidden flex items-center gap-1 text-[11px] font-medium text-brand bg-brand/10 border border-brand/25 rounded-full pl-2 pr-1.5 py-1 whitespace-nowrap"
-                title="Compare mode on — click to turn off"
+                title="Multi-model on — click to turn off"
               >
                 <CompareIcon className="w-3 h-3" />
-                Compare
+                {compareSelected.length} models
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-2.5 h-2.5"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
               </motion.button>
             )}
@@ -438,7 +459,7 @@ export default function ChatInput({
           <Tooltip label="Send" side="top" className="shrink-0">
             <motion.button
               type="submit"
-              disabled={isLoading || (!input.trim() && !attachedImage && attachedFiles.length === 0)}
+              disabled={!canSend}
               whileTap={canSend ? { scale: 0.88 } : undefined}
               animate={canSend ? { scale: 1, opacity: 1 } : { scale: 0.94, opacity: 0.3 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
