@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
-import { OpenAILogo, ClaudeLogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
+import { OpenAILogo, ClaudeLogo, GeminiLogo, GrokLogo, PerplexityLogo, MidjourneyLogo } from '@/components/marketing/ModelLogos';
 
 /**
  * The stack you cancel.
@@ -27,26 +27,63 @@ import { OpenAILogo, ClaudeLogo, GeminiLogo, GrokLogo } from '@/components/marke
 type Row = {
   name: string;
   price: number;
-  /** Rendered mark, or null for a plain dot when we have no logo. */
-  logo?: React.ComponentType<{ className?: string }>;
+  logo: React.ComponentType<{ className?: string }>;
   /** What MODUS does instead. Must be shipped, not planned. */
   instead: string;
+  /** Priced but NOT counted in the total — see WrappersLogo. */
+  uncounted?: boolean;
 };
 
+/** The long tail of single-purpose AI apps. Deliberately $0 in the sum. */
+function WrappersLogo({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={1.6} aria-label="Other AI apps">
+      <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
+    </svg>
+  );
+}
+
 const STACK: Row[] = [
-  { name: 'ChatGPT Plus',        price: 20, logo: OpenAILogo, instead: 'GPT-4o, built in' },
-  { name: 'Claude Pro',          price: 20, logo: ClaudeLogo, instead: 'Claude Sonnet, built in' },
-  { name: 'Google AI Pro',       price: 20, logo: GeminiLogo, instead: 'Gemini, built in' },
-  { name: 'SuperGrok',           price: 30, logo: GrokLogo,   instead: 'Grok, built in' },
-  { name: 'Perplexity Pro',      price: 20,                   instead: 'Web search on any model' },
-  { name: 'Midjourney Standard', price: 30,                   instead: 'Image generation in chat' },
+  { name: 'ChatGPT Plus',        price: 20, logo: OpenAILogo,     instead: 'GPT-4o, built in' },
+  { name: 'Claude Pro',          price: 20, logo: ClaudeLogo,     instead: 'Claude Sonnet, built in' },
+  { name: 'Google AI Pro',       price: 20, logo: GeminiLogo,     instead: 'Gemini, built in' },
+  { name: 'SuperGrok',           price: 30, logo: GrokLogo,       instead: 'Grok, built in' },
+  { name: 'Perplexity Pro',      price: 20, logo: PerplexityLogo, instead: 'Web search on any model' },
+  { name: 'Midjourney Standard', price: 30, logo: MidjourneyLogo, instead: 'Image generation in chat' },
+  // Every other AI wrapper people stack up. Real, and the reason the true bill
+  // is worse than $140 — but priced at 0 and left OUT of the sum, because the
+  // whole point of this section is that a reader can check every number in it.
+  // The moment we guess at this one, the other six stop being believable.
+  { name: 'Every other AI app', price: 0, logo: WrappersLogo, instead: 'The one-trick apps you forgot you pay for', uncounted: true },
 ];
 
 const TOTAL = STACK.reduce((n, r) => n + r.price, 0);
 const MODUS = 24;
 
-function Dot() {
-  return <span className="w-4 h-4 rounded-full bg-text/[0.12] shrink-0" aria-hidden />;
+/** Counts to `to` once `run` flips true. Respects prefers-reduced-motion. */
+function CountUp({ to, run, delay = 0 }: { to: number; run: boolean; delay?: number }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!run) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setN(to);
+      return;
+    }
+    let raf = 0;
+    const t = setTimeout(() => {
+      const t0 = performance.now();
+      const DURATION = 700;
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - t0) / DURATION);
+        // easeOutCubic — fast then settling, so the final number is readable.
+        setN(Math.round(to * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay * 1000);
+    return () => { clearTimeout(t); cancelAnimationFrame(raf); };
+  }, [run, to, delay]);
+  return <>{n}</>;
 }
 
 export default function StackSection() {
@@ -80,28 +117,44 @@ export default function StackSection() {
                 key={row.name}
                 initial={{ opacity: 0, x: -12 }}
                 animate={inView ? { opacity: 1, x: 0 } : {}}
-                transition={{ delay: 0.08 * i, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                transition={{ delay: 0.09 * i, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${row.uncounted ? 'opacity-60' : ''}`}
               >
-                {Logo ? <Logo className="w-4 h-4 shrink-0" /> : <Dot />}
+                <Logo className="w-4 h-4 shrink-0" />
                 <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-semibold text-muted line-through decoration-red-400/50 truncate">
-                    {row.name}
+                  <span className="relative inline-block max-w-full">
+                    <span className="block text-sm font-semibold text-muted truncate">{row.name}</span>
+                    {/* The strike DRAWS itself as each row lands — a static
+                        line-through reads as a style; a line being drawn reads
+                        as cancelling something. */}
+                    <motion.span
+                      aria-hidden
+                      initial={{ scaleX: 0 }}
+                      animate={inView ? { scaleX: 1 } : {}}
+                      transition={{ delay: 0.09 * i + 0.28, duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute left-0 right-0 top-1/2 h-px bg-red-400/60 origin-left"
+                    />
                   </span>
                   <span className="block text-[11px] text-muted/70 truncate">{row.instead}</span>
                 </span>
-                <span className="text-sm font-semibold text-muted tabular-nums shrink-0">${row.price}</span>
+                <span className="text-sm font-semibold text-muted tabular-nums shrink-0">
+                  {row.uncounted ? '+ more' : `$${row.price}`}
+                </span>
               </motion.div>
             );
           })}
           <motion.div
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
-            transition={{ delay: 0.08 * STACK.length + 0.1 }}
+            transition={{ delay: 0.09 * STACK.length + 0.1 }}
             className="flex items-center justify-between px-3 py-3 mt-1 border-t border-text/[0.08]"
           >
             <span className="text-xs font-bold uppercase tracking-wider text-muted">Every month</span>
-            <span className="text-2xl font-semibold text-text tabular-nums">${TOTAL}</span>
+            {/* "+" because the last row is real but uncounted. The digits count
+                up so the number lands as a total being added, not a claim. */}
+            <span className="text-2xl font-semibold text-text tabular-nums">
+              $<CountUp to={TOTAL} run={inView} delay={0.09 * STACK.length + 0.2} />+
+            </span>
           </motion.div>
         </div>
 
@@ -152,7 +205,7 @@ export default function StackSection() {
             Start your 3-day free trial
           </Link>
           <p className="text-[11px] text-muted/60 text-center mt-2.5">
-            Save ${TOTAL - MODUS}/mo · Cancel anytime
+            Save ${TOTAL - MODUS}+/mo · Cancel anytime
           </p>
         </motion.div>
       </div>
@@ -163,7 +216,7 @@ export default function StackSection() {
         transition={{ delay: 0.7 }}
         className="text-xs text-muted/60 mt-6 max-w-2xl"
       >
-        Prices as listed by each provider, July 2026. Your everyday tools stay — Gmail, Calendar, Notion, Slack. MODUS runs on top of them.
+        Prices as listed by each provider, July 2026, and the total counts only those six — the one-trick apps on top are yours to add up. Your everyday tools stay: Gmail, Calendar, Notion, Slack. MODUS runs on top of them.
       </motion.p>
     </section>
   );

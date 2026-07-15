@@ -382,3 +382,20 @@ body::after {
 .chat-md .hljs-deletion { color: #fca5a5; }
 .chat-md .hljs-emphasis { font-style: italic; }
 .chat-md .hljs-strong { font-weight: 700; }
+
+/* Drives the auto-advance timer bar on /features CreationsSection tabs. A CSS
+   animation rather than framer, so animation-play-state can freeze it exactly
+   where it is on hover — a JS `animate` can only be given a new target, which
+   made pausing jump the bar to full and misreport the time left. */
+@keyframes tab-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.tab-fill {
+  animation-name: tab-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-fill { animation: none; width: 100%; }
+}

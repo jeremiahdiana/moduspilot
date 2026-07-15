@@ -13,6 +13,24 @@ export function OpenAILogo({ className = 'w-5 h-5' }: LogoProps) {
   );
 }
 
+// Not a model MODUS routes to — used on /features to name the subscriptions it
+// replaces, where a row without a mark reads as filler next to the branded ones.
+export function PerplexityLogo({ className = 'w-5 h-5' }: LogoProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="#20B8CD" strokeWidth={1.6} aria-label="Perplexity">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M12 8.5 5.5 4v6.5M12 8.5 18.5 4v6.5M4 10.5h16v9M4 10.5v9M12 15.5 5.5 20M12 15.5 18.5 20" />
+    </svg>
+  );
+}
+
+export function MidjourneyLogo({ className = 'w-5 h-5' }: LogoProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={1.6} aria-label="Midjourney">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 18.5c1.6 1 3.2 1 4.8 0 1.6-1 3.2-1 4.8 0 1.6 1 3.2 1 4.8 0 1.6-1 3.2-1 4.6 0M11 16 4.5 16C6 10 9 5.5 13.5 2.5c.7 4.5.2 9-2.5 13.5ZM13.5 16c2.8-.3 4.8-1.6 6-4-2.4-.9-4.4-.4-6 1.4" />
+    </svg>
+  );
+}
+
 export function ClaudeLogo({ className = 'w-5 h-5' }: LogoProps) {
   // Anthropic sunburst.
   return (

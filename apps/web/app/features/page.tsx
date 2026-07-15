@@ -322,7 +322,7 @@ export default function FeaturesPage() {
             </h1>
             <div className="max-w-2xl space-y-4">
               <p className="text-muted text-lg leading-relaxed">
-                ChatGPT, Claude and Gemini are tools you go to. You pick the tab, you paste the context, you explain yourself again. MODUS has all of them, sends each task to whichever is best, and already knows your week. Then it does the thing.
+                ChatGPT, Claude and Gemini are tools you go to. You pick the tab, you paste the context, you explain yourself again. MODUS has all of them, sends each task to whichever is best, and already knows your week.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 mt-8">
