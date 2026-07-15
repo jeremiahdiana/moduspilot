@@ -35,7 +35,7 @@ export const metadata: Metadata = {
         url: '/og.png',
         width: 1200,
         height: 630,
-        alt: 'Modus — the AI that runs your life. Every frontier model, one subscription.',
+        alt: "Modus — the only AI you'll ever need. Every frontier model, one subscription.",
       },
     ],
   },

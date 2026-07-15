@@ -522,7 +522,7 @@ export default function PricingPage() {
                     Start your 3-day trial
                   </Link>
                   <Link
-                    href="/how-it-works"
+                    href="/features"
                     className="inline-block px-8 py-4 bg-text/[0.06] text-muted hover:bg-text/10 hover:text-text font-semibold rounded-2xl text-sm transition-colors"
                   >
                     See how it works

@@ -1,8 +1,7 @@
 export default function Footer() {
   const links = {
     Product: [
-      { label: 'Features', href: '#features' },
-      { label: 'How It Works', href: '/how-it-works' },
+      { label: 'Features', href: '/features' },
       { label: 'Pricing', href: '/pricing' },
     ],
     Company: [
@@ -28,7 +27,7 @@ export default function Footer() {
               <span className="text-[10px] font-semibold text-muted tracking-widest uppercase">pilot</span>
             </div>
             <p className="text-sm text-muted leading-relaxed max-w-[200px]">
-              The AI that runs your life, so you can focus on what matters.
+              The only AI you&apos;ll ever need, so you can focus on what matters.
             </p>
           </div>
 

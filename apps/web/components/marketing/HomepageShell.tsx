@@ -36,12 +36,12 @@ export default function HomepageShell() {
 
         <Divider />
 
-        <RevealSection>
-          <ChatSection />
-        </RevealSection>
-
         <RevealSection direction="left" distance={24}>
           <MultiModelSection />
+        </RevealSection>
+
+        <RevealSection>
+          <ChatSection />
         </RevealSection>
 
         <RevealSection direction="none">

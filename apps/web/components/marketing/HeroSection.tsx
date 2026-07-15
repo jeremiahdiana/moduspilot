@@ -26,40 +26,6 @@ function Typewriter() {
 }
 
 
-/* ── Scrolling live activity ticker ── */
-const TICKER = [
-  'Deep work blocked, 9 to 12 AM',
-  '4 emails triaged, 2 drafts queued',
-  'Running streak: 14 days',
-  'Milestone reached: Ship landing page',
-  '3 tasks approved by you',
-  '3 PM moved to Friday, approved',
-  'Pattern detected: energy dips after lunch',
-  'Read 20 min, streak: 21 days',
-  'Weekly review ready for your approval',
-  'Reply sent to Marcus, approved',
-];
-function Ticker() {
-  const items = [...TICKER, ...TICKER];
-  return (
-    <div className="relative overflow-hidden w-full max-w-3xl mx-auto mt-10">
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-bg to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-bg to-transparent z-10 pointer-events-none" />
-      <motion.div
-        animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-        className="flex gap-3 whitespace-nowrap"
-      >
-        {items.map((item, i) => (
-          <span key={i} className="inline-flex items-center gap-2 text-xs text-muted bg-text/[0.05] rounded-full px-3.5 py-1.5">
-            {item}
-          </span>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
-
 /* ── Hero ── */
 export default function HeroSection() {
   return (
@@ -81,8 +47,8 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
           className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold leading-[1.08] tracking-tight mb-6"
         >
-          <span className="text-brand dark:text-brand-light">The AI That</span><br />
-          <span className="text-text">Runs Your Life.</span>
+          <span className="text-brand dark:text-brand-light">The Only AI</span><br />
+          <span className="text-text">You&apos;ll Ever Need.</span>
         </motion.h1>
 
         <motion.p
@@ -130,11 +96,6 @@ export default function HeroSection() {
               {t}
             </span>
           ))}
-        </motion.div>
-
-        {/* Live ticker */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.7 }}>
-          <Ticker />
         </motion.div>
       </div>
 

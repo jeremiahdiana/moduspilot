@@ -13,6 +13,8 @@ const nextConfig = {
       },
       // Connections page was renamed to Capabilities — keep old bookmarks working.
       { source: '/connections', destination: '/capabilities', permanent: true },
+      // /how-it-works was renamed to /features — it is indexed, so keep the old URL alive.
+      { source: '/how-it-works', destination: '/features', permanent: true },
     ];
   },
 

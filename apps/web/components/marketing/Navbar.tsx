@@ -40,7 +40,7 @@ export default function Navbar({ solid = false }: Props) {
 
   const navLinks = [
     { href: '/', label: 'Home' },
-    { href: '/how-it-works', label: 'How It Works' },
+    { href: '/features', label: 'Features' },
     { href: '/pricing', label: 'Pricing' },
   ];
 

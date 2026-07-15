@@ -76,6 +76,34 @@ export default function ChartCard({ raw }: { raw: string }) {
     color: 'rgb(var(--color-text))',
   };
 
+  // Axis ticks get ~64px. Full values ("21921.63") overflow that and render
+  // clipped, so ticks are abbreviated (21.9k) while tooltips keep the exact
+  // number. Currency units are prefixed rather than suffixed.
+  const isCurrency = /^[$€£¥]$/.test(unit);
+  const compact = (v: number | string) => {
+    const n = typeof v === 'number' ? v : Number(v);
+    if (!Number.isFinite(n)) return String(v);
+    // Sign is pulled out so currency reads "-$5k", not "$-5k".
+    const abs = Math.abs(n);
+    const sign = n < 0 ? '-' : '';
+    const short =
+      abs >= 1_000_000_000 ? `${+(abs / 1_000_000_000).toFixed(1)}B`
+      : abs >= 1_000_000 ? `${+(abs / 1_000_000).toFixed(1)}M`
+      : abs >= 1_000 ? `${+(abs / 1_000).toFixed(1)}k`
+      : `${+abs.toFixed(2)}`;
+    return isCurrency ? `${sign}${unit}${short}` : `${sign}${short}`;
+  };
+  const tooltipFmt = (v: number) => {
+    const exact = typeof v === 'number' ? v.toLocaleString('en-US') : String(v);
+    return isCurrency ? `${unit}${exact}` : fmt(exact);
+  };
+  // A long category axis ("Year 0"…"Year 20") overlaps at chat width; let
+  // recharts drop ticks that don't fit instead of overprinting them.
+  const xAxis = (
+    <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={16} />
+  );
+  const yAxis = <YAxis tick={axisTick} tickLine={false} axisLine={false} width={64} tickFormatter={compact} />;
+
   return (
     <div className="w-full rounded-xl border border-border bg-bg p-3 sm:p-4">
       {spec.title && <p className="text-sm font-semibold text-text mb-3">{spec.title}</p>}
@@ -89,22 +117,22 @@ export default function ChartCard({ raw }: { raw: string }) {
               >
                 {data.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
+              <Tooltip contentStyle={tooltipStyle} formatter={tooltipFmt} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           ) : type === 'line' ? (
-            <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
+            <LineChart data={data} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" vertical={false} />
-              <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} />
-              <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
+              {xAxis}
+              {yAxis}
+              <Tooltip contentStyle={tooltipStyle} formatter={tooltipFmt} />
               {keys.length > 1 && legend}
               {keys.map((k, i) => (
                 <Line key={k} type="monotone" dataKey={k} hide={hidden.has(k)} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               ))}
             </LineChart>
           ) : type === 'area' ? (
-            <AreaChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
+            <AreaChart data={data} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
               <defs>
                 {keys.map((k, i) => (
                   <linearGradient key={k} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
@@ -114,20 +142,20 @@ export default function ChartCard({ raw }: { raw: string }) {
                 ))}
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" vertical={false} />
-              <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} />
-              <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => fmt(v)} />
+              {xAxis}
+              {yAxis}
+              <Tooltip contentStyle={tooltipStyle} formatter={tooltipFmt} />
               {keys.length > 1 && legend}
               {keys.map((k, i) => (
                 <Area key={k} type="monotone" dataKey={k} hide={hidden.has(k)} stroke={PALETTE[i % PALETTE.length]} strokeWidth={2.5} fill={`url(#grad-${i})`} />
               ))}
             </AreaChart>
           ) : (
-            <BarChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -12 }}>
+            <BarChart data={data} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" vertical={false} />
-              <XAxis dataKey={labelKey} tick={axisTick} tickLine={false} axisLine={false} />
-              <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgb(var(--color-brand) / 0.06)' }} formatter={(v: number) => fmt(v)} />
+              {xAxis}
+              {yAxis}
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgb(var(--color-brand) / 0.06)' }} formatter={tooltipFmt} />
               {keys.length > 1 && legend}
               {keys.map((k, i) => (
                 <Bar key={k} dataKey={k} hide={hidden.has(k)} fill={PALETTE[i % PALETTE.length]} radius={[4, 4, 0, 0]} maxBarSize={48} />

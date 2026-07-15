@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: 'https://moduspilot.com/how-it-works',
+      url: 'https://moduspilot.com/features',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.8,

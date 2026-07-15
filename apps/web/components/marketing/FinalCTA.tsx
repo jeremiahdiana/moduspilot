@@ -32,7 +32,7 @@ export default function FinalCTA() {
               Start your 3-day free trial
             </a>
             <a
-              href="/how-it-works"
+              href="/features"
               className="inline-block px-10 py-4 bg-text/[0.06] text-muted text-base font-medium rounded-xl hover:bg-text/10 hover:text-text transition-colors"
             >
               See how it works
