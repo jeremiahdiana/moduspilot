@@ -15,6 +15,31 @@ import OptionsCard from '@/components/chat/OptionsCard';
 // Mobile has no room for three columns, so the same data renders as a swipeable
 // single column with a tab strip. Same state, different shell.
 
+/**
+ * Why a comparison can't run, in the user's terms — never "unsupported".
+ *
+ * The honest reason in every case: MODUS makes these with ONE tool, not with the
+ * model you picked. An image comes from /api/generate/image, so three columns
+ * would race the same thing against itself.
+ */
+const UNSUPPORTED_COPY = {
+  image: {
+    title: 'Multi-model compares written answers.',
+    body: 'MODUS makes images with one image model, so there are no three answers to put side by side. It can still make it — that just runs the normal way.',
+    cta: 'Make the image',
+  },
+  document: {
+    title: 'Multi-model compares written answers.',
+    body: 'A PDF is built by MODUS itself rather than by the model you picked, so there is nothing to compare. It can still make it — that just runs the normal way.',
+    cta: 'Make the PDF',
+  },
+  chart: {
+    title: 'Multi-model compares written answers.',
+    body: 'Charts are drawn by MODUS from your data, not written by the model, so three columns would draw the same one. It can still make it — that just runs the normal way.',
+    cta: 'Make the chart',
+  },
+} as const;
+
 type ColumnState = {
   modelId: string;
   text: string;
@@ -117,13 +142,15 @@ function ColumnBody({ col, onUse, expanded = false }: { col: ColumnState; onUse?
 }
 
 export default function CompareCard({
-  prompt, models, onClose, onUse,
+  prompt, models, onClose, onUse, onRunNormally,
 }: {
   prompt: string;
   models: string[];
   onClose: () => void;
   /** Feeds a chosen answer back into the normal conversation. */
   onUse?: (text: string) => void;
+  /** Drops out of compare mode and sends the prompt as an ordinary chat turn. */
+  onRunNormally?: (prompt: string) => void;
 }) {
   const [columns, setColumns] = useState<ColumnState[]>(
     () => models.map(m => ({ modelId: m, text: '', status: 'streaming' as const })),
@@ -134,10 +161,14 @@ export default function CompareCard({
   // null = every column at once (the comparison view); a number = that column
   // expanded full width, for reading an essay rather than scanning three.
   const [expanded, setExpanded] = useState<number | null>(null);
-  // 'clarifying' = waiting on the gate; an options block = card on screen;
-  // 'running' = fanned out. MODUS only asks when the ask is genuinely vague.
-  const [phase, setPhase] = useState<'clarifying' | 'asking' | 'running'>('clarifying');
+  // 'clarifying' = waiting on the gate; 'asking' = an options block on screen;
+  // 'running' = fanned out; 'unsupported' = terminal, nothing was ever sent.
+  // MODUS only asks when the ask is genuinely vague.
+  const [phase, setPhase] = useState<'clarifying' | 'asking' | 'running' | 'unsupported'>('clarifying');
   const [optionsRaw, setOptionsRaw] = useState<string | null>(null);
+  // The artifact the user actually wanted, when it isn't something 3 text models
+  // can be compared on.
+  const [unsupported, setUnsupported] = useState<'image' | 'document' | 'chart' | null>(null);
   // The clarify gate errored and we fanned out on the raw prompt anyway.
   const [gateSkipped, setGateSkipped] = useState(false);
   const startedRef = useRef(false);
@@ -212,8 +243,14 @@ export default function CompareCard({
           body: JSON.stringify({ prompt }),
         });
         if (!res.ok) throw new Error(String(res.status));
-        const data = await res.json().catch(() => ({})) as { options?: string | null };
-        if (data.options) { setOptionsRaw(data.options); setPhase('asking'); }
+        const data = await res.json().catch(() => ({})) as {
+          options?: string | null;
+          unsupported?: 'image' | 'document' | 'chart' | null;
+        };
+        // Terminal: no fanOut. This is the whole saving — the 3 model calls and
+        // the verdict never happen for something they could never answer.
+        if (data.unsupported) { setUnsupported(data.unsupported); setPhase('unsupported'); }
+        else if (data.options) { setOptionsRaw(data.options); setPhase('asking'); }
         else await fanOut(prompt);
       } catch {
         // The gate stays an optimisation, never a blocker — a comparison the
@@ -307,6 +344,45 @@ export default function CompareCard({
             MODUS couldn’t check whether this needed narrowing down first, so each model answered it as
             written. If they went in different directions, ask again with more detail.
           </p>
+        </div>
+      )}
+
+      {/* Terminal, and nothing was sent. Comparing models only works on written
+          answers; these come from one model either way, so there is nothing to
+          race. Say it plainly and offer the thing they actually wanted. */}
+      {phase === 'unsupported' && unsupported && (
+        <div className="px-4 py-4 space-y-3">
+          <div className="flex items-start gap-2.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="w-4 h-4 text-brand shrink-0 mt-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-text leading-snug">
+                {UNSUPPORTED_COPY[unsupported].title}
+              </p>
+              <p className="text-xs text-muted leading-relaxed mt-1">
+                {UNSUPPORTED_COPY[unsupported].body}
+              </p>
+            </div>
+          </div>
+          {/* 26px = the w-4 icon (16) + gap-2.5 (10), so the actions line up
+              under the text. pl-6.5 is NOT a Tailwind class — it does nothing. */}
+          {onRunNormally && (
+            <div className="flex items-center gap-2 pl-[26px]">
+              <button
+                onClick={() => onRunNormally(prompt)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white btn-primary"
+              >
+                {UNSUPPORTED_COPY[unsupported].cta}
+              </button>
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-text transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       )}
 

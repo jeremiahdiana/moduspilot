@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { requireAuth } from '@/lib/api-auth';
-import { CLARIFY_SYSTEM } from '@/lib/chat/clarify-prompt';
+import { CLARIFY_SYSTEM, classifyClarifyReply } from '@/lib/chat/clarify-prompt';
 
 // The clarify gate for multi-model mode.
 //
@@ -48,22 +48,16 @@ export async function POST(req: Request) {
       prompt,
     });
 
-    const m = /```options\s*([\s\S]*?)```/.exec(text);
-    if (!m) return Response.json({ options: null });
+    const reply = classifyClarifyReply(text);
 
-    // Only hand back a block the card can actually render — a malformed payload
-    // would otherwise stall the comparison behind a card that renders nothing.
-    const raw = m[1].trim();
-    try {
-      const parsed = JSON.parse(raw) as { questions?: unknown[]; question?: string };
-      const ok = (Array.isArray(parsed.questions) && parsed.questions.length > 0)
-        || typeof parsed.question === 'string';
-      if (!ok) return Response.json({ options: null });
-    } catch {
-      return Response.json({ options: null });
-    }
-
-    return Response.json({ options: raw });
+    // Comparing models only works for written answers, so an artifact request is
+    // caught here — before the 3 model calls and the verdict happen at all.
+    if (reply.kind === 'unsupported') return Response.json({ unsupported: reply.artifact });
+    // Only hand back a block the card can actually render; a malformed payload
+    // would stall the comparison behind a card that renders nothing. Everything
+    // else (READY, malformed, a prose leak) means "just run it".
+    if (reply.kind === 'options') return Response.json({ options: reply.raw });
+    return Response.json({ options: null });
   } catch (err) {
     console.error('[compare/clarify] failed:', err);
     return Response.json({ options: null });

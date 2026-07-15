@@ -611,6 +611,19 @@ export default function ChatWindow({
               prompt={compare.prompt}
               models={compareModels}
               onClose={() => setCompare(null)}
+              onRunNormally={(p) => {
+                // Drop out of compare and send it as an ordinary turn. `append`
+                // (not appendLocal) is deliberate and is the one place it's
+                // right: we WANT the request, so the model emits its ```image /
+                // ```document / ```chart block and the real card renders it.
+                setCompare(null);
+                setChatError(null);
+                onUserMessage?.();
+                append(
+                  { role: 'user', content: p },
+                  { body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } },
+                );
+              }}
               onUse={(text) => {
                 // Picking a model ENDS the comparison — Jeremiah, after living
                 // with the card staying open: "it should just be exited out if
