@@ -33,6 +33,8 @@ interface Props {
   compareSelected?: string[];
   onToggleCompareModel?: (id: string) => void;
   connectedServices?: ConnectedServices | null;
+  /** Puts text in the composer and focuses it, for menu items that start an ask. */
+  onSeedPrompt?: (text: string) => void;
   /** MODUS asked a question and it's still unanswered — the composer says so. */
   openQuestion?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
@@ -50,7 +52,7 @@ export default function ChatInput({
   attachedImage, onClearImage, attachedFiles = [], onFileAttach, onRemoveFile,
   webSearchOn = false, onToggleWebSearch, compareOn = false, onToggleCompare,
   compareSelected = [], onToggleCompareModel,
-  connectedServices, openQuestion = false, textareaRef, plan, modelChoice, onModelChange,
+  connectedServices, onSeedPrompt, openQuestion = false, textareaRef, plan, modelChoice, onModelChange,
 }: Props) {
   const [recording, setRecording] = useState(false);
   const [voiceError, setVoiceError] = useState('');
@@ -338,6 +340,19 @@ export default function ChatInput({
                 <MenuItem onClick={() => { setMenuOpen(false); imageRef.current?.click(); }} icon={<PhotoIcon />} label="Attach photo" hint="PNG, JPG" />
                 <MenuItem onClick={() => { setMenuOpen(false); docRef.current?.click(); }} icon={<FileIcon />} label="Attach file" hint="PDF, Word, text" />
                 <div className="my-1 border-t border-border/60" />
+                {/* Not a toggle like Web search, because it isn't a mode: the
+                    model emits an ```image block straight off the prompt, so a
+                    switch would be state that does nothing. The real problem is
+                    that nobody knows it's there — so seed the ask and let them
+                    finish the sentence. Same pattern as the empty-state chips. */}
+                {onSeedPrompt && (
+                  <MenuItem
+                    onClick={() => { setMenuOpen(false); onSeedPrompt('Generate an image of '); }}
+                    icon={<SparkleIcon />}
+                    label="Generate an image"
+                    hint="Describe it"
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => onToggleWebSearch?.()}
@@ -485,6 +500,10 @@ function MenuItem({ onClick, icon, label, hint }: { onClick: () => void; icon: R
       {hint && <span className="text-[10px] text-muted/70">{hint}</span>}
     </button>
   );
+}
+
+function SparkleIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" /></svg>;
 }
 
 function PhotoIcon() {

@@ -726,6 +726,7 @@ export default function ChatWindow({
           compareSelected={compareModels}
           onToggleCompareModel={toggleCompareModel}
           connectedServices={connectedServices}
+          onSeedPrompt={(t) => { setInput(t); setTimeout(() => inputAreaRef.current?.focus(), 50); }}
           openQuestion={hasOpenQuestion(messages)}
           textareaRef={inputAreaRef}
           plan={isGuest ? undefined : plan}
