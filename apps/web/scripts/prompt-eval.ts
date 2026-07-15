@@ -62,7 +62,12 @@ const DEFLECTS = /\b(i can'?t|i cannot|i'?m not able|i'?m unable|i don'?t have t
  * supposed to replace — the model's untrained default is to ask in text, which
  * makes the user type an answer we could have offered as a tap.
  */
-const PROSE_ASK = /(could you (share|provide|tell|clarify|let me know)|can you (share|provide|tell|clarify)|i'?ll need to know|i need (a bit )?more (detail|info)|what (tone|length|kind|type) (were you|are you|do you)|let me know (which|what|if)|a bit more about what)/i;
+// Broad on purpose. An earlier, narrower version gave false PASSes: it missed
+// "What specific details would you like…" and a bare "Let me know so I can…",
+// which are the same failure wearing different words — so the eval reported the
+// card working when it wasn't. When in doubt this should OVER-report: a false
+// FAIL costs one look, a false PASS ships a regression.
+const PROSE_ASK = /(could you (share|provide|tell|clarify|let me know)|can you (share|provide|tell|clarify)|what specific|i'?ll need to know|i need (a bit )?more (detail|info)|more information:|what (tone|length|kind|type|topic) (were you|are you|do you|would you)|let me know|a bit more about what|would you like (me to )?(include|cover|focus))/i;
 
 interface Case {
   name: string;
