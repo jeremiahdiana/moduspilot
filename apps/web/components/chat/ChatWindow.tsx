@@ -626,7 +626,6 @@ export default function ChatWindow({
           // to one model would rip the toggle out mid-use.
           compareOn={compareOn}
           onToggleCompare={unlockedModels(plan).length >= 2 ? () => setCompareOn(v => !v) : undefined}
-          compareModelNames={compareModels.map(m => modelName(m)).join(' · ')}
           compareSelected={compareModels}
           onToggleCompareModel={toggleCompareModel}
           connectedServices={connectedServices}

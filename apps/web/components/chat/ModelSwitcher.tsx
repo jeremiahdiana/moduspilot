@@ -10,6 +10,12 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   plan: string;
+  /** Multi-model: several models answer the same prompt side by side. */
+  compareOn?: boolean;
+  /** Omitted when the plan unlocks fewer than 2 models — nothing to compare. */
+  onToggleCompare?: () => void;
+  /** Count shown on the trigger while multi-model is on. */
+  compareCount?: number;
 }
 
 function currentLabel(value: string): string {
@@ -18,7 +24,15 @@ function currentLabel(value: string): string {
   return modelName(value);
 }
 
-export default function ModelSwitcher({ value, onChange, plan }: Props) {
+function CompareIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M8 3v18M16 3v18M3 8h18M3 16h18" />
+    </svg>
+  );
+}
+
+export default function ModelSwitcher({ value, onChange, plan, compareOn = false, onToggleCompare, compareCount = 0 }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const ep = effectivePlan(plan);
@@ -33,6 +47,8 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
   }, [open]);
 
   function select(v: string) {
+    // Picking one model contradicts asking several — an explicit pick wins.
+    if (compareOn) onToggleCompare?.();
     onChange(v);
     setOpen(false);
   }
@@ -42,9 +58,15 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1 text-xs text-muted hover:text-text border border-border rounded-lg px-2 py-1 transition-colors max-w-[9rem]"
+        className={`flex items-center gap-1 text-xs border rounded-lg px-2 py-1 transition-colors max-w-[9rem] ${
+          compareOn ? 'text-brand border-brand/40 bg-brand/10' : 'text-muted hover:text-text border-border'
+        }`}
       >
-        {value === 'auto' || !value ? (
+        {/* Multi-model overrides the label: it IS the answer to "which model
+            answers this", so showing "Auto" underneath it would be a lie. */}
+        {compareOn ? (
+          <CompareIcon className="w-3.5 h-3.5 shrink-0" />
+        ) : value === 'auto' || !value ? (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-3.5 h-3.5 text-brand shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
           </svg>
@@ -55,7 +77,9 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
         ) : (
           (() => { const L = logoForModel(value); return <L className="w-3.5 h-3.5 shrink-0" />; })()
         )}
-        <span className="truncate font-medium">{currentLabel(value)}</span>
+        <span className="truncate font-medium">
+          {compareOn ? `${compareCount} model${compareCount === 1 ? '' : 's'}` : currentLabel(value)}
+        </span>
         <motion.svg
           viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 shrink-0"
           animate={{ rotate: open ? 180 : 0 }}
@@ -77,7 +101,7 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
           <button
             type="button"
             onClick={() => select('auto')}
-            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${value === 'auto' || !value ? 'bg-brand/5' : ''}`}
+            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${!compareOn && (value === 'auto' || !value) ? 'bg-brand/5' : ''}`}
           >
             <span className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand">
@@ -85,10 +109,34 @@ export default function ModelSwitcher({ value, onChange, plan }: Props) {
               </svg>
             </span>
             <div className="min-w-0">
-              <p className={`text-sm font-medium ${value === 'auto' || !value ? 'text-brand' : 'text-text'}`}>Auto</p>
+              <p className={`text-sm font-medium ${!compareOn && (value === 'auto' || !value) ? 'text-brand' : 'text-text'}`}>Auto</p>
               <p className="text-xs text-muted leading-snug">MODUS picks the best model for each task</p>
             </div>
           </button>
+
+          {/* Multi-model lives here, not in the + menu: this dropdown answers
+              "which model answers this?" and asking several IS that answer.
+              It toggles rather than becoming `value` — `value` is persisted as
+              the account's default Brain and sent to /api/chat as modelChoice,
+              so a "multi" value would leak into both. */}
+          {onToggleCompare && (
+            <button
+              type="button"
+              onClick={() => { onToggleCompare(); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${compareOn ? 'bg-brand/5' : ''}`}
+            >
+              <span className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+                <CompareIcon className="w-4 h-4 text-brand" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-medium ${compareOn ? 'text-brand' : 'text-text'}`}>Multi-model</p>
+                <p className="text-xs text-muted leading-snug">Ask up to 3 at once and compare their answers</p>
+              </div>
+              <span className={`shrink-0 mt-1 w-8 rounded-full relative flex items-center px-0.5 transition-colors ${compareOn ? 'bg-brand justify-end' : 'bg-border justify-start'}`} style={{ height: 18 }}>
+                <motion.span layout transition={{ type: 'spring', stiffness: 600, damping: 32 }} className="w-3.5 h-3.5 rounded-full bg-white" />
+              </span>
+            </button>
+          )}
 
           <div className="my-1 border-t border-border/60" />
 
