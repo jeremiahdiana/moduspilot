@@ -14,6 +14,9 @@ type ChartSpec = {
   type?: 'bar' | 'line' | 'area' | 'pie';
   title?: string;
   unit?: string;
+  /** Declared row count, emitted before `data` purely so the streaming UI can
+   *  show real progress (lib/chat/block-progress.ts). Not used for rendering. */
+  points?: number;
   data?: Record<string, string | number>[];
 };
 

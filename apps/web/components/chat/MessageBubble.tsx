@@ -8,6 +8,7 @@ import ImageCard from './ImageCard';
 import DocumentCard from './DocumentCard';
 import ChartCard from './ChartCard';
 import MarkdownMessage from './MarkdownMessage';
+import { blockProgress } from '@/lib/chat/block-progress';
 import { modelName, PLATFORM_MODELS } from '@/lib/models';
 import { ProviderLogo } from '@/components/marketing/BrandLogos';
 
@@ -126,11 +127,10 @@ export default function MessageBubble({
   // '```options' is not a substring of '```draft_options' (the backticks sit
   // directly before the tag), so these two never collide.
   const hasSpecialBlock = rawText.includes('```approval') || rawText.includes('```draft_options') || rawText.includes('```options') || rawText.includes('```image') || rawText.includes('```document') || rawText.includes('```chart');
-  const specialLabel = rawText.includes('```image') ? 'Creating image…'
-    : rawText.includes('```document') ? 'Writing document…'
-    : rawText.includes('```chart') ? 'Building chart…'
-    : rawText.includes('```options') ? 'Preparing question…'
-    : 'Preparing action…';
+  // Real progress counted off the streaming JSON — never a timer. Returns null
+  // percent when the model didn't declare a total, and the bar goes
+  // indeterminate rather than showing an invented number.
+  const progress = isStreaming && hasSpecialBlock ? blockProgress(rawText) : null;
   const streamingText = hasSpecialBlock
     ? rawText
         .replace(/```(approval|draft_options|options|image|document|chart)[\s\S]*?```/g, '')
@@ -169,10 +169,35 @@ export default function MessageBubble({
             <MarkdownMessage key={i}>{part.value}</MarkdownMessage>
           ) : null
         )}
-        {isStreaming && hasSpecialBlock && (
-          <div className="flex items-center gap-2 px-4 py-3 border border-border bg-panel rounded-xl">
-            <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
-            <span className="text-xs text-muted">{specialLabel}</span>
+        {progress && (
+          <div className="px-4 py-3 border border-border bg-panel rounded-xl min-w-[240px]">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <span className="flex items-center gap-2 text-xs text-muted">
+                <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
+                {progress.label}
+                {progress.detail && <span className="text-muted/60">· {progress.detail}</span>}
+              </span>
+              {progress.percent !== null && (
+                <span className="text-xs font-medium text-brand tabular-nums">{progress.percent}%</span>
+              )}
+            </div>
+            <div className="h-1 w-full rounded-full bg-text/[0.08] overflow-hidden">
+              {progress.percent !== null ? (
+                <motion.div
+                  className="h-full rounded-full bg-brand"
+                  initial={false}
+                  animate={{ width: `${progress.percent}%` }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                />
+              ) : (
+                // No declared total: a looping sweep, which promises nothing.
+                <motion.div
+                  className="h-full w-1/3 rounded-full bg-brand/70"
+                  animate={{ x: ['-100%', '300%'] }}
+                  transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

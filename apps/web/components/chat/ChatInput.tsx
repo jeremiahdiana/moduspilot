@@ -26,6 +26,10 @@ interface Props {
   onRemoveFile?: (index: number) => void;
   webSearchOn?: boolean;
   onToggleWebSearch?: () => void;
+  compareOn?: boolean;
+  onToggleCompare?: () => void;
+  /** Model names shown in the compare menu row, e.g. "GPT-4o · Claude · Gemini". */
+  compareModelNames?: string;
   connectedServices?: ConnectedServices | null;
   textareaRef?: React.RefObject<HTMLTextAreaElement>;
   /** When set (signed-in users), shows the model switcher. */
@@ -40,7 +44,8 @@ const MAX_CHARS = 24000;
 export default function ChatInput({
   input, onChange, onSubmit, onVoiceTranscript, onImageAttach, isLoading,
   attachedImage, onClearImage, attachedFiles = [], onFileAttach, onRemoveFile,
-  webSearchOn = false, onToggleWebSearch, connectedServices, textareaRef, plan, modelChoice, onModelChange,
+  webSearchOn = false, onToggleWebSearch, compareOn = false, onToggleCompare, compareModelNames,
+  connectedServices, textareaRef, plan, modelChoice, onModelChange,
 }: Props) {
   const [recording, setRecording] = useState(false);
   const [voiceError, setVoiceError] = useState('');
@@ -324,6 +329,22 @@ export default function ChatInput({
                     <motion.span layout transition={{ type: 'spring', stiffness: 600, damping: 32 }} className="w-3.5 h-3.5 rounded-full bg-white" />
                   </span>
                 </button>
+                {onToggleCompare && (
+                  <button
+                    type="button"
+                    onClick={() => { onToggleCompare(); setMenuOpen(false); }}
+                    className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm text-text hover:bg-bg transition-colors"
+                  >
+                    <span className={compareOn ? 'text-brand' : 'text-muted'}><CompareIcon /></span>
+                    <span className="flex-1 text-left">
+                      Compare models
+                      {compareModelNames && <span className="block text-[10px] text-muted/70 leading-tight">{compareModelNames}</span>}
+                    </span>
+                    <span className={`w-8 rounded-full relative flex items-center px-0.5 shrink-0 transition-colors ${compareOn ? 'bg-brand justify-end' : 'bg-border justify-start'}`} style={{ height: 18 }}>
+                      <motion.span layout transition={{ type: 'spring', stiffness: 600, damping: 32 }} className="w-3.5 h-3.5 rounded-full bg-white" />
+                    </span>
+                  </button>
+                )}
                 <div className="my-1 border-t border-border/60" />
                 <div className="px-2.5 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">Connected</div>
                 {connectedServices ? (
@@ -353,7 +374,7 @@ export default function ChatInput({
             value={input}
             onChange={onChange}
             onKeyDown={handleKeyDown}
-            placeholder="Talk to MODUS..."
+            placeholder={compareOn ? 'Ask 3 models at once…' : 'Talk to MODUS...'}
             rows={1}
             className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
           />
@@ -372,6 +393,22 @@ export default function ChatInput({
               >
                 <SearchIcon className="w-3 h-3" />
                 Search
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-2.5 h-2.5"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
+              </motion.button>
+            )}
+            {compareOn && (
+              <motion.button
+                type="button"
+                initial={{ opacity: 0, scale: 0.8, width: 0 }}
+                animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                exit={{ opacity: 0, scale: 0.8, width: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => onToggleCompare?.()}
+                className="shrink-0 overflow-hidden flex items-center gap-1 text-[11px] font-medium text-brand bg-brand/10 border border-brand/25 rounded-full pl-2 pr-1.5 py-1 whitespace-nowrap"
+                title="Compare mode on — click to turn off"
+              >
+                <CompareIcon className="w-3 h-3" />
+                Compare
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-2.5 h-2.5"><path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" /></svg>
               </motion.button>
             )}
@@ -448,6 +485,9 @@ function PhotoIcon() {
 }
 function FileIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>;
+}
+function CompareIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M8 3v18M16 3v18M3 8h18M3 16h18" /></svg>;
 }
 function SearchIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>;

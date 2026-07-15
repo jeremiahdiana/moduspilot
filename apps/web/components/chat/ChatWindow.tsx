@@ -3,13 +3,14 @@
 import { useChat } from 'ai/react';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
-import { useRef, useEffect, useState } from 'react';
+import CompareCard from './CompareCard';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { modelName } from '@/lib/models';
+import { modelName, unlockedModels } from '@/lib/models';
 import { motion } from 'framer-motion';
 
 interface ConnectedServices {
@@ -103,6 +104,26 @@ export default function ChatWindow({
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; text: string }[]>([]);
   const [webSearchOn, setWebSearchOn] = useState(false);
+  // Compare mode: the next message is answered by 3 models side by side.
+  // comparePrompt !== null is what mounts the card.
+  const [compareOn, setCompareOn] = useState(false);
+  const [comparePrompt, setComparePrompt] = useState<string | null>(null);
+  // Pick 3 unlocked models from DIFFERENT providers — comparing GPT-4o against
+  // o4-mini says much less than comparing it against Claude and Gemini. Falls
+  // back to filling from whatever is unlocked if the plan has fewer providers.
+  const compareModels = useMemo(() => {
+    const unlocked = unlockedModels(plan);
+    const picked: typeof unlocked = [];
+    for (const m of unlocked) {
+      if (picked.length >= 3) break;
+      if (!picked.some(p => p.provider === m.provider)) picked.push(m);
+    }
+    for (const m of unlocked) {
+      if (picked.length >= 3) break;
+      if (!picked.includes(m)) picked.push(m);
+    }
+    return picked.map(m => m.id);
+  }, [plan]);
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
   // In-chat model selection ('auto' | model id | 'default'). Initialized from the
   // saved Brain (defaultModelChoice) and written back to it on change, so the
@@ -347,6 +368,16 @@ export default function ChatWindow({
     if (!input.trim() && !attachedImage && attachedFiles.length === 0) return;
     if (isAtLimit) { onShowPaywall?.(); return; }
 
+    // Compare mode short-circuits the normal send: the prompt goes to three
+    // models side by side instead of into the conversation. Attachments are
+    // deliberately not carried — the compare route takes a bare prompt.
+    if (compareOn && input.trim()) {
+      setComparePrompt(input.trim());
+      setInput('');
+      setCompareOn(false);
+      return;
+    }
+
     const content = attachedImage
       ? [
           ...(input.trim() ? [{ type: 'text' as const, text: input.trim() }] : []),
@@ -466,6 +497,29 @@ export default function ChatWindow({
             }}
           />
         ))}
+
+        {comparePrompt && (
+          <div className="space-y-2">
+            <div className="flex justify-end">
+              <div className="bg-brand text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[72%]">
+                <p className="text-sm leading-relaxed">{comparePrompt}</p>
+              </div>
+            </div>
+            <CompareCard
+              key={comparePrompt}
+              prompt={comparePrompt}
+              models={compareModels}
+              onClose={() => setComparePrompt(null)}
+              onUse={(text) => {
+                // Fold the winning answer into the real conversation, then drop
+                // the card — from here it's an ordinary chat turn.
+                setComparePrompt(null);
+                append({ role: 'user', content: comparePrompt } as Parameters<typeof append>[0]);
+                append({ role: 'assistant', content: text } as Parameters<typeof append>[0]);
+              }}
+            />
+          </div>
+        )}
         {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -541,6 +595,11 @@ export default function ChatWindow({
           onRemoveFile={(i) => setAttachedFiles(f => f.filter((_, idx) => idx !== i))}
           webSearchOn={webSearchOn}
           onToggleWebSearch={() => setWebSearchOn(v => !v)}
+          // Compare needs 2+ unlocked models to mean anything, so a free plan
+          // (Llama only) never sees the toggle.
+          compareOn={compareOn}
+          onToggleCompare={compareModels.length >= 2 ? () => setCompareOn(v => !v) : undefined}
+          compareModelNames={compareModels.map(m => modelName(m)).join(' · ')}
           connectedServices={connectedServices}
           textareaRef={inputAreaRef}
           plan={isGuest ? undefined : plan}

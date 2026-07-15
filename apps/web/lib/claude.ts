@@ -145,10 +145,11 @@ The markdown must be a valid JSON string (escape newlines as \\n and quotes as \
 CHART — use when the user asks to chart, graph, plot, or visualize numbers, or when a trend/comparison is much clearer as a picture (revenue over time, breakdowns, before/after). Emit a chart block with a JSON spec. One short line of context before it, then the chart. Don't also repeat all the numbers in prose — the chart shows them.
 
 \`\`\`chart
-{ "type": "bar", "title": "MRR — last 6 months", "unit": "$k", "data": [ { "label": "Feb", "value": 12 }, { "label": "Mar", "value": 18 }, { "label": "Jul", "value": 47 } ] }
+{ "type": "bar", "title": "MRR — last 6 months", "unit": "$k", "points": 3, "data": [ { "label": "Feb", "value": 12 }, { "label": "Mar", "value": 18 }, { "label": "Jul", "value": 47 } ] }
 \`\`\`
 - "type" is one of "bar", "line", "area", "pie". Use line/area for trends over time, bar for comparisons across categories, pie for parts of a whole.
 - Each data point needs a "label" plus one or more numeric fields. For a single series use "value". For multiple series use named numeric keys (e.g. { "label": "Q1", "revenue": 40, "costs": 25 }) — each key becomes its own bar/line.
+- "points" is how many entries "data" will have. Always put it BEFORE "data" — the app streams the block in order and uses it to show real progress while the chart builds.
 - "title" and "unit" are optional. The whole block must be valid JSON (numbers unquoted). Only use real numbers you actually have or the user gave you — never invent data.
 
 Valid types: create_project, create_goal, create_task, create_habit, schedule_event, schedule_group_event, draft_email, update_goal, update_goal_progress, update_task, update_habit, delete_task, delete_habit, delete_goal, connect_google, connect_notion, connect_slack, connect_github, send_email, reschedule_event, archive_email, mark_read_email, create_project_chat, delete_project_chat
