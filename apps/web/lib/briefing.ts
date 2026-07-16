@@ -189,6 +189,12 @@ ${scheduleText}${emailsText ? `\n\nUNREAD EMAILS (awaiting reply):\n${emailsText
 
   // Paid users lead with Claude Sonnet 4.6; everyone falls back to Groq Llama
   // (fast + free), then to the structured fallback so we never throw.
+  //
+  // ⚠️ DELIBERATELY still 4.6, even though the chat catalog moved to Sonnet 5 on
+  // 2026-07-17. Sonnet 4.6 is not retired and serves fine. "Upgrading" this line
+  // ALONE would 400 every briefing: Claude 5 rejects the AI SDK's hardcoded
+  // temperature:0, and this file has its own generateText call that does not pass
+  // the temperature:1 that chat/route.ts adds. Move it only together with that fix.
   const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
   const models: LanguageModel[] = [];
   if (opts.premium && anthropicKey) {

@@ -14,6 +14,11 @@ const groq = createOpenAI({
  * falls back to Groq Llama (fast + free). Callers try each in order until one
  * succeeds. Now that MODUS is fully paid, "paid" is effectively every active
  * user — free/grandfathered accounts stay on Llama.
+ *
+ * ⚠️ DELIBERATELY still Sonnet 4.6, even though the chat catalog moved to Sonnet 5
+ * on 2026-07-17. 4.6 is not retired and serves fine. Swapping this line ALONE would
+ * 400 every proactive job: Claude 5 rejects the AI SDK's hardcoded temperature:0,
+ * and callers here don't pass the temperature:1 that chat/route.ts adds.
  */
 export function proactiveModels(plan: string | null | undefined): LanguageModel[] {
   const models: LanguageModel[] = [];

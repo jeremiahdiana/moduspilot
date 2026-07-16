@@ -392,7 +392,11 @@ export async function POST(req: Request) {
       // id it's given, so passing 'gpt-4o' here would come back as 'gpt-5.6-terra'
       // and the `cand.modelId === up` check below would never match — the upgrade
       // would silently stop happening and large requests would 429 on Llama again.
-      for (const up of ['gpt-5.6-terra', 'claude-sonnet-4-6']) {
+      // claude-sonnet-5, NOT claude-sonnet-4-6: the comment above is not theoretical.
+      // 4-6 became a LEGACY id on 2026-07-17, so resolveChatModel would canonicalise
+      // it to claude-sonnet-5 and `cand.modelId === up` would never match — the
+      // size-guard upgrade would silently stop and large requests would 429 on Llama.
+      for (const up of ['gpt-5.6-terra', 'claude-sonnet-5']) {
         const cand = resolveChatModel(userData, { hasImage, modelId: up });
         if (cand.modelId === up) {
           resolved = cand;
@@ -519,8 +523,28 @@ export async function POST(req: Request) {
     //   @ 16000 → reasoning_tokens 3965,      finish 'stop',   4740 chars
     // Miss this and PILOT users get a blank bubble on exactly the hard questions
     // they upgraded for. "gpt-5.6-terra" burns less but is the same shape.
-    const isReasoningModel = /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId);
+    // The Claude 5 family (Sonnet 5, Fable 5) is the same shape and had to be added
+    // here the day it shipped. Measured 2026-07-17 through THIS code path (the real
+    // @ai-sdk/anthropic client, one hard prompt):
+    //   claude-sonnet-5 @ 2048  → finish 'length', **0 chars** — a blank bubble
+    //   claude-sonnet-5 @ 16000 → finish 'stop',   3541 chars
+    //   claude-fable-5  @ 2048  → finish 'length', 2322 chars (truncated mid-answer)
+    //   claude-fable-5  @ 16000 → finish 'stop',   2173 chars
+    // On Claude 5 thinking is adaptive and ALWAYS counts against max_tokens, so a
+    // 2048 cap is spent on reasoning before a single visible character is emitted.
+    const isReasoningModel = /^o\d/.test(resolved.modelId)
+      || /^gpt-5/.test(resolved.modelId)
+      || /-5$/.test(resolved.modelId);
     const maxTokens = isReasoningModel ? 16000 : 2048;
+
+    // 🚨 Claude 5 REJECTS a non-default temperature — and the AI SDK always sends one.
+    // ai@4.3.19 hardcodes `temperature: temperature != null ? temperature : 0` (its own
+    // comment: "TODO v5 remove default 0 for temperature"), so omitting it is impossible:
+    // every request would 400 with "`temperature` is deprecated for this model" — not a
+    // blank reply, a hard failure on every message. Anthropic's own default is 1, and
+    // passing the default explicitly is accepted, which is what makes these models
+    // servable on this SDK version at all. Verified: temp 0 → 400, temp 1 → answers.
+    const isClaude5 = /^claude-.*-5$/.test(resolved.modelId);
 
     // Transparent model failover: if the chosen model rejects the request with a
     // transient rate/size limit (e.g. Groq's per-minute TPM 429 on the free
@@ -618,6 +642,7 @@ export async function POST(req: Request) {
         ? { messages: [...cachedSystemMessages, ...cappedMessages] }
         : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: cappedMessages }),
       maxTokens,
+      ...(isClaude5 ? { temperature: 1 } : {}),
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onError: async ({ error }) => {
         // onFinish does NOT fire when the stream errors, so without this the MCP

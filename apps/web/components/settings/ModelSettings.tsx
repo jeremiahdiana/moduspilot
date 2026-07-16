@@ -44,8 +44,8 @@ const BRAINS = [
     plans: ['modus', 'pilot'] as string[],
   },
   {
-    id: 'claude-sonnet-4-6',
-    name: 'Claude Sonnet',
+    id: 'claude-sonnet-5',
+    name: 'Claude Sonnet 5',
     provider: 'Anthropic',
     tagline: 'Exceptional writing & analysis',
     description: 'Best for nuanced writing, editing, and thorough analysis. Low hallucination rate.',
@@ -77,8 +77,20 @@ const BRAINS = [
     id: 'claude-opus-4-8',
     name: 'Claude Opus',
     provider: 'Anthropic',
-    tagline: 'Most capable',
-    description: "Anthropic's most intelligent model. For the hardest tasks that demand deep reasoning.",
+    // NOT "most capable" any more — Fable 5 is, and it's right below. Two models
+    // in one list can't both claim the top; the user can read them side by side.
+    tagline: 'Deep reasoning, faster',
+    description: 'Highly capable and quicker to answer than Fable 5. The right pick for hard work that still needs to come back promptly.',
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
+  {
+    id: 'claude-fable-5',
+    name: 'Claude Fable 5',
+    provider: 'Anthropic',
+    tagline: "Anthropic's most capable",
+    description: 'The strongest model MODUS can run, for the hardest reasoning and long, multi-step work. Thinks longer, so it answers slower.',
     badge: 'PILOT',
     badgeColor: 'bg-brand/10 text-brand',
     plans: ['pilot'] as string[],
@@ -251,13 +263,13 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
 
         {!isPaid && (
           <p className="text-xs text-muted text-center pt-1">
-            <span className="text-brand font-medium">Upgrade to MODUS</span> to unlock GPT-5.6, Claude Sonnet and Gemini.{' '}
+            <span className="text-brand font-medium">Upgrade to MODUS</span> to unlock GPT-5.6, Claude Sonnet 5 and Gemini.{' '}
             <span className="text-brand font-medium">PILOT</span> adds the frontier models.
           </p>
         )}
         {isPaid && !isPilot && (
           <p className="text-xs text-muted text-center pt-1">
-            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock GPT-5.6 Sol and Claude Opus.
+            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock GPT-5.6 Sol, Claude Opus and Claude Fable 5.
           </p>
         )}
       </div>

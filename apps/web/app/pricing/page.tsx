@@ -82,7 +82,7 @@ const PLANS = [
     popular: false,
     features: [
       { label: 'Everything in MODUS', included: true },
-      { label: 'The frontier models: GPT-5.6 Sol + Claude Opus, manual pick per message', included: true },
+      { label: 'The frontier models: GPT-5.6 Sol, Claude Opus + Claude Fable 5 — Anthropic\u2019s most capable — manual pick per message', included: true },
       { label: 'Unlimited context memory', included: true },
       { label: 'Wearable sync (HealthKit, Oura, Whoop)', included: true },
       { label: 'Financial pulse via Plaid', included: true },

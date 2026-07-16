@@ -14,10 +14,11 @@ export interface ModelInfo {
 export const PLATFORM_MODELS: ModelInfo[] = [
   { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
-  { id: 'claude-sonnet-4-6',       name: 'Claude Sonnet',    provider: 'Anthropic', plans: ['modus', 'pilot'] },
+  { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'] },
   { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
   { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
   { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
+  { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'] },
   // Gemini 3.1 Pro / Grok 4.5 withheld — their provider accounts can't serve a
   // request yet (quota / no credits). See apps/web/lib/models.ts for the detail.
 ];

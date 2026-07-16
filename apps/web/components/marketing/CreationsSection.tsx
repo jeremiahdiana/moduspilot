@@ -141,9 +141,9 @@ const STAGE_AT = { thinking: 350, building: 1050, done: 3300 } as const;
 const BUILD_MS = STAGE_AT.done - STAGE_AT.building;
 
 const TABS: TabDef[] = [
-  { id: 'chart', label: 'A chart', ask: 'Chart my deep work vs meetings this week', modelId: 'claude-sonnet-4-6', buildLabel: 'Building chart', total: CHART_DATA.length, unitNoun: 'points', hold: 1600 },
+  { id: 'chart', label: 'A chart', ask: 'Chart my deep work vs meetings this week', modelId: 'claude-sonnet-5', buildLabel: 'Building chart', total: CHART_DATA.length, unitNoun: 'points', hold: 1600 },
   { id: 'image', label: 'An image', ask: IMAGE_ASK, modelId: 'gpt-image-1', providerOverride: 'OpenAI', buildLabel: 'Creating image', total: null, unitNoun: '', hold: 2100 },
-  { id: 'doc', label: 'A document', ask: 'Turn my Q3 notes into a PDF I can send', modelId: 'claude-sonnet-4-6', buildLabel: 'Writing document', total: DOC_TOTAL_WORDS, unitNoun: 'words', hold: 2100 },
+  { id: 'doc', label: 'A document', ask: 'Turn my Q3 notes into a PDF I can send', modelId: 'claude-sonnet-5', buildLabel: 'Writing document', total: DOC_TOTAL_WORDS, unitNoun: 'words', hold: 2100 },
 ];
 
 /**

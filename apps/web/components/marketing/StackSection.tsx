@@ -53,7 +53,7 @@ function WrappersLogo({ className = 'w-5 h-5' }: { className?: string }) {
 // move onto MODUS; before that it was the same false row.
 const STACK: Row[] = [
   { name: 'ChatGPT Plus',        price: 20, logo: OpenAILogo,     instead: 'GPT-5.6, built in' },
-  { name: 'Claude Pro',          price: 20, logo: ClaudeLogo,     instead: 'Claude Sonnet, built in' },
+  { name: 'Claude Pro',          price: 20, logo: ClaudeLogo,     instead: 'Claude Sonnet 5 + Fable 5, built in' },
   { name: 'Google AI Pro',       price: 20, logo: GeminiLogo,     instead: 'Gemini, built in' },
   { name: 'Perplexity Pro',      price: 20, logo: PerplexityLogo, instead: 'Web search on any model' },
   { name: 'Midjourney Standard', price: 30, logo: MidjourneyLogo, instead: 'Image generation in chat' },

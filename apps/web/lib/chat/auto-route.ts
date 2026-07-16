@@ -25,17 +25,23 @@ export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'gene
 // Llama (the 'general' default). Ids must exist in PLATFORM_MODELS.
 const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   // Nuanced, human-sounding prose — Claude leads (reads least "AI-generated").
-  writing:   ['claude-sonnet-4-6', 'claude-opus-4-8', 'gpt-5.6-terra'],
+  writing:   ['claude-sonnet-5', 'claude-opus-4-8', 'gpt-5.6-terra'],
   // Up-to-date / factual digging. Grok led here for its real-time index and is
   // gone: xAI has no credits, so it could not answer at all (see lib/models.ts).
   // Gemini Flash takes the slot — it's the fastest model on MODUS and this is the
   // category that carries the web-search flag anyway.
-  research:  ['gemini-3.5-flash', 'gpt-5.6-terra', 'claude-sonnet-4-6'],
+  research:  ['gemini-3.5-flash', 'gpt-5.6-terra', 'claude-sonnet-5'],
   // Code & math. Sol leads on PILOT and MODUS falls through to Terra, which is
   // what pickModel() is for. o4-mini is retired — 5.6 supersedes it.
-  code:      ['gpt-5.6-sol', 'gpt-5.6-terra', 'claude-sonnet-4-6'],
+  code:      ['gpt-5.6-sol', 'gpt-5.6-terra', 'claude-sonnet-5'],
   // Hard multi-step reasoning / strategy.
-  reasoning: ['gpt-5.6-sol', 'claude-opus-4-8', 'gpt-5.6-terra', 'claude-sonnet-4-6'],
+  //
+  // claude-fable-5 is DELIBERATELY absent, even though it's the most capable model
+  // we serve. At $10/$50 per 1M (~2x Opus 4.8) it is the priciest thing in the
+  // catalog, and Auto is the default — routing here would quietly make the most
+  // expensive model the standard spend for every PILOT reasoning turn. PILOT's
+  // selling point is manual pick per message; let the user choose to spend it.
+  reasoning: ['gpt-5.6-sol', 'claude-opus-4-8', 'gpt-5.6-terra', 'claude-sonnet-5'],
   // Everyday chat — fast & free.
   general:   ['llama-3.3-70b-versatile'],
 };

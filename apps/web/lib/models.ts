@@ -29,10 +29,18 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // date as 07/17/26, THE SAME DAY. Round-tripping proves a model serves NOW, not
   // that it serves TOMORROW: check console.groq.com/docs/deprecations too.
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
-  { id: 'claude-sonnet-4-6',       name: 'Claude Sonnet',    provider: 'Anthropic', plans: ['modus', 'pilot'] },
+  // Sonnet 5 supersedes Sonnet 4.6 at the SAME list price ($3/$15, and $2/$10
+  // introductory through 2026-08-31) — a strictly better model for what we already
+  // pay. Verified live 2026-07-17 through the real @ai-sdk/anthropic path.
+  { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'] },
   { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
   { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
   { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
+  // Anthropic's most capable model — a real PILOT flagship, already covered by the
+  // Anthropic account we pay for. ⚠️ $10/$50 per 1M, ~2x Opus 4.8: the priciest
+  // thing we serve. Anthropic prompt caching (chat/route.ts) drops cached input to
+  // ~$1/1M and is what keeps it viable at $59.
+  { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'] },
 
   // ── Withheld until the provider account can actually serve them ──────────────
   // Both were live on PILOT and NEITHER could answer a single request, which the
@@ -70,6 +78,11 @@ const LEGACY_MODEL_IDS: Record<string, string> = {
   'o4-mini': 'gpt-5.6-sol',           // o-series reasoning → the 5.6 flagship
   'gemini-2.5-pro': 'gemini-3.5-flash', // retires 2026-10-16, and 429s today
   'grok-3': 'gpt-5.6-sol',            // xAI has no credits; keep them on a frontier model
+  // Sonnet 4.6 left the catalog for Sonnet 5 (same price, better model) on
+  // 2026-07-17. Without this line every saved Brain holding the old id fails the
+  // plan gate and silently drops that user to Llama — same tier, same provider,
+  // so the successor is a clean swap.
+  'claude-sonnet-4-6': 'claude-sonnet-5',
 };
 
 /** Map a stored/legacy model id onto the catalog id that should actually serve it. */

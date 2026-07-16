@@ -84,7 +84,15 @@ export async function POST(req: Request) {
     // cap, and gpt-5.6-sol measurably burns 2048/2048 on a hard prompt and emits
     // NOTHING. A blank column would read as "that model lost", which is exactly
     // the lie compare mode refuses above when it 503s a downgrade.
-    maxTokens: /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId) ? 16000 : 2000,
+    //
+    // The Claude 5 family belongs here too — measured 2026-07-17, claude-sonnet-5
+    // returns 0 chars at 2048 and 3541 at 16000. Sonnet 5 losing a race it never
+    // got to run is the exact failure this comment is about.
+    maxTokens: /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId) || /-5$/.test(resolved.modelId) ? 16000 : 2000,
+    // Claude 5 rejects the AI SDK's hardcoded temperature:0 with a 400 on EVERY
+    // request; Anthropic's default of 1 is accepted. See chat/route.ts for the full
+    // note — this file has its own streamText call and inherits nothing from it.
+    ...(/^claude-.*-5$/.test(resolved.modelId) ? { temperature: 1 } : {}),
     onFinish: () => {
       console.log(`[compare] ${resolved.modelId} finished in ${Date.now() - started}ms`);
     },
