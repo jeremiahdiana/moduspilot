@@ -183,7 +183,7 @@ const DEMOS: Demo[] = [
   },
   {
     prompt: 'Generate a launch hero image: dark, violet, futuristic.',
-    Logo: OpenAILogo, model: 'GPT-4o', reason: 'image generation',
+    Logo: OpenAILogo, model: 'GPT-5.6', reason: 'image generation',
     render: () => <ImageReply />,
   },
   {
@@ -193,12 +193,12 @@ const DEMOS: Demo[] = [
   },
   {
     prompt: 'Why does my useEffect run twice in React 18?',
-    Logo: GrokLogo, model: 'Grok', reason: 'code & debugging',
+    Logo: OpenAILogo, model: 'GPT-5.6', reason: 'code & debugging',
     render: () => <CodeReply />,
   },
   {
     prompt: "What's the fastest way to incorporate a Delaware C-corp?",
-    Logo: OpenAILogo, model: 'GPT-4o', reason: 'general knowledge',
+    Logo: OpenAILogo, model: 'GPT-5.6', reason: 'general knowledge',
     render: () => <ChecklistReply />,
   },
 ];

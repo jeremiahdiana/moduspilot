@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 const FEATURES = [
   {
     title: 'Every AI Model, One Chat',
-    desc: 'Claude, GPT-4o, Gemini, Grok. Pick the model you want, or let MODUS auto-route each task to the best one. Switch anytime, right in the chat.',
+    desc: 'Claude, GPT-5.6, Gemini, Llama. Pick the model you want, or let MODUS auto-route each task to the best one. Switch anytime, right in the chat.',
   },
   {
     title: 'Create Images & Documents',

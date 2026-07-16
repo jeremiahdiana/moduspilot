@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import { ClaudeLogo, OpenAILogo, GeminiLogo, GrokLogo } from '@/components/marketing/ModelLogos';
+import { ClaudeLogo, OpenAILogo, GeminiLogo, MetaLogo } from '@/components/marketing/ModelLogos';
 import { DemoWindow } from '@/components/marketing/ModelDemo';
 import { useAuth } from '@/components/providers/AuthProvider';
 import {
@@ -34,7 +34,7 @@ const BRAND_MODELS = [
   { name: 'ChatGPT', Logo: OpenAILogo },
   { name: 'Claude',  Logo: ClaudeLogo },
   { name: 'Gemini',  Logo: GeminiLogo },
-  { name: 'Grok',    Logo: GrokLogo },
+  { name: 'Llama',   Logo: MetaLogo },
 ];
 
 // ── animation helpers ──────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
             Every AI model.<br />One assistant.
           </h1>
           <p className="text-sm text-muted mt-3 leading-relaxed max-w-xs mx-auto">
-            ChatGPT, Claude, Gemini, and Grok in one place — routed to the best one for every task, and put to work running your day.
+            ChatGPT, Claude, Gemini and Llama in one place — routed to the best one for every task, and put to work running your day.
           </p>
         </div>
 
@@ -343,7 +343,7 @@ function ModelsShowcaseScreen() {
         <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Your unfair advantage</p>
         <h1 className="text-2xl md:text-[1.75rem] font-black text-text leading-tight">One subscription. Every model.</h1>
         <p className="text-sm text-muted mt-2 max-w-md mx-auto">
-          ChatGPT, Claude, Gemini, and Grok in one place — MODUS routes each task to whichever is best. Watch it work:
+          ChatGPT, Claude, Gemini and Llama in one place — MODUS routes each task to whichever is best. Watch it work:
         </p>
       </div>
 
@@ -370,12 +370,12 @@ function ModelsShowcaseScreen() {
 // Lets the user pick which plan to start their 3-day trial on, before checkout.
 const PLAN_OPTIONS: { id: PlanId; name: string; price: string; tagline: string; popular?: boolean; features: string[] }[] = [
   {
-    id: 'modus', name: 'MODUS', price: '$24', tagline: 'Every model, auto-routed',
-    features: ['Claude + ChatGPT, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
+    id: 'modus', name: 'MODUS', price: '$24', tagline: 'Every provider, auto-routed',
+    features: ['Claude + GPT-5.6 + Gemini, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
   },
   {
     id: 'pilot', name: 'PILOT', price: '$59', tagline: 'Everything, higher limits', popular: true,
-    features: ['Everything in MODUS', 'Every model — + Gemini, Grok, Opus', 'Much higher usage limits', 'Manual model pick per message'],
+    features: ['Everything in MODUS', 'The frontier models — GPT-5.6 Sol + Claude Opus', 'Much higher usage limits', 'Manual model pick per message'],
   },
 ];
 
@@ -455,7 +455,7 @@ function CompletionScreen({ name, planName, onEnter }: {
 
   const items = [
     { label: `Profile personalized${name.trim() ? ` for ${name.trim()}` : ''}` },
-    { label: 'Every model unlocked — ChatGPT, Claude, Gemini, Grok' },
+    { label: 'Every provider unlocked — ChatGPT, Claude, Gemini, Llama' },
     { label: 'Daily Review habit — streak starts today' },
   ];
 

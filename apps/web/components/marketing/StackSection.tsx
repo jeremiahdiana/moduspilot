@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
-import { OpenAILogo, ClaudeLogo, GeminiLogo, GrokLogo, PerplexityLogo, MidjourneyLogo } from '@/components/marketing/ModelLogos';
+import { OpenAILogo, ClaudeLogo, GeminiLogo, PerplexityLogo, MidjourneyLogo } from '@/components/marketing/ModelLogos';
 
 /**
  * The stack you cancel.
@@ -16,8 +16,10 @@ import { OpenAILogo, ClaudeLogo, GeminiLogo, GrokLogo, PerplexityLogo, Midjourne
  * single tier, not three subscriptions.
  *
  * Itemising is what makes it persuasive: a reader can check any line, so the
- * total is believable in a way a round "$200+" never is. It also lands at $140,
- * which is most of the drama with none of the lying.
+ * total is believable in a way a round "$200+" never is. It lands at $110 — the
+ * drama with none of the lying. It was $140 until SuperGrok came out: Grok was
+ * never in the $24 tier AND xAI could not serve a request, so that row failed the
+ * "check them yourself" test twice over.
  *
  * RULES for editing this list:
  *  - Never add a row MODUS cannot do TODAY. Cal AI-style food logging and Gamma
@@ -43,17 +45,22 @@ function WrappersLogo({ className = 'w-5 h-5' }: { className?: string }) {
   );
 }
 
+// Every row must be something the $24 tier ACTUALLY does, because the pitch
+// below is "check them yourself" — one row a reader can disprove takes the other
+// five down with it. SuperGrok was removed for exactly that reason: Grok was
+// PILOT-only, so $30 of this total was never included at $24, and xAI could not
+// serve a request at all. "Gemini, built in" is true as of the Gemini 3.5 Flash
+// move onto MODUS; before that it was the same false row.
 const STACK: Row[] = [
-  { name: 'ChatGPT Plus',        price: 20, logo: OpenAILogo,     instead: 'GPT-4o, built in' },
+  { name: 'ChatGPT Plus',        price: 20, logo: OpenAILogo,     instead: 'GPT-5.6, built in' },
   { name: 'Claude Pro',          price: 20, logo: ClaudeLogo,     instead: 'Claude Sonnet, built in' },
   { name: 'Google AI Pro',       price: 20, logo: GeminiLogo,     instead: 'Gemini, built in' },
-  { name: 'SuperGrok',           price: 30, logo: GrokLogo,       instead: 'Grok, built in' },
   { name: 'Perplexity Pro',      price: 20, logo: PerplexityLogo, instead: 'Web search on any model' },
   { name: 'Midjourney Standard', price: 30, logo: MidjourneyLogo, instead: 'Image generation in chat' },
   // Every other AI wrapper people stack up. Real, and the reason the true bill
-  // is worse than $140 — but priced at 0 and left OUT of the sum, because the
+  // is worse than $110 — but priced at 0 and left OUT of the sum, because the
   // whole point of this section is that a reader can check every number in it.
-  // The moment we guess at this one, the other six stop being believable.
+  // The moment we guess at this one, the other five stop being believable.
   { name: 'Every other AI app', price: 0, logo: WrappersLogo, instead: 'The one-trick apps you forgot you pay for', uncounted: true },
 ];
 
@@ -99,7 +106,7 @@ export default function StackSection() {
       >
         <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">The math</p>
         <h2 className="text-4xl md:text-5xl font-semibold text-text mb-4 tracking-tight">
-          You&apos;re paying for six of these.<br />
+          You&apos;re paying for five of these.<br />
           <span className="text-brand dark:text-brand-light">MODUS is one of them.</span>
         </h2>
         <p className="text-muted text-lg leading-relaxed max-w-2xl mb-10">
@@ -216,7 +223,7 @@ export default function StackSection() {
         transition={{ delay: 0.7 }}
         className="text-xs text-muted/60 mt-6 max-w-2xl"
       >
-        Prices as listed by each provider, July 2026, and the total counts only those six — the one-trick apps on top are yours to add up. Your everyday tools stay: Gmail, Calendar, Notion, Slack. MODUS runs on top of them.
+        Prices as listed by each provider, July 2026, and the total counts only those five — the one-trick apps on top are yours to add up. Your everyday tools stay: Gmail, Calendar, Notion, Slack. MODUS runs on top of them.
       </motion.p>
     </section>
   );

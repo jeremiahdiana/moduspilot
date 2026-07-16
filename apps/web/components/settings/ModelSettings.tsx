@@ -34,11 +34,11 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
+    id: 'gpt-5.6-terra',
+    name: 'GPT-5.6 Terra',
     provider: 'OpenAI',
     tagline: 'Balanced & reliable',
-    description: "OpenAI's best multimodal model. Handles text, images, and complex reasoning.",
+    description: "OpenAI's balanced everyday model. Handles text, images, and complex reasoning.",
     badge: 'MODUS+',
     badgeColor: 'bg-violet-500/10 text-violet-400',
     plans: ['modus', 'pilot'] as string[],
@@ -54,6 +54,26 @@ const BRAINS = [
     plans: ['modus', 'pilot'] as string[],
   },
   {
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    provider: 'Google',
+    tagline: 'Fast & multimodal',
+    description: "Google's fastest current model, strong on agentic and coding work, with a huge context window.",
+    badge: 'MODUS+',
+    badgeColor: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'] as string[],
+  },
+  {
+    id: 'gpt-5.6-sol',
+    name: 'GPT-5.6 Sol',
+    provider: 'OpenAI',
+    tagline: 'Deepest reasoning',
+    description: "OpenAI's flagship. For the hardest problems — long-horizon reasoning, coding, and science.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
+  {
     id: 'claude-opus-4-8',
     name: 'Claude Opus',
     provider: 'Anthropic',
@@ -63,36 +83,10 @@ const BRAINS = [
     badgeColor: 'bg-brand/10 text-brand',
     plans: ['pilot'] as string[],
   },
-  {
-    id: 'o4-mini',
-    name: 'o4-mini',
-    provider: 'OpenAI',
-    tagline: 'Advanced reasoning',
-    description: "OpenAI's compact reasoning model. Excels at math, code, and logical problem-solving.",
-    badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
-    plans: ['pilot'] as string[],
-  },
-  {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
-    provider: 'Google',
-    tagline: 'Multimodal powerhouse',
-    description: "Google's frontier model with massive context window and strong multimodal abilities.",
-    badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
-    plans: ['pilot'] as string[],
-  },
-  {
-    id: 'grok-3',
-    name: 'Grok 3',
-    provider: 'xAI',
-    tagline: 'Real-time knowledge',
-    description: "xAI's model trained on real-time data. Sharp reasoning and up-to-date information.",
-    badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
-    plans: ['pilot'] as string[],
-  },
+  // Gemini 3.1 Pro and Grok 4.5 are withheld until their provider accounts can
+  // serve a request — see the note in lib/models.ts. Keep this list matching that
+  // catalog: a Brain offered here that PLATFORM_MODELS doesn't unlock is a lock
+  // badge the user can never earn.
 ];
 
 const BYOK_PROVIDERS = [
@@ -257,13 +251,13 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
 
         {!isPaid && (
           <p className="text-xs text-muted text-center pt-1">
-            <span className="text-brand font-medium">Upgrade to MODUS</span> to unlock GPT-4o and Claude Sonnet.{' '}
-            <span className="text-brand font-medium">PILOT</span> unlocks all 7.
+            <span className="text-brand font-medium">Upgrade to MODUS</span> to unlock GPT-5.6, Claude Sonnet and Gemini.{' '}
+            <span className="text-brand font-medium">PILOT</span> adds the frontier models.
           </p>
         )}
         {isPaid && !isPilot && (
           <p className="text-xs text-muted text-center pt-1">
-            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3.
+            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock GPT-5.6 Sol and Claude Opus.
           </p>
         )}
       </div>

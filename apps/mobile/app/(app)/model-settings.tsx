@@ -44,11 +44,11 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'],
   },
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
+    id: 'gpt-5.6-terra',
+    name: 'GPT-5.6 Terra',
     provider: 'OpenAI',
     tagline: 'Balanced & reliable',
-    desc: "OpenAI's best multimodal model. Handles text, images, and complex reasoning.",
+    desc: "OpenAI's balanced everyday model. Handles text, images, and complex reasoning.",
     badge: 'MODUS+',
     badgeClass: 'bg-violet-500/10 text-violet-400',
     plans: ['modus', 'pilot'],
@@ -64,6 +64,26 @@ const BRAINS = [
     plans: ['modus', 'pilot'],
   },
   {
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    provider: 'Google',
+    tagline: 'Fast & multimodal',
+    desc: "Google's fastest current model, with a huge context window.",
+    badge: 'MODUS+',
+    badgeClass: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'],
+  },
+  {
+    id: 'gpt-5.6-sol',
+    name: 'GPT-5.6 Sol',
+    provider: 'OpenAI',
+    tagline: 'Deepest reasoning',
+    desc: "OpenAI's flagship. For the hardest reasoning, coding and science.",
+    badge: 'PILOT',
+    badgeClass: 'bg-brand/10 text-brand',
+    plans: ['pilot'],
+  },
+  {
     id: 'claude-opus-4-8',
     name: 'Claude Opus',
     provider: 'Anthropic',
@@ -73,36 +93,8 @@ const BRAINS = [
     badgeClass: 'bg-brand/10 text-brand',
     plans: ['pilot'],
   },
-  {
-    id: 'o4-mini',
-    name: 'o4-mini',
-    provider: 'OpenAI',
-    tagline: 'Advanced reasoning',
-    desc: "OpenAI's compact reasoning model. Math, code, logical problem-solving.",
-    badge: 'PILOT',
-    badgeClass: 'bg-brand/10 text-brand',
-    plans: ['pilot'],
-  },
-  {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
-    provider: 'Google',
-    tagline: 'Multimodal powerhouse',
-    desc: "Google's frontier model with massive context and strong multimodal abilities.",
-    badge: 'PILOT',
-    badgeClass: 'bg-brand/10 text-brand',
-    plans: ['pilot'],
-  },
-  {
-    id: 'grok-3',
-    name: 'Grok 3',
-    provider: 'xAI',
-    tagline: 'Real-time knowledge',
-    desc: "xAI's model trained on real-time data. Sharp reasoning and current information.",
-    badge: 'PILOT',
-    badgeClass: 'bg-brand/10 text-brand',
-    plans: ['pilot'],
-  },
+  // Mirror of apps/web/lib/models.ts — Gemini 3.1 Pro and Grok 4.5 are withheld
+  // there until their provider accounts can serve a request. Keep in sync.
 ];
 
 const BYOK_PROVIDERS: { key: 'openai' | 'anthropic'; name: string; desc: string; models: { id: string; label: string; sub: string }[]; keyField: 'openaiKey' | 'anthropicKey'; placeholder: string }[] = [
@@ -280,13 +272,13 @@ export default function BrainScreen() {
 
             {!isPaid && (
               <Text className="text-muted text-xs text-center">
-                Upgrade to <Text className="text-brand font-medium">MODUS</Text> to unlock GPT-4o and Claude Sonnet.{' '}
-                <Text className="text-brand font-medium">PILOT</Text> unlocks all 7.
+                Upgrade to <Text className="text-brand font-medium">MODUS</Text> to unlock GPT-5.6, Claude Sonnet and Gemini.{' '}
+                <Text className="text-brand font-medium">PILOT</Text> adds the frontier models.
               </Text>
             )}
             {isPaid && !isPilot && (
               <Text className="text-muted text-xs text-center">
-                Upgrade to <Text className="text-brand font-medium">PILOT</Text> to unlock Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3.
+                Upgrade to <Text className="text-brand font-medium">PILOT</Text> to unlock GPT-5.6 Sol and Claude Opus.
               </Text>
             )}
           </View>

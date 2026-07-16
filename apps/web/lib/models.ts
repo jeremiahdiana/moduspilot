@@ -12,15 +12,66 @@ export interface ModelInfo {
   plans: string[];
 }
 
+/**
+ * MODUS gets every provider's everyday model; PILOT adds the frontier ones.
+ *
+ * Every id here was confirmed against the live provider API on 2026-07-16 — list
+ * the models, then round-trip a real completion. That is not ceremony: a wrong id
+ * does NOT error, it falls through to LLAMA_FALLBACK in lib/chat/model.ts and the
+ * user is told a model answered that never ran. The docs are not a source of
+ * truth either — "gemini-3.1-pro" is what Google's own release notes call it and
+ * it 404s; the servable id is "gemini-3.1-pro-preview".
+ */
 export const PLATFORM_MODELS: ModelInfo[] = [
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3',     provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
-  { id: 'gpt-4o',                  name: 'GPT-4o',        provider: 'OpenAI',    plans: ['modus', 'pilot'] },
-  { id: 'claude-sonnet-4-6',       name: 'Claude Sonnet', provider: 'Anthropic', plans: ['modus', 'pilot'] },
-  { id: 'claude-opus-4-8',         name: 'Claude Opus',   provider: 'Anthropic', plans: ['pilot'] },
-  { id: 'o4-mini',                 name: 'o4-mini',       provider: 'OpenAI',    plans: ['pilot'] },
-  { id: 'gemini-2.5-pro',          name: 'Gemini 2.5 Pro', provider: 'Google',   plans: ['pilot'] },
-  { id: 'grok-3',                  name: 'Grok 3',        provider: 'xAI',       plans: ['pilot'] },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
+  { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
+  { id: 'claude-sonnet-4-6',       name: 'Claude Sonnet',    provider: 'Anthropic', plans: ['modus', 'pilot'] },
+  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
+  { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
+  { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
+
+  // ── Withheld until the provider account can actually serve them ──────────────
+  // Both were live on PILOT and NEITHER could answer a single request, which the
+  // failover chain hid: Google's 429 body contains "429"/"quota", isFailoverError
+  // matches it, and the request is silently retried on Llama — "the switch is
+  // invisible to the user". So $59 customers picked Gemini and were answered by
+  // Llama with no error. Listing a model we cannot serve is the bug; the fix is
+  // billing, not code.
+  //
+  // Verified 2026-07-16 with the production keys:
+  //   gemini-3.1-pro-preview → 429 "You exceeded your current quota, please check
+  //                                 your plan and billing details" (free-tier key)
+  //   grok-4.5               → 403 "Your newly created team doesn't have any
+  //                                 credits or licenses yet"
+  //
+  // To restore: enable billing on the Google AI Studio key / buy xAI credits,
+  // re-run the round-trip check, then uncomment. The ids below are verified-real
+  // (they resolve; they are only quota/credit blocked) so nothing else changes.
+  // { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', provider: 'Google', plans: ['pilot'] },
+  // { id: 'grok-4.5',               name: 'Grok 4.5',       provider: 'xAI',    plans: ['pilot'] },
 ];
+
+/**
+ * Retired id → the successor a user should land on. Saved Brains store a raw id
+ * (Firestore settings.modelSettings.model) and there is no backfill, so an id
+ * that leaves the catalog would drop that user to Llama and show them the raw
+ * string in the switcher. Resolved on read via canonicalModelId().
+ *
+ * grok-3 and gemini-2.5-pro map ACROSS providers on purpose: they cannot be
+ * served at all right now, so anyone holding them is already getting Llama or an
+ * error. A working model of the same tier is strictly better than that.
+ */
+const LEGACY_MODEL_IDS: Record<string, string> = {
+  'gpt-4o': 'gpt-5.6-terra',          // May 2024; superseded and now cheaper to beat
+  'o4-mini': 'gpt-5.6-sol',           // o-series reasoning → the 5.6 flagship
+  'gemini-2.5-pro': 'gemini-3.5-flash', // retires 2026-10-16, and 429s today
+  'grok-3': 'gpt-5.6-sol',            // xAI has no credits; keep them on a frontier model
+};
+
+/** Map a stored/legacy model id onto the catalog id that should actually serve it. */
+export function canonicalModelId(id: string): string {
+  return LEGACY_MODEL_IDS[id] ?? id;
+}
 
 /** Group members get PILOT-level model access — normalize so per-model `plans` match. */
 export function effectivePlan(plan: string | null | undefined): string {
@@ -28,7 +79,7 @@ export function effectivePlan(plan: string | null | undefined): string {
 }
 
 export function isModelUnlocked(id: string, plan: string | null | undefined): boolean {
-  const model = PLATFORM_MODELS.find(m => m.id === id);
+  const model = PLATFORM_MODELS.find(m => m.id === canonicalModelId(id));
   return !!model && model.plans.includes(effectivePlan(plan));
 }
 
@@ -39,5 +90,5 @@ export function unlockedModels(plan: string | null | undefined): ModelInfo[] {
 }
 
 export function modelName(id: string): string {
-  return PLATFORM_MODELS.find(m => m.id === id)?.name ?? id;
+  return PLATFORM_MODELS.find(m => m.id === canonicalModelId(id))?.name ?? id;
 }

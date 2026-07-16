@@ -75,7 +75,7 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Switch your AI in Settings → Brain',
-        body: 'MODUS runs on 7 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-4o and Claude Sonnet unlock on MODUS ($24/mo). Claude Opus, o4-mini, Gemini 2.5 Pro, and Grok 3 unlock on PILOT ($59/mo).',
+        body: 'MODUS runs on 5 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-5.6 Terra, Claude Sonnet, and Gemini 3.5 Flash unlock on MODUS ($24/mo). GPT-5.6 Sol and Claude Opus unlock on PILOT ($59/mo).',
         tag: 'Feature',
       },
       {
@@ -88,8 +88,8 @@ const SECTIONS: Section[] = [
         tag: 'BYOK',
       },
       {
-        title: 'Pick Claude for writing, GPT-4o for general use',
-        body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-4o handles images and code well. o4-mini is best for math and logic. Try a few and see what fits your workflow.',
+        title: 'Pick Claude for writing, GPT-5.6 for general use',
+        body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-5.6 Terra handles images and code well. Gemini 3.5 Flash is the fastest. GPT-5.6 Sol is best for hard math and logic. Try a few and see what fits your workflow.',
         tag: 'Pro tip',
       },
     ],

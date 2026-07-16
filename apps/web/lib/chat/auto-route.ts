@@ -25,14 +25,17 @@ export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'gene
 // Llama (the 'general' default). Ids must exist in PLATFORM_MODELS.
 const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   // Nuanced, human-sounding prose — Claude leads (reads least "AI-generated").
-  writing:   ['claude-sonnet-4-6', 'claude-opus-4-8', 'gpt-4o'],
-  // Up-to-date / factual digging — real-time model first, then broad generalist.
-  research:  ['grok-3', 'gpt-4o', 'claude-sonnet-4-6'],
-  // Code & math — reliably-streaming models first; o4-mini has a recurring
-  // empty-response failure mode (burns its token budget on hidden reasoning).
-  code:      ['gpt-4o', 'claude-sonnet-4-6', 'o4-mini'],
+  writing:   ['claude-sonnet-4-6', 'claude-opus-4-8', 'gpt-5.6-terra'],
+  // Up-to-date / factual digging. Grok led here for its real-time index and is
+  // gone: xAI has no credits, so it could not answer at all (see lib/models.ts).
+  // Gemini Flash takes the slot — it's the fastest model on MODUS and this is the
+  // category that carries the web-search flag anyway.
+  research:  ['gemini-3.5-flash', 'gpt-5.6-terra', 'claude-sonnet-4-6'],
+  // Code & math. Sol leads on PILOT and MODUS falls through to Terra, which is
+  // what pickModel() is for. o4-mini is retired — 5.6 supersedes it.
+  code:      ['gpt-5.6-sol', 'gpt-5.6-terra', 'claude-sonnet-4-6'],
   // Hard multi-step reasoning / strategy.
-  reasoning: ['claude-opus-4-8', 'gpt-4o', 'claude-sonnet-4-6', 'o4-mini'],
+  reasoning: ['gpt-5.6-sol', 'claude-opus-4-8', 'gpt-5.6-terra', 'claude-sonnet-4-6'],
   // Everyday chat — fast & free.
   general:   ['llama-3.3-70b-versatile'],
 };

@@ -3,9 +3,12 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
-import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
+import { canonicalModelId, isModelUnlocked } from '@/lib/models';
 
-const OPENAI_VISION = /gpt-4o|gpt-4\.1|gpt-4-turbo/;
+// gpt-5.6-* included because it IS multimodal — verified 2026-07-16 by sending a
+// real image and getting the colour back. Without it, a paying user on Terra who
+// attaches an image is silently answered by gpt-4o-mini instead.
+const OPENAI_VISION = /gpt-5\.6|gpt-4o|gpt-4\.1|gpt-4-turbo/;
 function visionOpenAIModel(model: string): string {
   return OPENAI_VISION.test(model) ? model : 'gpt-4o-mini';
 }
@@ -23,7 +26,7 @@ type LM = Exclude<LanguageModel, string>;
 
 /** A premium (paid-tier) model id — anything that isn't the free Llama default. */
 function isPremiumModel(id: string): boolean {
-  return /^(gpt-|claude-|gemini-|grok-)/.test(id) || id === 'o4-mini';
+  return /^(gpt-|claude-|gemini-|grok-|o4-)/.test(id);
 }
 
 export interface ResolvedChatModel {
@@ -44,14 +47,23 @@ function served(model: LanguageModel, modelId: string): ResolvedChatModel {
   return { model, modelId, downgraded: false };
 }
 
+/** Free Llama, flagged so the caller can tell the user which model did NOT run. */
+function downgradedToLlama(requested: string): ResolvedChatModel {
+  const requestedPremium = isPremiumModel(requested) ? requested : undefined;
+  return {
+    model: groq(LLAMA_FALLBACK),
+    modelId: LLAMA_FALLBACK,
+    downgraded: !!requestedPremium,
+    requestedId: requestedPremium,
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function resolveChatModel(userData: Record<string, any>, opts: { hasImage?: boolean; modelId?: string } = {}): ResolvedChatModel {
   const hasImage = opts.hasImage ?? false;
   const ms = userData.settings?.modelSettings as { provider?: string; model?: string; openaiKey?: string; anthropicKey?: string } | undefined;
   const modelProvider = ms?.provider ?? 'platform';
   const plan = userData.plan as string | undefined;
-  const isPaid = isPaidPlan(plan);
-  const isPilot = isPilotLevelPlan(plan);
 
   // Explicit per-request override (in-chat model switcher / Auto router). Routes
   // as a platform model through the plan gate below, ignoring the saved BYOK
@@ -71,7 +83,9 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
     }
   }
 
-  const selectedModel = opts.modelId ?? ms?.model ?? LLAMA_FALLBACK;
+  // canonicalModelId so a saved Brain naming a retired model (gpt-4o, grok-3, …)
+  // resolves to its successor instead of failing the gate and dropping to Llama.
+  const selectedModel = canonicalModelId(opts.modelId ?? ms?.model ?? LLAMA_FALLBACK);
 
   // If image attached and we'd fall back to text-only Groq, route to OpenAI vision
   const openAIKey = process.env.OPENAI_API_KEY?.trim();
@@ -80,45 +94,42 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
     return served(createOpenAI({ apiKey: openAIKey })(id), id);
   }
 
-  // Platform routing by model prefix + plan gate
-  if ((selectedModel.startsWith('gpt-') || selectedModel === 'o4-mini') && isPaid && openAIKey) {
-    return served(createOpenAI({ apiKey: openAIKey })(selectedModel), selectedModel);
+  // ONE tier gate, read off PLATFORM_MODELS[].plans.
+  //
+  // This used to be re-derived from id prefixes here (isPaid for gpt-*, isPilot
+  // for gemini-*/grok-*, a special case for opus), which meant tiers were encoded
+  // in two places that could disagree — and did. o4-mini was plans:['pilot'] in
+  // the catalog but gated `isPaid` here, and because the line above falls back to
+  // the ungated ms?.model, a $24 user whose saved Brain was o4-mini got served a
+  // PILOT model. The prefix chain below now ONLY picks the provider SDK; it makes
+  // no access decisions, so the catalog is the source of truth its header claims.
+  if (!isModelUnlocked(selectedModel, plan)) {
+    return downgradedToLlama(selectedModel);
   }
 
-  if (selectedModel.startsWith('claude-') && isPaid) {
+  if (selectedModel.startsWith('gpt-') || selectedModel.startsWith('o4-')) {
+    if (openAIKey) return served(createOpenAI({ apiKey: openAIKey })(selectedModel), selectedModel);
+  }
+
+  if (selectedModel.startsWith('claude-')) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-    // Opus is PILOT-only; Sonnet is MODUS+
-    const opusRequiresPilot = selectedModel.includes('opus');
-    if (anthropicKey && (!opusRequiresPilot || isPilot)) {
-      return served(createAnthropic({ apiKey: anthropicKey })(selectedModel), selectedModel);
-    }
+    if (anthropicKey) return served(createAnthropic({ apiKey: anthropicKey })(selectedModel), selectedModel);
   }
 
-  if (selectedModel.startsWith('gemini-') && isPilot) {
+  if (selectedModel.startsWith('gemini-')) {
     const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
-    if (googleKey) {
-      return served(createGoogleGenerativeAI({ apiKey: googleKey })(selectedModel), selectedModel);
-    }
+    if (googleKey) return served(createGoogleGenerativeAI({ apiKey: googleKey })(selectedModel), selectedModel);
   }
 
-  if (selectedModel.startsWith('grok-') && isPilot) {
+  if (selectedModel.startsWith('grok-')) {
     const xaiKey = process.env.XAI_API_KEY?.trim();
-    if (xaiKey) {
-      return served(createXai({ apiKey: xaiKey })(selectedModel), selectedModel);
-    }
+    if (xaiKey) return served(createXai({ apiKey: xaiKey })(selectedModel), selectedModel);
   }
 
-  // Default: Groq Llama — fast, free, always available. If we got here despite a
-  // premium model being requested (missing provider key or plan gate), flag it as
-  // a downgrade so the caller can tell the user instead of passing Llama off as
-  // the model they picked.
-  const requestedPremium = isPremiumModel(selectedModel) ? selectedModel : undefined;
-  return {
-    model: groq(LLAMA_FALLBACK),
-    modelId: LLAMA_FALLBACK,
-    downgraded: !!requestedPremium,
-    requestedId: requestedPremium,
-  };
+  // Default: Groq Llama — fast, free, always available. Reached when a premium
+  // model was unlocked but its provider key is missing; flagged as a downgrade so
+  // the caller tells the user instead of passing Llama off as the model they picked.
+  return downgradedToLlama(selectedModel);
 }
 
 // Provider errors worth failing over on: transient rate / size / availability

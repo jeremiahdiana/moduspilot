@@ -7,8 +7,8 @@ const STEPS = [
   {
     num: '01',
     label: 'Every model',
-    desc: 'Write with Gemini, research with Claude, ask ChatGPT. One subscription gets you every frontier model, and MODUS routes each task to whichever one does it best.',
-    detail: 'ChatGPT · Claude · Gemini · Grok · Auto-routed',
+    desc: 'Write with Gemini, research with Claude, ask ChatGPT. One subscription gets you every provider, and MODUS routes each task to whichever one does it best.',
+    detail: 'ChatGPT · Claude · Gemini · Llama · Auto-routed',
   },
   {
     num: '02',

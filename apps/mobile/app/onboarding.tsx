@@ -27,7 +27,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { API_BASE, getAuthHeader, startCheckout } from '@/lib/api';
 import { AuthButtons } from '@/components/AuthButtons';
 import { Icon, type IconName } from '@/components/Icon';
-import { OpenAILogo, AnthropicLogo, GeminiLogo, XaiLogo, MetaLogo } from '@/components/BrandLogo';
+import { OpenAILogo, AnthropicLogo, GeminiLogo, MetaLogo } from '@/components/BrandLogo';
 import { Logo } from '@/components/ui/Logo';
 import { AppBackground } from '@/components/AppBackground';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -306,9 +306,9 @@ function PaywallScreen({
 // Auto-routing copy from model-settings.tsx.
 const MODEL_ROUTES: { task: string; model: string; Logo: React.ComponentType<{ size?: number }> }[] = [
   { task: 'Write a cold email',   model: 'Gemini', Logo: GeminiLogo },
-  { task: 'Debug my code',        model: 'Grok',   Logo: XaiLogo },
+  { task: 'Debug my code',        model: 'GPT-5.6', Logo: OpenAILogo },
   { task: 'Research a market',    model: 'Claude', Logo: AnthropicLogo },
-  { task: 'Plan my week',         model: 'GPT-4o', Logo: OpenAILogo },
+  { task: 'Plan my week',         model: 'GPT-5.6', Logo: OpenAILogo },
 ];
 
 function ModelsScreen({ name, onContinue, onBack }: { name: string; onContinue: () => void; onBack: () => void }) {
@@ -327,14 +327,14 @@ function ModelsScreen({ name, onContinue, onBack }: { name: string; onContinue: 
               {'Every model.\nOne app.'}
             </GradientText>
             <Text className="text-muted text-sm text-center mt-2 px-2">
-              GPT-4o, Claude, Gemini, Grok{name.trim() ? '' : ''} — MODUS routes each task to whichever is best. Or pick one yourself.
+              GPT-5.6, Claude, Gemini, Llama{name.trim() ? '' : ''} — MODUS routes each task to whichever is best. Or pick one yourself.
             </Text>
           </Animated.View>
 
           {/* Provider logos */}
           <AnimatedRow index={0}>
             <View className="flex-row justify-center gap-3 mb-6">
-              {[OpenAILogo, AnthropicLogo, GeminiLogo, XaiLogo, MetaLogo].map((L, i) => (
+              {[OpenAILogo, AnthropicLogo, GeminiLogo, MetaLogo].map((L, i) => (
                 <View key={i} className="w-11 h-11 rounded-2xl bg-surface border border-border items-center justify-center">
                   <L size={22} />
                 </View>

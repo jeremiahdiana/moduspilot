@@ -14,11 +14,11 @@ const FAQS = [
   },
   {
     q: 'Which AI models does MODUS use?',
-    a: "All of them. Claude, GPT-4o, Gemini, Grok and more live in one chat. Pick the model you want for any message, or leave it on Auto and MODUS routes each task to the best one. MODUS ($24) auto-routes the top models; PILOT ($59) unlocks every frontier model with manual pick per message.",
+    a: "Claude, GPT-5.6, Gemini and Llama all live in one chat. Pick the model you want for any message, or leave it on Auto and MODUS routes each task to the best one. MODUS ($24) gives you every provider, auto-routed; PILOT ($59) adds the frontier models — GPT-5.6 Sol and Claude Opus — with manual pick per message.",
   },
   {
     q: 'Can I use my own OpenAI or Claude API key?',
-    a: 'Yes. Under Settings → Brain you can connect your own OpenAI (GPT-4o) or Anthropic (Claude) key, or just use the models MODUS already includes, no key needed. Either way MODUS handles the orchestration and routing.',
+    a: 'Yes. Under Settings → Brain you can connect your own OpenAI or Anthropic key, or just use the models MODUS already includes, no key needed. Either way MODUS handles the orchestration and routing.',
   },
   {
     q: 'Can MODUS create images and PDFs?',

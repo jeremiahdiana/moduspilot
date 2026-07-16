@@ -381,7 +381,11 @@ export async function POST(req: Request) {
     const approxTokens = Math.ceil((fullSystemPrompt.length + JSON.stringify(cappedMessages).length) / 4);
     if (resolved.modelId === LLAMA_FALLBACK && approxTokens > LLAMA_TPM_SAFE_TOKENS) {
       let upgraded = false;
-      for (const up of ['gpt-4o', 'claude-sonnet-4-6']) {
+      // Real catalog ids, not legacy aliases: resolveChatModel canonicalises the
+      // id it's given, so passing 'gpt-4o' here would come back as 'gpt-5.6-terra'
+      // and the `cand.modelId === up` check below would never match — the upgrade
+      // would silently stop happening and large requests would 429 on Llama again.
+      for (const up of ['gpt-5.6-terra', 'claude-sonnet-4-6']) {
         const cand = resolveChatModel(userData, { hasImage, modelId: up });
         if (cand.modelId === up) {
           resolved = cand;
@@ -497,12 +501,18 @@ export async function POST(req: Request) {
     // section is layer one).
     const extractionGuard = looksLikePromptExtraction(queryText) ? PROMPT_EXTRACTION_REMINDER : '';
 
-    // OpenAI o-series reasoning models (o4-mini, o1, o3) spend hidden reasoning
-    // tokens that count against max_completion_tokens. A flat 2048 cap gets
-    // entirely consumed by reasoning → the model returns finishReason:'length'
-    // with EMPTY visible text → blank message bubble (200, no error). Give
-    // reasoning models enough headroom to reason AND still emit an answer.
-    const isReasoningModel = /^o\d/.test(resolved.modelId);
+    // OpenAI o-series AND the gpt-5.x family spend hidden reasoning tokens that
+    // count against max_completion_tokens. A flat 2048 cap gets entirely consumed
+    // by reasoning → the model returns finishReason:'length' with EMPTY visible
+    // text → blank message bubble (200, no error). Give them enough headroom to
+    // reason AND still emit an answer.
+    //
+    // gpt-5.x is not a guess. Measured 2026-07-16, one hard prompt to gpt-5.6-sol:
+    //   @ 2048  → reasoning_tokens 2048/2048, finish 'length', 0 chars of answer
+    //   @ 16000 → reasoning_tokens 3965,      finish 'stop',   4740 chars
+    // Miss this and PILOT users get a blank bubble on exactly the hard questions
+    // they upgraded for. "gpt-5.6-terra" burns less but is the same shape.
+    const isReasoningModel = /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId);
     const maxTokens = isReasoningModel ? 16000 : 2048;
 
     // Transparent model failover: if the chosen model rejects the request with a

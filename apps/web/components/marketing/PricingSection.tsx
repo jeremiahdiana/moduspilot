@@ -11,7 +11,7 @@ const PLANS = [
     popular: true,
     features: [
       'AI Chat, unlimited with full context',
-      'Multiple AI models: Claude + GPT, auto-routed',
+      'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama',
       'Generate images & editable PDFs',
       'Unlimited briefings + goals + habit engine',
       'Voice interface',
@@ -36,7 +36,7 @@ const PLANS = [
     popular: false,
     features: [
       'Everything in MODUS',
-      'Every frontier model: Claude, GPT, Gemini, Grok, o4-mini',
+      'The frontier models: GPT-5.6 Sol + Claude Opus, manual pick per message',
       'Unlimited context memory',
       'Wearable sync (HealthKit, Oura, Whoop)',
       'Financial pulse via Plaid',

@@ -53,7 +53,7 @@ export default function MultiModelSection() {
         </motion.div>
 
         <p className="text-center text-sm text-muted mt-6 max-w-2xl mx-auto">
-          <span className="text-text font-medium">PILOT</span> unlocks every model (Claude, GPT-4o, Gemini, Grok, o4-mini) with manual pick per message.
+          <span className="text-text font-medium">PILOT</span> adds the frontier models (GPT-5.6 Sol, Claude Opus) with manual pick per message.
         </p>
       </div>
     </section>

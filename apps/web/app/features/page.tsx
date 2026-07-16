@@ -502,7 +502,7 @@ export default function FeaturesPage() {
               {[
                 { t: 'Auto-routing', d: 'MODUS reads the task and sends it to the model that does it best. You never pick a tab again.' },
                 { t: 'Manual pick', d: 'Want Claude for this one? Switch model right in the composer, mid-conversation.' },
-                { t: 'One subscription', d: '$140/mo of separate AI tools, replaced by one $24 bill with memory of you.' },
+                { t: 'One subscription', d: '$110/mo of separate AI tools, replaced by one $24 bill with memory of you.' },
               ].map(c => (
                 <div key={c.t} className="bg-panel rounded-2xl p-5 ring-1 ring-brand/20">
                   <h3 className="text-sm font-bold text-text mb-1.5">{c.t}</h3>
@@ -562,7 +562,7 @@ export default function FeaturesPage() {
                 {
                   dim: 'The models',
                   them: 'ChatGPT gives you OpenAI\'s models. Claude gives you Anthropic\'s. To have both, you buy both.',
-                  us: 'Claude, GPT-4o, Gemini, Grok and Llama, in one thread, on one bill.',
+                  us: 'Claude, GPT-5.6, Gemini and Llama, in one thread, on one bill.',
                 },
                 {
                   dim: 'Picking one',
@@ -587,7 +587,7 @@ export default function FeaturesPage() {
                 {
                   dim: 'The bill',
                   them: '$20 for ChatGPT, $20 for Claude, $20 for Gemini, and up from there.',
-                  us: 'One $24 bill. The $140 stack above, replaced.',
+                  us: 'One $24 bill. The $110 stack above, replaced.',
                 },
               ].map((row, i) => (
                 <motion.div key={i} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}

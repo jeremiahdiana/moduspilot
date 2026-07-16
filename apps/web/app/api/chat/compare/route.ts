@@ -78,7 +78,13 @@ export async function POST(req: Request) {
     //
     // This is a cap, not a target — a short answer bills what it generates, so
     // raising it costs nothing except on the long answers the user asked for.
-    maxTokens: 2000,
+    //
+    // Reasoning models need their own budget for the same reason chat/route.ts
+    // does: gpt-5.x and the o-series spend hidden reasoning tokens against this
+    // cap, and gpt-5.6-sol measurably burns 2048/2048 on a hard prompt and emits
+    // NOTHING. A blank column would read as "that model lost", which is exactly
+    // the lie compare mode refuses above when it 503s a downgrade.
+    maxTokens: /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId) ? 16000 : 2000,
     onFinish: () => {
       console.log(`[compare] ${resolved.modelId} finished in ${Date.now() - started}ms`);
     },

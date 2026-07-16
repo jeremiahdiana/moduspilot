@@ -54,7 +54,7 @@ const PLANS = [
     popular: true,
     features: [
       { label: 'AI Chat, unlimited with full context', included: true },
-      { label: 'Multiple AI models: Claude + GPT, auto-routed', included: true },
+      { label: 'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama', included: true },
       { label: 'Generate images & editable PDFs', included: true },
       { label: 'Unlimited briefings', included: true },
       { label: 'Unlimited goals + habit engine', included: true },
@@ -82,7 +82,7 @@ const PLANS = [
     popular: false,
     features: [
       { label: 'Everything in MODUS', included: true },
-      { label: 'Every frontier model: Claude, GPT, Gemini, Grok, o4-mini', included: true },
+      { label: 'The frontier models: GPT-5.6 Sol + Claude Opus, manual pick per message', included: true },
       { label: 'Unlimited context memory', included: true },
       { label: 'Wearable sync (HealthKit, Oura, Whoop)', included: true },
       { label: 'Financial pulse via Plaid', included: true },
@@ -112,10 +112,10 @@ const COMPARISONS = [
   // (see StackSection). The old "$200+/mo" was attached to three products costing
   // ~$60 — 3 x $20 does not make $200, and $200 is ChatGPT PRO, one tier. A number
   // a reader can disprove in their head costs more than the drama buys.
-  { tool: 'ChatGPT + Claude + Gemini + Grok + Perplexity + Midjourney', price: '$140/mo', what: 'Six tabs, six bills, none of them know you' },
+  { tool: 'ChatGPT + Claude + Gemini + Perplexity + Midjourney', price: '$110/mo', what: 'Five tabs, five bills, none of them know you' },
   { tool: 'Superhuman', price: '$30/mo', what: 'Email only' },
   { tool: 'Part-time EA', price: '$1,500+/mo', what: 'One person, limited hours' },
-  { tool: 'MODUS', price: '$24/mo', what: 'Every model + your entire workflow', highlight: true },
+  { tool: 'MODUS', price: '$24/mo', what: 'Every provider + your entire workflow', highlight: true },
 ];
 
 const FAQS = [
@@ -141,7 +141,7 @@ const FAQS = [
   },
   {
     q: 'Does MODUS replace my other AI subscriptions?',
-    a: "Yes. That's the point. ChatGPT Plus is $20, Claude Pro $20, Google AI Pro $20, SuperGrok $30, Perplexity Pro $20 and Midjourney $30. That's $140/mo, and you still have to pick the right tab yourself. MODUS gives you every frontier model in one place for $24, routes each task to whichever one is best, and remembers everything across all of them. Cancel the rest. Your everyday tools (Gmail, Calendar, Notion, Slack) you keep, and MODUS runs on top of them.",
+    a: "Yes. That's the point. ChatGPT Plus is $20, Claude Pro $20, Google AI Pro $20, Perplexity Pro $20 and Midjourney $30. That's $110/mo, and you still have to pick the right tab yourself. MODUS gives you every frontier model in one place for $24, routes each task to whichever one is best, and remembers everything across all of them. Cancel the rest. Your everyday tools (Gmail, Calendar, Notion, Slack) you keep, and MODUS runs on top of them.",
   },
   {
     q: 'Is my data private?',
@@ -294,7 +294,7 @@ export default function PricingPage() {
               </div>
               <RevealOnScroll direction="none" delay={0.3}>
                 <p className="text-sm text-muted mt-8 leading-relaxed text-center max-w-2xl mx-auto">
-                  ChatGPT Plus, Claude Pro, Google AI Pro, SuperGrok, Perplexity and Midjourney come to $140/mo, and none
+                  ChatGPT Plus, Claude Pro, Google AI Pro, Perplexity and Midjourney come to $110/mo, and none
                   of them know your calendar, your inbox, or what you decided last week. MODUS is $24, gives you all of
                   them, and puts them to work on your actual life.
                 </p>
