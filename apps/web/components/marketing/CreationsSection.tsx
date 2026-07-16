@@ -128,18 +128,31 @@ interface TabDef {
   /** Units the real progress counts, or null where it stays indeterminate. */
   total: number | null;
   unitNoun: string;
-  /** How long this tab holds the stage before handing to the next. */
-  ms: number;
+  /**
+   * Beat to look at the finished thing, AFTER it lands at STAGE_AT.done. Varied
+   * per tab on purpose — a picture earns a longer look than a 5-point chart.
+   */
+  hold: number;
 }
 
-const TABS: TabDef[] = [
-  { id: 'chart', label: 'A chart', ask: 'Chart my deep work vs meetings this week', modelId: 'claude-sonnet-4-6', buildLabel: 'Building chart', total: CHART_DATA.length, unitNoun: 'points', ms: 7000 },
-  { id: 'image', label: 'An image', ask: IMAGE_ASK, modelId: 'gpt-image-1', providerOverride: 'OpenAI', buildLabel: 'Creating image', total: null, unitNoun: '', ms: 6500 },
-  { id: 'doc', label: 'A document', ask: 'Turn my Q3 notes into a PDF I can send', modelId: 'claude-sonnet-4-6', buildLabel: 'Writing document', total: DOC_TOTAL_WORDS, unitNoun: 'words', ms: 7800 },
-];
-
+// Declared above TABS because tabMs() reads STAGE_AT.done: TABS is built at
+// module load, and a const referenced before its declaration is a TDZ error.
 const STAGE_AT = { thinking: 350, building: 1050, done: 3300 } as const;
 const BUILD_MS = STAGE_AT.done - STAGE_AT.building;
+
+const TABS: TabDef[] = [
+  { id: 'chart', label: 'A chart', ask: 'Chart my deep work vs meetings this week', modelId: 'claude-sonnet-4-6', buildLabel: 'Building chart', total: CHART_DATA.length, unitNoun: 'points', hold: 1600 },
+  { id: 'image', label: 'An image', ask: IMAGE_ASK, modelId: 'gpt-image-1', providerOverride: 'OpenAI', buildLabel: 'Creating image', total: null, unitNoun: '', hold: 2100 },
+  { id: 'doc', label: 'A document', ask: 'Turn my Q3 notes into a PDF I can send', modelId: 'claude-sonnet-4-6', buildLabel: 'Writing document', total: DOC_TOTAL_WORDS, unitNoun: 'words', hold: 2100 },
+];
+
+/**
+ * Every stage finishes at STAGE_AT.done, so a hardcoded per-tab duration was the
+ * same blind wall clock sceneMs() used to be: 7000ms against a 3300ms build left
+ * 3.7s of dead air where the tab just sat there finished. Deriving it means the
+ * hold is only ever the beat AFTER the thing is done.
+ */
+const tabMs = (t: TabDef) => STAGE_AT.done + t.hold;
 
 /** Name + provider for the routing chip, resolved from the real catalog where possible. */
 function routedInfo(tab: TabDef): { name: string; provider: string } {
@@ -521,7 +534,7 @@ export default function CreationsSection() {
   }, [stage, tab]);
 
   const fillRef = useTabProgress(
-    active.ms,
+    tabMs(active),
     paused || !inView,
     runKey,
     () => setTab(TABS[(TABS.findIndex(t => t.id === tab) + 1) % TABS.length].id),
@@ -560,8 +573,14 @@ export default function CreationsSection() {
         </p>
       </motion.div>
 
-      <div {...handlers}>
-        <div className="flex flex-wrap gap-2 mb-5">
+      <div>
+        {/* Hover-pause is scoped to the TAB STRIP, never the stage. The stage is
+            ~700px of image you are meant to look at, so hanging the pause on the
+            whole section meant a reader's resting mouse froze the timer — which
+            doesn't read as "paused for you", it reads as broken, and got
+            reported as a stuck timer twice. Hovering a 36px tab means "I'm about
+            to click this"; hovering the picture just means you're looking. */}
+        <div className="flex flex-wrap gap-2 mb-5" {...handlers}>
           {TABS.map(t => {
             const on = tab === t.id;
             return (

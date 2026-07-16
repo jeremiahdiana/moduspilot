@@ -242,7 +242,7 @@ const CARD_FADE_MS = 400;
  *  be 4500, on top of a duration that never learned when the scene ended — a
  *  blind wall clock plus four and a half seconds of dead air, which is why the
  *  strip felt stalled rather than paced. */
-const SCENE_HOLD_MS = 1500;
+const SCENE_HOLD_MS = 1000;
 function sceneMs(tabId: string): number {
   const scene = SCENES[tabId] ?? [];
   return scene.reduce((max, s) => Math.max(max, s.delay), 0) + CARD_FADE_MS + SCENE_HOLD_MS;
@@ -378,9 +378,12 @@ function ScenariosSection() {
       </RevealOnScroll>
 
       <RevealOnScroll delay={0.1}>
-        <div {...handlers}>
-          {/* Tab bar — same shape as the one on CreationsSection above it. */}
-          <div className="flex flex-wrap gap-2 mb-5">
+        <div>
+          {/* Tab bar — same shape as the one on CreationsSection above it, and
+              like it, hover-pause hangs on the STRIP only. The chat window below
+              is 600px a reader parks their mouse on; pausing on that froze the
+              whole section on contact and read as a broken timer. */}
+          <div className="flex flex-wrap gap-2 mb-5" {...handlers}>
             {TABS.map(tab => {
               const on = activeTab === tab.id;
               return (
