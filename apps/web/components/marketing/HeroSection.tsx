@@ -79,9 +79,9 @@ export default function HeroSection() {
           >
             <span className="relative z-10">Start your 3-day free trial</span>
           </a>
-          <a href="#features" className="flex items-center gap-1.5 text-sm text-muted hover:text-text transition-colors">
+          <a href="/features" className="flex items-center gap-1.5 text-sm text-muted hover:text-text transition-colors">
             See how it works
-            <motion.span animate={{ y: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}>↓</motion.span>
+            <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}>→</motion.span>
           </a>
         </motion.div>
 

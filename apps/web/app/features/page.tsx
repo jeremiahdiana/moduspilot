@@ -10,7 +10,8 @@ import { MODEL_LOGOS } from '@/components/marketing/ModelLogos';
 import ModelCompareDemo from '@/components/marketing/ModelCompareDemo';
 import StackSection from '@/components/marketing/StackSection';
 import CreationsSection from '@/components/marketing/CreationsSection';
-import { usePausableTimeout } from '@/hooks/usePausableTimeout';
+import { useTabProgress } from '@/hooks/useTabProgress';
+import { useHoverPause } from '@/hooks/useHoverPause';
 
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
@@ -234,17 +235,23 @@ const SCENES: Record<string, SceneItem[]> = {
  * landed. Derived from the scene rather than hardcoded, so adding a message to
  * SCENES automatically buys it the time it needs instead of getting cut off.
  */
-const SCENE_HOLD_MS = 4500;
+/** The fadeUp transition every scene card mounts with, so the hold starts when
+ *  the card has actually landed rather than when its timer fired. */
+const CARD_FADE_MS = 400;
+/** Beat to read the finished card before handing to the next scene. This used to
+ *  be 4500, on top of a duration that never learned when the scene ended — a
+ *  blind wall clock plus four and a half seconds of dead air, which is why the
+ *  strip felt stalled rather than paced. */
+const SCENE_HOLD_MS = 1500;
 function sceneMs(tabId: string): number {
   const scene = SCENES[tabId] ?? [];
-  return scene.reduce((max, s) => Math.max(max, s.delay), 0) + SCENE_HOLD_MS;
+  return scene.reduce((max, s) => Math.max(max, s.delay), 0) + CARD_FADE_MS + SCENE_HOLD_MS;
 }
 
-function ScenarioPlayer({ tabId }: { tabId: string }) {
+function ScenarioPlayer({ tabId, replayKey, onReplay }: { tabId: string; replayKey: number; onReplay: () => void }) {
   const [visibleCount, setVisibleCount] = useState(0);
   const [showThinking, setShowThinking] = useState(false);
   const [done, setDone] = useState(false);
-  const [replayKey, setReplayKey] = useState(0);
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -315,7 +322,7 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
         {done && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="absolute bottom-4 right-4">
-            <button onClick={() => { setReplayKey(k => k + 1); setDone(false); }}
+            <button onClick={() => { onReplay(); setDone(false); }}
               className="flex items-center gap-1.5 text-xs text-muted hover:text-text bg-panel hover:bg-text/[0.09] px-3 py-1.5 rounded-full transition-colors shadow-lg shadow-black/30">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               Replay
@@ -334,33 +341,32 @@ function ScenarioPlayer({ tabId }: { tabId: string }) {
  * see exactly one of the six and had to click through the rest by hand.
  *
  * Hovering pauses the HAND-OFF only, never the scene: pausing to read should not
- * restart the conversation in your face. The bar is a CSS animation rather than
- * framer for the same reason it is there — it has to freeze where it is, and
- * `animate` can only be given a new target, which made a paused bar jump to 100%
- * and lie about the time left. usePausableTimeout keeps the JS clock on the same
- * remaining time the frozen bar is showing.
+ * restart the conversation in your face. The bar and the hand-off are one rAF
+ * clock (useTabProgress), so the bar can never show a time the timer isn't
+ * actually keeping — they used to be a CSS animation and a setTimeout drifting
+ * apart in background tabs and under reduced motion.
  */
 function ScenariosSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { margin: '-120px 0px' });
   const [activeTab, setActiveTab] = useState('morning');
-  const [paused, setPaused] = useState(false);
-  // Bumped on re-entry so the CSS bar remounts and restarts with the JS clock
-  // instead of carrying on from wherever it got to off-screen.
+  const { paused, handlers } = useHoverPause();
+  // Bumped on re-entry so the bar restarts instead of carrying on from wherever
+  // it got to off-screen, and on Replay so the tab can't hand off mid-replay.
   const [runId, setRunId] = useState(0);
   useEffect(() => { if (inView) setRunId(r => r + 1); }, [inView]);
 
   const runKey = `${activeTab}-${runId}`;
   const holdMs = sceneMs(activeTab);
 
-  usePausableTimeout(
+  const fillRef = useTabProgress(
+    holdMs,
+    paused || !inView,
+    runKey,
     () => {
       const i = TABS.findIndex(t => t.id === activeTab);
       setActiveTab(TABS[(i + 1) % TABS.length].id);
     },
-    holdMs,
-    paused || !inView,
-    runKey,
   );
 
   return (
@@ -372,7 +378,7 @@ function ScenariosSection() {
       </RevealOnScroll>
 
       <RevealOnScroll delay={0.1}>
-        <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+        <div {...handlers}>
           {/* Tab bar — same shape as the one on CreationsSection above it. */}
           <div className="flex flex-wrap gap-2 mb-5">
             {TABS.map(tab => {
@@ -388,11 +394,8 @@ function ScenariosSection() {
                   {on && (
                     <>
                       <span className="absolute inset-0 bg-brand/25" />
-                      <span
-                        key={runKey}
-                        className="absolute inset-y-0 left-0 bg-brand tab-fill"
-                        style={{ animationDuration: `${holdMs}ms`, animationPlayState: paused || !inView ? 'paused' : 'running' }}
-                      />
+                      {/* Width comes from useTabProgress writing --fill each frame. */}
+                      <span ref={fillRef} className="absolute inset-y-0 left-0 bg-brand tab-fill" />
                     </>
                   )}
                   <span className="relative z-10">{tab.label}</span>
@@ -417,7 +420,7 @@ function ScenariosSection() {
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                <ScenarioPlayer tabId={activeTab} />
+                <ScenarioPlayer tabId={activeTab} replayKey={runId} onReplay={() => setRunId(r => r + 1)} />
               </motion.div>
             </AnimatePresence>
           </div>
@@ -466,7 +469,7 @@ export default function FeaturesPage() {
             <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">Every model</p>
             <h2 className="text-4xl md:text-5xl font-semibold text-text mb-4 tracking-tight">One prompt. Every model. One bill.</h2>
             <p className="text-muted text-lg leading-relaxed max-w-2xl mb-8">
-              MODUS isn&apos;t tied to one AI. Write with Gemini, research with Claude, ask ChatGPT. Pick the model per message, leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best, or ask all three at once and see who wins.
+              MODUS isn&apos;t tied to one AI. Write with Gemini, research with Claude, ask ChatGPT. Pick the model per message, leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best, or ask three different AIs all at once with our exclusive multi-model feature and see who wins.
             </p>
           </RevealOnScroll>
 

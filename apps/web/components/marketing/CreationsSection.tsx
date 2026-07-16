@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { ProviderLogo } from '@/components/marketing/BrandLogos';
-import { usePausableTimeout } from '@/hooks/usePausableTimeout';
+import { useTabProgress } from '@/hooks/useTabProgress';
+import { useHoverPause } from '@/hooks/useHoverPause';
 import { markdownToHtml } from '@/lib/document';
 import { modelName, PLATFORM_MODELS } from '@/lib/models';
 
@@ -132,8 +133,8 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'image', label: 'An image', ask: IMAGE_ASK, modelId: 'gpt-image-1', providerOverride: 'OpenAI', buildLabel: 'Creating image', total: null, unitNoun: '', ms: 6500 },
   { id: 'chart', label: 'A chart', ask: 'Chart my deep work vs meetings this week', modelId: 'claude-sonnet-4-6', buildLabel: 'Building chart', total: CHART_DATA.length, unitNoun: 'points', ms: 7000 },
+  { id: 'image', label: 'An image', ask: IMAGE_ASK, modelId: 'gpt-image-1', providerOverride: 'OpenAI', buildLabel: 'Creating image', total: null, unitNoun: '', ms: 6500 },
   { id: 'doc', label: 'A document', ask: 'Turn my Q3 notes into a PDF I can send', modelId: 'claude-sonnet-4-6', buildLabel: 'Writing document', total: DOC_TOTAL_WORDS, unitNoun: 'words', ms: 7800 },
 ];
 
@@ -339,13 +340,19 @@ function ImageStage({ stage }: { stage: Stage }) {
   );
 }
 
-function ChartStage({ points }: { points: number }) {
-  // The x-axis keeps every label and the y domain is fixed, so the line extends
-  // left to right as rows land instead of the whole chart rescaling each time.
-  const data = useMemo(
-    () => CHART_DATA.map((d, i) => (i < points ? d : { label: d.label, Deep: null, Meetings: null })),
-    [points],
-  );
+/**
+ * `revealKey` restarts the sweep per run; nothing else changes, so memo means one
+ * render per tab instead of one per animation frame.
+ *
+ * The line used to be "drawn" by appending data points off a 60fps setProgress:
+ * five points over 2.25s is five visible jumps, not a draw, and because the
+ * series is `type="monotone"` every append re-fitted the curve so the part
+ * already on screen kept reshaping under you. Meanwhile the 60fps parent render
+ * reconciled this whole recharts tree ~135 times and dropped the frames that
+ * made those five jumps land unevenly. Now the finished chart renders once and a
+ * clip-path sweeps it in on the compositor.
+ */
+const ChartStage = memo(function ChartStage({ revealKey }: { revealKey: string }) {
   return (
     <CardShell icon={ChartIcon} title="Deep work vs meetings" subtitle="hours">
       <div className="p-4">
@@ -359,9 +366,9 @@ function ChartStage({ points }: { points: number }) {
         </div>
         {/* Taller on desktop so the chart doesn't leave a dead gap under it next
             to the (much taller) image tab in a fixed-height stage. */}
-        <div className="h-[240px] sm:h-[360px]">
+        <div key={revealKey} className="h-[240px] sm:h-[360px] chart-reveal" style={{ animationDuration: `${BUILD_MS}ms` }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
+            <LineChart data={CHART_DATA} margin={{ top: 6, right: 12, bottom: 0, left: 0 }}>
               {/* Theme vars, not hardcoded darks — same as the real ChartCard, so
                   this doesn't invert into an invisible chart in light mode. */}
               <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-border))" vertical={false} />
@@ -376,8 +383,8 @@ function ChartStage({ points }: { points: number }) {
                   color: 'rgb(var(--color-text))',
                 }}
               />
-              {/* Animation off: the line growing a point at a time IS the motion,
-                  and recharts otherwise redraws the whole series on every append. */}
+              {/* Animation off: the clip-path sweep on the wrapper is the motion,
+                  and it needs the finished geometry underneath it to sweep over. */}
               <Line type="monotone" dataKey="Deep" stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
               <Line type="monotone" dataKey="Meetings" stroke="#a78bfa" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} isAnimationActive={false} />
             </LineChart>
@@ -387,7 +394,7 @@ function ChartStage({ points }: { points: number }) {
       </div>
     </CardShell>
   );
-}
+});
 
 function DocStage({ words }: { words: number }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -467,10 +474,10 @@ function DocStage({ words }: { words: number }) {
 export default function CreationsSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { margin: '-120px 0px' });
-  const [tab, setTab] = useState<TabId>('image');
+  const [tab, setTab] = useState<TabId>('chart');
   const [stage, setStage] = useState<Stage>('ask');
   const [progress, setProgress] = useState(0); // 0..1 through the building stage
-  const [paused, setPaused] = useState(false);
+  const { paused, handlers } = useHoverPause();
   // Bumped when the section re-enters view, so the CSS tab bar remounts and
   // restarts alongside the JS clock instead of carrying on from off-screen.
   const [runId, setRunId] = useState(0);
@@ -513,11 +520,11 @@ export default function CreationsSection() {
     return () => cancelAnimationFrame(raf);
   }, [stage, tab]);
 
-  usePausableTimeout(
-    () => setTab(TABS[(TABS.findIndex(t => t.id === tab) + 1) % TABS.length].id),
+  const fillRef = useTabProgress(
     active.ms,
     paused || !inView,
     runKey,
+    () => setTab(TABS[(TABS.findIndex(t => t.id === tab) + 1) % TABS.length].id),
   );
 
   const built = stage === 'done' ? 1 : progress;
@@ -549,11 +556,11 @@ export default function CreationsSection() {
           <span className="text-brand dark:text-brand-light">It makes them.</span>
         </h2>
         <p className="text-muted text-lg leading-relaxed max-w-2xl mb-8">
-          Ask in the same chat that reads your calendar. The answer comes back as the actual thing — rendered, editable, yours — not a paragraph telling you how to go make it.
+          Ask in the same chat that reads your calendar. The answer comes back as the actual thing: rendered, editable, yours. Not a paragraph telling you how to go make it.
         </p>
       </motion.div>
 
-      <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div {...handlers}>
         <div className="flex flex-wrap gap-2 mb-5">
           {TABS.map(t => {
             const on = tab === t.id;
@@ -568,16 +575,10 @@ export default function CreationsSection() {
                 {on && (
                   <>
                     <span className="absolute inset-0 bg-brand/25" />
-                    {/* A CSS animation, not framer, because this bar has to FREEZE
-                        where it is on hover. animation-play-state does that
-                        exactly; a framer `animate` can only be given a new target,
-                        so pausing made it jump to 100% and lie about time left.
-                        Keyed on runKey so it restarts with the JS clock. */}
-                    <span
-                      key={runKey}
-                      className="absolute inset-y-0 left-0 bg-brand tab-fill"
-                      style={{ animationDuration: `${t.ms}ms`, animationPlayState: paused || !inView ? 'paused' : 'running' }}
-                    />
+                    {/* Width comes from useTabProgress writing --fill each frame:
+                        the bar and the hand-off are the same clock, so a pause or
+                        a background tab can't leave them showing different times. */}
+                    <span ref={fillRef} className="absolute inset-y-0 left-0 bg-brand tab-fill" />
                   </>
                 )}
                 <span className="relative z-10">{t.label}</span>
@@ -633,7 +634,7 @@ export default function CreationsSection() {
                       {tab === 'image' ? (
                         <ImageStage stage={stage} />
                       ) : tab === 'chart' ? (
-                        <ChartStage points={units} />
+                        <ChartStage revealKey={runKey} />
                       ) : (
                         <DocStage words={units} />
                       )}

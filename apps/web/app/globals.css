@@ -383,19 +383,29 @@ body::after {
 .chat-md .hljs-emphasis { font-style: italic; }
 .chat-md .hljs-strong { font-weight: 700; }
 
-/* Drives the auto-advance timer bar on /features CreationsSection tabs. A CSS
-   animation rather than framer, so animation-play-state can freeze it exactly
-   where it is on hover — a JS `animate` can only be given a new target, which
-   made pausing jump the bar to full and misreport the time left. */
-@keyframes tab-fill {
-  from { width: 0%; }
-  to   { width: 100%; }
-}
+/* The auto-advance timer bar on the /features tab strips. Width is written by
+   useTabProgress's rAF loop, which is the same clock that fires the hand-off —
+   the bar cannot report a time the timer isn't keeping. It used to be a keyframe
+   animation frozen with animation-play-state, i.e. a second clock, and the two
+   drifted apart in a background tab and under reduced motion. */
 .tab-fill {
-  animation-name: tab-fill;
+  width: var(--fill, 0%);
+}
+
+/* Sweeps the finished chart in on /features instead of appending its data points
+   one at a time. Appending re-fitted the monotone curve on every point, so the
+   line already drawn kept reshaping, and 5 points over 2.25s meant 5 visible
+   jumps rather than a draw. clip-path composites on the GPU and needs no React
+   render per frame. */
+@keyframes chart-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.chart-reveal {
+  animation-name: chart-reveal;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tab-fill { animation: none; width: 100%; }
+  .chart-reveal { animation: none; clip-path: none; }
 }
