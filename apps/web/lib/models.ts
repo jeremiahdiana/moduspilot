@@ -36,6 +36,11 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
   { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
   { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
+  // Restored 2026-07-17: Google billing is now live on the `modus-pilot` project
+  // ($10 prepay), and this answers — verified with a real completion through
+  // @ai-sdk/google, finish='stop', 1438 chars at the route's real 2048 cap. It was
+  // withheld for exactly one day because a FREE-TIER key 429'd every Pro request.
+  { id: 'gemini-3.1-pro-preview',  name: 'Gemini 3.1 Pro',   provider: 'Google',    plans: ['pilot'] },
   // Anthropic's most capable model — a real PILOT flagship, already covered by the
   // Anthropic account we pay for. ⚠️ $10/$50 per 1M, ~2x Opus 4.8: the priciest
   // thing we serve. Anthropic prompt caching (chat/route.ts) drops cached input to
@@ -59,7 +64,6 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // To restore: enable billing on the Google AI Studio key / buy xAI credits,
   // re-run the round-trip check, then uncomment. The ids below are verified-real
   // (they resolve; they are only quota/credit blocked) so nothing else changes.
-  // { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', provider: 'Google', plans: ['pilot'] },
   // { id: 'grok-4.5',               name: 'Grok 4.5',       provider: 'xAI',    plans: ['pilot'] },
 ];
 

@@ -375,7 +375,7 @@ const PLAN_OPTIONS: { id: PlanId; name: string; price: string; tagline: string; 
   },
   {
     id: 'pilot', name: 'PILOT', price: '$59', tagline: 'Everything, higher limits', popular: true,
-    features: ['Everything in MODUS', 'The frontier models — GPT-5.6 Sol, Claude Opus + Claude Fable 5', 'Much higher usage limits', 'Manual model pick per message'],
+    features: ['Everything in MODUS', 'The frontier models — GPT-5.6 Sol, Claude Opus, Claude Fable 5 + Gemini 3.1 Pro', 'Much higher usage limits', 'Manual model pick per message'],
   },
 ];
 

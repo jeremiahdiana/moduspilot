@@ -75,7 +75,7 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Switch your AI in Settings → Brain',
-        body: 'MODUS runs on 6 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). GPT-5.6 Sol, Claude Opus and Claude Fable 5 unlock on PILOT ($59/mo).',
+        body: 'MODUS runs on 7 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro unlock on PILOT ($59/mo).',
         tag: 'Feature',
       },
       {

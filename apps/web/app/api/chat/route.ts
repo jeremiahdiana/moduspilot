@@ -532,9 +532,18 @@ export async function POST(req: Request) {
     //   claude-fable-5  @ 16000 → finish 'stop',   2173 chars
     // On Claude 5 thinking is adaptive and ALWAYS counts against max_tokens, so a
     // 2048 cap is spent on reasoning before a single visible character is emitted.
+    // Gemini 3.x thinks too, and it was ALREADY truncating the model we ship on
+    // MODUS $24. Measured 2026-07-17 through @ai-sdk/google, same hard prompt:
+    //   gemini-3.5-flash       @ 2048  → finish 'length', 881 chars — CUT OFF
+    //   gemini-3.5-flash       @ 16000 → finish 'stop',   2258 chars
+    //   gemini-3.1-pro-preview @ 2048  → finish 'stop',   1438 chars (fine either way)
+    // Flash was losing the back half of its answers in production. This is a CAP,
+    // not a target — a short answer bills what it generates, so raising it costs
+    // nothing except on the long answers the user actually asked for.
     const isReasoningModel = /^o\d/.test(resolved.modelId)
       || /^gpt-5/.test(resolved.modelId)
-      || /-5$/.test(resolved.modelId);
+      || /-5$/.test(resolved.modelId)
+      || /^gemini-3/.test(resolved.modelId);
     const maxTokens = isReasoningModel ? 16000 : 2048;
 
     // 🚨 Claude 5 REJECTS a non-default temperature — and the AI SDK always sends one.

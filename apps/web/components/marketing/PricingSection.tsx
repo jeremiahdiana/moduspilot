@@ -36,7 +36,7 @@ const PLANS = [
     popular: false,
     features: [
       'Everything in MODUS',
-      'The frontier models: GPT-5.6 Sol, Claude Opus + Claude Fable 5 \u2014 Anthropic\u2019s most capable \u2014 manual pick per message',
+      'The frontier models: GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro \u2014 manual pick per message',
       'Unlimited context memory',
       'Wearable sync (HealthKit, Oura, Whoop)',
       'Financial pulse via Plaid',

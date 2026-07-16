@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: 'Which AI models does MODUS use?',
-    a: "Claude, GPT-5.6, Gemini and Llama all live in one chat. Pick the model you want for any message, or leave it on Auto and MODUS routes each task to the best one. MODUS ($24) gives you every provider, auto-routed; PILOT ($59) adds the frontier models — GPT-5.6 Sol, Claude Opus and Claude Fable 5, Anthropic’s most capable — with manual pick per message.",
+    a: "Claude, GPT-5.6, Gemini and Llama all live in one chat. Pick the model you want for any message, or leave it on Auto and MODUS routes each task to the best one. MODUS ($24) gives you every provider, auto-routed; PILOT ($59) adds the frontier models — GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro — with manual pick per message.",
   },
   {
     q: 'Can I use my own OpenAI or Claude API key?',

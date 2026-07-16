@@ -88,7 +88,10 @@ export async function POST(req: Request) {
     // The Claude 5 family belongs here too — measured 2026-07-17, claude-sonnet-5
     // returns 0 chars at 2048 and 3541 at 16000. Sonnet 5 losing a race it never
     // got to run is the exact failure this comment is about.
-    maxTokens: /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId) || /-5$/.test(resolved.modelId) ? 16000 : 2000,
+    // gemini-3.x too — measured 2026-07-17: gemini-3.5-flash truncates at 2048
+    // (finish 'length', 881 chars) and completes at 16000 (2258). A half-finished
+    // Gemini column is the same lie as a blank one.
+    maxTokens: /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId) || /-5$/.test(resolved.modelId) || /^gemini-3/.test(resolved.modelId) ? 16000 : 2000,
     // Claude 5 rejects the AI SDK's hardcoded temperature:0 with a 400 on EVERY
     // request; Anthropic's default of 1 is accepted. See chat/route.ts for the full
     // note — this file has its own streamText call and inherits nothing from it.

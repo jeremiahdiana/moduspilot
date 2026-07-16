@@ -18,9 +18,10 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
   { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
   { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
+  { id: 'gemini-3.1-pro-preview',  name: 'Gemini 3.1 Pro',   provider: 'Google',    plans: ['pilot'] },
   { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'] },
-  // Gemini 3.1 Pro / Grok 4.5 withheld — their provider accounts can't serve a
-  // request yet (quota / no credits). See apps/web/lib/models.ts for the detail.
+  // Grok 4.5 withheld — xAI has no credits. Gemini 3.1 Pro restored 2026-07-17
+  // once Google billing went live. See apps/web/lib/models.ts for the detail.
 ];
 
 export function effectivePlan(plan: string | null | undefined): string {

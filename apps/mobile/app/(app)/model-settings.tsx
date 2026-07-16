@@ -104,8 +104,18 @@ const BRAINS = [
     badgeClass: 'bg-brand/10 text-brand',
     plans: ['pilot'],
   },
-  // Mirror of apps/web/lib/models.ts — Gemini 3.1 Pro and Grok 4.5 are withheld
-  // there until their provider accounts can serve a request. Keep in sync.
+  {
+    id: 'gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro',
+    provider: 'Google',
+    tagline: 'Google’s frontier model',
+    desc: "Google's most capable model. Strong on long-context reasoning and research.",
+    badge: 'PILOT',
+    badgeClass: 'bg-brand/10 text-brand',
+    plans: ['pilot'],
+  },
+  // Mirror of apps/web/lib/models.ts — Grok 4.5 is withheld
+  // until xAI has credits. Gemini 3.1 Pro restored 2026-07-17. Keep in sync.
 ];
 
 const BYOK_PROVIDERS: { key: 'openai' | 'anthropic'; name: string; desc: string; models: { id: string; label: string; sub: string }[]; keyField: 'openaiKey' | 'anthropicKey'; placeholder: string }[] = [

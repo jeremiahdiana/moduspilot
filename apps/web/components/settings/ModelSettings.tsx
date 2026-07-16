@@ -95,8 +95,19 @@ const BRAINS = [
     badgeColor: 'bg-brand/10 text-brand',
     plans: ['pilot'] as string[],
   },
-  // Gemini 3.1 Pro and Grok 4.5 are withheld until their provider accounts can
-  // serve a request — see the note in lib/models.ts. Keep this list matching that
+  {
+    id: 'gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro',
+    provider: 'Google',
+    tagline: 'Google’s frontier model',
+    description: "Google's most capable model. Strong on long-context reasoning, research, and code.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
+  // Grok 4.5 is withheld until xAI has credits (Gemini 3.1 Pro was restored
+  // 2026-07-17 when Google billing went live) — see the note in lib/models.ts.
+  // Keep this list matching that
   // catalog: a Brain offered here that PLATFORM_MODELS doesn't unlock is a lock
   // badge the user can never earn.
 ];
@@ -269,7 +280,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
         )}
         {isPaid && !isPilot && (
           <p className="text-xs text-muted text-center pt-1">
-            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock GPT-5.6 Sol, Claude Opus and Claude Fable 5.
+            <span className="text-brand font-medium">Upgrade to PILOT</span> to unlock GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro.
           </p>
         )}
       </div>
