@@ -13,6 +13,7 @@
 import { streamText, StreamData } from 'ai';
 import { MockLanguageModelV1, simulateReadableStream } from 'ai/test';
 import { createFallbackModel, isPremiumModel } from '../lib/chat/model';
+import { PLATFORM_MODELS } from '../lib/models';
 
 // Verbatim from the live Google API, 2026-07-16, on the production (free-tier) key.
 const GOOGLE_BILLING_429 =
@@ -189,8 +190,7 @@ async function main() {
     ['gemini-3.5-flash',                          true,  'catalog + regex — the original bug'],
     ['claude-opus-4-8',                           true,  'catalog + regex'],
     ['claude-3-opus',                             true,  'REGEX ONLY: stale saved Brain, not in catalog'],
-    ['meta-llama/llama-4-scout-17b-16e-instruct', true,  'CATALOG ONLY: matches no prefix'],
-    ['openai/gpt-oss-120b',                       false, 'not yet in catalog, matches no prefix (add both together)'],
+    ['openai/gpt-oss-120b',                       false, 'not yet in catalog, matches no prefix — the Aug-16 migration MUST add it to BOTH'],
     ['llama-3.3-70b-versatile',                   false, 'free default — promised nothing'],
     ['llama-3.1-8b-instant',                      false, 'free fallback — promised nothing'],
     ['auto',                                      false, 'not a specific model'],
@@ -203,6 +203,20 @@ async function main() {
       `${why} -> got ${isPremiumModel(id)}`,
     );
   }
+
+  // The CATALOG arm of the OR, asserted against the real catalog rather than one
+  // hand-picked id. Today every entry happens to match the regex too, so this looks
+  // redundant — it is not: the moment a Groq-hosted id ('openai/gpt-oss-120b', the
+  // Aug-16 replacement) is added, the regex stops covering it and THIS is the check
+  // that catches a silent downgrade.
+  const shouldBePremium = PLATFORM_MODELS.filter(m => m.id !== 'llama-3.3-70b-versatile');
+  const missed = shouldBePremium.filter(m => !isPremiumModel(m.id));
+  check(
+    'every catalog model except the free default is premium (the catalog arm)',
+    missed.length === 0,
+    missed.length ? `NOT flagged -> would downgrade SILENTLY: ${missed.map(m => m.id).join(', ')}`
+                  : `${shouldBePremium.length} models checked`,
+  );
 
   console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} CHECK(S) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);

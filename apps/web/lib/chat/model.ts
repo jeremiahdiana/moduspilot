@@ -14,6 +14,22 @@ function visionOpenAIModel(model: string): string {
 }
 
 const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY ?? '', baseURL: 'https://api.groq.com/openai/v1' });
+
+// 🚨 BOTH MODELS BELOW ARE DECOMMISSIONED ON 2026-08-16 — after that date Groq
+// will not serve them at all (console.groq.com/docs/deprecations, confirmed in the
+// deprecation email of 2026-06-30; applies to free AND developer tier).
+//
+// That is not one model expiring, it is the FLOOR of the whole product: the free
+// default, the failover chain's free link, and whatever downgradedToLlama() hands
+// back when anything else fails. Nothing else in the catalog is free.
+//
+// Groq's replacements are openai/gpt-oss-120b (for 3.3) and openai/gpt-oss-20b
+// (for 3.1) — BOTH ARE REASONERS. Measured 2026-07-17 on the free tier:
+// gpt-oss-120b returns finish='length' at maxTokens 2048 (truncated mid-answer),
+// and raising it to 16000 is rejected with "Request too large" by the free 12k/min
+// org cap. So the migration needs a Groq card (no minimum spend) AND isReasoningModel
+// widened in chat/route.ts + compare/route.ts, or paying users get cut-off answers.
+// qwen/qwen3.6-27b is the other suggestion and emits raw <think> into content.
 export const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
 // Second free Groq model — a SEPARATE per-minute (TPM) budget from the primary
 // Llama, so a throttled first model can immediately retry here at no cost. Also
@@ -37,9 +53,8 @@ const GROQ_FALLBACK_SECONDARY = 'llama-3.1-8b-instant';
 const GROQ_HOSTED = new Set<string>([
   LLAMA_FALLBACK,
   GROQ_FALLBACK_SECONDARY,
-  // finish='stop', 620 completion tokens, 2389 visible chars at the real 2048 cap.
-  // NOT a reasoner. ⚠️ Rejects max_tokens > 8192 — never classify it as one.
-  'meta-llama/llama-4-scout-17b-16e-instruct',
+  // The Aug-16 migration lands here: 'openai/gpt-oss-120b' / 'openai/gpt-oss-20b'.
+  // Add them ONLY with a Groq card + isReasoningModel widened — see the note above.
 ]);
 
 // The concrete language-model object type (LanguageModel is `string | model`; a
