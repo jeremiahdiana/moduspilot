@@ -24,6 +24,16 @@ export interface ModelInfo {
  */
 export const PLATFORM_MODELS: ModelInfo[] = [
   { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
+  // Groq-hosted, so FREE to serve. NOT a frontier model and must never be sold as
+  // one — and NOT an upgrade on Llama 3.3 either: verified 2026-07-17, Llama 3.3
+  // beats it on MMLU (86.0 vs 79.6), math and code, while Scout wins on context
+  // (~2.5x), speed, GPQA and MMLU-Pro. It is a TRADE, so the switcher copy says
+  // exactly that and Auto is deliberately NOT pointed at it.
+  // Its multimodality is unreachable here: resolveChatModel's vision path sends any
+  // model + image to gpt-4o-mini before the prefix chain, so never claim it reads
+  // images. Routing lives in GROQ_HOSTED (lib/chat/model.ts): this id matches no
+  // provider prefix, so without that entry it is served by Llama SILENTLY.
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', provider: 'Meta', plans: ['modus', 'pilot'] },
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
   { id: 'claude-sonnet-4-6',       name: 'Claude Sonnet',    provider: 'Anthropic', plans: ['modus', 'pilot'] },
   { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },

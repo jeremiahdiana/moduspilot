@@ -3,7 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
-import { canonicalModelId, isModelUnlocked } from '@/lib/models';
+import { canonicalModelId, isModelUnlocked, PLATFORM_MODELS } from '@/lib/models';
 
 // gpt-5.6-* included because it IS multimodal — verified 2026-07-16 by sending a
 // real image and getting the colour back. Without it, a paying user on Terra who
@@ -20,21 +20,60 @@ export const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
 // used as the fallback in proactive-model.ts / briefing.ts.
 const GROQ_FALLBACK_SECONDARY = 'llama-3.1-8b-instant';
 
+/**
+ * Models served by GROQ's OpenAI-compatible endpoint, not by the vendor whose
+ * name is in the id.
+ *
+ * These CANNOT be routed by the id-prefix chain in resolveChatModel, and the
+ * naming actively lies: `openai/gpt-oss-120b` is an OPEN-WEIGHT model Groq hosts,
+ * so sending it to api.openai.com because it says "openai" would fail. It matches
+ * no prefix either way, and an unmatched id falls through to downgradedToLlama()
+ * — so a model missing from this Set is served by Llama SILENTLY. That is exactly
+ * the bug the onServed disclosure exists to prevent, re-entering through the back
+ * door, which is why routing is an explicit list rather than a pattern.
+ *
+ * Verified live on the Groq key 2026-07-17 (list + a real completion each).
+ */
+const GROQ_HOSTED = new Set<string>([
+  LLAMA_FALLBACK,
+  GROQ_FALLBACK_SECONDARY,
+  // finish='stop', 620 completion tokens, 2389 visible chars at the real 2048 cap.
+  // NOT a reasoner. ⚠️ Rejects max_tokens > 8192 — never classify it as one.
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+]);
+
 // The concrete language-model object type (LanguageModel is `string | model`; a
 // resolved chat model is always the object form).
 type LM = Exclude<LanguageModel, string>;
 
+/** Ids that promise nothing: the free defaults MODUS falls back to by design. */
+const FREE_DEFAULTS = new Set<string>([LLAMA_FALLBACK, GROQ_FALLBACK_SECONDARY]);
+
 /**
- * A premium (paid-tier) model id — anything that isn't the free Llama default.
+ * "Did we promise the user this specific model?" — anything that isn't a free
+ * default we'd have served anyway.
  *
- * This is the ONE rule for "did we promise the user a specific model?", and both
- * downgrade routes read it: the pre-flight gate below (downgradedToLlama) and the
- * runtime failover in the chat route. They used to disagree — the failover path
- * reported nothing at all — which is how a $59 user could pick Gemini, be answered
- * by Llama, and never be told.
+ * This is the ONE rule, and both downgrade routes read it: the pre-flight gate
+ * below (downgradedToLlama) and the runtime failover in the chat route. They used
+ * to disagree — the failover path reported nothing at all — which is how a $59
+ * user could pick Gemini, be answered by Llama, and never be told.
+ *
+ * It is deliberately an OR of two independent tests, because each one alone has a
+ * silent-downgrade hole:
+ *  - The CATALOG test alone misses a stale saved Brain. Firestore stores a raw id
+ *    with no backfill, so a retired id that never made it into LEGACY_MODEL_IDS
+ *    (e.g. 'claude-3-opus') isn't in PLATFORM_MODELS — catalog-only would call it
+ *    non-premium and drop that user to Llama in silence.
+ *  - The REGEX test alone misses every Groq-hosted id: 'openai/gpt-oss-120b' and
+ *    'meta-llama/llama-4-scout-…' match no prefix, so regex-only would silently
+ *    downgrade the very models we add for model count.
+ * Either test firing means we named a model, so the user gets told.
  */
 export function isPremiumModel(id: string): boolean {
-  return /^(gpt-|claude-|gemini-|grok-|o4-)/.test(id);
+  const canonical = canonicalModelId(id);
+  if (FREE_DEFAULTS.has(canonical)) return false;
+  return /^(gpt-|claude-|gemini-|grok-|o4-)/.test(canonical)
+    || PLATFORM_MODELS.some(m => m.id === canonical);
 }
 
 export interface ResolvedChatModel {
@@ -113,6 +152,12 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // no access decisions, so the catalog is the source of truth its header claims.
   if (!isModelUnlocked(selectedModel, plan)) {
     return downgradedToLlama(selectedModel);
+  }
+
+  // Groq-hosted models FIRST — they match no prefix, and one of them ('openai/…')
+  // would be actively mis-routed to OpenAI by a looser rule. See GROQ_HOSTED.
+  if (GROQ_HOSTED.has(selectedModel) && process.env.GROQ_API_KEY?.trim()) {
+    return served(groq(selectedModel), selectedModel);
   }
 
   if (selectedModel.startsWith('gpt-') || selectedModel.startsWith('o4-')) {

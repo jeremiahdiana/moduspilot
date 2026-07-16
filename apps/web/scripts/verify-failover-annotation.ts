@@ -182,6 +182,28 @@ async function main() {
     `served=${served2}, annotation frames=${wire2.split('\n').filter(l => l.startsWith('8:')).length}`,
   );
 
+  // ── 6. isPremiumModel is an OR of two tests — assert the COMPOSED gate ───────
+  // Each side alone has a silent-downgrade hole, so testing one side proves
+  // nothing. Every case below must hold for the disclosure to be trustworthy.
+  const premiumCases: [string, boolean, string][] = [
+    ['gemini-3.5-flash',                          true,  'catalog + regex — the original bug'],
+    ['claude-opus-4-8',                           true,  'catalog + regex'],
+    ['claude-3-opus',                             true,  'REGEX ONLY: stale saved Brain, not in catalog'],
+    ['meta-llama/llama-4-scout-17b-16e-instruct', true,  'CATALOG ONLY: matches no prefix'],
+    ['openai/gpt-oss-120b',                       false, 'not yet in catalog, matches no prefix (add both together)'],
+    ['llama-3.3-70b-versatile',                   false, 'free default — promised nothing'],
+    ['llama-3.1-8b-instant',                      false, 'free fallback — promised nothing'],
+    ['auto',                                      false, 'not a specific model'],
+    ['gemini-2.5-pro',                            true,  'legacy id canonicalises into the catalog'],
+  ];
+  for (const [id, want, why] of premiumCases) {
+    check(
+      `isPremiumModel(${id}) === ${want}`,
+      isPremiumModel(id) === want,
+      `${why} -> got ${isPremiumModel(id)}`,
+    );
+  }
+
   console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} CHECK(S) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);
 }

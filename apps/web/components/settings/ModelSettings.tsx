@@ -34,6 +34,16 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
+    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    name: 'Llama 4 Scout',
+    provider: 'Meta · Groq',
+    tagline: 'Long documents, very fast',
+    description: "Meta's Llama 4. Roughly 2.5x the context of Llama 3.3 and noticeably faster, and stronger on hard reasoning (GPQA, MMLU-Pro). Llama 3.3 still scores higher on code and math — pick that one for those.",
+    badge: 'MODUS+',
+    badgeColor: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'] as string[],
+  },
+  {
     id: 'gpt-5.6-terra',
     name: 'GPT-5.6 Terra',
     provider: 'OpenAI',

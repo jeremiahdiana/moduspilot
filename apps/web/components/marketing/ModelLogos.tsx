@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { modelProvider } from '@/lib/models';
 
 // Recognizable brand marks for the AI models MODUS routes between. Kept as clean
 // inline SVGs so they render crisp in light + dark. `className` controls size.
@@ -80,12 +81,32 @@ export const MODEL_LOGOS: ModelInfo[] = [
   { name: 'Llama',   provider: 'Meta',      logo: MetaLogo },
 ];
 
-/** Logo for a platform model id (see lib/models.ts) — used by the in-app switcher. */
+const LOGO_BY_PROVIDER: Record<string, (p: LogoProps) => ReactNode> = {
+  Anthropic: ClaudeLogo,
+  OpenAI: OpenAILogo,
+  Google: GeminiLogo,
+  xAI: GrokLogo,
+  Meta: MetaLogo,
+};
+
+/**
+ * Logo for a platform model id (see lib/models.ts) — used by the in-app switcher.
+ *
+ * The CATALOG's provider wins, because model ids lie and this fell through to
+ * OpenAI's mark for anything unrecognised — the wrong brand rather than none.
+ * 'meta-llama/llama-4-scout-…' does NOT start with 'llama', so a startsWith chain
+ * stamped OpenAI on Meta's model. (Conversely 'openai/gpt-oss-120b' really is
+ * OpenAI's, even though Groq serves it — only the catalog knows that.)
+ *
+ * The id checks below are a fallback for ids not in the catalog (a stale saved
+ * Brain, a compare column) and use `includes` for the same reason.
+ */
 export function logoForModel(id: string): (p: LogoProps) => ReactNode {
-  if (id.startsWith('claude')) return ClaudeLogo;
-  if (id.startsWith('gpt') || id.startsWith('o4') || id.startsWith('o3')) return OpenAILogo;
-  if (id.startsWith('gemini')) return GeminiLogo;
-  if (id.startsWith('grok')) return GrokLogo;
-  if (id.startsWith('llama')) return MetaLogo;
+  const fromCatalog = LOGO_BY_PROVIDER[modelProvider(id)];
+  if (fromCatalog) return fromCatalog;
+  if (id.includes('claude')) return ClaudeLogo;
+  if (id.includes('gemini')) return GeminiLogo;
+  if (id.includes('grok')) return GrokLogo;
+  if (id.includes('llama')) return MetaLogo;
   return OpenAILogo;
 }
