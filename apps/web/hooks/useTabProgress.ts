@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
 
+/** Longest delta a single frame may contribute (~6 frames at 60fps). Anything
+ *  bigger is a gap where we weren't running, not time the user watched. */
+const MAX_FRAME_MS = 100;
+
 /**
  * Drives an auto-advancing tab strip: one rAF loop is BOTH the countdown and the
  * fill bar, so they cannot disagree.
@@ -13,9 +17,9 @@ import { useEffect, useRef } from 'react';
  * seconds to run. And the banked remainder floored at 0 permanently, so a run
  * that never got a fresh runKey could only ever fire instantly or not at all.
  *
- * One clock removes the entire class. rAF also stops on its own in a background
- * tab and resumes on return, which is exactly the pause semantics we wanted, for
- * free.
+ * One clock removes the entire class. rAF stops on its own in a background tab,
+ * which is most of the pause semantics for free — but only once its delta is
+ * clamped, or the gap arrives all at once on the first frame back (see tick).
  *
  * The bar is written straight to the DOM as a CSS var rather than through state:
  * this ticks ~60x/sec and nothing else on the page needs to re-render for it.
@@ -51,11 +55,16 @@ export function useTabProgress(
     let last = performance.now();
 
     const tick = (now: number) => {
-      const dt = now - last;
+      // Clamped because rAF STOPS while the tab is hidden: the first frame back
+      // carries the whole gap as its delta, which would teleport the clock to
+      // done and snap the bar to 100% on return — the same lie, from the other
+      // direction. Anything longer than a few frames means we weren't running,
+      // so it counts as no time passed, and being hidden pauses the run.
+      const dt = Math.min(now - last, MAX_FRAME_MS);
       last = now;
 
-      // Not accumulating while paused IS the pause. No remainder to bank, so
-      // there is no stale remainder to get stuck on.
+      // Not accumulating IS the pause. No remainder is banked anywhere, so there
+      // is no stale remainder to get stuck on.
       if (!pausedRef.current) elapsed.current += dt;
 
       const p = Math.min(1, elapsed.current / ms);
