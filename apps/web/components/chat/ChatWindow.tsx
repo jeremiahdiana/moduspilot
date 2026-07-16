@@ -19,12 +19,49 @@ interface ConnectedServices {
 
 // Reads the auto-routed model id stashed on a message's annotations (persisted to
 // Firestore), so the "MODUS routed this to <model>" chip survives a reload.
+//
+// NOTE: this is the model Auto INTENDED, taken from the x-modus-model header. The
+// header is written before the answer starts, so it cannot know if the failover
+// chain later switched models — see readServedAnnotation, which outranks it.
 function readRoutedAnnotation(m: Message): string | undefined {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const anns = (m as any).annotations as any[] | undefined;
   if (!Array.isArray(anns)) return undefined;
   for (const a of anns) {
     if (a && typeof a === 'object' && typeof a.modusRoutedModel === 'string') return a.modusRoutedModel;
+  }
+  return undefined;
+}
+
+interface ServedAnnotation {
+  /** The model that actually produced this answer. */
+  served: string;
+  /** The model we asked for first, and told the client about via the header. */
+  requested: string;
+  /** True when `requested` was a model we explicitly promised the user. */
+  downgraded: boolean;
+}
+
+/**
+ * Reads the server's record of which model REALLY answered. Written by the chat
+ * route only when the failover chain had to switch models mid-answer, which no
+ * response header can report (headers are built before the first token).
+ *
+ * This is the authority. Where it disagrees with the header-derived routed model,
+ * the header is describing a request that didn't happen.
+ */
+function readServedAnnotation(m: Message): ServedAnnotation | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anns = (m as any).annotations as any[] | undefined;
+  if (!Array.isArray(anns)) return undefined;
+  for (const a of anns) {
+    if (a && typeof a === 'object' && typeof a.modusServedModel === 'string') {
+      return {
+        served: a.modusServedModel,
+        requested: typeof a.modusRequestedModel === 'string' ? a.modusRequestedModel : '',
+        downgraded: a.modusDowngraded === true,
+      };
+    }
   }
   return undefined;
 }
@@ -382,6 +419,39 @@ export default function ChatWindow({
     return () => clearTimeout(t);
   }, [isLoading, stop]);
 
+  // The server's record of which model REALLY answered each message. This outranks
+  // routedByMsgId and modusRoutedModel: both of those come from the x-modus-model
+  // header, which is written before the answer starts and so names the model we
+  // ATTEMPTED. When the failover chain switched, they name a model that never ran.
+  // It also gives a switched MANUAL pick a chip at all — the Auto routing chip
+  // never rendered for those, so the swap was previously unlabelled entirely.
+  const servedByMsgId = useMemo(() => {
+    const out: Record<string, ServedAnnotation> = {};
+    for (const m of messages) {
+      const s = readServedAnnotation(m);
+      if (s) out[m.id] = s;
+    }
+    return out;
+  }, [messages]);
+
+  // Which model this message's chip should name, or undefined for no chip.
+  //
+  // Three cases, and the order matters:
+  //  1. A promised model didn't answer -> always name who did, even on a manual
+  //     pick that would never have had a chip. This is the whole fix.
+  //  2. Auto announced a pick -> the chip exists either way, so it must name
+  //     whoever ACTUALLY answered, not the model Auto merely intended.
+  //  3. Nothing was promised (the free default) -> stay quiet. A same-class Groq
+  //     TPM hop is an implementation detail, and Groq's free tier trips it often
+  //     enough that chipping it would be constant noise about nothing.
+  const chipModel = (m: Message): string | undefined => {
+    const served = servedByMsgId[m.id];
+    if (served?.downgraded) return served.served;
+    const announced = routedByMsgId[m.id] ?? readRoutedAnnotation(m);
+    if (announced) return served?.served ?? announced;
+    return undefined;
+  };
+
   // Tag the current assistant message with the Auto-routed model as soon as it
   // appears, so the "routed this to <model>" chip shows while the answer streams.
   // Only for Auto — a manual model pick doesn't need a routing chip.
@@ -393,6 +463,33 @@ export default function ChatWindow({
       setRoutedByMsgId(prev => (prev[last.id] === r.modelId ? prev : { ...prev, [last.id]: r.modelId }));
     }
   }, [messages]);
+
+  // The server reports a mid-answer model switch as an annotation, because the
+  // headers read in onResponse were already sent by then. This is the only signal
+  // that the model the user picked is not the one that replied, so surface it:
+  // MODUS still answers (the chain's whole purpose), it just stops implying the
+  // answer came from a model that never ran.
+  //
+  // Gated on `downgraded`, which the server sets only when we actually named a
+  // model. A free-tier Llama→Llama TPM hop promised nothing and stays silent —
+  // otherwise Groq's ~2 msgs/min free limit would put a notice on nearly every
+  // message and train people to ignore all of them.
+  //
+  // Gated on isLoading too, so only a LIVE switch speaks. The annotation is
+  // appended before the first token, so it always renders at least once while
+  // loading; without this, replaying a stored annotation would fire a stale notice
+  // every time an old conversation is reopened. The chip carries the durable truth
+  // in history — the notice is the live alert.
+  useEffect(() => {
+    if (!isLoading) return;
+    const last = messages[messages.length - 1];
+    if (last?.role !== 'assistant') return;
+    const s = readServedAnnotation(last);
+    if (!s?.downgraded) return;
+    setModelNotice(
+      `${s.requested ? modelName(s.requested) : 'The selected model'} was unavailable — ${modelName(s.served)} answered instead.`,
+    );
+  }, [messages, isLoading]);
 
   // Save to Firestore when AI finishes responding
   useEffect(() => {
@@ -433,10 +530,22 @@ export default function ChatWindow({
     // flushed yet). Messages without a tag are saved unchanged (keeps any existing
     // annotation from a reloaded conversation).
     const messagesToSave = messages.map(m => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existing = ((m as any).annotations as any[] | undefined) ?? [];
+      const has = (key: string) =>
+        existing.some(a => a && typeof a === 'object' && typeof a[key] === 'string');
+      // The server's switch record is the truth and must survive the save. This
+      // used to REPLACE annotations wholesale, which would have overwritten
+      // modusServedModel with the header's intended model — persisting "answered
+      // by Gemini" onto a reply Llama wrote, forever.
+      if (has('modusServedModel')) return m;
+      // Already tagged (e.g. reloaded from Firestore) — appending again would
+      // duplicate the annotation on every subsequent save.
+      if (has('modusRoutedModel')) return m;
       const routed = routedByMsgId[m.id]
         ?? (m.id === last?.id && routedRef.current?.auto ? routedRef.current.modelId : undefined);
       return routed
-        ? { ...m, annotations: [{ modusRoutedModel: routed }] }
+        ? { ...m, annotations: [...existing, { modusRoutedModel: routed }] }
         : m;
     });
 
@@ -577,7 +686,8 @@ export default function ChatWindow({
             message={m}
             showAvatar={messages[idx - 1]?.role !== m.role}
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
-            routedModel={routedByMsgId[m.id] ?? readRoutedAnnotation(m)}
+            routedModel={chipModel(m)}
+            replacedModel={servedByMsgId[m.id]?.downgraded ? servedByMsgId[m.id]?.requested : undefined}
             isLatest={idx === messages.length - 1}
             followingUserText={
               messages[idx + 1]?.role === 'user' ? messageText(messages[idx + 1]) : undefined

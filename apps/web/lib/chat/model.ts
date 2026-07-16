@@ -24,8 +24,16 @@ const GROQ_FALLBACK_SECONDARY = 'llama-3.1-8b-instant';
 // resolved chat model is always the object form).
 type LM = Exclude<LanguageModel, string>;
 
-/** A premium (paid-tier) model id — anything that isn't the free Llama default. */
-function isPremiumModel(id: string): boolean {
+/**
+ * A premium (paid-tier) model id — anything that isn't the free Llama default.
+ *
+ * This is the ONE rule for "did we promise the user a specific model?", and both
+ * downgrade routes read it: the pre-flight gate below (downgradedToLlama) and the
+ * runtime failover in the chat route. They used to disagree — the failover path
+ * reported nothing at all — which is how a $59 user could pick Gemini, be answered
+ * by Llama, and never be told.
+ */
+export function isPremiumModel(id: string): boolean {
   return /^(gpt-|claude-|gemini-|grok-|o4-)/.test(id);
 }
 
@@ -159,21 +167,37 @@ function isFailoverError(err: unknown): boolean {
  * Groq rejects over-limit requests at request time — BEFORE any token — so the
  * rejection surfaces here in doStream/doGenerate and the user never sees an error.
  * A Proxy is used so every other property/method delegates to the primary model.
+ *
+ * `onServed` reports which model ACTUALLY answered. It is the only way to know:
+ * the caller's response headers are built before doStream resolves, so a switch
+ * that happens here can never reach the client through them. Without it the
+ * client keeps displaying (and persisting) the model we merely ATTEMPTED.
  */
 export function createFallbackModel(
   models: LM[],
-  onFallback?: (fromId: string, toId: string, err: unknown) => void,
+  opts: {
+    onFallback?: (fromId: string, toId: string, err: unknown) => void;
+    /** Fires with the model whose request was accepted — i.e. the one answering. */
+    onServed?: (modelId: string) => void;
+  } = {},
 ): LM {
+  // One model = no switch is possible, so the caller's assumed id is already
+  // correct and onServed would be pure noise.
   if (models.length <= 1) return models[0];
   const attempt = async <T>(run: (m: LM) => PromiseLike<T>): Promise<T> => {
     let lastErr: unknown;
     for (let i = 0; i < models.length; i++) {
       try {
-        return await run(models[i]);
+        const out = await run(models[i]);
+        // Resolved = the provider accepted the request. For doStream that means
+        // this model is producing the answer (Groq/OpenAI reject at request time,
+        // before any token), so it is safe to report it as the served model.
+        opts.onServed?.(models[i].modelId);
+        return out;
       } catch (e) {
         lastErr = e;
         if (i < models.length - 1 && isFailoverError(e)) {
-          onFallback?.(models[i].modelId, models[i + 1].modelId, e);
+          opts.onFallback?.(models[i].modelId, models[i + 1].modelId, e);
           continue;
         }
         throw e;

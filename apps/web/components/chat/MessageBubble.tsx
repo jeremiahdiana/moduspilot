@@ -9,7 +9,7 @@ import DocumentCard from './DocumentCard';
 import ChartCard from './ChartCard';
 import MarkdownMessage from './MarkdownMessage';
 import { blockProgress } from '@/lib/chat/block-progress';
-import { modelName, PLATFORM_MODELS } from '@/lib/models';
+import { modelName, modelProvider } from '@/lib/models';
 import { ProviderLogo } from '@/components/marketing/BrandLogos';
 
 type BlockType = 'approval' | 'draft_options' | 'options' | 'image' | 'document' | 'chart';
@@ -56,8 +56,13 @@ function ModusAvatar() {
 }
 
 // "MODUS routed this to <model>" chip shown above an Auto-routed assistant answer.
-function RoutedChip({ modelId }: { modelId: string }) {
-  const info = PLATFORM_MODELS.find(m => m.id === modelId);
+//
+// `replacedModel` turns it into the honest version of the same chip: when the
+// model the user picked couldn't answer and the failover chain used another one,
+// it reads "<pick> was unavailable · answered by <model>". The live notice in
+// ChatWindow is cleared on the next message, so this chip is what carries that
+// fact in history — it is the thing that used to persist the false claim.
+function RoutedChip({ modelId, replacedModel }: { modelId: string; replacedModel?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -4 }}
@@ -65,14 +70,14 @@ function RoutedChip({ modelId }: { modelId: string }) {
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       className="flex items-center gap-1.5 text-xs text-muted"
     >
-      <span>MODUS routed this to</span>
+      <span>{replacedModel ? `${modelName(replacedModel)} was unavailable · answered by` : 'MODUS routed this to'}</span>
       <motion.span
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 26, delay: 0.05 }}
         className="inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-md border border-border bg-panel text-text font-medium"
       >
-        <ProviderLogo provider={info?.provider ?? ''} className="w-3 h-3" />
+        <ProviderLogo provider={modelProvider(modelId)} className="w-3 h-3" />
         {modelName(modelId)}
       </motion.span>
     </motion.div>
@@ -84,6 +89,7 @@ export default function MessageBubble({
   isStreaming = false,
   showAvatar = true,
   routedModel,
+  replacedModel,
   followingUserText,
   isLatest = true,
   onAppend,
@@ -93,6 +99,8 @@ export default function MessageBubble({
   isStreaming?: boolean;
   showAvatar?: boolean;
   routedModel?: string;
+  /** The model the user picked, when it couldn't answer and routedModel replaced it. */
+  replacedModel?: string;
   /** The user turn right after this one, if any — how a card knows it was answered. */
   followingUserText?: string;
   /** False once a later message exists, which closes any question this one asked. */
@@ -157,7 +165,7 @@ export default function MessageBubble({
     >
       {showAvatar ? <ModusAvatar /> : <div className="w-7 shrink-0" aria-hidden />}
       <div className="max-w-[85%] min-w-0 space-y-3">
-        {routedModel && <RoutedChip modelId={routedModel} />}
+        {routedModel && <RoutedChip modelId={routedModel} replacedModel={replacedModel} />}
         {parts.map((part, i) =>
           part.type === 'approval' ? (
             // messageId:blockIndex — stable across reloads and tabs because the

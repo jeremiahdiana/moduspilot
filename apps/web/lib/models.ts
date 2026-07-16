@@ -89,6 +89,34 @@ export function unlockedModels(plan: string | null | undefined): ModelInfo[] {
   return PLATFORM_MODELS.filter(m => m.plans.includes(ep));
 }
 
+/**
+ * Display names for models that answer but are NOT selectable Brains: the failover
+ * safety net in lib/chat/model.ts (chatFallbackChain). They are deliberately kept
+ * out of PLATFORM_MODELS — that list is the switcher AND the tier gate, so adding
+ * them would offer them for sale. They still need a human name, because when the
+ * chain switches we now tell the user who actually answered, and
+ * "answered with llama-3.1-8b-instant instead" is not a sentence for a customer.
+ */
+const INTERNAL_MODELS: Record<string, { name: string; provider: string }> = {
+  'llama-3.1-8b-instant': { name: 'Llama 3.1', provider: 'Meta' },
+  'gpt-4o-mini':          { name: 'GPT-4o mini', provider: 'OpenAI' },
+};
+
+/**
+ * The provider that owns a model id, for display (logos). Covers the internal
+ * fallback models too, so a chip naming the model that really answered can still
+ * show its mark — PLATFORM_MODELS alone would return undefined and drop the logo.
+ */
+export function modelProvider(id: string): string {
+  const canonical = canonicalModelId(id);
+  return PLATFORM_MODELS.find(m => m.id === canonical)?.provider
+    ?? INTERNAL_MODELS[canonical]?.provider
+    ?? '';
+}
+
 export function modelName(id: string): string {
-  return PLATFORM_MODELS.find(m => m.id === canonicalModelId(id))?.name ?? id;
+  const canonical = canonicalModelId(id);
+  return PLATFORM_MODELS.find(m => m.id === canonical)?.name
+    ?? INTERNAL_MODELS[canonical]?.name
+    ?? id;
 }

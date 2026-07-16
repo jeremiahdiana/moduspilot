@@ -1,4 +1,4 @@
-import { streamText, experimental_createMCPClient } from 'ai';
+import { streamText, experimental_createMCPClient, StreamData } from 'ai';
 import type { CoreMessage } from 'ai';
 import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER, PROJECT_CHAT_RULES } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
@@ -12,7 +12,7 @@ import {
   enforcePaidTokenLimit,
   trackTokenUsage,
 } from '@/lib/chat/limits';
-import { resolveChatModel, LLAMA_FALLBACK, chatFallbackChain, createFallbackModel } from '@/lib/chat/model';
+import { resolveChatModel, LLAMA_FALLBACK, chatFallbackChain, createFallbackModel, isPremiumModel } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
 import { isModelUnlocked } from '@/lib/models';
 import {
@@ -295,6 +295,13 @@ export async function POST(req: Request) {
     // keys, then the platform default (Groq). hasImage forces a vision model.
     let resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
     let chatModel = resolved.model;
+    // The model the USER was promised: their explicit pick, Auto's announced
+    // choice, or their saved Brain. Snapshotted HERE, before the size guard below,
+    // which swaps Llama→Terra on MODUS's own initiative for large requests. That
+    // swap is not a promise to the user, so if the chain later fails away from it
+    // we must not report "GPT-5.6 Terra was unavailable" to someone who picked the
+    // free default and never heard of Terra.
+    const promisedModelId = resolved.modelId;
     if (resolved.downgraded) {
       // Loud + alertable: a premium model was requested but we served Llama
       // (missing provider key or plan gate). Previously silent — a rotated/removed
@@ -519,11 +526,56 @@ export async function POST(req: Request) {
     // transient rate/size limit (e.g. Groq's per-minute TPM 429 on the free
     // model), retry the next model in the chain — a second free Groq model with a
     // fresh TPM budget, then a paid gpt-4o-mini safety net — so MODUS always
-    // answers instead of showing "ran out / too long". Groq rejects at request
-    // time (before any token), so the switch is invisible to the user.
+    // answers instead of showing "ran out / too long".
+    //
+    // The failover itself stays transparent. What is NOT transparent any more is
+    // WHO ANSWERED. This used to be silent, and the silence was the bug: Google's
+    // billing 429 ("check your plan and billing details") matches isFailoverError
+    // on both '429' and 'quota', so a PILOT user could pick Gemini, be answered by
+    // Llama, and be told nothing — while the routing chip kept Gemini's name and
+    // logo on the reply and persisted that claim to Firestore.
+    //
+    // servedModelId is the answering model. It cannot travel on a response header:
+    // toDataStreamResponse() builds headers synchronously, before doStream has
+    // resolved, so a switch decided here would miss them every time. It rides the
+    // data stream as a message annotation instead — the same channel the routing
+    // chip already reads and useConversations already persists.
+    const streamData = new StreamData();
+    let servedModelId = resolved.modelId;
+    let streamDataClosed = false;
+    // close() is idempotent here because onError and onFinish are mutually
+    // exclusive in practice but not guaranteed to be — closing twice throws.
+    const closeStreamData = async () => {
+      if (streamDataClosed) return;
+      streamDataClosed = true;
+      try { await streamData.close(); } catch (e) { console.error('[chat] streamData close failed:', e); }
+    };
+
     const failoverModel = createFallbackModel(
       chatFallbackChain(chatModel as Parameters<typeof createFallbackModel>[0][number]),
-      (from, to, err) => console.log(`[chat] failover: ${from}→${to} (${String(err).slice(0, 140)})`),
+      {
+        onFallback: (from, to, err) => console.log(`[chat] failover: ${from}→${to} (${String(err).slice(0, 140)})`),
+        onServed: (id) => {
+          servedModelId = id;
+          if (id === resolved.modelId) return;
+          // Loud, and matches the pre-flight MODEL DOWNGRADE log above: both
+          // downgrade routes are now visible in logs AND to the user.
+          console.error(`[chat] MODEL FAILOVER: requested ${resolved.modelId} → served ${id} uid=${uid ?? 'guest'}`);
+          // Always correct the chip — a wrong model name on a reply is a false
+          // claim regardless of tier. Only flag `downgraded` (which surfaces the
+          // user-facing notice) when we actually promised a specific model, i.e.
+          // the same isPremiumModel rule the pre-flight gate uses, applied to what
+          // the USER picked rather than to whatever the size guard swapped in. A
+          // free-tier Llama→Llama TPM hop never promised anything, so it stays
+          // quiet — Groq's free tier trips that often enough that a notice there
+          // would be constant and people would learn to ignore all of them.
+          streamData.appendMessageAnnotation({
+            modusServedModel: id,
+            modusRequestedModel: promisedModelId,
+            modusDowngraded: isPremiumModel(promisedModelId),
+          });
+        },
+      },
     );
 
     // ── Anthropic prompt caching ──────────────────────────────────────────────
@@ -576,12 +628,17 @@ export async function POST(req: Request) {
         for (const client of mcpClients) {
           try { await client.close(); } catch {}
         }
+        // onFinish does not run on error, and an unclosed StreamData never ends
+        // the response stream — the client would hang instead of seeing the error.
+        await closeStreamData();
       },
       onFinish: async ({ text, usage }) => {
         // Close MCP clients
         for (const client of mcpClients) {
           try { await client.close(); } catch {}
         }
+        // Must close or the data stream (and so the response) never ends.
+        await closeStreamData();
         // Track tokens for paid users (fire-and-forget)
         if (uid && usage?.totalTokens) {
           trackTokenUsage(uid, userData, usage.totalTokens);
@@ -602,15 +659,17 @@ export async function POST(req: Request) {
     });
 
     return result.toDataStreamResponse({
+      data: streamData,
       headers: {
-        // Honest labeling: what actually answered this message, so the client can
-        // show a notice when a premium pick was downgraded to the free default.
-        // NOTE: headers are computed before streaming begins, so if the runtime
-        // failover (createFallbackModel) had to switch models mid-stream, this
-        // still reflects the model we ATTEMPTED first. Same-class Groq→Groq
-        // switches keep this accurate ("the fast model"); the rare paid-net hop
-        // is logged server-side. Reflecting the exact answering model here would
-        // require a trailing annotation — out of scope for this fix.
+        // Honest labeling: what we are ABOUT TO ask, so the client can show a
+        // notice when a premium pick was downgraded by the pre-flight gate.
+        //
+        // Headers are still computed before streaming begins, so this remains the
+        // model we ATTEMPTED — it cannot know about a runtime failover. That gap
+        // is now covered: createFallbackModel reports the real answering model via
+        // onServed, which rides the data stream as a modusServedModel annotation
+        // and OVERRIDES this value on the client. Header = intent, annotation =
+        // truth; when they disagree, the annotation wins.
         'x-modus-model': resolved.modelId,
         // Auto mode picked this model for the task → client shows a routing chip.
         ...(wasAutoRouted ? { 'x-modus-auto': '1' } : {}),
