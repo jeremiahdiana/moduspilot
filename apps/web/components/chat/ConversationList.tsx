@@ -118,11 +118,9 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
   const shareUrl = shareId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${shareId}` : '';
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    function onEsc(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
   }, [onClose]);
 
   async function createLink() {
@@ -168,10 +166,24 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  return (
+  // Portalled to document.body as a centered dialog. Anchoring it inside the row
+  // (its old `absolute … z-50`) trapped it in the row's stacking context — the row
+  // is a `motion.div layout="position"` whose transform creates a stacking context,
+  // so every row below painted over the popover no matter the z-index. That is the
+  // same trap RowMenu documents; the share modal never got the fix. A body portal
+  // escapes it, and a centered dialog can't collide with the pin/⋯ actions at all.
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+    <motion.div
       ref={ref}
-      className="absolute right-0 top-8 z-50 w-72 bg-panel border border-border rounded-xl shadow-2xl p-4 space-y-3"
+      initial={{ opacity: 0, scale: 0.96, y: 8 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full max-w-sm bg-panel border border-border rounded-2xl shadow-2xl p-5 space-y-3.5"
       onClick={e => e.stopPropagation()}
     >
       <div>
@@ -221,7 +233,9 @@ function ShareModal({ conv, user, onClose, onShareIdChange }: ShareModalProps) {
           {loading ? 'Creating link…' : 'Create share link'}
         </button>
       )}
-    </div>
+    </motion.div>
+    </div>,
+    document.body,
   );
 }
 
