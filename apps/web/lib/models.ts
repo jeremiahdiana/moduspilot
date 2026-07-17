@@ -23,11 +23,16 @@ export interface ModelInfo {
  * it 404s; the servable id is "gemini-3.1-pro-preview".
  */
 export const PLATFORM_MODELS: ModelInfo[] = [
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
+  // Served by the Vercel AI Gateway, NOT Groq. Groq decommissions its copy on
+  // 2026-08-16 — but Llama is open-weight, so that only ever killed one host, not
+  // the model. Same weights, so the switcher entry and every call site's token
+  // budget are unchanged. See lib/chat/model.ts for why the Gateway beat Groq's
+  // own suggested replacement (gpt-oss is a reasoner and returns '' at maxTokens 80).
+  { id: 'meta/llama-3.3-70b',      name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
   // ⚠️ Llama 4 Scout was added and REMOVED on 2026-07-17, hours apart. It answered
   // a live round-trip perfectly — and Groq's deprecation table lists its shutdown
   // date as 07/17/26, THE SAME DAY. Round-tripping proves a model serves NOW, not
-  // that it serves TOMORROW: check console.groq.com/docs/deprecations too.
+  // that it serves TOMORROW: check the provider's deprecation page too.
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
   // Sonnet 5 supersedes Sonnet 4.6 at the SAME list price ($3/$15, and $2/$10
   // introductory through 2026-08-31) — a strictly better model for what we already
@@ -87,6 +92,18 @@ const LEGACY_MODEL_IDS: Record<string, string> = {
   // plan gate and silently drops that user to Llama — same tier, same provider,
   // so the successor is a clean swap.
   'claude-sonnet-4-6': 'claude-sonnet-5',
+  // Llama moved OFF Groq onto the AI Gateway (Groq kills its copy 2026-08-16).
+  // Same weights, new host, new id. These two lines are load-bearing: Firestore
+  // stores settings.modelSettings.model as a RAW id with no backfill, so without
+  // them every existing user whose saved Brain is Llama fails the plan gate and
+  // gets silently dropped to... Llama, with the raw dead id showing in the
+  // switcher. Same model, so the swap is exact.
+  // ⚠️ THE LEFT SIDE MUST STAY THE GROQ ID. It is what Firestore already holds for
+  // existing users; mapping it to itself makes the alias a no-op and drops every
+  // one of them to a raw dead string in the switcher — the exact failure this map
+  // exists to stop. A find-and-replace over model ids will silently "fix" it.
+  'llama-3.3-70b-versatile': 'meta/llama-3.3-70b',
+  'llama-3.1-8b-instant': 'meta/llama-3.1-8b',
 };
 
 /** Map a stored/legacy model id onto the catalog id that should actually serve it. */
@@ -116,10 +133,10 @@ export function unlockedModels(plan: string | null | undefined): ModelInfo[] {
  * out of PLATFORM_MODELS — that list is the switcher AND the tier gate, so adding
  * them would offer them for sale. They still need a human name, because when the
  * chain switches we now tell the user who actually answered, and
- * "answered with llama-3.1-8b-instant instead" is not a sentence for a customer.
+ * "answered with meta/llama-3.1-8b instead" is not a sentence for a customer.
  */
 const INTERNAL_MODELS: Record<string, { name: string; provider: string }> = {
-  'llama-3.1-8b-instant': { name: 'Llama 3.1', provider: 'Meta' },
+  'meta/llama-3.1-8b': { name: 'Llama 3.1', provider: 'Meta' },
   'gpt-4o-mini':          { name: 'GPT-4o mini', provider: 'OpenAI' },
 };
 

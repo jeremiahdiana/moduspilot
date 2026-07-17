@@ -3,10 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText, type LanguageModel } from 'ai';
 import { isPaidPlan } from '@/lib/plan';
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY ?? '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 /**
  * Model chain for MODUS's proactive/background jobs (inbox triage, briefings,
@@ -26,7 +23,7 @@ export function proactiveModels(plan: string | null | undefined): LanguageModel[
   if (isPaidPlan(plan) && anthropicKey) {
     models.push(createAnthropic({ apiKey: anthropicKey })('claude-sonnet-4-6'));
   }
-  models.push(groq('llama-3.3-70b-versatile'), groq('llama-3.1-8b-instant'));
+  models.push(groq('meta/llama-3.3-70b'), groq('meta/llama-3.1-8b'));
   return models;
 }
 

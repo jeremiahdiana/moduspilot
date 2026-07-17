@@ -59,7 +59,9 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const key = process.env.GROQ_API_KEY ?? '';
+    // The free floor is the AI Gateway now, not Groq. Gating on GROQ_API_KEY
+    // here would keep 500ing after Groq is gone from the chat path entirely.
+    const key = process.env.AI_GATEWAY_API_KEY ?? '';
     if (!process.env.OPENAI_API_KEY && !key) {
       console.error('[chat] no AI API key configured');
       return Response.json({ error: 'API key not configured' }, { status: 500 });

@@ -7,7 +7,7 @@ import { sendPushToUser } from '@/lib/fcm-admin';
 import { getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getLastThreadWith } from '@/lib/google-gmail';
 
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 const MAX_PER_RUN = 2;          // gentle — at most 2 reconnect nudges/day per user
 const QUIET_MIN_DAYS = 21;      // "gone quiet" starts at 3 weeks of silence
@@ -106,7 +106,7 @@ export const relationshipNurture = inngest.createFunction(
                 : `It has been about ${cand.daysSince} days since you last exchanged email.`;
 
               const { text: draft } = await generateText({
-                model: groq('llama-3.3-70b-versatile'),
+                model: groq('meta/llama-3.3-70b'),
                 prompt: `You are MODUS Pilot, ${name}'s chief of staff. Draft a short, warm reach-out ${name} can send to ${firstName}, someone they've fallen out of touch with. Write in ${name}'s voice: genuine, specific, low-pressure — not salesy. Reference the prior context naturally if there is any. No subject line, no "Dear", no signature, no placeholders. 2-4 sentences. No em dashes.\n\n${personalContext ? `About ${name}: ${personalContext}\n` : ''}${goals.length ? `${name}'s current goals: ${goals.join(', ')}\n` : ''}\nContext on ${firstName}:\n${context}\n\nReach-out body:`,
                 maxTokens: 300,
               });

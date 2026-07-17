@@ -5,7 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { sendPushToUser } from '@/lib/fcm-admin';
 
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 function localHour(timezone: string): number {
   try {
@@ -73,7 +73,7 @@ export const endOfDayReflection = inngest.createFunction(
             if (goals.length) contextLines.push(`Active goals: ${goals.join(', ')}`);
 
             const { text } = await generateText({
-              model: groq('llama-3.3-70b-versatile'),
+              model: groq('meta/llama-3.3-70b'),
               prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief end-of-day reflection for ${name}. 3-4 sentences max. Acknowledge what they got done, call out what slipped without lecturing, and set the frame for tomorrow. Address ${name} directly in the second person ("you", "your") — never "we" or "our". Direct, no filler, no em dashes.\n\n${contextLines.join('\n') || 'No task data for today.'}`,
               maxTokens: 200,
             });

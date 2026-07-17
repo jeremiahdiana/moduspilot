@@ -5,7 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { sendPushToUser } from '@/lib/fcm-admin';
 
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 function localHour(timezone: string): number {
   try {
@@ -106,7 +106,7 @@ export const weeklyReview = inngest.createFunction(
             if (slipped30.length || habit30Lines.length) {
               try {
                 const { text: p } = await generateText({
-                  model: groq('llama-3.1-8b-instant'),
+                  model: groq('meta/llama-3.1-8b'),
                   prompt: `Analyze this person's 30-day behavioral data and identify ONE specific pattern. Be brutally specific — name the category, give exact counts. 1-2 sentences max. No filler, no em dashes.\n\nPending tasks (never completed): ${slipped30.join(', ') || 'none'}\nHabit rates (last 30 days): ${habit30Lines.join(', ') || 'none'}`,
                   maxTokens: 80,
                 });
@@ -122,7 +122,7 @@ export const weeklyReview = inngest.createFunction(
             if (patternText) contextLines.push(`Behavioral pattern (30-day analysis): ${patternText}`);
 
             const { text } = await generateText({
-              model: groq('llama-3.3-70b-versatile'),
+              model: groq('meta/llama-3.3-70b'),
               prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a weekly review for ${name}. Structure it as: (1) what they shipped this week, (2) what slipped and why it might have, (3) the behavioral pattern identified below — state it as fact, not speculation, (4) the sharpest focus for next week. Keep it under 200 words. Sharp, direct, no filler, no em dashes. Make it feel like a trusted advisor debriefing them, not a report. Address ${name} directly in the second person ("you", "your") — never "we" or "our".\n\n${contextLines.join('\n') || 'No data for this week.'}`,
               maxTokens: 350,
             });

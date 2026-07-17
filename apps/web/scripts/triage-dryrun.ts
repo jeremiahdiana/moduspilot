@@ -88,11 +88,11 @@ async function main() {
         console.log(`     ✦ WOULD DRAFT  "${(t.subject || '(no subject)').slice(0, 50)}"  from ${t.from}`);
 
         if (eligible === 1) {
-          const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+          const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
           const first = name.split(' ')[0] || 'there';
           try {
             const { text } = await generateText({
-              model: groq('llama-3.3-70b-versatile'),
+              model: groq('meta/llama-3.3-70b'),
               prompt: `You are MODUS Pilot, ${first}'s chief of staff. Draft a reply ${first} can send to this email. Direct, warm, concise. No subject, no greeting, no signature, no placeholders. 2-5 sentences. No em dashes.\n\n--- Email from ${t.from} ---\nSubject: ${t.subject}\n\n${(t.body ?? '').slice(0, 4000)}\n--- end ---\n\nReply body:`,
               maxTokens: 400,
             });

@@ -7,7 +7,7 @@ import { sendPushToUser } from '@/lib/fcm-admin';
 import { getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getUpcomingEvents, getRecentlyEndedEvents } from '@/lib/google-calendar';
 
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 function msgId() { return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 
@@ -56,7 +56,7 @@ export const meetingIntelligence = inngest.createFunction(
                 const startTime = new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
                 const { text } = await generateText({
-                  model: groq('llama-3.3-70b-versatile'),
+                  model: groq('meta/llama-3.3-70b'),
                   prompt: `You are MODUS Pilot. Write a sharp pre-meeting brief for ${name} going into "${event.title}" at ${startTime}. 3 sentences max: (1) one sentence on what this meeting is likely about, (2) one thing to have sharp in mind going in, (3) one question they should be ready to answer or ask. Address ${name} directly in the second person ("you", "your") — never "we" or "our". Direct, no filler, no em dashes.\n\nActive goals for context: ${goals.join(', ') || 'none'}\n${event.location ? `Location: ${event.location}` : ''}`,
                   maxTokens: 150,
                 });

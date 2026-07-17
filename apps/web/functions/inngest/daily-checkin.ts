@@ -5,10 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { sendPushToUser } from '@/lib/fcm-admin';
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY!,
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 function localHour(timezone: string): number {
   try {
@@ -81,7 +78,7 @@ export const dailyCheckin = inngest.createFunction(
               if (tasks.length) contextLines.push(`Due today: ${tasks.join(', ')}`);
 
               const { text } = await generateText({
-                model: groq('llama-3.3-70b-versatile'),
+                model: groq('meta/llama-3.3-70b'),
                 prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief midday check-in for ${name}. Keep it to 2-3 sentences. Be direct and energizing — not cheerleader-y. Acknowledge what's on their plate and push them to close out the day strong.\n\n${contextLines.join('\n') || 'No specific tasks due today.'}\n\nAddress ${name} directly in the second person ("you", "your") — never "we" or "our". Do not use em dashes. No filler phrases.`,
                 maxTokens: 150,
               });

@@ -29,10 +29,7 @@ export interface BriefingData {
   schedule: BriefingScheduleItem[];
 }
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY!,
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 export function todayLabel() {
   return new Date().toLocaleDateString('en-US', {
@@ -200,7 +197,7 @@ ${scheduleText}${emailsText ? `\n\nUNREAD EMAILS (awaiting reply):\n${emailsText
   if (opts.premium && anthropicKey) {
     models.push(createAnthropic({ apiKey: anthropicKey })('claude-sonnet-4-6'));
   }
-  models.push(groq('llama-3.3-70b-versatile'), groq('llama-3.1-8b-instant'));
+  models.push(groq('meta/llama-3.3-70b'), groq('meta/llama-3.1-8b'));
   for (const model of models) {
     try {
       const { text } = await generateText({

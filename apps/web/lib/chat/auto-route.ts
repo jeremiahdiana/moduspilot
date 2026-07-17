@@ -13,10 +13,7 @@ import { SMALL_TALK } from '@/lib/chat/context';
  * failure we degrade to 'general' → Llama, so Auto never blocks a chat.
  */
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY ?? '',
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'general';
 
@@ -43,10 +40,10 @@ const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   // selling point is manual pick per message; let the user choose to spend it.
   reasoning: ['gpt-5.6-sol', 'claude-opus-4-8', 'gpt-5.6-terra', 'claude-sonnet-5'],
   // Everyday chat — fast & free.
-  general:   ['llama-3.3-70b-versatile'],
+  general:   ['meta/llama-3.3-70b'],
 };
 
-const LLAMA = 'llama-3.3-70b-versatile';
+const LLAMA = 'meta/llama-3.3-70b';
 
 const CLASSIFIER_SYSTEM =
   `You are a task router. Read the user's most recent request and classify it into EXACTLY ONE category:\n` +
@@ -102,7 +99,7 @@ export async function routeTask(
   plan: string | null | undefined,
 ): Promise<RouteResult> {
   const fallback: RouteResult = { category: 'general', modelId: LLAMA, webSearch: false };
-  if (!queryText.trim() || !process.env.GROQ_API_KEY) return fallback;
+  if (!queryText.trim() || !process.env.AI_GATEWAY_API_KEY) return fallback;
 
   // ── Heuristic fast-path ────────────────────────────────────────────────────
   // The classifier is a network round trip that BLOCKS the stream (see below).
@@ -122,13 +119,13 @@ export async function routeTask(
     // fall back to the general/Llama default.
     const { text } = await Promise.race([
       generateText({
-        model: groq('llama-3.1-8b-instant'),
+        model: groq('meta/llama-3.1-8b'),
         system: CLASSIFIER_SYSTEM,
         prompt: queryText.slice(0, 2000),
         maxTokens: 4,
         temperature: 0,
       }),
-      // 1200ms, was 3500. llama-3.1-8b-instant with maxTokens:4 answers well
+      // 1200ms, was 3500. meta/llama-3.1-8b with maxTokens:4 answers well
       // inside this; slower than that and the route was going to be stale anyway.
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('classifier timeout')), 1200)),
     ]);

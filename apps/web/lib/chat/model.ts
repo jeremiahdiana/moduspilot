@@ -13,48 +13,60 @@ function visionOpenAIModel(model: string): string {
   return OPENAI_VISION.test(model) ? model : 'gpt-4o-mini';
 }
 
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY ?? '', baseURL: 'https://api.groq.com/openai/v1' });
+/**
+ * Vercel AI Gateway — an OpenAI-compatible endpoint in front of ~300 models.
+ *
+ * MODUS's free floor used to be Groq, which decommissions meta/llama-3.3-70b
+ * and meta/llama-3.1-8b on 2026-08-16 (console.groq.com/docs/deprecations, free
+ * AND developer tier). That looked like losing the floor. It wasn't: Llama is
+ * OPEN-WEIGHT and Groq was only ever one host of it. The Gateway serves the same
+ * weights, so this is a host swap, not a model migration — which is why none of
+ * the ~13 call sites below needed their token budgets re-measured.
+ *
+ * Reasons this beats Groq's own replacement path (openai/gpt-oss-120b):
+ *  - gpt-oss is a REASONER. Measured on the real API: it returns content='' at
+ *    maxTokens 80 (memory.ts's budget), so a drop-in swap would have silently
+ *    killed long-term memory extraction with no error to log.
+ *  - Groq's free tier caps ~12k tokens/min ORG-WIDE against a ~5.6k-token system
+ *    prompt — about 2 messages/minute for the entire product. Verified on the
+ *    Gateway: a 6,040-token prompt at maxTokens 2048 goes through, i.e. the exact
+ *    request Groq rejects. The cap is gone.
+ *  - Groq's Developer tier cannot be bought ("temporarily unavailable due to high
+ *    demand", shut since ~May 2026), so the paid escape hatch was never available.
+ *
+ * ⚠️ Ids are `provider/model` and match NO prefix in the chain below — an unmatched
+ * id falls through to downgradedToFree() and is served by Llama SILENTLY. Route
+ * them via GATEWAY_HOSTED, and never by pattern: 'openai/gpt-oss-120b' is an
+ * OPEN-WEIGHT model the Gateway hosts, so a looser rule would POST it to OpenAI.
+ */
+const gateway = createOpenAI({
+  apiKey: process.env.AI_GATEWAY_API_KEY ?? '',
+  baseURL: 'https://ai-gateway.vercel.sh/v1',
+});
 
-// 🚨 BOTH MODELS BELOW ARE DECOMMISSIONED ON 2026-08-16 — after that date Groq
-// will not serve them at all (console.groq.com/docs/deprecations, confirmed in the
-// deprecation email of 2026-06-30; applies to free AND developer tier).
-//
-// That is not one model expiring, it is the FLOOR of the whole product: the free
-// default, the failover chain's free link, and whatever downgradedToLlama() hands
-// back when anything else fails. Nothing else in the catalog is free.
-//
-// Groq's replacements are openai/gpt-oss-120b (for 3.3) and openai/gpt-oss-20b
-// (for 3.1) — BOTH ARE REASONERS. Measured 2026-07-17 on the free tier:
-// gpt-oss-120b returns finish='length' at maxTokens 2048 (truncated mid-answer),
-// and raising it to 16000 is rejected with "Request too large" by the free 12k/min
-// org cap. So the migration needs a Groq card (no minimum spend) AND isReasoningModel
-// widened in chat/route.ts + compare/route.ts, or paying users get cut-off answers.
-// qwen/qwen3.6-27b is the other suggestion and emits raw <think> into content.
-export const LLAMA_FALLBACK = 'llama-3.3-70b-versatile';
-// Second free Groq model — a SEPARATE per-minute (TPM) budget from the primary
-// Llama, so a throttled first model can immediately retry here at no cost. Also
-// used as the fallback in proactive-model.ts / briefing.ts.
-const GROQ_FALLBACK_SECONDARY = 'llama-3.1-8b-instant';
+/** The free default, the failover chain's free link, and what downgradedToFree() serves. */
+export const LLAMA_FALLBACK = 'meta/llama-3.3-70b';
+/**
+ * Second free model — a separate budget from the primary, so a throttled first
+ * model can immediately retry here. Also the fallback in proactive-model.ts /
+ * briefing.ts.
+ */
+const FREE_FALLBACK_SECONDARY = 'meta/llama-3.1-8b';
 
 /**
- * Models served by GROQ's OpenAI-compatible endpoint, not by the vendor whose
- * name is in the id.
+ * Models served by the AI Gateway's OpenAI-compatible endpoint, not by the vendor
+ * whose name is in the id.
  *
- * These CANNOT be routed by the id-prefix chain in resolveChatModel, and the
- * naming actively lies: `openai/gpt-oss-120b` is an OPEN-WEIGHT model Groq hosts,
- * so sending it to api.openai.com because it says "openai" would fail. It matches
- * no prefix either way, and an unmatched id falls through to downgradedToLlama()
- * — so a model missing from this Set is served by Llama SILENTLY. That is exactly
- * the bug the onServed disclosure exists to prevent, re-entering through the back
- * door, which is why routing is an explicit list rather than a pattern.
+ * A model missing from this Set matches no prefix in resolveChatModel, falls
+ * through to downgradedToFree(), and is served by Llama SILENTLY — the exact bug
+ * the onServed disclosure exists to prevent, re-entering through the back door.
+ * That is why routing is an explicit list and never a pattern.
  *
- * Verified live on the Groq key 2026-07-17 (list + a real completion each).
+ * Verified live on the Gateway key (a real completion each), not from the docs.
  */
-const GROQ_HOSTED = new Set<string>([
+const GATEWAY_HOSTED = new Set<string>([
   LLAMA_FALLBACK,
-  GROQ_FALLBACK_SECONDARY,
-  // The Aug-16 migration lands here: 'openai/gpt-oss-120b' / 'openai/gpt-oss-20b'.
-  // Add them ONLY with a Groq card + isReasoningModel widened — see the note above.
+  FREE_FALLBACK_SECONDARY,
 ]);
 
 // The concrete language-model object type (LanguageModel is `string | model`; a
@@ -62,14 +74,14 @@ const GROQ_HOSTED = new Set<string>([
 type LM = Exclude<LanguageModel, string>;
 
 /** Ids that promise nothing: the free defaults MODUS falls back to by design. */
-const FREE_DEFAULTS = new Set<string>([LLAMA_FALLBACK, GROQ_FALLBACK_SECONDARY]);
+const FREE_DEFAULTS = new Set<string>([LLAMA_FALLBACK, FREE_FALLBACK_SECONDARY]);
 
 /**
  * "Did we promise the user this specific model?" — anything that isn't a free
  * default we'd have served anyway.
  *
  * This is the ONE rule, and both downgrade routes read it: the pre-flight gate
- * below (downgradedToLlama) and the runtime failover in the chat route. They used
+ * below (downgradedToFree) and the runtime failover in the chat route. They used
  * to disagree — the failover path reported nothing at all — which is how a $59
  * user could pick Gemini, be answered by Llama, and never be told.
  *
@@ -110,10 +122,10 @@ function served(model: LanguageModel, modelId: string): ResolvedChatModel {
 }
 
 /** Free Llama, flagged so the caller can tell the user which model did NOT run. */
-function downgradedToLlama(requested: string): ResolvedChatModel {
+function downgradedToFree(requested: string): ResolvedChatModel {
   const requestedPremium = isPremiumModel(requested) ? requested : undefined;
   return {
-    model: groq(LLAMA_FALLBACK),
+    model: gateway(LLAMA_FALLBACK),
     modelId: LLAMA_FALLBACK,
     downgraded: !!requestedPremium,
     requestedId: requestedPremium,
@@ -166,13 +178,13 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // PILOT model. The prefix chain below now ONLY picks the provider SDK; it makes
   // no access decisions, so the catalog is the source of truth its header claims.
   if (!isModelUnlocked(selectedModel, plan)) {
-    return downgradedToLlama(selectedModel);
+    return downgradedToFree(selectedModel);
   }
 
-  // Groq-hosted models FIRST — they match no prefix, and one of them ('openai/…')
-  // would be actively mis-routed to OpenAI by a looser rule. See GROQ_HOSTED.
-  if (GROQ_HOSTED.has(selectedModel) && process.env.GROQ_API_KEY?.trim()) {
-    return served(groq(selectedModel), selectedModel);
+  // Gateway-hosted models FIRST — they match no prefix, and a looser rule would
+  // actively mis-route 'openai/…' ids to OpenAI. See GATEWAY_HOSTED.
+  if (GATEWAY_HOSTED.has(selectedModel) && process.env.AI_GATEWAY_API_KEY?.trim()) {
+    return served(gateway(selectedModel), selectedModel);
   }
 
   if (selectedModel.startsWith('gpt-') || selectedModel.startsWith('o4-')) {
@@ -197,7 +209,7 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // Default: Groq Llama — fast, free, always available. Reached when a premium
   // model was unlocked but its provider key is missing; flagged as a downgrade so
   // the caller tells the user instead of passing Llama off as the model they picked.
-  return downgradedToLlama(selectedModel);
+  return downgradedToFree(selectedModel);
 }
 
 // Provider errors worth failing over on: transient rate / size / availability
@@ -295,7 +307,7 @@ export function chatFallbackChain(primary: LM): LM[] {
     seen.add(model.modelId);
     chain.push(model);
   };
-  if (process.env.GROQ_API_KEY?.trim()) add(groq(GROQ_FALLBACK_SECONDARY));
+  if (process.env.AI_GATEWAY_API_KEY?.trim()) add(gateway(FREE_FALLBACK_SECONDARY));
   const openAIKey = process.env.OPENAI_API_KEY?.trim();
   if (openAIKey) add(createOpenAI({ apiKey: openAIKey })('gpt-4o-mini'));
   return chain;

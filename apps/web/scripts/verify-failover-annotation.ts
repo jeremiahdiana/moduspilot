@@ -61,7 +61,7 @@ async function main() {
   // isFailoverError is not exported, so probe it through the observable behaviour
   // it drives: a matching error retries the chain, a non-matching one throws.
   const requested = 'gemini-3.5-flash';
-  const served = 'llama-3.3-70b-versatile';
+  const served = 'meta/llama-3.3-70b';
 
   // ── 3. The route's exact plumbing: annotation onto the data stream ───────────
   const streamData = new StreamData();
@@ -149,8 +149,8 @@ async function main() {
   // ── 4. The free-tier Groq hop must stay quiet ────────────────────────────────
   check(
     'a free-tier Llama->Llama TPM hop is NOT flagged (no notice spam)',
-    isPremiumModel('llama-3.3-70b-versatile') === false,
-    `isPremiumModel('llama-3.3-70b-versatile')=${isPremiumModel('llama-3.3-70b-versatile')}`,
+    isPremiumModel('meta/llama-3.3-70b') === false,
+    `isPremiumModel('meta/llama-3.3-70b')=${isPremiumModel('meta/llama-3.3-70b')}`,
   );
 
   // The size guard (route.ts) upgrades Llama->Terra for large requests on MODUS's
@@ -158,7 +158,7 @@ async function main() {
   // "GPT-5.6 Terra was unavailable" — they picked the free default and never chose
   // Terra. This is why the route flags on promisedModelId (snapshotted before the
   // size guard) instead of on resolved.modelId.
-  const promisedAfterSizeGuard = 'llama-3.3-70b-versatile'; // what the user picked
+  const promisedAfterSizeGuard = 'meta/llama-3.3-70b'; // what the user picked
   const resolvedAfterSizeGuard = 'gpt-5.6-terra';           // what the guard swapped in
   check(
     'a size-guard upgrade that fails over does NOT blame a model the user never picked',
@@ -171,7 +171,7 @@ async function main() {
   // ── 5. No switch => no annotation => nothing changes on the happy path ───────
   let served2 = 'gemini-3.5-flash';
   const okModel = createFallbackModel(
-    [answering('gemini-3.5-flash', 'Hi from Gemini.'), answering('llama-3.3-70b-versatile', 'x')],
+    [answering('gemini-3.5-flash', 'Hi from Gemini.'), answering('meta/llama-3.3-70b', 'x')],
     { onServed: (id) => { served2 = id; } },
   );
   const d2 = new StreamData();
@@ -191,8 +191,8 @@ async function main() {
     ['claude-opus-4-8',                           true,  'catalog + regex'],
     ['claude-3-opus',                             true,  'REGEX ONLY: stale saved Brain, not in catalog'],
     ['openai/gpt-oss-120b',                       false, 'not yet in catalog, matches no prefix — the Aug-16 migration MUST add it to BOTH'],
-    ['llama-3.3-70b-versatile',                   false, 'free default — promised nothing'],
-    ['llama-3.1-8b-instant',                      false, 'free fallback — promised nothing'],
+    ['meta/llama-3.3-70b',                   false, 'free default — promised nothing'],
+    ['meta/llama-3.1-8b',                      false, 'free fallback — promised nothing'],
     ['auto',                                      false, 'not a specific model'],
     ['gemini-2.5-pro',                            true,  'legacy id canonicalises into the catalog'],
   ];
@@ -209,7 +209,7 @@ async function main() {
   // redundant — it is not: the moment a Groq-hosted id ('openai/gpt-oss-120b', the
   // Aug-16 replacement) is added, the regex stops covering it and THIS is the check
   // that catches a silent downgrade.
-  const shouldBePremium = PLATFORM_MODELS.filter(m => m.id !== 'llama-3.3-70b-versatile');
+  const shouldBePremium = PLATFORM_MODELS.filter(m => m.id !== 'meta/llama-3.3-70b');
   const missed = shouldBePremium.filter(m => !isPremiumModel(m.id));
   check(
     'every catalog model except the free default is premium (the catalog arm)',

@@ -5,10 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { sendPushToUser } from '@/lib/fcm-admin';
 
-const groq = createOpenAI({
-  apiKey: process.env.GROQ_API_KEY!,
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 function localHour(timezone: string): number {
   try {
@@ -71,7 +68,7 @@ export const habitReminder = inngest.createFunction(
               const name = data.displayName?.split(' ')[0] || 'there';
 
               const { text } = await generateText({
-                model: groq('llama-3.3-70b-versatile'),
+                model: groq('meta/llama-3.3-70b'),
                 prompt: `You are MODUS Pilot, a sharp personal chief of staff. Write a brief evening habit reminder for ${name}. They still haven't logged: ${incomplete.join(', ')}. Keep it to 1-2 sentences. Be direct and motivating — not preachy. End of day push, make it feel urgent but achievable. Address ${name} directly in the second person ("you", "your") — never "we" or "our". No em dashes. No filler.`,
                 maxTokens: 100,
               });

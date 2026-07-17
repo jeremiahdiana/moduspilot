@@ -15,14 +15,14 @@ export async function POST(req: Request) {
     };
     if (!title?.trim()) return Response.json({ milestones: [] });
 
-    const key = process.env.GROQ_API_KEY;
+    const key = process.env.AI_GATEWAY_API_KEY;
     if (!key) return Response.json({ milestones: [] });
 
-    const groq = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey: key });
+    const gateway = createOpenAI({ baseURL: 'https://ai-gateway.vercel.sh/v1', apiKey: key });
     const tfLabel = timeframe === 'long' ? 'long-term (1+ years)' : 'short-term (under 1 year)';
 
     const { text } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: gateway('meta/llama-3.3-70b'),
       prompt: `Goal: "${title}"${description ? `\nContext: ${description}` : ''}\nTimeframe: ${tfLabel}
 
 Generate 5–7 concrete milestones that take this goal from 0% to 100% complete. Each should be a clear, definitively completable checkpoint — not a vague phase.

@@ -47,7 +47,7 @@ const PROVIDER = (process.env.EVAL_PROVIDER ?? 'groq') as 'groq' | 'openai';
 const ENDPOINT = PROVIDER === 'openai'
   ? 'https://api.openai.com/v1/chat/completions'
   : 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = process.env.EVAL_MODEL ?? (PROVIDER === 'openai' ? 'gpt-4o-mini' : 'llama-3.3-70b-versatile');
+const MODEL = process.env.EVAL_MODEL ?? (PROVIDER === 'openai' ? 'gpt-4o-mini' : 'meta/llama-3.3-70b');
 const KEY = PROVIDER === 'openai' ? process.env.OPENAI_API_KEY : process.env.GROQ_API_KEY;
 if (!KEY) { console.error(`${PROVIDER === 'openai' ? 'OPENAI' : 'GROQ'}_API_KEY missing from .env.local`); process.exit(1); }
 

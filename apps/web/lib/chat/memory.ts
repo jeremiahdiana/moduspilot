@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 /**
  * Decide what (if anything) from one chat exchange is worth saving to long-term
@@ -17,7 +17,7 @@ export async function extractDurableMemory(userMsg: string, assistantText: strin
 
   try {
     const { text } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: groq('meta/llama-3.3-70b'),
       maxTokens: 80,
       prompt: `You curate a user's long-term memory. Decide if this chat exchange contains a DURABLE fact about the USER worth remembering for weeks.
 

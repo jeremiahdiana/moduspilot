@@ -28,7 +28,7 @@ async function main() {
   const { getTodayEvents, getUpcomingEvents, getRecentlyEndedEvents } = await import('@/lib/google-calendar');
   const { createOpenAI } = await import('@ai-sdk/openai');
   const { generateText } = await import('ai');
-  const groq = createOpenAI({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+  const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
   const userSnap = await adminDb.collection('users').doc(uid).get();
   const data = userSnap.data() ?? {};
@@ -38,7 +38,7 @@ async function main() {
   console.log(`User: ${data.displayName ?? '(no name)'}  tz=${tz}  today=${today}\n`);
 
   const gen = async (prompt: string, maxTokens: number) =>
-    (await generateText({ model: groq('llama-3.3-70b-versatile'), prompt, maxTokens })).text.trim();
+    (await generateText({ model: groq('meta/llama-3.3-70b'), prompt, maxTokens })).text.trim();
 
   // ── 1. daily-checkin (local noon) ──
   {

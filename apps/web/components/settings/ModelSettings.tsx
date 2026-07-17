@@ -24,7 +24,7 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
-    id: 'llama-3.3-70b-versatile',
+    id: 'meta/llama-3.3-70b',
     name: 'Llama 3.3',
     provider: 'Meta · Groq',
     tagline: 'Fast & always available',
