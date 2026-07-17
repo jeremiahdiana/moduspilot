@@ -13,6 +13,14 @@ export function AppleLogo({ className = 'w-6 h-6', ...rest }: LogoProps) {
   );
 }
 
+export function WindowsLogo({ className = 'w-6 h-6', ...rest }: LogoProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden {...rest}>
+      <path d="M3 5.7 10.2 4.7v6.9H3V5.7Zm0 12.6 7.2 1v-6.8H3v5.8Zm8.1 1.15L21 21V12.3h-9.9v8.15ZM11.1 4.55V11.5H21V3l-9.9 1.55Z"/>
+    </svg>
+  );
+}
+
 export function WebGlobe({ className = 'w-6 h-6', ...rest }: LogoProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className={className} aria-hidden {...rest}>

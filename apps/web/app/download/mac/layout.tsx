@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Download MODUS for Mac',
-  description: 'Download the native MODUS desktop app for Apple Silicon Macs. Signed, notarized, and auto-updating.',
+  description: 'Download the native MODUS desktop app for Mac — Intel and Apple Silicon. Signed, notarized, and auto-updating.',
   alternates: {
     canonical: 'https://moduspilot.com/download/mac',
   },

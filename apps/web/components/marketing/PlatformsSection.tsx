@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AppleLogo, WebGlobe } from './BrandLogos';
+import { AppleLogo, WebGlobe, WindowsLogo } from './BrandLogos';
 
 const PLATFORMS = [
   {
@@ -20,9 +20,19 @@ const PLATFORMS = [
     badge: 'Live',
     badgeColor: 'bg-emerald-500/20 text-emerald-400',
     desc: 'A native desktop app with your notes, iMessage, reminders, and calendar synced in, plus native notifications on your Mac.',
-    detail: 'Signed & auto-updating · Apple Silicon',
+    detail: 'Signed & auto-updating · Intel & Apple Silicon',
     cta: 'Download for Mac →',
     href: '/download/mac',
+  },
+  {
+    icon: <WindowsLogo className="w-8 h-8" />,
+    title: 'Windows App',
+    badge: 'Beta',
+    badgeColor: 'bg-brand/15 text-brand',
+    desc: 'The native MODUS desktop on Windows: your chat, notifications, and a system-tray presence, kept in sync with every other surface.',
+    detail: 'Windows 10 & 11 · 64-bit',
+    cta: 'Download for Windows →',
+    href: '/download/windows',
   },
   {
     icon: <AppleLogo className="w-8 h-8" />,
@@ -58,7 +68,7 @@ export default function PlatformsSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">Everywhere you work</h2>
-          <p className="text-muted text-lg">Live on web &amp; Mac. iPhone app in beta.</p>
+          <p className="text-muted text-lg">Live on web, Mac &amp; Windows. iPhone app in beta.</p>
         </motion.div>
 
         <motion.div
@@ -66,7 +76,7 @@ export default function PlatformsSection() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto"
         >
           {PLATFORMS.map(p => (
             <motion.div

@@ -7,34 +7,63 @@ import Navbar from '@/components/marketing/Navbar';
 import { MarketingBackground } from '@/components/marketing/MarketingBackground';
 import { AppleLogo } from '@/components/marketing/BrandLogos';
 
-// Version-less filename, set via artifactName in apps/desktop/electron-builder.yml,
-// so this URL keeps resolving to the newest build without a code change here.
-const DMG_URL = 'https://github.com/joinFITR/moduspilot/releases/latest/download/MODUS-Desktop-arm64.dmg';
+// Version-less filenames (artifactName in apps/desktop/electron-builder.yml), so
+// these URLs keep resolving to the newest build without a code change here.
+const BASE = 'https://github.com/joinFITR/moduspilot/releases/latest/download';
+const BUILDS = {
+  arm64: { url: `${BASE}/MODUS-Desktop-arm64.dmg`, label: 'Apple Silicon', sub: 'M1, M2, M3, M4' },
+  x64:   { url: `${BASE}/MODUS-Desktop-x64.dmg`,   label: 'Intel',         sub: '2020 or earlier' },
+} as const;
+
+type Arch = keyof typeof BUILDS;
+
+// Best-effort chip detection from the GPU renderer string. Apple Silicon reports
+// an "Apple" GPU; Intel Macs report Intel/AMD/Radeon. Unknown → we don't guess,
+// we let the person choose rather than auto-download a build that won't launch.
+function detectArch(): Arch | 'unknown' {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl') as WebGLRenderingContext | null;
+    if (!gl) return 'unknown';
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    if (/apple/i.test(renderer)) return 'arm64';
+    if (/intel|amd|radeon|nvidia/i.test(renderer)) return 'x64';
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 const STEPS = [
-  { n: '1', title: 'Open the .dmg', body: 'Find MODUS-Desktop-arm64.dmg in your Downloads and double-click it.' },
+  { n: '1', title: 'Open the .dmg', body: 'Find the MODUS Desktop .dmg in your Downloads and double-click it.' },
   { n: '2', title: 'Drag MODUS to Applications', body: 'A window opens with the MODUS icon and an Applications folder. Drag one onto the other.' },
   { n: '3', title: 'Open MODUS and sign in', body: 'Use the same account as the web app. Everything syncs across both.' },
 ];
 
 export default function DownloadMacPage() {
-  const [started, setStarted] = useState(false);
+  const [arch, setArch] = useState<Arch | 'unknown'>('unknown');
+  const [started, setStarted] = useState<Arch | null>(null);
   const fired = useRef(false);
 
-  const download = () => {
-    window.location.href = DMG_URL;
-    setStarted(true);
+  const download = (a: Arch) => {
+    window.location.href = BUILDS[a].url;
+    setStarted(a);
   };
 
   useEffect(() => {
-    // Guard against React's double-invoked effects in dev, which would
-    // otherwise kick off the download twice.
     if (fired.current) return;
     fired.current = true;
-
-    const t = setTimeout(download, 700);
-    return () => clearTimeout(t);
+    const detected = detectArch();
+    setArch(detected);
+    // Only auto-start when we're confident about the chip — never push an Intel
+    // Mac an arm64 build (it simply won't open) or vice versa.
+    if (detected !== 'unknown') {
+      const t = setTimeout(() => download(detected), 800);
+      return () => clearTimeout(t);
+    }
   }, []);
+
+  const recommended: Arch | null = arch === 'unknown' ? null : arch;
 
   return (
     <main className="bg-bg text-text min-h-screen overflow-x-hidden relative">
@@ -71,8 +100,17 @@ export default function DownloadMacPage() {
               transition={{ duration: 0.7, delay: 0.15 }}
               className="text-5xl md:text-6xl font-black leading-none mb-6"
             >
-              <span className="text-text">Your download is </span>
-              <span className="hero-gradient-text">starting.</span>
+              {recommended ? (
+                <>
+                  <span className="text-text">Your download is </span>
+                  <span className="hero-gradient-text">starting.</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-text">Download </span>
+                  <span className="hero-gradient-text">MODUS.</span>
+                </>
+              )}
             </motion.h1>
 
             <motion.p
@@ -83,27 +121,45 @@ export default function DownloadMacPage() {
             >
               {started
                 ? 'Check your Downloads folder — it should be there now.'
-                : 'Hang tight, this only takes a second.'}
+                : recommended
+                ? `We detected an ${BUILDS[recommended].label} Mac. Starting your download…`
+                : 'Choose the version that matches your Mac.'}
             </motion.p>
 
-            {/* ── Manual fallback ────────────────────────────────────── */}
+            {/* ── Chip picker ────────────────────────────────────────── */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.35 }}
-              className="flex flex-col items-center gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto"
             >
-              <p className="text-sm text-muted">Didn&rsquo;t start automatically?</p>
-              <button
-                onClick={download}
-                className="btn-primary inline-block px-10 py-4 text-white font-bold rounded-2xl text-base"
-              >
-                Download for Mac
-              </button>
-              <p className="text-xs text-muted/60">
-                MODUS-Desktop-arm64.dmg · 136 MB · Apple Silicon (M1 or later)
-              </p>
+              {(Object.keys(BUILDS) as Arch[]).map((a) => {
+                const isRec = recommended === a;
+                return (
+                  <button
+                    key={a}
+                    onClick={() => download(a)}
+                    className={`relative flex flex-col items-center gap-1 px-5 py-4 rounded-2xl border transition-all ${
+                      isRec
+                        ? 'btn-primary text-white border-transparent'
+                        : 'bg-panel/60 border-border/70 hover:border-brand/40 text-text'
+                    }`}
+                  >
+                    {isRec && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-brand text-white shadow">
+                        Recommended
+                      </span>
+                    )}
+                    <span className="relative z-10 text-sm font-bold">{BUILDS[a].label}</span>
+                    <span className={`relative z-10 text-[11px] ${isRec ? 'text-white/70' : 'text-muted'}`}>{BUILDS[a].sub}</span>
+                  </button>
+                );
+              })}
             </motion.div>
+            <p className="text-xs text-muted/60 mt-4">
+              Not sure?{' '}
+              <span className="text-muted">Apple menu → About This Mac</span> shows your chip. Most Macs from 2020 on are Apple Silicon.
+            </p>
           </div>
 
           {/* Decorative divider */}
@@ -148,7 +204,7 @@ export default function DownloadMacPage() {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted mb-10"
           >
-            {['Signed & notarized by Apple', 'Updates itself automatically', 'Requires an Apple Silicon Mac'].map(t => (
+            {['Signed & notarized by Apple', 'Updates itself automatically', 'Intel & Apple Silicon'].map(t => (
               <span key={t} className="flex items-center gap-1.5">
                 <span className="text-brand">◆</span>
                 {t}
@@ -162,9 +218,13 @@ export default function DownloadMacPage() {
             transition={{ duration: 0.6, delay: 0.7 }}
             className="text-center text-sm text-muted"
           >
-            Not on a Mac?{' '}
+            On Windows?{' '}
+            <Link href="/download/windows" className="text-brand font-semibold hover:underline">
+              Download for Windows →
+            </Link>
+            {'  ·  '}
             <Link href="https://app.moduspilot.com" className="text-brand font-semibold hover:underline">
-              Use the web app instead →
+              Use the web app
             </Link>
           </motion.p>
 
