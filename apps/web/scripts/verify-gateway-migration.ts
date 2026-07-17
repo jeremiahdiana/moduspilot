@@ -61,6 +61,30 @@ const check = (ok: boolean, label: string) => {
     check(tight.text.trim().length > 0, `survives memory.ts's maxTokens:80 → ${JSON.stringify(tight.text.trim())}`);
   }
 
+  console.log('\n7) The added Gateway models route to THEMSELVES, not silently to Llama:');
+  for (const id of ['meta/llama-4-maverick', 'deepseek/deepseek-v3.1']) {
+    const r = resolveChatModel({ plan: 'modus' }, { modelId: id });
+    check(r.modelId === id && !r.downgraded, `$24 user picks ${id} → served ${r.modelId}${r.downgraded ? ' (DOWNGRADED!)' : ''}`);
+    // Missing from GATEWAY_HOSTED = matches no prefix = downgradedToFree() = Llama
+    // answers while the chip names the model they picked. Silent, so assert it.
+    if (process.env.AI_GATEWAY_API_KEY && r.modelId === id) {
+      const out = await generateText({ model: r.model, prompt: 'Reply with exactly: OK', maxTokens: 80 });
+      check(out.text.trim().length > 0 && out.finishReason === 'stop',
+        `  …and it speaks at maxTokens 80: ${JSON.stringify(out.text.trim())} finish=${out.finishReason}`);
+    }
+  }
+  // A free user must NOT get the paid additions.
+  const gated = resolveChatModel({ plan: 'free' }, { modelId: 'deepseek/deepseek-v3.1' });
+  check(gated.modelId === LLAMA_FALLBACK && gated.downgraded === true,
+    'free user picking a $24 model → downgraded to Llama AND flagged (the notice fires)');
+
+  console.log('\n8) Nobody wears the wrong company\'s logo:');
+  const { logoForModel } = await import('../components/marketing/ModelLogos');
+  const { OpenAILogo, MetaLogo, DeepSeekLogo } = await import('../components/marketing/ModelLogos');
+  check(logoForModel('meta/llama-4-maverick') === MetaLogo, 'llama-4-maverick → MetaLogo');
+  check(logoForModel('deepseek/deepseek-v3.1') === DeepSeekLogo, 'deepseek-v3.1 → DeepSeekLogo (was OpenAI\'s mark)');
+  check(logoForModel('some/unknown-model') !== OpenAILogo, 'an unknown id does NOT fall back to OpenAI\'s mark');
+
   if (fails.length) {
     console.error(`\n❌ ${fails.length} FAILED:\n   - ${fails.join('\n   - ')}`);
     process.exit(1);

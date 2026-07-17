@@ -59,6 +59,15 @@ export function GrokLogo({ className = 'w-5 h-5' }: LogoProps) {
   );
 }
 
+export function DeepSeekLogo({ className = 'w-5 h-5' }: LogoProps) {
+  // DeepSeek's whale mark, simplified.
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="#4D6BFE" aria-label="DeepSeek">
+      <path d="M21.4 5.3c-.3-.2-.5.1-.8.3-.1.1-.3.2-.4.4-.9 1-2.1 1.6-3.5 1.5-2-.1-3.7.5-5.2 2-.3-1.9-1.4-3-3-3.8-.8-.4-1.7-.7-2.5-1.1-.5-.3-1.2-.5-1.3-1.2 0-.4.1-.6.4-.8.2-.1.3-.2.4-.4.1-.4-.1-.7-.5-.7-.9 0-1.7.4-2.3 1-.7.7-.9 1.7-.6 2.6.4 1.2 1.2 2.1 2.2 2.8 1.4.9 2.5 2.1 3.1 3.7.3.9.2 1.8-.2 2.6-.5 1-1.4 1.5-2.5 1.5-1.5 0-2.8-.7-3.7-2-.3-.4-.5-.9-.6-1.4-.1-.4-.3-.7-.7-.6-.4.1-.5.4-.4.8.4 2.2 1.7 3.9 3.7 4.8 2.6 1.2 5.2.9 7.5-.8.2-.2.4-.2.6 0 .8.6 1.7 1 2.7 1.2 1.7.3 3.3.1 4.7-1 .2-.2.4-.4.3-.7-.1-.3-.4-.3-.7-.3-2.1.2-3.9-.5-5.3-2-.2-.2-.2-.3 0-.5 1.6-1.5 2.5-3.3 2.5-5.5 0-.4.1-.5.5-.6 1.5-.4 2.7-1.3 3.5-2.6.2-.4.5-.8.4-1.2z" />
+    </svg>
+  );
+}
+
 export function MetaLogo({ className = 'w-5 h-5' }: LogoProps) {
   // Meta infinity loop.
   return (
@@ -87,6 +96,7 @@ const LOGO_BY_PROVIDER: Record<string, (p: LogoProps) => ReactNode> = {
   Google: GeminiLogo,
   xAI: GrokLogo,
   Meta: MetaLogo,
+  DeepSeek: DeepSeekLogo,
 };
 
 /**
@@ -108,5 +118,17 @@ export function logoForModel(id: string): (p: LogoProps) => ReactNode {
   if (id.includes('gemini')) return GeminiLogo;
   if (id.includes('grok')) return GrokLogo;
   if (id.includes('llama')) return MetaLogo;
-  return OpenAILogo;
+  if (id.includes('deepseek')) return DeepSeekLogo;
+  if (id.includes('gpt') || id.includes('o4-')) return OpenAILogo;
+  // 🚨 NOT OpenAILogo. This was `return OpenAILogo`, so every id the catalog
+  // didn't know wore OpenAI's mark — 'meta-llama/llama-4-scout' shipped as an
+  // OpenAI model once already, and 'deepseek/…' would have been next. A wrong
+  // logo is a false claim about who made the answer; no logo is just missing.
+  // Attributing a model to the wrong company is the one failure worth a blank.
+  return NoLogo;
+}
+
+/** Renders nothing. The honest answer when we don't know whose model this is. */
+function NoLogo(): ReactNode {
+  return null;
 }

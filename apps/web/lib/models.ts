@@ -33,6 +33,22 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // a live round-trip perfectly — and Groq's deprecation table lists its shutdown
   // date as 07/17/26, THE SAME DAY. Round-tripping proves a model serves NOW, not
   // that it serves TOMORROW: check the provider's deprecation page too.
+  // Meta's newest, Gateway-served. ⚠️ Llama 4 SCOUT is deliberately NOT here: it is
+  // not an upgrade on Llama 3.3 — 3.3 wins MMLU (86.0 vs 79.6) and math/code (11.9
+  // vs 8.2); Scout only wins context and speed. Shipping it would give the switcher
+  // three Llamas whose newest is the worst reasoner of them. Maverick is the real one.
+  { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['modus', 'pilot'] },
+  // ⚠️ The non-thinking DeepSeek ON PURPOSE. deepseek-r1 and v3.2-thinking are
+  // reasoners: they spend the budget before emitting, so they return '' at small
+  // maxTokens — the exact silent failure that killed the gpt-oss plan. v3.1 answers
+  // at maxTokens 80.
+  // 🌏 The China objection does NOT apply through this path. Vercel's providers for
+  // it are deepinfra / novita / sambanova — all US-headquartered; DeepSeek's own API
+  // is NOT among them, so no user data goes to DeepSeek. (Open weights, third-party
+  // hosts.) Defensible claim: "US-hosted third parties, not DeepSeek's API" — NOT
+  // "no Chinese infrastructure", which is unverified: Novita's GPU locations are not
+  // published.
+  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['modus', 'pilot'] },
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
   // Sonnet 5 supersedes Sonnet 4.6 at the SAME list price ($3/$15, and $2/$10
   // introductory through 2026-08-31) — a strictly better model for what we already

@@ -67,6 +67,12 @@ const FREE_FALLBACK_SECONDARY = 'meta/llama-3.1-8b';
 const GATEWAY_HOSTED = new Set<string>([
   LLAMA_FALLBACK,
   FREE_FALLBACK_SECONDARY,
+  // Every selectable Gateway model MUST be listed here. Adding one to
+  // PLATFORM_MODELS and forgetting this line is not a 404 — the id matches no
+  // prefix, falls to downgradedToFree(), and the user is served Llama while the
+  // chip names the model they picked.
+  'meta/llama-4-maverick',
+  'deepseek/deepseek-v3.1',
 ]);
 
 // The concrete language-model object type (LanguageModel is `string | model`; a
