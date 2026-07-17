@@ -75,7 +75,10 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Switch your AI in Settings → Brain',
-        body: 'MODUS runs on 7 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro unlock on PILOT ($59/mo).',
+        // ⚠️ This sentence NAMES AND COUNTS the catalog, so it goes stale the moment
+        // lib/models.ts changes and nobody notices — it still said "7 AI models"
+        // three models later. Update it in the same commit as PLATFORM_MODELS.
+        body: 'MODUS runs on 10 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. DeepSeek V3.1, GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). Llama 4 Maverick, GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro unlock on PILOT ($59/mo).',
         tag: 'Feature',
       },
       {

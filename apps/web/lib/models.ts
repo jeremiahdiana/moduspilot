@@ -33,11 +33,16 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // a live round-trip perfectly — and Groq's deprecation table lists its shutdown
   // date as 07/17/26, THE SAME DAY. Round-tripping proves a model serves NOW, not
   // that it serves TOMORROW: check the provider's deprecation page too.
-  // Meta's newest, Gateway-served. ⚠️ Llama 4 SCOUT is deliberately NOT here: it is
-  // not an upgrade on Llama 3.3 — 3.3 wins MMLU (86.0 vs 79.6) and math/code (11.9
-  // vs 8.2); Scout only wins context and speed. Shipping it would give the switcher
-  // three Llamas whose newest is the worst reasoner of them. Maverick is the real one.
-  { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['modus', 'pilot'] },
+  // PILOT-EXCLUSIVE ON PURPOSE — the tier ladder is "MODUS gets Llama 3, PILOT gets
+  // Llama 4", which a customer understands without a benchmark table. It only holds
+  // because Maverick genuinely IS the better model: MMLU ties (85.5 vs 86.0) but it
+  // wins MMLU-Pro (80.5) and GPQA, with 8x the context (1M vs 128K).
+  // ⚠️ Llama 4 SCOUT is deliberately NOT here and must not be added for count: 3.3
+  // BEATS it (MMLU 86.0 vs 79.6, math/code 11.9 vs 8.2). Newer ≠ better — that
+  // assumption already shipped Scout once and had to be reverted.
+  // ⚠️ Maverick is multimodal, but DO NOT sell it on images: resolveChatModel sends
+  // any model + an image to gpt-4o-mini before routing, so its vision is unreachable.
+  { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['pilot'] },
   // ⚠️ The non-thinking DeepSeek ON PURPOSE. deepseek-r1 and v3.2-thinking are
   // reasoners: they spend the budget before emitting, so they return '' at small
   // maxTokens — the exact silent failure that killed the gpt-oss plan. v3.1 answers

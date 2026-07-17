@@ -13,7 +13,8 @@
  */
 import { generateText } from 'ai';
 import { resolveChatModel, LLAMA_FALLBACK, isPremiumModel } from '../lib/chat/model';
-import { canonicalModelId, isModelUnlocked, PLATFORM_MODELS } from '../lib/models';
+import { canonicalModelId, isModelUnlocked, PLATFORM_MODELS, unlockedModels } from '../lib/models';
+import { readFileSync } from 'node:fs';
 
 const fails: string[] = [];
 const check = (ok: boolean, label: string) => {
@@ -63,8 +64,10 @@ const check = (ok: boolean, label: string) => {
 
   console.log('\n7) The added Gateway models route to THEMSELVES, not silently to Llama:');
   for (const id of ['meta/llama-4-maverick', 'deepseek/deepseek-v3.1']) {
-    const r = resolveChatModel({ plan: 'modus' }, { modelId: id });
-    check(r.modelId === id && !r.downgraded, `$24 user picks ${id} → served ${r.modelId}${r.downgraded ? ' (DOWNGRADED!)' : ''}`);
+    // Maverick is PILOT-exclusive, DeepSeek is $24 — resolve each on a plan that has it.
+    const plan = PLATFORM_MODELS.find(m => m.id === id)!.plans.includes('modus') ? 'modus' : 'pilot';
+    const r = resolveChatModel({ plan }, { modelId: id });
+    check(r.modelId === id && !r.downgraded, `${plan} user picks ${id} → served ${r.modelId}${r.downgraded ? ' (DOWNGRADED!)' : ''}`);
     // Missing from GATEWAY_HOSTED = matches no prefix = downgradedToFree() = Llama
     // answers while the chip names the model they picked. Silent, so assert it.
     if (process.env.AI_GATEWAY_API_KEY && r.modelId === id) {
@@ -77,6 +80,25 @@ const check = (ok: boolean, label: string) => {
   const gated = resolveChatModel({ plan: 'free' }, { modelId: 'deepseek/deepseek-v3.1' });
   check(gated.modelId === LLAMA_FALLBACK && gated.downgraded === true,
     'free user picking a $24 model → downgraded to Llama AND flagged (the notice fires)');
+
+  console.log('\n7b) The tier ladder: MODUS gets Llama 3, PILOT gets Llama 4:');
+  const modusIds = unlockedModels('modus').map(m => m.id);
+  const pilotIds = unlockedModels('pilot').map(m => m.id);
+  check(!modusIds.includes('meta/llama-4-maverick'), '$24 does NOT see Llama 4 Maverick');
+  check(pilotIds.includes('meta/llama-4-maverick'), '$59 DOES see Llama 4 Maverick');
+  check(modusIds.includes('meta/llama-3.3-70b'), '$24 keeps Llama 3.3');
+  check(modusIds.length === 5 && pilotIds.length === 10, `counts: MODUS ${modusIds.length}, PILOT ${pilotIds.length} (expect 5 / 10)`);
+  const mv = resolveChatModel({ plan: 'modus' }, { modelId: 'meta/llama-4-maverick' });
+  check(mv.modelId === LLAMA_FALLBACK && mv.downgraded, '$24 forcing the PILOT model is gated AND flagged, not silently served');
+
+  console.log('\n7c) The in-app copy still matches the catalog (it said "7 models" three models later):');
+  const tips = readFileSync(new URL('../components/settings/TipsSettings.tsx', import.meta.url), 'utf8');
+  const claimed = tips.match(/MODUS runs on (\d+) AI models/);
+  check(!!claimed && Number(claimed[1]) === PLATFORM_MODELS.length,
+    `TipsSettings claims ${claimed?.[1] ?? '?'} models, catalog has ${PLATFORM_MODELS.length}`);
+  for (const m of PLATFORM_MODELS) {
+    check(tips.includes(m.name), `  copy names "${m.name}"`);
+  }
 
   console.log('\n8) Nobody wears the wrong company\'s logo:');
   const { logoForModel } = await import('../components/marketing/ModelLogos');
