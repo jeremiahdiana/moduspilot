@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PLATFORM_MODELS, effectivePlan } from '@/lib/models';
 import { logoForModel } from '@/components/marketing/ModelLogos';
@@ -21,6 +22,14 @@ export default function ModelPicker({
   onClose: () => void;
 }) {
   const ep = effectivePlan(plan);
+  // Pickable chips first, then the upgrade ladder ($24 tier, then $59) — same rule
+  // as ModelSwitcher. In a wrapping chip row a locked chip mid-row reads as a dead
+  // button, not a tier. sort() is stable, so the catalog's order survives per rank.
+  const models = useMemo(() => {
+    const rank = (m: (typeof PLATFORM_MODELS)[number]) =>
+      m.plans.includes(ep) ? 0 : m.plans.includes('modus') ? 1 : 2;
+    return [...PLATFORM_MODELS].sort((a, b) => rank(a) - rank(b));
+  }, [ep]);
   const atMax = selected.length >= MAX_PICKED;
 
   return (
@@ -52,7 +61,7 @@ export default function ModelPicker({
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {PLATFORM_MODELS.map(m => {
+              {models.map(m => {
                 const locked = !m.plans.includes(ep);
                 const on = selected.includes(m.id);
                 // A locked model can't be picked; an unpicked one is disabled at

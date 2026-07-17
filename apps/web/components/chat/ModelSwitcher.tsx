@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PLATFORM_MODELS, effectivePlan, modelName } from '@/lib/models';
 import { logoForModel } from '@/components/marketing/ModelLogos';
@@ -36,6 +36,25 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const ep = effectivePlan(plan);
+
+  // Yours first, then the upgrade ladder: what $24 buys, then what $59 buys.
+  //
+  // This used to render PLATFORM_MODELS in raw catalog order, which only looked
+  // right because the catalog HAPPENED to be ordered free → modus → pilot. Adding
+  // a PILOT model anywhere but the end dropped a greyed-out row into the middle of
+  // the list a $24 user can actually pick from — which reads as a rendering bug,
+  // not a tier. Sorting means catalog order is a free choice again.
+  //
+  // Locked models rank by TIER, not just locked-ness: without it a free user's
+  // greyed block interleaves MODUS+ and PILOT badges in catalog order, which is a
+  // shuffle rather than a ladder. sort() is stable, so the catalog's deliberate
+  // order still stands within each rank.
+  const models = useMemo(() => {
+    const rank = (m: (typeof PLATFORM_MODELS)[number]) =>
+      m.plans.includes(ep) ? 0 : m.plans.includes('modus') ? 1 : 2;
+    return [...PLATFORM_MODELS].sort((a, b) => rank(a) - rank(b));
+  }, [ep]);
+  const firstLockedId = models.find(m => !m.plans.includes(ep))?.id;
 
   useEffect(() => {
     if (!open) return;
@@ -140,18 +159,25 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
 
           <div className="my-1 border-t border-border/60" />
 
-          {PLATFORM_MODELS.map(m => {
+          {models.map(m => {
             const locked = !m.plans.includes(ep);
             const selected = value === m.id;
             const Logo = logoForModel(m.id);
             return (
+              <div key={m.id}>
+              {/* One rule for the whole locked block, instead of a badge per row
+                  explaining itself. Without it the greyed rows just look broken. */}
+              {m.id === firstLockedId && (
+                <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 mt-1 border-t border-border/60">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted/70">Upgrade to unlock</span>
+                </div>
+              )}
               <button
-                key={m.id}
                 type="button"
                 disabled={locked}
                 onClick={() => select(m.id)}
                 className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 transition-colors ${
-                  locked ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brand/5'
+                  locked ? 'opacity-45 cursor-not-allowed' : 'hover:bg-brand/5'
                 } ${selected ? 'bg-brand/5' : ''}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -169,6 +195,7 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
                   </span>
                 )}
               </button>
+              </div>
             );
           })}
         </motion.div>

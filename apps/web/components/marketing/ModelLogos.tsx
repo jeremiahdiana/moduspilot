@@ -60,10 +60,14 @@ export function GrokLogo({ className = 'w-5 h-5' }: LogoProps) {
 }
 
 export function DeepSeekLogo({ className = 'w-5 h-5' }: LogoProps) {
-  // DeepSeek's whale mark, simplified.
+  // DeepSeek's whale, as a solid silhouette. Rendered at 16px in the switcher, so
+  // it is drawn for that size: one readable body + fluke, no interior detail that
+  // would collapse into noise. (The first attempt traced the real mark's curves
+  // and read as a blob next to OpenAI's and Anthropic's crisp marks.)
   return (
     <svg viewBox="0 0 24 24" className={className} fill="#4D6BFE" aria-label="DeepSeek">
-      <path d="M21.4 5.3c-.3-.2-.5.1-.8.3-.1.1-.3.2-.4.4-.9 1-2.1 1.6-3.5 1.5-2-.1-3.7.5-5.2 2-.3-1.9-1.4-3-3-3.8-.8-.4-1.7-.7-2.5-1.1-.5-.3-1.2-.5-1.3-1.2 0-.4.1-.6.4-.8.2-.1.3-.2.4-.4.1-.4-.1-.7-.5-.7-.9 0-1.7.4-2.3 1-.7.7-.9 1.7-.6 2.6.4 1.2 1.2 2.1 2.2 2.8 1.4.9 2.5 2.1 3.1 3.7.3.9.2 1.8-.2 2.6-.5 1-1.4 1.5-2.5 1.5-1.5 0-2.8-.7-3.7-2-.3-.4-.5-.9-.6-1.4-.1-.4-.3-.7-.7-.6-.4.1-.5.4-.4.8.4 2.2 1.7 3.9 3.7 4.8 2.6 1.2 5.2.9 7.5-.8.2-.2.4-.2.6 0 .8.6 1.7 1 2.7 1.2 1.7.3 3.3.1 4.7-1 .2-.2.4-.4.3-.7-.1-.3-.4-.3-.7-.3-2.1.2-3.9-.5-5.3-2-.2-.2-.2-.3 0-.5 1.6-1.5 2.5-3.3 2.5-5.5 0-.4.1-.5.5-.6 1.5-.4 2.7-1.3 3.5-2.6.2-.4.5-.8.4-1.2z" />
+      <path d="M2.6 12.4c0-3.1 2.5-5.6 5.6-5.6 2.1 0 4 1.2 4.9 3l4.4-3.3a.85.85 0 0 1 1.36.85L17.1 12l1.76 4.7a.85.85 0 0 1-1.36.85l-4.4-3.3a5.6 5.6 0 0 1-4.9 3c-3.1 0-5.6-2.5-5.6-5.6Z" />
+      <circle cx="7.4" cy="10.9" r="1.05" fill="#0B1020" />
     </svg>
   );
 }
