@@ -46,6 +46,9 @@ jobs:
 
       - name: Upload to the matching release
         working-directory: apps/desktop
+        # windows-latest defaults to PowerShell; the \ line-continuations below are
+        # bash. git-bash ships on the runner.
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
