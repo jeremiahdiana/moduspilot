@@ -13,7 +13,7 @@ import {
   enforcePaidTokenLimit,
   trackTokenUsage,
 } from '@/lib/chat/limits';
-import { resolveChatModel, LLAMA_FALLBACK, chatFallbackChain, createFallbackModel, isPremiumModel } from '@/lib/chat/model';
+import { resolveChatModel, chatFallbackChain, createFallbackModel, isPremiumModel } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
 import { isModelUnlocked } from '@/lib/models';
 import {
@@ -185,7 +185,7 @@ export async function POST(req: Request) {
       historyChars += size;
       kept.unshift(trimmed);
     }
-    let cappedMessages = kept;
+    const cappedMessages = kept;
 
     let personalContext = (body.personalContext ?? '').slice(0, 2000);
     let responseStyle = body.responseStyle ?? '';
@@ -322,14 +322,14 @@ export async function POST(req: Request) {
 
     // Resolve model — an in-chat/Auto override wins for this message, else BYOK
     // keys, then the platform default (Groq). hasImage forces a vision model.
-    let resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
-    let chatModel = resolved.model;
+    const resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
+    const chatModel = resolved.model;
     // The model the USER was promised: their explicit pick, Auto's announced
-    // choice, or their saved Brain. Snapshotted HERE, before the size guard below,
-    // which swaps Llama→Terra on MODUS's own initiative for large requests. That
-    // swap is not a promise to the user, so if the chain later fails away from it
-    // we must not report "GPT-5.6 Terra was unavailable" to someone who picked the
-    // free default and never heard of Terra.
+    // choice, or their saved Brain. Nothing reassigns `resolved` after this now
+    // that the size guard is gone — it used to swap Llama→Terra on MODUS's own
+    // initiative, which is why this snapshot exists: that swap was never a promise
+    // to the user, so a later failure must not report "GPT-5.6 Terra was
+    // unavailable" to someone who picked the free default and never heard of Terra.
     const promisedModelId = resolved.modelId;
     if (resolved.downgraded) {
       // Loud + alertable: a premium model was requested but we served Llama
@@ -405,52 +405,22 @@ export async function POST(req: Request) {
     // sitting early would invalidate the whole thing every turn.
     //   stable   = the ~5.2k-token constant + this user's fixed preferences
     //   volatile = live context (inbox, notes, memory, connectors, …)
-    let stableSystem = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
-    let volatileSystem = projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
-    let fullSystemPrompt = stableSystem + volatileSystem;
+    const stableSystem = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
+    const volatileSystem = projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    const fullSystemPrompt = stableSystem + volatileSystem;
 
-    // Size guard: Groq/Llama has a hard ~12k tokens-per-minute cap. A large request
-    // (big system prompt + injected context + a long user message) sent to Llama 429s
-    // with "Request too large" → empty/errored reply. If we'd use Llama and the request
-    // is large, upgrade to a large-context model the user can access; else trim to fit.
-    const LLAMA_TPM_SAFE_TOKENS = 9000;
-    const approxTokens = Math.ceil((fullSystemPrompt.length + JSON.stringify(cappedMessages).length) / 4);
-    if (resolved.modelId === LLAMA_FALLBACK && approxTokens > LLAMA_TPM_SAFE_TOKENS) {
-      let upgraded = false;
-      // Real catalog ids, not legacy aliases: resolveChatModel canonicalises the
-      // id it's given, so passing 'gpt-4o' here would come back as 'gpt-5.6-terra'
-      // and the `cand.modelId === up` check below would never match — the upgrade
-      // would silently stop happening and large requests would 429 on Llama again.
-      // claude-sonnet-5, NOT claude-sonnet-4-6: the comment above is not theoretical.
-      // 4-6 became a LEGACY id on 2026-07-17, so resolveChatModel would canonicalise
-      // it to claude-sonnet-5 and `cand.modelId === up` would never match — the
-      // size-guard upgrade would silently stop and large requests would 429 on Llama.
-      for (const up of ['gpt-5.6-terra', 'claude-sonnet-5']) {
-        const cand = resolveChatModel(userData, { hasImage, modelId: up });
-        if (cand.modelId === up) {
-          resolved = cand;
-          chatModel = cand.model;
-          upgraded = true;
-          console.log(`[chat] size-guard: upgraded Llama→${up} (~${approxTokens} tokens)`);
-          break;
-        }
-      }
-      if (!upgraded) {
-        // Free/guest — only Llama available. Trim so Llama can accept the request.
-        // Keep the stable/volatile split consistent with fullSystemPrompt; this
-        // path is Llama-only so it never reaches the Anthropic cache branch, but
-        // letting them drift would be a trap for the next change.
-        stableSystem = MODUS_SYSTEM_PROMPT + modelCatalogBlock + styleBlock;
-        volatileSystem = '';
-        fullSystemPrompt = stableSystem;
-        // This is the valve that stops a free user's oversized request 429ing on
-        // Llama's TPM cap. It trimmed `content` on UI-shaped messages, so it never
-        // shrank anything and the request went out whole — the user got "Request
-        // too large" instead of a truncated answer. It bites now.
-        cappedMessages = cappedMessages.map(m => trimMessageText(m, 24_000));
-        console.log(`[chat] size-guard: trimmed oversized request for Llama (~${approxTokens} tokens)`);
-      }
-    }
+    // The Llama size guard lived here. It existed for ONE reason: Groq's free tier
+    // capped the whole org at ~12k tokens/minute, so a large request 429'd with
+    // "Request too large". Above ~9k estimated tokens it upgraded the user to a PAID
+    // model (Terra/Sonnet) or, for free users, threw away their entire injected
+    // context. Llama left Groq for the Vercel AI Gateway in 3d8441d, and the cap
+    // left with it — so the guard was buying OpenAI/Anthropic tokens, and shrinking
+    // free users' answers, to dodge a limit that no longer exists.
+    //
+    // Measured on the real Gateway before removing (scripts/verify-llama-size-guard.ts):
+    // meta/llama-3.3-70b answers at 8k / 12k / 20k / 40k estimated tokens, every one
+    // finish='stop' in under 2s — 29,106 real prompt tokens at the top end, against a
+    // 128K context window. Nothing above the old threshold fails.
 
     // Load MCP tools from user's connected servers
     type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
