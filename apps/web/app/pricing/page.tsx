@@ -125,11 +125,20 @@ const FAQS = [
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes. No lock-in. Cancel from your account settings and you stay on your paid plan until the end of the billing period, then drop to free.',
+    // "then drop to free" was false: there is no free tier to drop to. The
+    // webhook sets plan:'free' on cancellation, and hasActiveAccess() rejects
+    // that — the account stops being able to chat. Nothing is deleted, which is
+    // the part worth actually saying.
+    a: 'Yes. No lock-in. Cancel from Settings → Billing and you keep full access until the end of the billing period. After that MODUS stops until you resubscribe — nothing is deleted, and your goals, notes and history are exactly where you left them.',
   },
   {
     q: 'Is there annual billing?',
-    a: 'Yes. Annual billing gives you 2 months free on both MODUS and PILOT. Available at checkout.',
+    // Was "Yes… 2 months free… available at checkout". Verified against live
+    // Stripe: every active price is monthly. There is no annual price, and
+    // /api/stripe/checkout only knows STRIPE_PRICE_MODUS/PILOT/GROUP. Promising
+    // a plan that does not exist, next to a live Stripe button, is the $200+/mo
+    // mistake again. Re-answer this the day an annual price is created.
+    a: 'Not yet — MODUS and PILOT are billed monthly today. If you want annual, email us and we will sort it out for you directly.',
   },
   {
     q: 'What makes PILOT different from MODUS?',

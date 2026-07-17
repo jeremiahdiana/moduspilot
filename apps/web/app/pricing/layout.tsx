@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Modus Pricing',
-    description: 'Free to start. $24/mo for the full operating system. $59/mo for founders and executives.',
+    // NOT "Free to start" — a card is required to begin the 3-day trial, and
+    // there is no free tier behind it (chat 402s without a subscription).
+    description: '3 days free, then $24/mo for the full operating system. $59/mo for founders and executives.',
     url: 'https://moduspilot.com/pricing',
     siteName: 'Modus',
     type: 'website',
@@ -17,7 +19,9 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Modus Pricing',
-    description: 'Free to start. $24/mo for the full operating system. $59/mo for founders and executives.',
+    // NOT "Free to start" — a card is required to begin the 3-day trial, and
+    // there is no free tier behind it (chat 402s without a subscription).
+    description: '3 days free, then $24/mo for the full operating system. $59/mo for founders and executives.',
     images: ['/og.png'],
   },
 };
