@@ -1,4 +1,4 @@
-import { streamText, experimental_createMCPClient, StreamData } from 'ai';
+import { streamText, experimental_createMCPClient, StreamData, convertToCoreMessages } from 'ai';
 import type { CoreMessage } from 'ai';
 import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER, PROJECT_CHAT_RULES } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
@@ -612,28 +612,48 @@ export async function POST(req: Request) {
     );
 
     // ── Anthropic prompt caching ──────────────────────────────────────────────
-    // Claude re-reads the same ~5.2k-token prefix on every message at full price.
+    // Claude re-reads the same ~5.6k-token prefix on every message at full price.
     // cache_control drops cached input to ~10% and cuts time-to-first-token — but
     // @ai-sdk/anthropic only attaches it to a system message carrying
     // providerOptions (dist/index.mjs:196), and `system:` is a bare string with
     // nowhere to hang it. So Claude gets the two-system-message form instead.
     //
     // Only Claude. Every other provider keeps the exact string it gets today:
-    // Groq can't cache, and gpt-4o already caches automatically for free.
+    // Groq can't cache, and OpenAI/Gemini cache the prefix automatically for free
+    // (Gemini's implicit caching needs the stable half FIRST, which is why the
+    // stable/volatile split above is not Anthropic-specific).
     const systemTail = volatileSystem + mcpBlock + extractionGuard;
     const useAnthropicCache = resolved.modelId.startsWith('claude-');
 
+    // 🚨 THE BREAKPOINT DOES NOT SURVIVE A UI-SHAPED MESSAGE ARRAY, AND UNTIL NOW
+    // IT NEVER DID: THE CACHE HAS NEVER ONCE FIRED IN PRODUCTION.
+    //
+    // streamText sniffs the array (detectPromptType, ai/dist/index.mjs:2194): ONE
+    // message carrying `parts` types the WHOLE array as "ui-messages", so it
+    // rebuilds every entry through convertToCoreMessages — including the system
+    // messages below, whose providerOptions (and therefore cache_control) are
+    // dropped in the rebuild. And useChat ALWAYS sends `parts`: fillMessageParts
+    // puts it on every message, and the POST body keeps it even on the default
+    // reduced path (@ai-sdk/react:284, sendExtraMessageFields unset).
+    //
+    // Converting the CLIENT's messages ourselves makes the array uniformly Core,
+    // so the UI path never runs and our system messages arrive intact. Mirrors
+    // what streamText would have done internally — `tools` is passed for the same
+    // reason it passes it (index.mjs:2148): it feeds experimental_toToolResultContent.
+    // Verified on the real outgoing HTTP body in scripts/verify-anthropic-cache.ts:
+    // byte-identical to today apart from cache_control. Keep that script green.
+    //
+    // ⚠️ A detector for this is NOT a fix — the check that spotted the UI shape
+    // lived here as a console.log while the cache stayed off. Assert on the wire.
+    const clientMessages: CoreMessage[] = useAnthropicCache
+      ? convertToCoreMessages(
+          cappedMessages as unknown as Parameters<typeof convertToCoreMessages>[0],
+          { tools: mcpTools as Parameters<typeof convertToCoreMessages>[1] extends { tools?: infer T } ? T : never },
+        )
+      : cappedMessages;
+
     if (useAnthropicCache) {
-      // Correctness never depends on this working: if the AI SDK routes these
-      // through its UI-message path (which drops providerOptions, index.mjs:1742)
-      // the prompt text is still delivered in full — we just lose the cache. Log
-      // it so a silent zero-hit-rate is visible rather than mysterious.
-      const uiShaped = cappedMessages.some(m =>
-        m != null && typeof m === 'object' &&
-        ('parts' in m || 'toolInvocations' in m || 'experimental_attachments' in m),
-      );
-      if (uiShaped) console.log('[chat] cache: skipped — messages are UI-shaped, providerOptions would be dropped');
-      else console.log(`[chat] cache: breakpoint on ${Math.ceil(stableSystem.length / 4)}~tok stable prefix (${resolved.modelId})`);
+      console.log(`[chat] cache: breakpoint on ${Math.ceil(stableSystem.length / 4)}~tok stable prefix (${resolved.modelId})`);
     }
 
     const cachedSystemMessages: CoreMessage[] = [
@@ -648,8 +668,8 @@ export async function POST(req: Request) {
     const result = streamText({
       model: failoverModel,
       ...(useAnthropicCache
-        ? { messages: [...cachedSystemMessages, ...cappedMessages] }
-        : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: cappedMessages }),
+        ? { messages: [...cachedSystemMessages, ...clientMessages] }
+        : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: clientMessages }),
       maxTokens,
       ...(isClaude5 ? { temperature: 1 } : {}),
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
