@@ -1,0 +1,41 @@
+name: Desktop (Windows)
+
+# Windows installers can't be built on macOS (no wine), so the Mac release is cut
+# locally and this job builds + uploads the Windows .exe to that same release.
+# Fires when a release is published (electron-builder cuts it as a draft; publishing
+# it triggers this) and can be run by hand.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Build + publish Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install (workspaces)
+        run: npm ci
+
+      - name: Build TypeScript
+        working-directory: apps/desktop
+        run: npm run build
+
+      # electron-builder finds the release matching package.json's version and
+      # uploads the nsis .exe to it. UNSIGNED on purpose (see electron-builder.yml).
+      - name: Build + publish
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
