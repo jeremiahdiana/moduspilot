@@ -4,6 +4,7 @@ import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMIN
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
+import { messageTextLength, trimMessageText } from '@/lib/chat/messages';
 import { getMcpServers } from '@/lib/mcp-servers';
 import { connectMcpClient } from '@/lib/mcp-client';
 import { assertPublicUrl } from '@/lib/ssrf';
@@ -131,25 +132,51 @@ export async function POST(req: Request) {
       return Response.json({ error: 'invalid_request' }, { status: 400 });
     }
 
+    // 🚨 NORMALISE TO CoreMessage AT THE BOUNDARY — EVERYTHING BELOW DEPENDS ON IT.
+    // body.messages is UI-shaped: useChat puts `parts` on every message
+    // (fillMessageParts), and the POST body keeps it even on the default reduced
+    // path (@ai-sdk/react:284). convertToCoreMessages reads a user turn's text
+    // from `parts` and IGNORES `content` when it is present (ai:1750), so every
+    // trim below used to operate on a field the model never read — measured:
+    // 50,000 chars reaching the model against an 8,000-char cap. Converting first
+    // makes `content` the real payload, so a trim is actually a trim.
+    //
+    // It also keeps the Anthropic cache alive: ONE message carrying `parts` types
+    // the WHOLE array as "ui-messages" (detectPromptType, ai:2194), and streamText
+    // then rebuilds every entry — dropping providerOptions off our system messages
+    // and with them cache_control. Normalising here means that path never runs.
+    //
+    // `tools` is deliberately not passed: it only feeds experimental_toToolResultContent,
+    // which nothing sets — not our code, and not the SDK's MCP client (the SDK only
+    // ever READS that field). So this is identical to streamText's internal conversion.
+    let clientCore: CoreMessage[];
+    try {
+      clientCore = convertToCoreMessages(body.messages as Parameters<typeof convertToCoreMessages>[0]);
+    } catch {
+      // Thrown on a malformed history (e.g. an assistant turn whose toolInvocation
+      // has no result). streamText threw on this before, just later and as a 500.
+      return Response.json({ error: 'invalid_request' }, { status: 400 });
+    }
+
     // Cap history by TOTAL size, walking backwards from the newest message.
-    // The old cap was per-message (20 × 8000 chars), which bounded nothing in
-    // practice: a long chat could ship ~160k chars (~40k tokens) of history on
-    // every single turn. Keep the newest turns whole and stop at the budget.
-    const HISTORY_CHAR_BUDGET = 24_000;
+    //
+    // MAX_MESSAGE_CHARS is deliberately generous (~25k words). Pasting a long
+    // document into the composer is a real use of MODUS, and the old 8k (~1.2k
+    // words) would have cut a report off mid-page the moment the trim started
+    // working — the cap has to be one a real paste doesn't hit.
+    // ⚠️ HISTORY_CHAR_BUDGET MUST EXCEED MAX_MESSAGE_CHARS. The budget drops whole
+    // messages, it does not shrink them, so a budget below the per-message cap
+    // would evict a big paste on the NEXT turn and the model would forget the
+    // document it just read.
+    const MAX_MESSAGE_CHARS = 100_000;
+    const HISTORY_CHAR_BUDGET = 120_000;
     const MAX_HISTORY_MESSAGES = 20;
-    const recent = body.messages.slice(-MAX_HISTORY_MESSAGES);
+    const recent = clientCore.slice(-MAX_HISTORY_MESSAGES);
     const kept: CoreMessage[] = [];
     let historyChars = 0;
     for (let i = recent.length - 1; i >= 0; i--) {
-      const msg = recent[i];
-      // Spread only in the string branch — spreading across the whole CoreMessage
-      // union widens `content` and breaks the per-role discrimination.
-      const trimmed: CoreMessage = typeof msg.content === 'string'
-        ? ({ ...msg, content: msg.content.slice(0, 8000) } as CoreMessage)
-        : msg;
-      const size = typeof trimmed.content === 'string'
-        ? trimmed.content.length
-        : JSON.stringify(trimmed.content).length;
+      const trimmed = trimMessageText(recent[i], MAX_MESSAGE_CHARS);
+      const size = messageTextLength(trimmed);
       // Always keep the newest message even if it alone blows the budget —
       // dropping the thing the user just asked would be worse than the cost.
       if (kept.length > 0 && historyChars + size > HISTORY_CHAR_BUDGET) break;
@@ -414,11 +441,11 @@ export async function POST(req: Request) {
         stableSystem = MODUS_SYSTEM_PROMPT + modelCatalogBlock + styleBlock;
         volatileSystem = '';
         fullSystemPrompt = stableSystem;
-        cappedMessages = cappedMessages.map(m =>
-          typeof m.content === 'string' && m.content.length > 24000
-            ? { ...m, content: m.content.slice(0, 24000) }
-            : m,
-        ) as CoreMessage[];
+        // This is the valve that stops a free user's oversized request 429ing on
+        // Llama's TPM cap. It trimmed `content` on UI-shaped messages, so it never
+        // shrank anything and the request went out whole — the user got "Request
+        // too large" instead of a truncated answer. It bites now.
+        cappedMessages = cappedMessages.map(m => trimMessageText(m, 24_000));
         console.log(`[chat] size-guard: trimmed oversized request for Llama (~${approxTokens} tokens)`);
       }
     }
@@ -625,33 +652,15 @@ export async function POST(req: Request) {
     const systemTail = volatileSystem + mcpBlock + extractionGuard;
     const useAnthropicCache = resolved.modelId.startsWith('claude-');
 
-    // 🚨 THE BREAKPOINT DOES NOT SURVIVE A UI-SHAPED MESSAGE ARRAY, AND UNTIL NOW
-    // IT NEVER DID: THE CACHE HAS NEVER ONCE FIRED IN PRODUCTION.
-    //
-    // streamText sniffs the array (detectPromptType, ai/dist/index.mjs:2194): ONE
-    // message carrying `parts` types the WHOLE array as "ui-messages", so it
-    // rebuilds every entry through convertToCoreMessages — including the system
-    // messages below, whose providerOptions (and therefore cache_control) are
-    // dropped in the rebuild. And useChat ALWAYS sends `parts`: fillMessageParts
-    // puts it on every message, and the POST body keeps it even on the default
-    // reduced path (@ai-sdk/react:284, sendExtraMessageFields unset).
-    //
-    // Converting the CLIENT's messages ourselves makes the array uniformly Core,
-    // so the UI path never runs and our system messages arrive intact. Mirrors
-    // what streamText would have done internally — `tools` is passed for the same
-    // reason it passes it (index.mjs:2148): it feeds experimental_toToolResultContent.
-    // Verified on the real outgoing HTTP body in scripts/verify-anthropic-cache.ts:
-    // byte-identical to today apart from cache_control. Keep that script green.
-    //
-    // ⚠️ A detector for this is NOT a fix — the check that spotted the UI shape
-    // lived here as a console.log while the cache stayed off. Assert on the wire.
-    const clientMessages: CoreMessage[] = useAnthropicCache
-      ? convertToCoreMessages(
-          cappedMessages as unknown as Parameters<typeof convertToCoreMessages>[0],
-          { tools: mcpTools as Parameters<typeof convertToCoreMessages>[1] extends { tools?: infer T } ? T : never },
-        )
-      : cappedMessages;
-
+    // ⚠️ THE BREAKPOINT ONLY SURVIVES BECAUSE cappedMessages WERE NORMALISED TO
+    // CoreMessage AT THE BOUNDARY, AND IT DIES THE MOMENT THAT STOPS BEING TRUE.
+    // If any UI-shaped message reaches this array, streamText retypes the WHOLE
+    // prompt as "ui-messages" (detectPromptType, ai:2194) and rebuilds every entry
+    // — stripping providerOptions off the system messages below, and with them
+    // cache_control. That is how this cache spent its entire life switched off,
+    // while a console.log here correctly announced the reason on every request.
+    // scripts/verify-anthropic-cache.ts asserts the breakpoint on the real
+    // outgoing HTTP body — keep it green (3/3, no API key needed).
     if (useAnthropicCache) {
       console.log(`[chat] cache: breakpoint on ${Math.ceil(stableSystem.length / 4)}~tok stable prefix (${resolved.modelId})`);
     }
@@ -668,8 +677,8 @@ export async function POST(req: Request) {
     const result = streamText({
       model: failoverModel,
       ...(useAnthropicCache
-        ? { messages: [...cachedSystemMessages, ...clientMessages] }
-        : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: clientMessages }),
+        ? { messages: [...cachedSystemMessages, ...cappedMessages] }
+        : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: cappedMessages }),
       maxTokens,
       ...(isClaude5 ? { temperature: 1 } : {}),
       ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
