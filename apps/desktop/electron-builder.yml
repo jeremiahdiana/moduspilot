@@ -21,11 +21,34 @@ mac:
   # APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID.
   notarize: true
   # dmg = initial download; zip = required by electron-updater for auto-updates.
+  # x64 covers Intel Macs. It costs nothing extra: the SAME "Developer ID
+  # Application: Jeremiah Diana Maximo Jr (8KF5J7X9BU)" certificate signs both
+  # slices, and notarization is already paid for by the Apple Developer
+  # membership. Shipping arm64-only silently excluded every Intel Mac.
   target:
     - target: dmg
-      arch: arm64
+      arch: [arm64, x64]
     - target: zip
-      arch: arm64
+      arch: [arm64, x64]
+win:
+  # No icon: path — electron-builder generates the .ico from build/icon.png
+  # (1024x1024, extracted from icon.icns). Avoids committing a binary .ico that
+  # would drift from the real icon.
+  # UNSIGNED ON PURPOSE (his call, 2026-07-17). Windows code signing needs an
+  # Authenticode cert — Azure Artifact Signing is ~$9.99/mo, traditional OV/EV
+  # certs are several hundred a year plus a hardware token. Until that is paid
+  # for, SmartScreen shows "Windows protected your PC" on first run, so
+  # /download/windows says so plainly rather than letting it ambush people.
+  # When a cert exists: set azureSignOptions here and drop the disclaimer.
+  target:
+    - target: nsis
+      arch: x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  # No differential updates without a signed build; keep the installer simple.
+  deleteAppDataOnUninstall: false
 # Auto-update + release artifacts go to GitHub Releases on the repo.
 publish:
   provider: github
