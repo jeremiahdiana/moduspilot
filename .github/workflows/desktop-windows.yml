@@ -24,8 +24,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # apps/desktop is NOT in the root npm workspace — it has its own
+          # package-lock — so deps must be installed inside it, like apps/mobile.
+          cache-dependency-path: apps/desktop/package-lock.json
 
-      - name: Install (workspaces)
+      - name: Install
+        working-directory: apps/desktop
         run: npm ci
 
       - name: Build TypeScript
