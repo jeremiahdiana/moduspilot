@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { GlobalErrorCapture } from '@/components/GlobalErrorCapture';
@@ -67,6 +68,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <QueryProvider>
           {children}
         </QueryProvider>
+        {/* Pageviews only. MODUS shipped with no analytics of any kind, which
+            means "nobody visits" and "everybody bounces" were indistinguishable
+            — two problems with opposite fixes. Needs Web Analytics enabled on
+            the project in the Vercel dashboard; until then the script no-ops. */}
+        <Analytics />
       </body>
     </html>
   );
