@@ -9,6 +9,11 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Needed to upload the built installer as a release asset; GITHUB_TOKEN is
+# read-only by default, which 403s on the asset upload.
+permissions:
+  contents: write
+
 concurrency:
   group: desktop-windows-${{ github.ref }}
   cancel-in-progress: true
