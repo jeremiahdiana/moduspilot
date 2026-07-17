@@ -652,7 +652,11 @@ export default function OnboardingPage() {
         settings: {
           personalContext,
           responseStyle: 'normal',
-          capabilities: { dailyBriefing: false, voiceInput: false, vectorMemory: true },
+          // dailyBriefing is deliberately absent: CAPABILITY_DEFAULTS decides it.
+          // Writing `false` here is what put every new account's Settings toggle
+          // at OFF while the cron — which ignored the flag — delivered a briefing
+          // every morning regardless.
+          capabilities: { voiceInput: false, vectorMemory: true },
           generateMemoryFromChat: true,
           helpImprove: false,
           dataRetention: true,

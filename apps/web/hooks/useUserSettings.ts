@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { CAPABILITY_DEFAULTS } from '@/lib/capabilities';
 import type { User } from 'firebase/auth';
 
 export interface ModelConfig {
@@ -64,16 +65,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   briefingHour: 7,
   briefingTimezone: 'UTC',
   reflectionHour: 21,
-  capabilities: {
-    dailyBriefing: true,
-    voiceInput: false,
-    vectorMemory: false,
-    webSearch: false,
-    inboxTriage: true,
-    relationshipNurture: true,
-    notesSync: true,
-    messagesSync: false,
-  },
+  // Shared with the server (the briefing cron reads the same defaults) so the
+  // Settings toggle and the job that acts on it cannot disagree again.
+  capabilities: { ...CAPABILITY_DEFAULTS },
   sidebar: { hidden: [], workspaceCollapsed: false },
   layout: { dashboardHidden: [], briefingHidden: [] },
 };

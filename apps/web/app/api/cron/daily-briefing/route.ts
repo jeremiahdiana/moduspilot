@@ -2,6 +2,7 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBriefingData, briefingDataToText, todayLabel } from '@/lib/briefing';
 import { isPaidPlan } from '@/lib/plan';
+import { isBriefingDue } from '@/lib/capabilities';
 import { getAllValidAccessTokens } from '@/lib/google-oauth';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
 import { getActionableThreads } from '@/lib/google-gmail';
@@ -23,10 +24,7 @@ export async function GET(req: Request) {
     const currentUTCHour = new Date().getUTCHours();
 
     const usersSnap = await db.collection('users').where('onboardingComplete', '==', true).get();
-    const dueUsers = usersSnap.docs.filter(d => {
-      const hour = d.data()?.settings?.briefingHour ?? 7;
-      return hour === currentUTCHour;
-    });
+    const dueUsers = usersSnap.docs.filter(d => isBriefingDue(d.data(), currentUTCHour));
 
     for (const userDoc of dueUsers) {
       const uid = userDoc.id;

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { CAPABILITY_DEFAULTS, capabilityEnabled } from '@/lib/capabilities';
 
 /**
  * Live-subscribes to the user's in-app layout prefs (hidden dashboard widgets /
@@ -13,13 +14,13 @@ import { db } from '@/lib/firebase';
 export function useLayoutPrefs(uid: string | undefined) {
   const [dashboardHidden, setDashboardHidden] = useState<Set<string>>(new Set());
   const [briefingHidden, setBriefingHidden] = useState<Set<string>>(new Set());
-  const [briefingEnabled, setBriefingEnabled] = useState(true); // default ON
+  const [briefingEnabled, setBriefingEnabled] = useState(CAPABILITY_DEFAULTS.dailyBriefing);
 
   useEffect(() => {
     if (!uid) {
       setDashboardHidden(new Set());
       setBriefingHidden(new Set());
-      setBriefingEnabled(true);
+      setBriefingEnabled(CAPABILITY_DEFAULTS.dailyBriefing);
       return;
     }
     const unsub = onSnapshot(doc(db, 'users', uid), snap => {
@@ -27,7 +28,7 @@ export function useLayoutPrefs(uid: string | undefined) {
       const l = s?.layout;
       setDashboardHidden(new Set(Array.isArray(l?.dashboardHidden) ? l.dashboardHidden : []));
       setBriefingHidden(new Set(Array.isArray(l?.briefingHidden) ? l.briefingHidden : []));
-      setBriefingEnabled(s?.capabilities?.dailyBriefing !== false);
+      setBriefingEnabled(capabilityEnabled(s?.capabilities, 'dailyBriefing'));
     });
     return unsub;
   }, [uid]);

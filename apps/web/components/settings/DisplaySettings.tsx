@@ -2,6 +2,7 @@
 
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { DASHBOARD_WIDGETS, BRIEFING_SECTIONS } from '@/lib/layout-keys';
+import { capabilityEnabled } from '@/lib/capabilities';
 
 interface Props {
   settings: UserSettings;
@@ -73,7 +74,7 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
   const sidebarHidden = settings.sidebar?.hidden ?? [];
   const dashHidden = settings.layout?.dashboardHidden ?? [];
   const briefHidden = settings.layout?.briefingHidden ?? [];
-  const briefingOn = settings.capabilities?.dailyBriefing !== false; // default ON
+  const briefingOn = capabilityEnabled(settings.capabilities, 'dailyBriefing');
 
   const setSidebar = (key: string, show: boolean) => {
     const next = show ? sidebarHidden.filter(k => k !== key) : Array.from(new Set([...sidebarHidden, key]));
