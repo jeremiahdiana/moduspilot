@@ -36,10 +36,23 @@ jobs:
         working-directory: apps/desktop
         run: npm run build
 
-      # electron-builder finds the release matching package.json's version and
-      # uploads the nsis .exe to it. UNSIGNED on purpose (see electron-builder.yml).
-      - name: Build + publish
+      # UNSIGNED on purpose (see electron-builder.yml). Build only — do NOT let
+      # electron-builder publish: it insists on a DRAFT release and skips the
+      # upload when the matching release is already PUBLISHED ("existing type not
+      # compatible"). We upload with gh instead, straight to the published release.
+      - name: Build installer
+        working-directory: apps/desktop
+        run: npx electron-builder --win --publish never
+
+      - name: Upload to the matching release
         working-directory: apps/desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --publish always
+        run: |
+          TAG="v$(node -p "require('./package.json').version")"
+          echo "uploading Windows artifacts to $TAG"
+          gh release upload "$TAG" \
+            "out/MODUS-Desktop-x64.exe" \
+            "out/MODUS-Desktop-x64.exe.blockmap" \
+            "out/latest.yml" \
+            --repo "${{ github.repository }}" --clobber
