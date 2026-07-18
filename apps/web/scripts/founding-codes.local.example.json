@@ -1,0 +1,5 @@
+[
+  { "label": "Mom",     "foundingNumber": 1, "password": "pick-a-personal-key-for-mom" },
+  { "label": "Alex R.", "foundingNumber": 2, "password": "another-unique-key" },
+  { "label": "Sam",     "foundingNumber": 3, "password": "one-more-unique-key" }
+]

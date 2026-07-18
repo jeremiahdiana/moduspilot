@@ -77,7 +77,18 @@ function ParticleCanvas() {
   return <canvas ref={ref} className="absolute inset-0 w-full h-full" />;
 }
 
+// A `?next=` internal path (e.g. the founding claim flow returning to
+// /grandfathering) takes precedence over the default routing. Same-origin paths
+// only — never an absolute or protocol-relative URL — to avoid an open redirect.
+function safeNext(): string | null {
+  if (typeof window === 'undefined') return null;
+  const n = new URLSearchParams(window.location.search).get('next');
+  return n && n.startsWith('/') && !n.startsWith('//') ? n : null;
+}
+
 async function getDestination(user: User): Promise<string> {
+  const next = safeNext();
+  if (next) return next;
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
     return snap.data()?.onboardingComplete ? '/dashboard' : '/onboarding';
