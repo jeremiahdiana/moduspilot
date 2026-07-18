@@ -2,7 +2,6 @@ import { cookies } from 'next/headers';
 import { FieldValue } from 'firebase-admin/firestore';
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
-import { TRIAL_DAYS } from '@/lib/constants';
 import { FOUNDING_COOKIE, verifyGate } from '@/lib/founding';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
@@ -73,12 +72,10 @@ export async function POST(req: Request) {
     success_url: `${APP_URL}/dashboard?founding=1`,
     cancel_url: `${APP_URL}/grandfathering`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: email }),
-    // Card required now, billed after the 3-day trial. The webhook reads
+    // Founders are charged $24 immediately (no trial). The webhook reads
     // metadata.plan ('pilot') — NOT the price — so this $24 sub grants PILOT.
     subscription_data: {
       metadata: { uid, plan: FOUNDING_PLAN, founding: 'true' },
-      trial_period_days: TRIAL_DAYS,
-      trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
     },
     payment_method_collection: 'always',
     metadata: { uid, plan: FOUNDING_PLAN, founding: 'true' },

@@ -136,7 +136,7 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
         {error && <p className="text-red-400 text-xs text-center mt-3">{error}</p>}
 
         <p className="text-center text-muted/60 text-[11px] mt-4">
-          {spotsLeft > 0 ? `${spotsLeft} of ${cap} spots left` : 'All spots claimed'} · 3-day free trial · Cancel anytime
+          {spotsLeft > 0 ? `${spotsLeft} of ${cap} spots left` : 'All spots claimed'} · $24/mo, billed today · Cancel anytime
         </p>
       </div>
     </motion.div>
