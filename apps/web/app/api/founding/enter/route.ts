@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   // can come back to finish claiming without re-entering it.
   cookies().set(FOUNDING_COOKIE, signGate(codeId), {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production', // Secure breaks http://localhost
     sameSite: 'lax',
     path: '/',
     maxAge: FOUNDING_COOKIE_MAX_AGE,

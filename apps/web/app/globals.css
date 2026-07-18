@@ -263,6 +263,112 @@ body::after {
   .btn-primary::after { animation: none; opacity: 0; }
 }
 
+/* ══ Founding Members — cinematic invitation ══════════════════════════════ */
+
+.fm-scene { position: relative; min-height: 100dvh; overflow-x: hidden; isolation: isolate; }
+
+/* Deep aurora backdrop */
+.fm-aurora {
+  position: fixed; inset: 0; z-index: -3; overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% -8%,  rgba(124,58,237,0.10), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 100% 108%, rgba(192,132,252,0.08), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 0% 108%,   rgba(129,140,248,0.07), transparent 60%);
+}
+.dark .fm-aurora {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% -8%,  rgba(124,58,237,0.34), transparent 62%),
+    radial-gradient(ellipse 55% 45% at 100% 108%, rgba(192,132,252,0.20), transparent 62%),
+    radial-gradient(ellipse 55% 45% at 0% 108%,   rgba(99,102,241,0.18),  transparent 62%),
+    #04030a;
+}
+.fm-blob {
+  position: absolute; border-radius: 50%; filter: blur(70px);
+  pointer-events: none; will-change: transform; mix-blend-mode: screen;
+}
+:root .fm-blob { opacity: 0.55; mix-blend-mode: multiply; }
+.dark .fm-blob { opacity: 0.9; }
+
+/* Vignette + fine grid, above aurora, below content */
+.fm-vignette {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(rgba(167,139,250,0.05) 1px, transparent 1px) 0 0 / 32px 32px,
+    radial-gradient(ellipse 78% 78% at 50% 42%, transparent 52%, rgba(0,0,0,0.45) 100%);
+}
+:root .fm-vignette {
+  background:
+    radial-gradient(rgba(88,28,180,0.05) 1px, transparent 1px) 0 0 / 32px 32px,
+    radial-gradient(ellipse 82% 82% at 50% 42%, transparent 62%, rgba(120,110,150,0.10) 100%);
+}
+
+/* ── The Founding Member card ── */
+.fm-card {
+  position: relative; border-radius: 22px; overflow: hidden;
+  transform-style: preserve-3d; will-change: transform;
+  background: linear-gradient(150deg, #2a1e5c 0%, #170f33 46%, #0a0718 100%);
+  border: 1px solid rgba(167,139,250,0.40);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    inset 0 0 46px rgba(124,58,237,0.16),
+    0 34px 70px -26px rgba(88,28,180,0.62),
+    0 12px 34px rgba(0,0,0,0.55);
+}
+/* rotating holographic foil */
+.fm-card-foil {
+  position: absolute; inset: -40%; pointer-events: none;
+  background: conic-gradient(from 0deg,#7c3aed,#c084fc,#818cf8,#22d3ee,#f0abfc,#7c3aed);
+  mix-blend-mode: color-dodge; opacity: 0.18; filter: blur(8px);
+  animation: fm-foil-spin 9s linear infinite;
+}
+@keyframes fm-foil-spin { to { transform: rotate(360deg); } }
+/* pointer-tracked glare (--gx/--gy set in JS) */
+.fm-card-glare {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(340px circle at var(--gx,50%) var(--gy,26%), rgba(255,255,255,0.34), transparent 60%);
+  mix-blend-mode: soft-light;
+}
+/* fine engraved guilloché lines */
+.fm-card-lines {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 7px);
+  mix-blend-mode: overlay;
+}
+.fm-foil-text {
+  background: linear-gradient(120deg,#f5ecff,#c4b5fd,#f0abfc,#a5b4fc,#f5ecff);
+  background-size: 300% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: gradient-pan 6s ease infinite;
+}
+.fm-emboss { text-shadow: 0 1px 0 rgba(255,255,255,0.14), 0 -1px 1px rgba(0,0,0,0.5); }
+
+/* ── Reveal + accents ── */
+@keyframes fm-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.fm-rise { opacity: 0; animation: fm-rise 0.7s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+@keyframes fm-sheen { 0% { transform: translateX(-120%); } 60%,100% { transform: translateX(220%); } }
+
+/* Wax-seal / key ring pulse for the locked door */
+@keyframes fm-seal-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.25); }
+  50%     { box-shadow: 0 0 0 10px rgba(124,58,237,0),   inset 0 1px 0 rgba(255,255,255,0.25); }
+}
+.fm-seal { animation: fm-seal-pulse 3s ease-in-out infinite; }
+
+/* Glass chip */
+.fm-chip {
+  background: rgba(167,139,250,0.12);
+  border: 1px solid rgba(167,139,250,0.30);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-card-foil, .fm-seal { animation: none; }
+  .fm-rise { animation-duration: 0.01s; }
+}
+
 /* ── In-app animations ────────────────────────────────────────────── */
 
 @keyframes float {

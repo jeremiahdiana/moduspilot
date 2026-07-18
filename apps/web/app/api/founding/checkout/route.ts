@@ -62,14 +62,14 @@ export async function POST(req: Request) {
   // Already an active subscriber (e.g. they finished checkout, then revisited):
   // don't double-bill — just send them into the app.
   if (existingSubId && currentPlan && currentPlan !== 'free') {
-    return Response.json({ alreadyActive: true, url: `${APP_URL}/dashboard?founding=1` });
+    return Response.json({ alreadyActive: true, url: `${APP_URL}/welcome` });
   }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: FOUNDING_PRICE, quantity: 1 }],
-    success_url: `${APP_URL}/dashboard?founding=1`,
+    success_url: `${APP_URL}/welcome`,
     cancel_url: `${APP_URL}/grandfathering`,
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: email }),
     // Founders are charged $24 immediately (no trial). The webhook reads
