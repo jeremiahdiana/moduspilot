@@ -369,6 +369,41 @@ body::after {
   .fm-rise { animation-duration: 0.01s; }
 }
 
+/* ── Founding journey (cinematic scenes) ── */
+.fj-progress { position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; gap: 4px; padding: 8px 10px; }
+.fj-seg { position: relative; height: 3px; flex: 1; border-radius: 3px; background: rgba(167,139,250,0.18); overflow: hidden; }
+.fj-seg-fill { position: absolute; inset: 0; border-radius: 3px; background: linear-gradient(90deg,#8b5cf6,#c084fc); transform-origin: left; }
+
+/* animated strike-through for the price teardown (--d = delay) */
+.fj-strike { position: relative; display: inline-block; }
+.fj-strike::after {
+  content: ''; position: absolute; left: -6%; right: -6%; top: 52%; height: 2px; border-radius: 2px;
+  background: #f0abfc; box-shadow: 0 0 10px rgba(240,171,252,0.9);
+  transform: scaleX(0); transform-origin: left;
+  animation: fj-strike 0.55s cubic-bezier(0.22,1,0.36,1) forwards; animation-delay: var(--d, 1s);
+}
+@keyframes fj-strike { to { transform: scaleX(1); } }
+
+/* glass device frame for product screenshots */
+.fj-device {
+  position: relative; border-radius: 18px; overflow: hidden;
+  border: 1px solid rgba(167,139,250,0.28);
+  box-shadow: 0 34px 70px -26px rgba(88,28,180,0.6), 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+.fj-device::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,0.10), transparent 42%);
+}
+
+/* soft pulsing halo behind a hero element */
+@keyframes fj-halo { 0%,100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.06); } }
+.fj-halo { animation: fj-halo 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fj-strike::after { animation: none; transform: scaleX(1); }
+  .fj-halo { animation: none; }
+}
+
 /* ── In-app animations ────────────────────────────────────────────── */
 
 @keyframes float {

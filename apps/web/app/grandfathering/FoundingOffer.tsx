@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { onAuthStateChanged, getIdToken, type User } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import FoundingCard from './FoundingCard';
 
@@ -17,7 +17,7 @@ interface Props {
 }
 
 const PERKS = [
-  ['Every frontier model', 'Full PILOT tier — Opus, GPT, Gemini, Grok and more.'],
+  ['Every frontier model', 'Full PILOT — Claude Opus, GPT-5.6 Sol, Gemini 3.1 Pro, Fable 5 and more.'],
   ['$24/mo — locked for life', 'The founding rate never rises, even as prices do.'],
   ['Founder forever', 'You keep top-tier access as MODUS grows and plans change.'],
   ['A direct line to the founder', 'Talk to Jeremiah and help shape the roadmap.'],
@@ -61,8 +61,6 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => onAuthStateChanged(auth, u => { setUser(u); setAuthReady(true); }), []);
 
@@ -70,19 +68,8 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
   const spotsLeft = Math.max(0, cap - claimed);
   const filledPct = Math.min(100, Math.round((claimed / cap) * 100));
 
-  async function claim() {
-    setError('');
-    if (!user) { router.push('/login?next=/grandfathering'); return; }
-    setLoading(true);
-    try {
-      const token = await getIdToken(user);
-      const res = await fetch('/api/founding/checkout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.url) { window.location.href = data.url; return; }
-      setError(data.error || 'Could not start your claim. Try again.');
-      setLoading(false);
-    } catch { setError('Something went wrong. Try again.'); setLoading(false); }
-  }
+  // The CTA opens the cinematic value journey, which handles sign-in + payment.
+  function claim() { router.push('/grandfathering/join'); }
 
   // Already claimed — welcome them back.
   if (status === 'claimed') {
@@ -159,12 +146,11 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
             </div>
           </div>
 
-          <button onClick={claim} disabled={loading}
-            className="btn-primary fm-rise w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
+          <button onClick={claim}
+            className="btn-primary fm-rise w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white text-sm font-semibold"
             style={{ animationDelay: '0.9s' }}>
-            <span className="relative z-10">{loading ? 'Starting…' : 'Claim your founding seat'}</span>
+            <span className="relative z-10">Claim your founding seat</span>
           </button>
-          {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
           <p className="fm-rise text-[11px] text-muted/60 mt-3" style={{ animationDelay: '0.96s' }}>
             $24/mo · billed today · locked for life · cancel anytime
           </p>
