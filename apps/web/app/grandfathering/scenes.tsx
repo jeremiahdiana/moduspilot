@@ -99,7 +99,7 @@ export function SceneModels({}: SceneProps) {
         </div>
         <div className="mt-4 flex items-end justify-center gap-2">
           <span className="fm-foil-text fm-emboss text-5xl font-black leading-none">${FOUNDING_PRICE}</span>
-          <span className="text-sm text-muted pb-1">/mo · locked for life</span>
+          <span className="text-sm text-muted pb-1">/mo · price never rises</span>
         </div>
         <p className="text-[11px] text-muted/60 mt-2">Flagship consumer tiers, 2026. Llama 4 Maverick is open-weight — included free.</p>
       </div>
@@ -148,7 +148,7 @@ export function SceneClaim({ label, foundingNumber, authed, onAuthed, onClaim, c
         Claim your seat{label ? `, ${label}` : ''}.
       </h2>
       <p {...rise(0.32)} className="fm-rise text-sm text-muted mt-3">
-        Founding Member No. {String(foundingNumber).padStart(3, '0')} — full PILOT, <span className="text-text font-medium">${FOUNDING_PRICE}/mo locked for life</span>.
+        Founding Member No. {String(foundingNumber).padStart(3, '0')} — full PILOT, <span className="text-text font-medium">${FOUNDING_PRICE}/mo, your price never rises</span>.
       </p>
 
       <div {...rise(0.44)} className="fm-rise w-full mt-7">

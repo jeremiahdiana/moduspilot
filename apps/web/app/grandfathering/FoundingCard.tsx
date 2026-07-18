@@ -47,7 +47,6 @@ export default function FoundingCard({ label, foundingNumber, cap, sealed = fals
       <div className="fm-card-foil" />
       <div className="fm-card-lines" />
       <div className="fm-card-glare" />
-      <div className="fm-card-sheen" />
 
       {/* top row */}
       <div className="relative flex items-center justify-between" style={{ transform: 'translateZ(40px)' }}>

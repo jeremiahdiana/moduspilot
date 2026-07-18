@@ -79,7 +79,7 @@ export default function WelcomeSequence({ label, foundingNumber, cap }: { label:
         </motion.h1>
         <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05 }}
           className="text-sm text-muted mt-3 leading-relaxed max-w-sm">
-          One of the first {cap} people ever to run their life on MODUS. Your rate is locked for life, your access is the highest there is, and you have my direct line. Let’s build.
+          One of the first {cap} people ever to run their life on MODUS. Your rate never rises, your access is the highest there is, and you have my direct line. Let’s build.
         </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
           className="text-xs text-muted/60 mt-3 italic">— Jeremiah, founder of MODUS</motion.p>

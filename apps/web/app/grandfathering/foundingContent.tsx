@@ -44,8 +44,8 @@ export const FOUNDING_PRICE = 24;
 // The five standing founding perks (single source of truth — FoundingOffer.tsx imports this).
 export const JOURNEY_PERKS: [string, string][] = [
   ['Every frontier model', 'Full PILOT — Claude Opus, GPT-5.6 Sol, Gemini 3.1 Pro, Fable 5 and more.'],
-  ['$24/mo — locked for life', 'The founding rate never rises, even as prices do.'],
-  ['A physical founding card, mailed to you', 'Your numbered member card, printed and sent — yours to keep.'],
-  ['Private founders channel + monthly call', 'A direct line to Jeremiah and the other founders. Help shape the roadmap.'],
+  ['$24/mo — your price never rises', 'You stay at $24 even as prices climb for everyone else.'],
+  ['Founder forever', 'You keep top-tier access as MODUS grows and plans change.'],
+  ['A direct line to the founder', 'Reach Jeremiah directly and help shape the roadmap.'],
   ['Permanent founding badge', 'A founding mark that stays yours as MODUS grows.'],
 ];

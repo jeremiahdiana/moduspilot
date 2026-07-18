@@ -335,17 +335,6 @@ body::after {
     repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 7px);
   mix-blend-mode: overlay;
 }
-/* idle holographic sheen — a slow diagonal light bar, above the foil, below text */
-.fm-card-sheen {
-  position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit;
-}
-.fm-card-sheen::after {
-  content: ''; position: absolute; top: -20%; bottom: -20%; left: 0; width: 34%;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.02) 55%, transparent);
-  transform: translateX(-120%);
-  animation: fm-sheen 6s ease-in-out infinite;
-  animation-delay: 2.5s;
-}
 .fm-foil-text {
   background: linear-gradient(120deg,#f5ecff,#c4b5fd,#f0abfc,#a5b4fc,#f5ecff);
   background-size: 300% auto;
@@ -358,8 +347,6 @@ body::after {
 /* ── Reveal + accents ── */
 @keyframes fm-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 .fm-rise { opacity: 0; animation: fm-rise 0.7s cubic-bezier(0.22,1,0.36,1) forwards; }
-
-@keyframes fm-sheen { 0% { transform: translateX(-120%); } 60%,100% { transform: translateX(220%); } }
 
 /* Wax-seal / key ring pulse for the locked door */
 @keyframes fm-seal-pulse {
@@ -376,8 +363,7 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fm-card-foil, .fm-seal, .fm-card-sheen { animation: none; }
-  .fm-card-sheen::after { animation: none; }
+  .fm-card-foil, .fm-seal { animation: none; }
   .fm-rise { animation-duration: 0.01s; }
 }
 
