@@ -4,6 +4,7 @@ import Image from 'next/image';
 import type { User } from 'firebase/auth';
 import FoundingCard from './FoundingCard';
 import FoundingAuth from './FoundingAuth';
+import ChatMock from './ChatMock';
 import {
   FRONTIER_MODELS, PRICE_TEARDOWN, TEARDOWN_TOTAL, FOUNDING_PRICE,
   JOURNEY_PERKS, DAY_STEPS,
@@ -53,7 +54,7 @@ export function SceneOpening({}: SceneProps) {
         MODUS is the AI operating system that runs your day — every frontier model in one place, plus an assistant that actually acts, not just answers.
       </p>
       <div {...rise(0.7)} className="fm-rise mt-10 w-full">
-        <DeviceShot src="/screenshot-home.png" alt="MODUS home" />
+        <ChatMock />
       </div>
     </div>
   );

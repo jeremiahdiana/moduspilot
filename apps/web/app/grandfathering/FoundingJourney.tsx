@@ -80,20 +80,20 @@ export default function FoundingJourney({ label, foundingNumber, cap, claimed }:
         ))}
       </div>
 
-      {/* scene — scrolls when content is taller than the viewport, centers when it fits */}
-      <div className="relative z-10 w-full flex-1 overflow-y-auto">
-        <div className="min-h-full flex items-center justify-center px-6 py-16">
-          <AnimatePresence mode="wait">
-            <motion.div key={i}
-              initial={{ opacity: 0, y: 24, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -20, filter: 'blur(6px)' }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full flex justify-center">
-              <Scene {...sceneProps} />
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      {/* scene — margin-auto centers it when it fits and keeps the top reachable
+          when it's taller than the viewport (items-center would clip the top,
+          and min-h-full doesn't resolve against a flex-grow height). */}
+      <div className="relative z-10 w-full flex-1 min-h-0 overflow-y-auto flex flex-col px-6 py-16">
+        <AnimatePresence mode="wait">
+          <motion.div key={i}
+            initial={{ opacity: 0, y: 24, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -20, filter: 'blur(6px)' }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full flex justify-center my-auto">
+            <Scene {...sceneProps} />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* controls */}
