@@ -54,6 +54,7 @@ export async function POST(req: Request) {
         stripeCustomerId: session.customer,
         subscriptionId: session.subscription,
         trialReminderSent: false,
+        ...(session.metadata?.founding === 'true' ? { founding: true } : {}),
       });
     }
   }

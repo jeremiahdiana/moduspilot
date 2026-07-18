@@ -16,6 +16,12 @@ import { adminDb } from '@/lib/firebase-admin';
  */
 
 export const FOUNDING_CAP = 100;
+// Seeded display count so early visitors don't see "0 of 100" — added on top of
+// the real Firestore count, capped at FOUNDING_CAP.
+export const FOUNDING_SEED_CLAIMED = 22;
+// Cosmetic countdown for the founding urgency banner. This must NEVER gate
+// claiming — it only drives the "closes in" copy.
+export const FOUNDING_CLOSES_AT = new Date('2026-08-01T00:00:00Z');
 export const FOUNDING_COOKIE = 'founding_gate';
 export const FOUNDING_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // seconds (30 days) — reusable entry
 const COOKIE_TTL_MS = FOUNDING_COOKIE_MAX_AGE * 1000;
@@ -85,8 +91,9 @@ export async function getFoundingCode(codeId: string): Promise<FoundingCode | nu
 export async function claimedCount(): Promise<number> {
   try {
     const snap = await adminDb.collection('foundingCodes').where('status', '==', 'claimed').count().get();
-    return snap.data().count;
+    const real = snap.data().count;
+    return Math.min(FOUNDING_CAP, real + FOUNDING_SEED_CLAIMED);
   } catch {
-    return 0;
+    return Math.min(FOUNDING_CAP, FOUNDING_SEED_CLAIMED);
   }
 }

@@ -6,7 +6,7 @@ import FoundingCard from './FoundingCard';
 import FoundingAuth from './FoundingAuth';
 import {
   FRONTIER_MODELS, PRICE_TEARDOWN, TEARDOWN_TOTAL, FOUNDING_PRICE,
-  JOURNEY_PERKS, DAY_STEPS,
+  JOURNEY_PERKS,
 } from './foundingContent';
 
 // Each scene is a full-bleed centered composition. They remount as the journey
@@ -107,38 +107,7 @@ export function SceneModels({}: SceneProps) {
   );
 }
 
-/* 3 ── It runs your day */
-export function SceneDay({}: SceneProps) {
-  return (
-    <div className="w-full max-w-4xl">
-      <div className="grid md:grid-cols-2 gap-10 md:gap-14 items-center">
-        <div className="order-2 md:order-1 text-center md:text-left">
-          <div {...rise(0.1)}><Eyebrow>Not another chatbot</Eyebrow></div>
-          <h2 {...rise(0.22)} className="fm-rise text-3xl sm:text-4xl font-semibold tracking-tight text-text text-balance mt-4">
-            It runs your day.
-          </h2>
-          <div className="mt-6 space-y-4">
-            {DAY_STEPS.map(([t, d], i) => (
-              <div key={t} {...rise(0.36 + i * 0.12)} className="fm-rise flex gap-3.5">
-                <span className="mt-0.5 w-6 h-6 shrink-0 rounded-full bg-brand/20 ring-1 ring-brand/30 text-brand text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                <div>
-                  <p className="text-sm font-semibold text-text">{t}</p>
-                  <p className="text-xs text-muted leading-snug">{d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p {...rise(0.75)} className="fm-rise text-xs text-muted/70 mt-6">Goals · habits · inbox · calendar — connected, and nothing runs without your yes.</p>
-        </div>
-        <div {...rise(0.4)} className="fm-rise order-1 md:order-2">
-          <DeviceShot src="/screenshot-briefing.png" alt="MODUS daily briefing" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* 4 ── Your founding advantage */
+/* 3 ── Your founding advantage */
 export function SceneAdvantage({ label, foundingNumber, cap }: SceneProps) {
   return (
     <div className="w-full max-w-4xl">
@@ -170,7 +139,7 @@ export function SceneAdvantage({ label, foundingNumber, cap }: SceneProps) {
   );
 }
 
-/* 5 ── Claim: branded sign-in → confirm → pay */
+/* 4 ── Claim: branded sign-in → confirm → pay */
 export function SceneClaim({ label, foundingNumber, authed, onAuthed, onClaim, claiming, claimError }: SceneProps) {
   return (
     <div className="w-full max-w-md text-center flex flex-col items-center">
@@ -203,4 +172,4 @@ export function SceneClaim({ label, foundingNumber, authed, onAuthed, onClaim, c
   );
 }
 
-export const SCENES = [SceneOpening, SceneModels, SceneDay, SceneAdvantage, SceneClaim];
+export const SCENES = [SceneOpening, SceneModels, SceneAdvantage, SceneClaim];

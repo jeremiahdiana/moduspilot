@@ -11,7 +11,7 @@ interface Props { label: string; foundingNumber: number; cap: number; claimed: n
 
 // Per-scene hold time before auto-advancing (ms). The final scene (claim) never
 // auto-advances — it waits for sign-in + payment.
-const DURATIONS = [6000, 9500, 8500, 8000, 0];
+const DURATIONS = [6000, 9500, 8000, 0];
 
 export default function FoundingJourney({ label, foundingNumber, cap, claimed }: Props) {
   const router = useRouter();

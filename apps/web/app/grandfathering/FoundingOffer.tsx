@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import FoundingCard from './FoundingCard';
+import FoundingUrgency from './FoundingUrgency';
+import { JOURNEY_PERKS } from './foundingContent';
 
 interface Props {
   label: string;
@@ -15,14 +17,6 @@ interface Props {
   claimed: number;
   cap: number;
 }
-
-const PERKS = [
-  ['Every frontier model', 'Full PILOT — Claude Opus, GPT-5.6 Sol, Gemini 3.1 Pro, Fable 5 and more.'],
-  ['$24/mo — locked for life', 'The founding rate never rises, even as prices do.'],
-  ['Founder forever', 'You keep top-tier access as MODUS grows and plans change.'],
-  ['A direct line to the founder', 'Talk to Jeremiah and help shape the roadmap.'],
-  ['Early access to everything', 'You see and try new features before anyone else.'],
-] as const;
 
 function useCountUp(target: number, ms = 900) {
   const [n, setN] = useState(0);
@@ -122,7 +116,7 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
           </p>
 
           <ul className="mt-6 space-y-3">
-            {PERKS.map(([title, desc], i) => (
+            {JOURNEY_PERKS.map(([title, desc], i) => (
               <li key={title} className="flex gap-3 fm-rise" style={{ animationDelay: `${0.42 + i * 0.07}s` }}>
                 <Check />
                 <div>
@@ -144,6 +138,10 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
                 transition={{ duration: 1, delay: 0.9, ease: 'easeOut' }}
                 className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-400" />
             </div>
+          </div>
+
+          <div className="fm-rise mb-5" style={{ animationDelay: '0.86s' }}>
+            <FoundingUrgency />
           </div>
 
           <button onClick={claim}

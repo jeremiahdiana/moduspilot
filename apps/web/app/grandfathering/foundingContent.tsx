@@ -41,18 +41,11 @@ export const PRICE_TEARDOWN: PriceRow[] = [
 export const TEARDOWN_TOTAL = PRICE_TEARDOWN.reduce((s, r) => s + r.price, 0); // 600
 export const FOUNDING_PRICE = 24;
 
-// The five standing founding perks (kept in sync with FoundingOffer.tsx).
+// The five standing founding perks (single source of truth — FoundingOffer.tsx imports this).
 export const JOURNEY_PERKS: [string, string][] = [
   ['Every frontier model', 'Full PILOT — Claude Opus, GPT-5.6 Sol, Gemini 3.1 Pro, Fable 5 and more.'],
   ['$24/mo — locked for life', 'The founding rate never rises, even as prices do.'],
-  ['Founder forever', 'You keep top-tier access as MODUS grows and plans change.'],
-  ['A direct line to the founder', 'Talk to Jeremiah and help shape the roadmap.'],
-  ['Early access to everything', 'You see and try new features before anyone else.'],
-];
-
-// What MODUS does, for the "runs your day" scene (reuses landing/CoreLoop copy).
-export const DAY_STEPS: [string, string][] = [
-  ['Monitors', 'Reads your calendar, inbox, goals and habits in real time.'],
-  ['Recommends', 'Every morning: your energy, your top 3, what to focus on.'],
-  ['Acts — with approval', 'Drafts replies, blocks focus time, moves tasks. Nothing runs without your yes.'],
+  ['A physical founding card, mailed to you', 'Your numbered member card, printed and sent — yours to keep.'],
+  ['Private founders channel + monthly call', 'A direct line to Jeremiah and the other founders. Help shape the roadmap.'],
+  ['Permanent founding badge', 'A founding mark that stays yours as MODUS grows.'],
 ];

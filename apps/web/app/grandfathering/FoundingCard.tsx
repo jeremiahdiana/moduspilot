@@ -47,6 +47,7 @@ export default function FoundingCard({ label, foundingNumber, cap, sealed = fals
       <div className="fm-card-foil" />
       <div className="fm-card-lines" />
       <div className="fm-card-glare" />
+      <div className="fm-card-sheen" />
 
       {/* top row */}
       <div className="relative flex items-center justify-between" style={{ transform: 'translateZ(40px)' }}>
@@ -80,6 +81,13 @@ export default function FoundingCard({ label, foundingNumber, cap, sealed = fals
         </div>
         <p className="fm-emboss text-sm font-bold tracking-wide text-violet-200/80">/ {cap}</p>
       </div>
+
+      {!sealed && (
+        <p className="fm-emboss absolute left-6 bottom-2.5 text-[9px] font-medium tracking-[0.22em] uppercase text-white/40"
+          style={{ transform: 'translateZ(30px)' }}>
+          Minted · Jul 2026
+        </p>
+      )}
     </motion.div>
   );
 }
