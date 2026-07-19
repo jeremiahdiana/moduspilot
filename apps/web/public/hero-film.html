@@ -765,7 +765,9 @@
   function showConn(on){connlayer.classList.toggle('on',on);if(on){app.style.visibility='hidden';app.style.display='none';dashapp.classList.remove('on');}else{connlayer.classList.remove('in');app.style.visibility='';app.style.display='';}}
   function revealConn(i){const el=document.querySelector('.conn-chip[data-c="'+i+'"]');if(el)el.classList.add('in');}
 
-  function reset(){
+  // clears ONLY the chat / scene state — safe to call while the dashboard covers the screen,
+  // so the chat view can be rewound invisibly behind it at the loop seam.
+  function resetChat(){
     scene('empty');picker.classList.remove('open');msMenu.classList.remove('open');modelTag.classList.remove('menuopen','on');
     msMulti.classList.remove('on');modelTagText.textContent='Auto';modelTagIcon.innerHTML=AUTO_ICON;
     taText.textContent='Talk to MODUS…';ta.classList.add('placeholder');wave.classList.remove('on');mic.classList.remove('rec');
@@ -782,23 +784,49 @@
     ['clThink','cmpThink','actThink','chThink'].forEach(id=>$('#'+id).classList.add('rhide'));
     ['qcard','compareCard','actCard','chartCard'].forEach(id=>$('#'+id).classList.add('rhide'));
     document.querySelectorAll('.brow').forEach(b=>b.classList.remove('in'));
-    dashapp.classList.remove('on','dim');document.querySelectorAll('.dreveal').forEach(d=>d.classList.remove('in'));app.style.visibility='';app.style.display='';
     if(dnavChat){dnavChat.classList.remove('active','press');dnavDash.classList.add('active');}
     if(railDash){railDash.classList.remove('active','press');railChat.classList.add('active');}
+    COLS.forEach((c,i)=>{$('[data-body="'+i+'"]').innerHTML='';$('[data-i="'+i+'"]').innerHTML='<span class="dots"><i></i><i></i><i></i></span>';});
+  }
+  // full reset — chat state PLUS the dashboard / camera. Used on page load & replay only.
+  function reset(){
+    resetChat();
+    dashapp.classList.remove('on','dim');document.querySelectorAll('.dreveal').forEach(d=>d.classList.remove('in'));
+    app.style.visibility='';app.style.display='';app.style.opacity='';
     connlayer.classList.remove('on','in');document.querySelectorAll('.conn-chip').forEach(c=>c.classList.remove('in'));
     logo.classList.remove('show');app.classList.remove('dim');
-    COLS.forEach((c,i)=>{$('[data-body="'+i+'"]').innerHTML='';$('[data-i="'+i+'"]').innerHTML='<span class="dots"><i></i><i></i><i></i></span>';});
     focusOn(inputrow,1.18,0);
   }
 
-  async function run(){
-    reset();
-    // 1 · THE DASHBOARD — start straight on the product (no logo intro), your day already handled
-    caption('The everything app for AI','Your whole day — already handled'); tlseg(0,26);
-    showDash(true); focusOn(dashapp,0.84,1100,true); await wait(700);
-    revealDash(0); await wait(140); revealDash(1); await wait(140); revealDash(2); await wait(140); revealDash(3); await wait(500);
-    focusOn(document.querySelector('#dashapp .dbrief'),1.04,1000,true); await wait(850);    // push in — read the briefing
-    focusOn(dashapp,0.84,950,true); await wait(700);                                          // pull back to the whole thing
+  // Enter the dashboard view. crossfade=true dissolves it in OVER the chat (loop seam);
+  // crossfade=false shows it instantly with a staggered card reveal (page load).
+  // Either way it ends by pushing into the briefing, then pulling back to the whole product.
+  async function enterDashboard(crossfade){
+    // landing on the dashboard → its own nav item is the active one
+    if(dnavDash){dnavDash.classList.add('active');dnavChat.classList.remove('active','press');}
+    if(crossfade){
+      [0,1,2,3].forEach(revealDash);                 // pre-reveal so the whole board dissolves in as one
+      dashapp.classList.add('on'); dashapp.style.opacity='0'; void dashapp.offsetWidth;
+      focusOn(dashapp,0.84,1000,true); dashapp.style.opacity='1';   // fade in + ease the camera home together
+      await wait(1000);
+      app.style.visibility='hidden'; app.style.opacity=''; dashapp.style.opacity='';  // chat now fully covered — retire it
+      await wait(220);
+    }else{
+      showDash(true); focusOn(dashapp,0.84,1100,true); await wait(700);
+      revealDash(0); await wait(140); revealDash(1); await wait(140); revealDash(2); await wait(140); revealDash(3); await wait(500);
+    }
+    focusOn(document.querySelector('#dashapp .dbrief'),1.04,1000,true); await wait(850);   // read the briefing
+    focusOn(dashapp,0.84,950,true); await wait(700);                                        // pull back to the whole thing
+  }
+
+  async function run(firstTime){
+    // 1 · THE DASHBOARD — start straight on the product (no logo intro), your day already handled.
+    // On the loop we arrive here already dissolved-in by the seam below, so only do this on entry.
+    if(firstTime){
+      reset();
+      caption('The everything app for AI','Your whole day — already handled'); tlseg(0,26);
+      await enterDashboard(false);
+    }
 
     // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
     caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(26,40);
@@ -856,13 +884,15 @@
     $('#chartCard').classList.add('drawn'); await wait(1900);
     focusOn($('#chartCard'),1.01,900,false); await wait(1600);   // hold on the finished chart so it can be read
 
-    // loop · the user taps "Dashboard" in the rail → back home, and the whole thing repeats
+    // loop · tap "Dashboard", then a soft crossfade home — no camera lurch, no hard cut
     caption('','Back to your dashboard'); tlseg(92,100);
-    focusOn(railDash,1.5,760,true); await wait(640);
+    focusOn(app,0.95,780,true); await wait(720);                         // pull back so the whole chat + rail is framed
     railDash.classList.add('press','active'); railChat.classList.remove('active'); await wait(220);
-    railDash.classList.remove('press'); await wait(520);
-    // showDash(true) runs in the SAME tick as run()'s reset() below, so the empty state never paints
-    if(!cancelled) run();
+    railDash.classList.remove('press'); await wait(300);
+    tlseg(0,26); caption('The everything app for AI','Your whole day — already handled');
+    await enterDashboard(true);      // dissolve the dashboard in OVER the chat, easing the camera home
+    resetChat();                     // rewind the chat view invisibly behind the now-opaque dashboard
+    if(!cancelled) run(false).catch(()=>{});
   }
 
   // Debug jump map (?beat=N):
@@ -884,10 +914,10 @@
   }
 
   $('#toggle').addEventListener('click',e=>{paused=!paused;e.target.textContent=paused?'Play':'Pause';});
-  $('#replay').addEventListener('click',()=>{cancelled=true;setTimeout(()=>{cancelled=false;paused=false;$('#toggle').textContent='Pause';run().catch(()=>{});},120);});
+  $('#replay').addEventListener('click',()=>{cancelled=true;setTimeout(()=>{cancelled=false;paused=false;$('#toggle').textContent='Pause';run(true).catch(()=>{});},120);});
   const DEBUG=new URLSearchParams(location.search).get('beat');
   if(DEBUG!==null){const s=document.createElement('style');s.textContent='*{transition:none!important;animation:none!important}';document.head.appendChild(s);stageTo(+DEBUG||0);}
-  else run().catch(()=>{});
+  else run(true).catch(()=>{});
 })();
 </script>
 
