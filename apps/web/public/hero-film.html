@@ -819,14 +819,21 @@
     focusOn(dashapp,0.84,950,true); await wait(700);                                        // pull back to the whole thing
   }
 
-  async function run(firstTime){
-    // 1 · THE DASHBOARD — start straight on the product (no logo intro), your day already handled.
-    // On the loop we arrive here already dissolved-in by the seam below, so only do this on entry.
-    if(firstTime){
-      reset();
-      caption('The everything app for AI','Your whole day — already handled'); tlseg(0,26);
-      await enterDashboard(false);
-    }
+  async function run(){
+    reset();
+    // ✦ 0 · MODUS BOOKEND — a 3s still logo. This is IDENTICAL to the outro below,
+    //   so the loop seam is invisible: reset() re-shows the logo in the same tick it
+    //   cleared it, so across iterations the logo never blinks off — the outro logo
+    //   just becomes this intro logo. Repeatable, exact-same-way.
+    showDash(false); scene('empty'); app.classList.add('dim');
+    logoTag.style.opacity=1; logoTag.textContent=LOOP_TAGLINE;
+    logo.classList.add('show');
+    await wait(3000);
+    logo.classList.remove('show'); await wait(650);   // dissolve the logo away → reveal the dashboard
+
+    // 1 · THE DASHBOARD — your day already handled
+    caption('The everything app for AI','Your whole day — already handled'); tlseg(0,26);
+    await enterDashboard(false);
 
     // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
     caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(26,40);
@@ -884,15 +891,14 @@
     $('#chartCard').classList.add('drawn'); await wait(1900);
     focusOn($('#chartCard'),1.01,900,false); await wait(1600);   // hold on the finished chart so it can be read
 
-    // loop · tap "Dashboard", then a soft crossfade home — no camera lurch, no hard cut
-    caption('','Back to your dashboard'); tlseg(92,100);
-    focusOn(app,0.95,780,true); await wait(720);                         // pull back so the whole chat + rail is framed
-    railDash.classList.add('press','active'); railChat.classList.remove('active'); await wait(220);
-    railDash.classList.remove('press'); await wait(300);
-    tlseg(0,26); caption('The everything app for AI','Your whole day — already handled');
-    await enterDashboard(true);      // dissolve the dashboard in OVER the chat, easing the camera home
-    resetChat();                     // rewind the chat view invisibly behind the now-opaque dashboard
-    if(!cancelled) run(false).catch(()=>{});
+    // ✦ OUTRO — fade to the SAME still MODUS logo, hold, then loop straight back into
+    //   the identical intro. The logo stays shown across the seam (reset re-adds it in
+    //   one tick), so it reads as one continuous, repeatable MODUS bookend.
+    caption(''); tlseg(92,100);
+    showDash(false); scene('empty'); app.classList.add('dim');
+    logoTag.style.opacity=1; logoTag.textContent=LOOP_TAGLINE;
+    logo.classList.add('show'); await wait(1600);
+    if(!cancelled) run().catch(()=>{});
   }
 
   // Debug jump map (?beat=N):
@@ -914,10 +920,10 @@
   }
 
   $('#toggle').addEventListener('click',e=>{paused=!paused;e.target.textContent=paused?'Play':'Pause';});
-  $('#replay').addEventListener('click',()=>{cancelled=true;setTimeout(()=>{cancelled=false;paused=false;$('#toggle').textContent='Pause';run(true).catch(()=>{});},120);});
+  $('#replay').addEventListener('click',()=>{cancelled=true;setTimeout(()=>{cancelled=false;paused=false;$('#toggle').textContent='Pause';run().catch(()=>{});},120);});
   const DEBUG=new URLSearchParams(location.search).get('beat');
   if(DEBUG!==null){const s=document.createElement('style');s.textContent='*{transition:none!important;animation:none!important}';document.head.appendChild(s);stageTo(+DEBUG||0);}
-  else run(true).catch(()=>{});
+  else run().catch(()=>{});
 })();
 </script>
 
