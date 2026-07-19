@@ -2,7 +2,7 @@
 
 import { MarketingBackground, ScrollProgress } from './MarketingBackground';
 import RevealSection from './RevealSection';
-import HeroSection from './HeroSection';
+import HeroFilm from './HeroFilm';
 import ChatSection from './ChatSection';
 import MultiModelSection from './MultiModelSection';
 import CoreLoop from './CoreLoop';
@@ -32,7 +32,7 @@ export default function HomepageShell() {
       <MarketingBackground />
 
       <div className="relative" style={{ zIndex: 2 }}>
-        <HeroSection />
+        <HeroFilm />
 
         <Divider />
 
