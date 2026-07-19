@@ -55,6 +55,24 @@ export default function MultiModelSection() {
         <p className="text-center text-sm text-muted mt-6 max-w-2xl mx-auto">
           <span className="text-text font-medium">PILOT</span> adds the frontier models (GPT-5.6 Sol, Claude Opus) with manual pick per message.
         </p>
+
+        {/* First-scroll conversion: a cold visitor gets a clear trial CTA right here */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="mt-10 flex flex-col items-center gap-3"
+        >
+          <a
+            href="/login"
+            className="btn-primary group inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-white text-sm font-bold hover:scale-[1.02] active:scale-100 transition-transform"
+          >
+            Start your 3-day free trial
+            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+          </a>
+          <p className="text-xs text-muted">3 days free · card required · cancel anytime</p>
+        </motion.div>
       </div>
     </section>
   );

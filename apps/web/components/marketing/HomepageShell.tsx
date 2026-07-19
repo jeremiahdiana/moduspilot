@@ -14,6 +14,7 @@ import PricingSection from './PricingSection';
 import FAQSection from './FAQSection';
 import FinalCTA from './FinalCTA';
 import Footer from './Footer';
+import StickyTrialCTA from './StickyTrialCTA';
 
 function Divider() {
   return (
@@ -82,6 +83,8 @@ export default function HomepageShell() {
 
         <Footer />
       </div>
+
+      <StickyTrialCTA />
     </main>
   );
 }

@@ -156,7 +156,7 @@ export default function Navbar({ solid = false }: Props) {
                   href="/login"
                   className="hidden md:block btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
                 >
-                  Get Started
+                  Start free trial
                 </Link>
                 <button
                   onClick={() => setMenuOpen(o => !o)}
