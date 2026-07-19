@@ -243,7 +243,7 @@
   .sb-list::-webkit-scrollbar,.msmenu::-webkit-scrollbar{width:6px;}
   .sb-list::-webkit-scrollbar-thumb,.msmenu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px;}
 
-  .logolayer{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:rgba(4,4,6,.55);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .85s var(--ease-soft),visibility .85s;}
+  .logolayer{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:transparent;opacity:0;visibility:hidden;transition:opacity .85s var(--ease-soft),visibility .85s;}
   .logolayer.show{opacity:1;visibility:visible;}
   .logolayer .lg{display:flex;flex-direction:column;align-items:center;gap:16px;transform:translateY(8px) scale(.97);opacity:0;transition:transform .95s var(--ease-soft),opacity .95s;}
   .logolayer.show .lg{transform:none;opacity:1;}
@@ -283,9 +283,10 @@
   .dsb-ask .kbd{margin-left:auto;display:flex;gap:3px;}
   .dsb-ask .kbd b{font-size:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 4px;color:var(--muted);font-weight:600;line-height:1;}
   .dnav{display:flex;flex-direction:column;gap:2px;flex:1;}
-  .dnavitem{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:10px;color:var(--muted);font-size:12.5px;font-weight:500;position:relative;}
+  .dnavitem{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:10px;color:var(--muted);font-size:12.5px;font-weight:500;position:relative;transition:background .22s var(--ease-soft),color .22s var(--ease-soft),transform .12s var(--ease-soft);}
   .dnavitem svg{width:16px;height:16px;flex:0 0 auto;}
   .dnavitem.active{background:var(--brand-15);color:var(--brand-light);}
+  .dnavitem.press{transform:scale(.95);}
   .dnavitem .dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--brand);}
   .dnav-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(140,140,148,.65);padding:0 10px;margin:13px 0 3px;}
   .dnav-div{height:1px;background:var(--border);margin:9px 6px;}
@@ -562,8 +563,8 @@
               <div class="dsb-logo"><img id="dashLogo" alt=""><span class="wm"><b>MODUS</b><i>pilot</i></span></div>
               <div class="dsb-ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>Ask MODUS<span class="kbd"><b>⌘</b><b>K</b></span></div>
               <div class="dnav">
-                <div class="dnavitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</div>
-                <div class="dnavitem active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/></svg>Dashboard</div>
+                <div class="dnavitem" id="dnavChat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</div>
+                <div class="dnavitem active" id="dnavDash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/></svg>Dashboard</div>
                 <div class="dnavitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Projects</div>
                 <div class="dnav-label">Workspace</div>
                 <div class="dnavitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2z"/></svg>Goals</div>
@@ -722,7 +723,10 @@
         mmPill=$('#mmPill'),modelTag=$('#modelTag'),modelTagText=$('#modelTagText'),modelTagIcon=$('#modelTagIcon'),
         pickCount=$('#pickCount'),pickerFoot=$('#pickerFoot'),inputrow=$('#inputrow'),verdict=$('#verdict'),
         msMenu=$('#msMenu'),msMulti=$('#msMulti'),logo=$('#logo'),logoTag=$('#logoTag'),dashapp=$('#dashapp'),connlayer=$('#connlayer'),
+        dnavChat=$('#dnavChat'),dnavDash=$('#dnavDash'),
         capEyebrow=$('#capEyebrow'),capLine=$('#capLine'),tlbar=$('#tlbar');
+  // one tagline for BOTH intro and outro so the loop seam is invisible
+  const LOOP_TAGLINE='One subscription. Every frontier model.';
   for(let i=0;i<7;i++){const b=document.createElement('i');b.style.animationDelay=(i*0.09)+'s';b.style.height='6px';wave.appendChild(b);}
   const COMPARE_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M8 3v18M16 3v18M3 8h18M3 16h18"/></svg>';
   const AUTO_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.3 6.9L21 12l-5.7 2.1L13 21l-2.3-6.9L5 12l5.7-2.1L13 3Z"/></svg>';
@@ -777,6 +781,7 @@
     ['qcard','compareCard','actCard','chartCard'].forEach(id=>$('#'+id).classList.add('rhide'));
     document.querySelectorAll('.brow').forEach(b=>b.classList.remove('in'));
     dashapp.classList.remove('on','dim');document.querySelectorAll('.dreveal').forEach(d=>d.classList.remove('in'));app.style.visibility='';app.style.display='';
+    if(dnavChat){dnavChat.classList.remove('active','press');dnavDash.classList.add('active');}
     connlayer.classList.remove('on','in');document.querySelectorAll('.conn-chip').forEach(c=>c.classList.remove('in'));
     logo.classList.remove('show');app.classList.remove('dim');
     COLS.forEach((c,i)=>{$('[data-body="'+i+'"]').innerHTML='';$('[data-i="'+i+'"]').innerHTML='<span class="dots"><i></i><i></i><i></i></span>';});
@@ -786,7 +791,7 @@
   async function run(){
     reset();
     // 0 · logo intro
-    app.classList.add('dim');logoTag.style.opacity=1;logoTag.textContent="The only AI you'll ever need";logo.classList.add('show');caption('','');tlseg(0,4);
+    app.classList.add('dim');logoTag.style.opacity=1;logoTag.textContent=LOOP_TAGLINE;logo.classList.add('show');caption('','');tlseg(0,4);
     await wait(1200);
     logo.classList.remove('show'); await wait(420);
 
@@ -797,10 +802,13 @@
     focusOn(document.querySelector('#dashapp .dbrief'),1.04,1000,true); await wait(850);    // push in — read the briefing
     focusOn(dashapp,0.84,950,true); await wait(700);                                          // pull back to the whole thing
 
-    // 2 · CHAT · every frontier model in one place
+    // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
+    caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(28,40);
+    focusOn(document.querySelector('#dashapp .dnav'),1.14,820,true); await wait(640);
+    dnavDash.classList.remove('active'); dnavChat.classList.add('active','press'); await wait(180);
+    dnavChat.classList.remove('press'); await wait(360);
     showDash(false); scene('empty');
-    caption('01 · Every model, one place','Open the picker — they’re all here'); tlseg(28,40);
-    focusOn(app,0.9,850,true); await wait(950);    // let the empty chat breathe before the picker opens
+    focusOn(app,0.9,850,true); await wait(760);    // let the empty chat breathe before the picker opens
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
     focusOn(msMenu,1.12,820,true); await wait(820);
 
@@ -847,11 +855,12 @@
     showBot('chart'); $('#chThink').classList.remove('rhide'); focusOn($('#chThink'),1.12,680,true);
     await respond($('#chThink'),$('#chartCard'),850);
     focusOn($('#chartCard'),1.06,780,true); await wait(280);
-    $('#chartCard').classList.add('drawn'); await wait(1750);
+    $('#chartCard').classList.add('drawn'); await wait(1900);
+    focusOn($('#chartCard'),1.01,900,false); await wait(1600);   // hold on the finished chart so it can be read
 
     // outro — hold on the logo, then fade cleanly before looping
     caption(''); tlseg(96,100); showDash(false); scene('empty'); app.classList.add('dim');
-    logoTag.style.opacity=1; logoTag.textContent="One subscription. Every frontier model.";
+    logoTag.style.opacity=1; logoTag.textContent=LOOP_TAGLINE;
     logo.classList.add('show'); await wait(1450);
     logo.classList.remove('show'); await wait(650);
     if(!cancelled) run();
@@ -862,7 +871,7 @@
   function stageTo(n){
     reset();
     const reveal=(t,c)=>{$('#'+t).classList.add('rhide');$('#'+c).classList.remove('rhide');};
-    if(n===0){app.classList.add('dim');logo.classList.add('show');return;}
+    if(n===0){app.classList.add('dim');logo.classList.add('show');logoTag.textContent=LOOP_TAGLINE;return;}
     if(n===1){showDash(true);[0,1,2,3].forEach(revealDash);requestAnimationFrame(()=>focusOn(dashapp,0.84,0));return;}
     if(n===2){showConn(true);connlayer.classList.add('in');[0,1,2,3,4].forEach(revealConn);requestAnimationFrame(()=>focusOn(connlayer,0.92,0));return;}
     if(n===3){modelTag.classList.add('menuopen');msMenu.classList.add('open');requestAnimationFrame(()=>focusOn(msMenu,1.12,0));return;}
@@ -871,7 +880,7 @@
     if(n===5){scene('compare');showUser('compare');showBot('compare');reveal('cmpThink','compareCard');fillCompare();verdict.classList.add('show');requestAnimationFrame(()=>focusOn($('#compareCard'),1.01,0));return;}
     if(n===6){exitMultiModel();scene('chart');showUser('chart');showBot('chart');reveal('chThink','chartCard');$('#chartCard').classList.add('drawn');requestAnimationFrame(()=>focusOn($('#chartCard'),1.06,0));return;}
     if(n===7){exitMultiModel();scene('action');showUser('action');showBot('action');reveal('actThink','actCard');$('#actCard').classList.add('done');requestAnimationFrame(()=>focusOn($('#actCard'),1.08,0));return;}
-    if(n===8){app.classList.add('dim');logo.classList.add('show');logoTag.textContent='One subscription. Every frontier model.';return;}
+    if(n===8){app.classList.add('dim');logo.classList.add('show');logoTag.textContent=LOOP_TAGLINE;return;}
     requestAnimationFrame(()=>focusOn(app,0.9,0));
   }
 
