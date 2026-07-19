@@ -41,8 +41,9 @@
   /* ---------- ICON RAIL ---------- */
   .rail{width:50px;flex:0 0 auto;border-right:1px solid var(--border);background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:11px 0 10px;gap:5px;}
   .rail .rlogo{width:24px;height:24px;object-fit:contain;margin-bottom:8px;}
-  .railbtn{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative;}
+  .railbtn{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative;transition:background .22s var(--ease-soft),color .22s var(--ease-soft),transform .12s var(--ease-soft);}
   .railbtn.active{background:var(--brand-15);color:var(--brand-light);}
+  .railbtn.press{transform:scale(.9);}
   .railbtn svg{width:17px;height:17px;}
   .railbtn .nd{position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--brand);}
   .railgap{height:8px;}
@@ -398,8 +399,8 @@
             <div class="rail">
               <img class="rlogo" id="railLogo" alt="">
               <div class="railbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m21 21-4.3-4.3"/></svg></div>
-              <div class="railbtn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg></div>
-              <div class="railbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="nd"></span></div>
+              <div class="railbtn active" id="railChat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="railbtn" id="railDash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="nd"></span></div>
               <div class="railbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></div>
               <div class="railgap"></div>
               <div class="railbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4 2 4H4"/></svg></div>
@@ -723,7 +724,7 @@
         mmPill=$('#mmPill'),modelTag=$('#modelTag'),modelTagText=$('#modelTagText'),modelTagIcon=$('#modelTagIcon'),
         pickCount=$('#pickCount'),pickerFoot=$('#pickerFoot'),inputrow=$('#inputrow'),verdict=$('#verdict'),
         msMenu=$('#msMenu'),msMulti=$('#msMulti'),logo=$('#logo'),logoTag=$('#logoTag'),dashapp=$('#dashapp'),connlayer=$('#connlayer'),
-        dnavChat=$('#dnavChat'),dnavDash=$('#dnavDash'),
+        dnavChat=$('#dnavChat'),dnavDash=$('#dnavDash'),railDash=$('#railDash'),railChat=$('#railChat'),
         capEyebrow=$('#capEyebrow'),capLine=$('#capLine'),tlbar=$('#tlbar');
   // one tagline for BOTH intro and outro so the loop seam is invisible
   const LOOP_TAGLINE='One subscription. Every frontier model.';
@@ -782,6 +783,7 @@
     document.querySelectorAll('.brow').forEach(b=>b.classList.remove('in'));
     dashapp.classList.remove('on','dim');document.querySelectorAll('.dreveal').forEach(d=>d.classList.remove('in'));app.style.visibility='';app.style.display='';
     if(dnavChat){dnavChat.classList.remove('active','press');dnavDash.classList.add('active');}
+    if(railDash){railDash.classList.remove('active','press');railChat.classList.add('active');}
     connlayer.classList.remove('on','in');document.querySelectorAll('.conn-chip').forEach(c=>c.classList.remove('in'));
     logo.classList.remove('show');app.classList.remove('dim');
     COLS.forEach((c,i)=>{$('[data-body="'+i+'"]').innerHTML='';$('[data-i="'+i+'"]').innerHTML='<span class="dots"><i></i><i></i><i></i></span>';});
@@ -790,27 +792,22 @@
 
   async function run(){
     reset();
-    // 0 · logo intro
-    app.classList.add('dim');logoTag.style.opacity=1;logoTag.textContent=LOOP_TAGLINE;logo.classList.add('show');caption('','');tlseg(0,4);
-    await wait(1200);
-    logo.classList.remove('show'); await wait(420);
-
-    // 1 · THE DASHBOARD — the whole product, your day already handled
-    caption('The everything app for AI','Your whole day — already handled'); tlseg(4,28);
+    // 1 · THE DASHBOARD — start straight on the product (no logo intro), your day already handled
+    caption('The everything app for AI','Your whole day — already handled'); tlseg(0,26);
     showDash(true); focusOn(dashapp,0.84,1100,true); await wait(700);
     revealDash(0); await wait(140); revealDash(1); await wait(140); revealDash(2); await wait(140); revealDash(3); await wait(500);
     focusOn(document.querySelector('#dashapp .dbrief'),1.04,1000,true); await wait(850);    // push in — read the briefing
     focusOn(dashapp,0.84,950,true); await wait(700);                                          // pull back to the whole thing
 
     // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
-    caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(28,40);
-    focusOn(document.querySelector('#dashapp .dnav'),1.14,820,true); await wait(640);
-    dnavDash.classList.remove('active'); dnavChat.classList.add('active','press'); await wait(180);
-    dnavChat.classList.remove('press'); await wait(360);
+    caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(26,40);
+    focusOn(document.querySelector('#dashapp .dnav'),1.14,820,true); await wait(700);
+    dnavDash.classList.remove('active'); dnavChat.classList.add('active','press'); await wait(200);
+    dnavChat.classList.remove('press'); await wait(420);
     showDash(false); scene('empty');
-    focusOn(app,0.9,850,true); await wait(760);    // let the empty chat breathe before the picker opens
+    focusOn(app,0.88,1000,true); await wait(1500);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
-    focusOn(msMenu,1.12,820,true); await wait(820);
+    focusOn(msMenu,1.12,900,true); await wait(900);
 
     // 3 · multi-model on + pick three
     caption('02 · Ask them all at once','One switch — three frontier models'); tlseg(40,54);
@@ -838,15 +835,15 @@
     verdict.classList.add('show'); focusOn($('#compareCard'),1.01,1000,false); await wait(1350);
 
     // 6 · it makes things too — first visibly switch multi-model → Auto, then chart
-    caption('05 · It makes things too','Charts, docs & images on command'); tlseg(82,96);
+    caption('05 · It makes things too','Charts, docs & images on command'); tlseg(82,92);
     scene('chart');
-    // open the picker and switch back to a single model (Auto) — a normal single-model task
-    focusOn(inputrow,1.2,600,true); await wait(360);
+    // open the picker and switch back to a single model (Auto) — slowed down so the switch reads clearly
+    focusOn(inputrow,1.2,600,true); await wait(460);
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
-    focusOn(msMenu,1.13,560,true); await wait(500);
-    msMulti.classList.remove('on'); await wait(340);                 // multi-model toggles off (knob slides)
-    $('#msAuto').classList.add('hl'); await wait(360);                // tap Auto
-    msMenu.classList.remove('open'); modelTag.classList.remove('menuopen'); $('#msAuto').classList.remove('hl'); exitMultiModel(); await wait(300);
+    focusOn(msMenu,1.13,620,true); await wait(820);
+    msMulti.classList.remove('on'); await wait(620);                 // multi-model toggles off (knob slides)
+    $('#msAuto').classList.add('hl'); await wait(820);                // tap Auto — hold so you see it land on Auto
+    msMenu.classList.remove('open'); modelTag.classList.remove('menuopen'); $('#msAuto').classList.remove('hl'); exitMultiModel(); await wait(560);
     focusOn(inputrow,1.16,650);
     await typeInto('Chart my monthly revenue for 2026, and highlight where growth took off.',TYPE_CPS); await wait(160);
     send.classList.add('live'); await wait(180); send.classList.remove('live');
@@ -858,11 +855,12 @@
     $('#chartCard').classList.add('drawn'); await wait(1900);
     focusOn($('#chartCard'),1.01,900,false); await wait(1600);   // hold on the finished chart so it can be read
 
-    // outro — hold on the logo, then fade cleanly before looping
-    caption(''); tlseg(96,100); showDash(false); scene('empty'); app.classList.add('dim');
-    logoTag.style.opacity=1; logoTag.textContent=LOOP_TAGLINE;
-    logo.classList.add('show'); await wait(1450);
-    logo.classList.remove('show'); await wait(650);
+    // loop · the user taps "Dashboard" in the rail → back home, and the whole thing repeats
+    caption('','Back to your dashboard'); tlseg(92,100);
+    focusOn(railDash,1.5,760,true); await wait(640);
+    railDash.classList.add('press','active'); railChat.classList.remove('active'); await wait(220);
+    railDash.classList.remove('press'); await wait(520);
+    // showDash(true) runs in the SAME tick as run()'s reset() below, so the empty state never paints
     if(!cancelled) run();
   }
 
