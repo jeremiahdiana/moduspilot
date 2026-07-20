@@ -9,7 +9,7 @@ type Plan = {
   blurb: string;
   features: string[];
   popular?: boolean;
-  accent: 'violet' | 'amber';
+  accent: 'violet' | 'white';
 };
 
 const PLANS: Plan[] = [
@@ -45,7 +45,7 @@ const PLANS: Plan[] = [
     price: '$59',
     cadence: '/mo',
     blurb: 'For founders and executives. 3 days free, then $59/mo.',
-    accent: 'amber',
+    accent: 'white',
     features: [
       'Everything in MODUS',
       'The frontier models (GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro), manual pick per message',
@@ -69,13 +69,15 @@ const ACCENT = {
     card: 'border-brand/50 shadow-[0_24px_70px_-24px_rgba(124,58,237,0.45)]',
     name: 'text-brand',
     check: 'text-brand',
+    badge: 'bg-brand text-white',
     cta: 'btn-primary text-white hover:scale-[1.02] active:scale-100 shadow-[0_0_28px_-4px_rgba(124,58,237,0.55)]',
   },
-  amber: {
-    card: 'border-amber-400/50 shadow-[0_24px_70px_-24px_rgba(245,158,11,0.45)]',
-    name: 'text-amber-500',
-    check: 'text-amber-500',
-    cta: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:scale-[1.02] active:scale-100 shadow-[0_0_28px_-4px_rgba(245,158,11,0.6)]',
+  white: {
+    card: 'pilot-shine',
+    name: 'text-brand',
+    check: 'text-brand',
+    badge: 'bg-white text-brand ring-1 ring-brand/15',
+    cta: 'pilot-cta-shine bg-white text-brand ring-1 ring-brand/20 hover:scale-[1.02] active:scale-100',
   },
 } as const;
 
@@ -114,16 +116,9 @@ export default function HomePricingSection() {
               transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
               className={`relative rounded-2xl p-7 sm:p-8 bg-panel border ${ACCENT[plan.accent].card}`}
             >
-              {plan.popular && (
-                <span className="absolute -top-3 left-8 rounded-full bg-brand text-white text-[11px] font-bold px-3 py-1">
-                  Most popular
-                </span>
-              )}
-              {plan.accent === 'amber' && (
-                <span className="absolute -top-3 left-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold px-3 py-1">
-                  Premium
-                </span>
-              )}
+              <span className={`absolute -top-3 left-8 rounded-full text-[11px] font-bold px-3 py-1 ${ACCENT[plan.accent].badge}`}>
+                {plan.popular ? 'Most popular' : 'Premium'}
+              </span>
 
               <div className="flex items-baseline justify-between mb-1">
                 <span className={`text-lg font-black tracking-widest ${ACCENT[plan.accent].name}`}>{plan.name}</span>

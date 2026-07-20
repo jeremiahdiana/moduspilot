@@ -161,11 +161,15 @@ export default function WhyModusSection() {
             transition={{ duration: 0.5, delay: 0.08, ease: 'easeOut' }}
             className="lg:col-span-2"
           >
-            <ScenariosPlayer />
-            <p className="mt-5 text-[15px] leading-relaxed">
-              <span className="text-text font-semibold">Handles your day.</span>{' '}
-              <span className="text-muted">Real situations, one message each. It drafts, schedules and acts, always waiting on your approval.</span>
-            </p>
+            {/* Narrower than its column so the player doesn't dwarf the two
+                cards flanking it; centred, with the caption matching its width. */}
+            <div className="max-w-[470px] mx-auto">
+              <ScenariosPlayer />
+              <p className="mt-5 text-[15px] leading-relaxed">
+                <span className="text-text font-semibold">Handles your day.</span>{' '}
+                <span className="text-muted">Real situations, one message each. It drafts, schedules and acts, always waiting on your approval.</span>
+              </p>
+            </div>
           </motion.div>
 
           {/* Right: code */}

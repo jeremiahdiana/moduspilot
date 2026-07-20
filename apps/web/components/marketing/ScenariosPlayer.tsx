@@ -290,14 +290,14 @@ export default function ScenariosPlayer() {
 
   return (
     <div ref={ref}>
-      <div className="flex flex-wrap gap-1.5 mb-3" {...handlers}>
+      <div className="flex flex-wrap justify-center gap-1 mb-3" {...handlers}>
         {TABS.map(tab => {
           const on = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative overflow-hidden px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+              className={`relative overflow-hidden px-2 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
                 on ? 'text-white' : 'bg-panel text-muted hover:text-text'
               }`}
             >

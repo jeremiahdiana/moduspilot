@@ -56,6 +56,11 @@
   --code-prop: #953800;
   --code-punc: #57606a;
   --code-cursor: rgba(15, 18, 23, 0.6);
+  /* PILOT "white shine" — a white glow is invisible on a white page, so light
+     mode gets a clean neutral elevation instead of literal white. */
+  --shine-border: rgba(15, 18, 23, 0.16);
+  --shine-glow: rgba(15, 18, 23, 0.20);
+  --shine-cta-glow: rgba(15, 18, 23, 0.14);
 }
 .marketing-dark-tokens {
   --color-bg: 8 8 9;
@@ -74,6 +79,19 @@
   --code-prop: #f78c6c;
   --code-punc: #89ddff;
   --code-cursor: rgba(255, 255, 255, 0.7);
+  /* PILOT "white shine" — the real thing in dark mode. */
+  --shine-border: rgba(255, 255, 255, 0.38);
+  --shine-glow: rgba(255, 255, 255, 0.26);
+  --shine-cta-glow: rgba(255, 255, 255, 0.32);
+}
+
+/* PILOT plan card + CTA shine (see HomePricingSection). */
+.pilot-shine {
+  border-color: var(--shine-border);
+  box-shadow: 0 24px 70px -24px var(--shine-glow);
+}
+.pilot-cta-shine {
+  box-shadow: 0 0 28px -4px var(--shine-cta-glow);
 }
 .marketing {
   color: rgb(var(--color-text));
