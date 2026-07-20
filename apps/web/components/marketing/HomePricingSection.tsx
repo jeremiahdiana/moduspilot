@@ -9,6 +9,7 @@ type Plan = {
   blurb: string;
   features: string[];
   popular?: boolean;
+  accent: 'violet' | 'amber';
 };
 
 const PLANS: Plan[] = [
@@ -18,6 +19,7 @@ const PLANS: Plan[] = [
     cadence: '/mo',
     blurb: '3 days free, then $24/mo. Card required, cancel anytime.',
     popular: true,
+    accent: 'violet',
     features: [
       'AI Chat, unlimited with full context',
       'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama',
@@ -43,6 +45,7 @@ const PLANS: Plan[] = [
     price: '$59',
     cadence: '/mo',
     blurb: 'For founders and executives. 3 days free, then $59/mo.',
+    accent: 'amber',
     features: [
       'Everything in MODUS',
       'The frontier models (GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro), manual pick per message',
@@ -61,9 +64,24 @@ const PLANS: Plan[] = [
   },
 ];
 
-function Check() {
+const ACCENT = {
+  violet: {
+    card: 'border-brand/50 shadow-[0_24px_70px_-24px_rgba(124,58,237,0.45)]',
+    name: 'text-brand',
+    check: 'text-brand',
+    cta: 'btn-primary text-white hover:scale-[1.02] active:scale-100 shadow-[0_0_28px_-4px_rgba(124,58,237,0.55)]',
+  },
+  amber: {
+    card: 'border-amber-400/50 shadow-[0_24px_70px_-24px_rgba(245,158,11,0.45)]',
+    name: 'text-amber-500',
+    check: 'text-amber-500',
+    cta: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:scale-[1.02] active:scale-100 shadow-[0_0_28px_-4px_rgba(245,158,11,0.6)]',
+  },
+} as const;
+
+function Check({ accent }: { accent: Plan['accent'] }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className="w-4 h-4 text-brand shrink-0 mt-0.5">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className={`w-4 h-4 shrink-0 mt-0.5 ${ACCENT[accent].check}`}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
     </svg>
   );
@@ -94,18 +112,21 @@ export default function HomePricingSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-              className={`relative rounded-2xl p-7 sm:p-8 bg-panel border ${
-                plan.popular ? 'border-brand/50 shadow-[0_24px_60px_-24px_rgba(124,58,237,0.35)]' : 'border-border'
-              }`}
+              className={`relative rounded-2xl p-7 sm:p-8 bg-panel border ${ACCENT[plan.accent].card}`}
             >
               {plan.popular && (
                 <span className="absolute -top-3 left-8 rounded-full bg-brand text-white text-[11px] font-bold px-3 py-1">
                   Most popular
                 </span>
               )}
+              {plan.accent === 'amber' && (
+                <span className="absolute -top-3 left-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold px-3 py-1">
+                  Premium
+                </span>
+              )}
 
               <div className="flex items-baseline justify-between mb-1">
-                <span className="text-lg font-black tracking-widest text-brand">{plan.name}</span>
+                <span className={`text-lg font-black tracking-widest ${ACCENT[plan.accent].name}`}>{plan.name}</span>
               </div>
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-5xl text-text" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>{plan.price}</span>
@@ -115,11 +136,7 @@ export default function HomePricingSection() {
 
               <a
                 href="/login"
-                className={`group flex items-center justify-center gap-2 w-full rounded-xl px-6 py-3.5 text-sm font-bold transition-all ${
-                  plan.popular
-                    ? 'btn-primary text-white hover:scale-[1.02] active:scale-100'
-                    : 'border border-border text-text hover:bg-text/[0.04]'
-                }`}
+                className={`group flex items-center justify-center gap-2 w-full rounded-xl px-6 py-3.5 text-sm font-bold transition-all ${ACCENT[plan.accent].cta}`}
               >
                 Start 3-day trial
                 <span className="group-hover:translate-x-0.5 transition-transform">→</span>
@@ -128,7 +145,7 @@ export default function HomePricingSection() {
               <ul className="mt-7 space-y-3">
                 {plan.features.map(f => (
                   <li key={f} className="flex items-start gap-2.5">
-                    <Check />
+                    <Check accent={plan.accent} />
                     <span className="text-sm text-text/90 leading-relaxed">{f}</span>
                   </li>
                 ))}

@@ -96,32 +96,6 @@ export default function ModelPickerDemo() {
             </motion.div>
           );
         })}
-
-        {/* Faux cursor tapping each selected row */}
-        <motion.div
-          className="pointer-events-none absolute right-8 z-10"
-          animate={{ top: sel * ROW_H + 8 + ROW_H / 2 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-        >
-          <motion.div
-            key={sel}
-            animate={{ scale: [1, 0.8, 1] }}
-            transition={{ duration: 0.35, times: [0, 0.4, 1] }}
-            className="relative"
-          >
-            <svg viewBox="0 0 24 24" className="w-5 h-5 drop-shadow" fill="currentColor" style={{ color: 'rgb(var(--color-text))' }}>
-              <path d="M5 3l14 8-6 1.5L9 20 5 3z" />
-            </svg>
-            {/* tap ripple */}
-            <motion.span
-              key={`r-${sel}`}
-              initial={{ scale: 0, opacity: 0.5 }}
-              animate={{ scale: 2.4, opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="absolute -left-1 -top-1 w-4 h-4 rounded-full bg-brand/40"
-            />
-          </motion.div>
-        </motion.div>
       </div>
     </div>
   );

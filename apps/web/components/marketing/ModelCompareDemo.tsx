@@ -107,7 +107,7 @@ function Column({ col, delayMs }: { col: Col; delayMs: number }) {
 function Round({ prompt }: { prompt: Prompt }) {
   const [showVerdict, setShowVerdict] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setShowVerdict(true), 3600);
+    const t = setTimeout(() => setShowVerdict(true), 2300);
     return () => clearTimeout(t);
   }, []);
 
@@ -156,9 +156,9 @@ export default function ModelCompareDemo() {
 
   useEffect(() => {
     if (!inView) return;
-    // ~13s per prompt: types out (~2s), verdict at 3.6s, then reads until it
+    // ~8s per prompt: types out (~1.6s), verdict at 2.3s, then reads until it
     // advances and crossfades to the next question, looping back to the first.
-    const t = setTimeout(() => setIdx(i => (i + 1) % PROMPTS.length), 13000);
+    const t = setTimeout(() => setIdx(i => (i + 1) % PROMPTS.length), 8000);
     return () => clearTimeout(t);
   }, [inView, idx]);
 

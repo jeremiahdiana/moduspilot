@@ -21,7 +21,7 @@ export default function MultiModelSection() {
             Every AI, one conversation
           </h2>
           <p className="text-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-            Stop paying for five apps and pasting between them. Claude, GPT-5.6, Gemini, Llama and DeepSeek all live in a single chat.
+            Stop paying for five apps and pasting between them. Claude, GPT-5.6, Gemini, Llama and more all live in a single chat.
           </p>
 
           <div className="flex flex-wrap justify-center gap-2 mt-7">
@@ -73,28 +73,6 @@ export default function MultiModelSection() {
             <ModelPickerDemo />
           </motion.div>
         </div>
-
-        <p className="text-center text-sm text-muted mt-8 max-w-2xl mx-auto">
-          <span className="text-text font-medium">MODUS</span> ($24) gives you every provider, auto-routed. <span className="text-text font-medium">PILOT</span> ($59) adds the frontier models (GPT-5.6 Sol, Claude Opus, Gemini 3.1 Pro) with manual pick per message.
-        </p>
-
-        {/* First-scroll conversion */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="mt-10 flex flex-col items-center gap-3"
-        >
-          <a
-            href="/login"
-            className="btn-primary group inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-white text-sm font-bold hover:scale-[1.02] active:scale-100 transition-transform"
-          >
-            Start your 3-day free trial
-            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-          </a>
-          <p className="text-xs text-muted">3 days free · card required · cancel anytime</p>
-        </motion.div>
       </div>
     </section>
   );

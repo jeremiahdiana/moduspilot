@@ -65,7 +65,6 @@ export default function HeroFilm() {
             Start your 3-day free trial
             <span className="group-hover:translate-x-0.5 transition-transform">→</span>
           </a>
-          <p className="text-xs text-muted/80">3 days free · card required · cancel anytime</p>
         </motion.div>
       </div>
 

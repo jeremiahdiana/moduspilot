@@ -45,6 +45,17 @@
   --color-border: 228 230 237;
   --color-text: 17 18 23;
   --color-muted: 92 96 108;
+  /* Code editor mockup — light (GitHub-light-ish) so it isn't the one black block on a light page */
+  --code-bg: #ffffff;
+  --code-chrome: #f6f8fa;
+  --code-border: rgba(15, 18, 23, 0.10);
+  --code-dot: rgba(15, 18, 23, 0.15);
+  --code-kw: #cf222e;
+  --code-fn: #8250df;
+  --code-str: #0a3069;
+  --code-prop: #953800;
+  --code-punc: #57606a;
+  --code-cursor: rgba(15, 18, 23, 0.6);
 }
 .marketing-dark-tokens {
   --color-bg: 8 8 9;
@@ -52,6 +63,17 @@
   --color-border: 34 34 38;
   --color-text: 237 237 240;
   --color-muted: 148 148 156;
+  /* Code editor mockup — dark */
+  --code-bg: #0d1117;
+  --code-chrome: #0d1117;
+  --code-border: rgba(255, 255, 255, 0.10);
+  --code-dot: rgba(255, 255, 255, 0.25);
+  --code-kw: #c792ea;
+  --code-fn: #82aaff;
+  --code-str: #c3e88d;
+  --code-prop: #f78c6c;
+  --code-punc: #89ddff;
+  --code-cursor: rgba(255, 255, 255, 0.7);
 }
 .marketing {
   color: rgb(var(--color-text));
