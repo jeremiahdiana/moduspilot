@@ -49,10 +49,10 @@ export default function CompareSection() {
         >
           {/* Header */}
           <div className="grid grid-cols-5">
-            <div className="col-span-2 px-6 py-4" />
+            <div className="col-span-2 px-3 sm:px-6 py-4" />
             {['MODUS', 'ChatGPT', 'Notion'].map((col, i) => (
-              <div key={col} className={`px-4 py-4 text-center ${i === 0 ? 'bg-brand/10' : ''}`}>
-                <span className={`text-xs font-bold uppercase tracking-widest ${i === 0 ? 'text-brand' : 'text-muted'}`}>{col}</span>
+              <div key={col} className={`px-1.5 sm:px-4 py-4 text-center ${i === 0 ? 'bg-brand/10' : ''}`}>
+                <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide sm:tracking-widest ${i === 0 ? 'text-brand' : 'text-muted'}`}>{col}</span>
               </div>
             ))}
           </div>
@@ -63,12 +63,12 @@ export default function CompareSection() {
               key={row.feature}
               className={`grid grid-cols-5 ${i % 2 === 0 ? '' : 'bg-bg/40'}`}
             >
-              <div className="col-span-2 px-6 py-4 text-sm text-muted">{row.feature}</div>
-              <div className="px-4 py-4 text-center bg-brand/10">
+              <div className="col-span-2 px-3 sm:px-6 py-4 text-[13px] sm:text-sm text-muted">{row.feature}</div>
+              <div className="px-1.5 sm:px-4 py-4 text-center bg-brand/10">
                 <Cell value={row.modus} />
               </div>
-              <div className="px-4 py-4 text-center"><Cell value={row.chatgpt} /></div>
-              <div className="px-4 py-4 text-center"><Cell value={row.notion} /></div>
+              <div className="px-1.5 sm:px-4 py-4 text-center"><Cell value={row.chatgpt} /></div>
+              <div className="px-1.5 sm:px-4 py-4 text-center"><Cell value={row.notion} /></div>
             </div>
           ))}
         </motion.div>
