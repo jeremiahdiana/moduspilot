@@ -49,7 +49,7 @@ export default function HeroFilm() {
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
           className="mt-6 text-base sm:text-lg text-muted leading-relaxed max-w-xl mx-auto"
         >
-          Every frontier model — Claude, GPT, Gemini — plus your whole life connected. One subscription.
+          Claude, GPT, Gemini and every other frontier model, plus your whole life connected. One subscription.
         </motion.p>
 
         <motion.div
@@ -88,7 +88,7 @@ export default function HeroFilm() {
           {filmScale > 0 && (
             <iframe
               src="/hero-film.html"
-              title="MODUS in action — every frontier model, every task, one place"
+              title="MODUS in action: every frontier model, every task, one place"
               loading="eager"
               scrolling="no"
               className="absolute top-0 left-0 border-0"

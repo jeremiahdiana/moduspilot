@@ -2,11 +2,12 @@
 
 import { ScrollProgress } from './MarketingBackground';
 import RevealSection from './RevealSection';
+import MarketingDecor from './MarketingDecor';
 import HeroFilm from './HeroFilm';
 import MultiModelSection from './MultiModelSection';
 import IntegrationsSection from './IntegrationsSection';
 import WhyModusSection from './WhyModusSection';
-import StatsSection from './StatsSection';
+import HomePricingSection from './HomePricingSection';
 import FAQSection from './FAQSection';
 import FinalCTA from './FinalCTA';
 import Footer from './Footer';
@@ -21,10 +22,11 @@ import Footer from './Footer';
  * Compare, sticky CTA) is intentionally gone — those files still exist but are
  * no longer wired in here.
  */
-export default function HomepageShell() {
+export default function HomepageShell({ dark = false }: { dark?: boolean }) {
   return (
-    <main className="marketing-light text-text min-h-screen overflow-x-hidden relative">
+    <main className="bg-bg text-text min-h-screen overflow-x-hidden relative">
       <ScrollProgress />
+      <MarketingDecor dark={dark} />
 
       <div className="relative" style={{ zIndex: 2 }}>
         <HeroFilm />
@@ -42,7 +44,7 @@ export default function HomepageShell() {
         </RevealSection>
 
         <RevealSection direction="none">
-          <StatsSection />
+          <HomePricingSection />
         </RevealSection>
 
         <RevealSection direction="none">

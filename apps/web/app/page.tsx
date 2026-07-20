@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import Navbar from '@/components/marketing/Navbar';
-import HomepageShell from '@/components/marketing/HomepageShell';
+import MarketingHome from '@/components/marketing/MarketingHome';
 
 export const metadata: Metadata = {
   title: 'Modus — AI Life OS',
@@ -48,8 +47,7 @@ export default function MarketingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Navbar light />
-      <HomepageShell />
+      <MarketingHome />
     </>
   );
 }

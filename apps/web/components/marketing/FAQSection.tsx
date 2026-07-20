@@ -6,7 +6,7 @@ import { useState } from 'react';
 const FAQS = [
   {
     q: 'Why pay for MODUS instead of ChatGPT Plus?',
-    a: "Because ChatGPT is one model that forgets you. MODUS gives you every frontier model — Claude, GPT-5.6, Gemini, Llama, DeepSeek — in one chat, keeps persistent memory of you across every conversation, and actually connects to your inbox, calendar and files to get things done. One bill instead of five subscriptions.",
+    a: "Because ChatGPT is one model that forgets you. MODUS gives you every frontier model (Claude, GPT-5.6, Gemini, Llama, DeepSeek) in one chat, keeps persistent memory of you across every conversation, and actually connects to your inbox, calendar and files to get things done. One bill instead of five subscriptions.",
   },
   {
     q: 'Do I really get every top AI model in one place?',
@@ -14,7 +14,7 @@ const FAQS = [
   },
   {
     q: 'What can MODUS actually do for me?',
-    a: "Every morning it sends a briefing: your top priorities, overdue tasks and habits at risk. Through the day you can ask it to draft and send email, reschedule meetings, update goals or log habits. Every action it takes waits on an approval card first — nothing runs without you.",
+    a: "Every morning it sends a briefing: your top priorities, overdue tasks and habits at risk. Through the day you can ask it to draft and send email, reschedule meetings, update goals or log habits. Every action it takes waits on an approval card first, so nothing runs without you.",
   },
   {
     q: 'What apps does it connect to?',
@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: 'How much is it, and is there a free trial?',
-    a: "MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Both start with a 3-day free trial — card required, cancel anytime, and you keep access until the end of your billing period.",
+    a: "MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Both start with a 3-day free trial, card required, cancel anytime, and you keep access until the end of your billing period.",
   },
   {
     q: 'Is my data private?',

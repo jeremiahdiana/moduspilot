@@ -11,11 +11,14 @@ import { auth } from '@/lib/firebase';
 
 interface Props {
   solid?: boolean;
-  /** Light marketing chrome: dark-on-white glass + no theme toggler (homepage). */
-  light?: boolean;
+  /** Homepage marketing chrome: renders an in-session theme toggle instead of
+   *  the global AnimatedThemeToggler, and picks the logo to match `marketingTheme`. */
+  marketingTheme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
-export default function Navbar({ solid = false, light = false }: Props) {
+export default function Navbar({ solid = false, marketingTheme, onToggleTheme }: Props) {
+  const isMarketing = !!marketingTheme;
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [authedUser, setAuthedUser] = useState<{ name: string | null; email: string | null } | null>(null);
@@ -51,9 +54,7 @@ export default function Navbar({ solid = false, light = false }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 overflow-hidden transition-all duration-500 ${
-        light ? 'marketing-light-tokens' : ''
-      } ${
-        showBg ? `backdrop-blur-2xl ${light ? 'shadow-[0_4px_32px_rgba(30,20,60,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.14)]'}` : 'bg-transparent'
+        showBg ? `backdrop-blur-2xl ${marketingTheme === 'light' ? 'shadow-[0_4px_32px_rgba(30,20,60,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.14)]'}` : 'bg-transparent'
       }`}
     >
       {/* Glass gradient background */}
@@ -79,8 +80,8 @@ export default function Navbar({ solid = false, light = false }: Props) {
       </AnimatePresence>
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-1.5 shrink-0">
-          {light ? (
-            <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain" />
+          {isMarketing ? (
+            <Image src={marketingTheme === 'dark' ? '/logo-dark.png' : '/logo.png'} alt="MODUS" width={52} height={40} className="object-contain" />
           ) : (
             <>
               <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain block dark:hidden" />
@@ -110,7 +111,26 @@ export default function Navbar({ solid = false, light = false }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
-          {!light && <AnimatedThemeToggler />}
+          {isMarketing ? (
+            <button
+              onClick={onToggleTheme}
+              aria-label="Toggle theme"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-text hover:bg-text/[0.06] transition-colors"
+            >
+              {marketingTheme === 'dark' ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                  <circle cx="12" cy="12" r="4" />
+                  <path strokeLinecap="round" d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+                </svg>
+              )}
+            </button>
+          ) : (
+            <AnimatedThemeToggler />
+          )}
           <AnimatePresence mode="wait">
             {authLoading ? (
               <motion.div

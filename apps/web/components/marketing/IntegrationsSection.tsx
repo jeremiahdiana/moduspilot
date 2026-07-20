@@ -136,12 +136,11 @@ export default function IntegrationsSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-12"
         >
-          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Connect everything</p>
           <h2 className="text-4xl md:text-5xl tracking-tight text-text leading-tight mb-4">
-            Your whole life, plugged in
+            Connect Everything
           </h2>
           <p className="text-muted text-base leading-relaxed max-w-2xl mx-auto mb-4">
-            Not &ldquo;coming soon.&rdquo; MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone it reaches iMessage, notes, reminders, photos and health — and connects to any MCP server on top.
+            MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone it reaches iMessage, notes, reminders, photos and health, and connects to any MCP server on top.
           </p>
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

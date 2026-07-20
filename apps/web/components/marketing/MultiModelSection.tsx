@@ -1,9 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { MODEL_LOGOS } from './ModelLogos';
 import ModelCompareDemo from './ModelCompareDemo';
+import ModelPickerDemo from './ModelPickerDemo';
 
 export default function MultiModelSection() {
   return (
@@ -17,7 +17,6 @@ export default function MultiModelSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-14"
         >
-          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">One chat. Every model.</p>
           <h2 className="text-4xl md:text-5xl text-text leading-[1.1] tracking-tight mb-5">
             Every AI, one conversation
           </h2>
@@ -52,7 +51,7 @@ export default function MultiModelSection() {
               Ask them all at once
             </h3>
             <p className="text-sm text-muted leading-relaxed mb-5">
-              One prompt, several models answer side by side — then MODUS tells you which one won.
+              One prompt, several models answer side by side, then MODUS tells you which one won.
             </p>
             <ModelCompareDemo />
           </motion.div>
@@ -71,20 +70,12 @@ export default function MultiModelSection() {
             <p className="text-sm text-muted leading-relaxed mb-5">
               Switch models right in the composer. Or leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best.
             </p>
-            <div className="rounded-xl border border-border overflow-hidden shadow-[0_16px_40px_-20px_rgba(30,20,60,0.25)]">
-              <Image
-                src="/screenshot-models.png"
-                alt="The MODUS model picker — choose Claude, GPT, Gemini and more per message"
-                width={1200}
-                height={800}
-                className="w-full h-auto"
-              />
-            </div>
+            <ModelPickerDemo />
           </motion.div>
         </div>
 
         <p className="text-center text-sm text-muted mt-8 max-w-2xl mx-auto">
-          <span className="text-text font-medium">MODUS</span> ($24) gives you every provider, auto-routed. <span className="text-text font-medium">PILOT</span> ($59) adds the frontier models — GPT-5.6 Sol, Claude Opus, Gemini 3.1 Pro — with manual pick per message.
+          <span className="text-text font-medium">MODUS</span> ($24) gives you every provider, auto-routed. <span className="text-text font-medium">PILOT</span> ($59) adds the frontier models (GPT-5.6 Sol, Claude Opus, Gemini 3.1 Pro) with manual pick per message.
         </p>
 
         {/* First-scroll conversion */}

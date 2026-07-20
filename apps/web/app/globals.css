@@ -34,9 +34,11 @@
    light color tokens for its own subtree regardless of any ancestor `.dark`,
    and paints a soft white gradient behind it. Wrap the marketing homepage in it.
    Headlines switch to the Sentient serif. Purple (#7C3AED) stays the accent. */
-/* Token-only light scope (no background / no serif) — for chrome that lives
-   OUTSIDE the .marketing-light main, e.g. the fixed navbar, which still needs to
-   stay transparent at the top of the page. */
+/* ── Marketing "Cluely-style" scope — now theme-aware ────────────────────────
+   The homepage supports BOTH light and dark, toggled in-session. The wrapper
+   (see MarketingHome.tsx) carries `.marketing` + one token class so its whole
+   subtree (nav + sections) re-declares the right color tokens regardless of the
+   global forced `.dark`. Headlines use the Sentient serif in both themes. */
 .marketing-light-tokens {
   --color-bg: 255 255 255;
   --color-panel: 249 250 252;
@@ -44,23 +46,20 @@
   --color-text: 17 18 23;
   --color-muted: 92 96 108;
 }
-
-.marketing-light {
-  --color-bg: 255 255 255;
-  --color-panel: 249 250 252;
-  --color-border: 228 230 237;
-  --color-text: 17 18 23;
-  --color-muted: 92 96 108;
-  color: rgb(var(--color-text));
-  background:
-    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(96, 118, 240, 0.12), transparent 60%),
-    radial-gradient(ellipse 70% 45% at 92% 4%, rgba(124, 58, 237, 0.07), transparent 60%),
-    radial-gradient(ellipse 80% 50% at 6% 30%, rgba(124, 58, 237, 0.05), transparent 55%),
-    #ffffff;
+.marketing-dark-tokens {
+  --color-bg: 8 8 9;
+  --color-panel: 22 22 24;
+  --color-border: 34 34 38;
+  --color-text: 237 237 240;
+  --color-muted: 148 148 156;
 }
-.marketing-light h1,
-.marketing-light h2,
-.marketing-light h3 {
+.marketing {
+  color: rgb(var(--color-text));
+  background: rgb(var(--color-bg));
+}
+.marketing h1,
+.marketing h2,
+.marketing h3 {
   font-family: var(--font-serif);
   font-weight: 500;
   letter-spacing: -0.015em;
