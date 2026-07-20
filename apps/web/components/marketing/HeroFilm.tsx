@@ -18,7 +18,7 @@
  */
 
 /* ── Typewriter (mobile subhead) ── */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const PHRASES = ['builds your plan', 'tracks your habits', 'triages your inbox', 'blocks your deep work', 'tells you what to focus on'];
 function Typewriter() {
@@ -53,6 +53,24 @@ export default function HeroFilm() {
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Mobile film card. The film's camera choreography only renders correctly at a
+  // large viewport, so we mount the iframe at its native 1280×720 and CSS-scale
+  // the whole element down to the card width — the film runs exactly as it does on
+  // desktop, just shrunk. filmScale > 0 only when the card is actually visible
+  // (mobile), which also keeps the iframe from loading on desktop.
+  const filmRef = useRef<HTMLDivElement>(null);
+  const [filmScale, setFilmScale] = useState(0);
+  useEffect(() => {
+    const el = filmRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      if (w) setFilmScale(w / 1280);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   return (
@@ -115,10 +133,24 @@ export default function HeroFilm() {
           ))}
         </div>
 
-        {/* Decorative scroll cue into the sections below */}
-        <div aria-hidden className="fm-rise mt-12 flex flex-col items-center gap-1 text-muted/50" style={{ animationDelay: '0.5s' }}>
-          <span className="text-[10px] uppercase tracking-[0.2em]">Explore</span>
-          <span className="animate-bounce text-lg leading-none">↓</span>
+        {/* Live product film — mounted at native 1280×720 and CSS-scaled to fit. */}
+        <div className="fm-rise w-full max-w-md mx-auto mt-11" style={{ animationDelay: '0.46s' }}>
+          <div
+            ref={filmRef}
+            className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-[#050506] shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]"
+          >
+            {filmScale > 0 && (
+              <iframe
+                src="/hero-film.html"
+                title="MODUS in action — the app, live"
+                loading="eager"
+                scrolling="no"
+                className="absolute top-0 left-0 border-0"
+                style={{ width: 1280, height: 720, transformOrigin: 'top left', transform: `scale(${filmScale})` }}
+              />
+            )}
+          </div>
+          <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-muted/70">A live look at MODUS</p>
         </div>
       </section>
     </>
