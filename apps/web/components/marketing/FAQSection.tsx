@@ -5,36 +5,28 @@ import { useState } from 'react';
 
 const FAQS = [
   {
-    q: 'What does MODUS actually do day-to-day?',
-    a: "Every morning MODUS sends you a briefing: energy check-in, top 3 priorities, overdue tasks, habits at risk. During the day you can message it to draft emails, reschedule meetings, update goals, or log habits. It queues every action as an approval card before anything runs. You're always in control.",
+    q: 'Why pay for MODUS instead of ChatGPT Plus?',
+    a: "Because ChatGPT is one model that forgets you. MODUS gives you every frontier model — Claude, GPT-5.6, Gemini, Llama, DeepSeek — in one chat, keeps persistent memory of you across every conversation, and actually connects to your inbox, calendar and files to get things done. One bill instead of five subscriptions.",
   },
   {
-    q: 'How is this different from just using ChatGPT?',
-    a: "ChatGPT answers questions in a vacuum. MODUS has persistent memory across every conversation, connects to your Gmail and Google Calendar, tracks your goals and habits over time, and proactively reaches out to you. You don't go to it. Different category entirely.",
+    q: 'Do I really get every top AI model in one place?',
+    a: "Yes. Claude, GPT-5.6, Gemini, Llama and DeepSeek live in the same chat. Pick the model you want for any message, leave it on Auto and let MODUS route each task to the best one, or ask several at once and get one clear verdict. No API keys, no separate logins.",
   },
   {
-    q: 'Which AI models does MODUS use?',
-    a: "Claude, GPT-5.6, Gemini and Llama all live in one chat. Pick the model you want for any message, or leave it on Auto and MODUS routes each task to the best one. MODUS ($24) gives you every provider, auto-routed; PILOT ($59) adds the frontier models — GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro — with manual pick per message.",
+    q: 'What can MODUS actually do for me?',
+    a: "Every morning it sends a briefing: your top priorities, overdue tasks and habits at risk. Through the day you can ask it to draft and send email, reschedule meetings, update goals or log habits. Every action it takes waits on an approval card first — nothing runs without you.",
   },
   {
-    q: 'Can I use my own OpenAI or Claude API key?',
-    a: 'Yes. Under Settings → Brain you can connect your own OpenAI or Anthropic key, or just use the models MODUS already includes, no key needed. Either way MODUS handles the orchestration and routing.',
+    q: 'What apps does it connect to?',
+    a: "On the web: Gmail, Google Calendar, Google Drive, Notion, Slack and GitHub. On your Mac and iPhone: iMessage, Apple Notes, Reminders, Contacts, Photos and Apple Health. You can also connect any MCP server. Live across web, Mac and iPhone.",
   },
   {
-    q: 'Can MODUS create images and PDFs?',
-    a: 'Yes. Ask MODUS to generate an image or a document and it makes it right in the chat: images you can download, and formatted PDFs you can edit in a live canvas before exporting.',
-  },
-  {
-    q: 'What integrations does MODUS support?',
-    a: 'On the web: Gmail, Google Calendar, Drive, Notion, Slack and GitHub. MODUS reads your inbox, drafts replies, and syncs meetings into your briefing. On your Mac and iPhone it also reaches iMessage, Apple Notes, Reminders, Contacts, Photos, Apple Health, iCloud files and even your Obsidian vault. The Mac app is live and the iPhone app is in beta.',
+    q: 'How much is it, and is there a free trial?',
+    a: "MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Both start with a 3-day free trial — card required, cancel anytime, and you keep access until the end of your billing period.",
   },
   {
     q: 'Is my data private?',
-    a: "Your data is never sold or used to train AI models. Memory is stored in your own encrypted Firestore and Pinecone index. You can view and delete everything MODUS knows about you at any time from Settings → Memory.",
-  },
-  {
-    q: 'Can I cancel anytime?',
-    a: "Yes. No lock-in. Cancel from your account settings or email us and we'll handle it same day. You keep access until the end of your billing period.",
+    a: "Your data is never sold or used to train AI models. Memory is stored in your own encrypted index, and you can view and delete everything MODUS knows about you at any time from Settings → Memory.",
   },
 ];
 

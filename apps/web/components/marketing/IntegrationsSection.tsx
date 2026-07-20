@@ -117,23 +117,6 @@ const INTEGRATIONS: Integration[] = [
       </svg>
     ),
   },
-  {
-    name: 'iCloud Drive', desc: 'Open any file for context', surface: 'iPhone',
-    svg: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#3B9EDB" d="M7 18.5a4.2 4.2 0 0 1-.5-8.37 5.2 5.2 0 0 1 10-1.45A3.75 3.75 0 0 1 18.2 18.5H7z"/>
-      </svg>
-    ),
-  },
-  {
-    name: 'Obsidian', desc: 'Chat with your markdown vault', surface: 'iPhone',
-    svg: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6">
-        <path fill="#8B5CF6" d="M13.2 2 5.5 8.8 8 20l7.2 2 3.8-8.2L16.5 5z"/>
-        <path fill="#a78bfa" d="M13.2 2 8 8.8l4 5.2 3.5-3.2z"/>
-      </svg>
-    ),
-  },
 ];
 
 const SURFACE_STYLE: Record<Integration['surface'], string> = {
@@ -153,12 +136,12 @@ export default function IntegrationsSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-center mb-12"
         >
-          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Integrations</p>
-          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text leading-tight mb-4">
-            Your tools. All connected. Actually live.
+          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Connect everything</p>
+          <h2 className="text-4xl md:text-5xl tracking-tight text-text leading-tight mb-4">
+            Your whole life, plugged in
           </h2>
           <p className="text-muted text-base leading-relaxed max-w-2xl mx-auto mb-4">
-            Not &ldquo;coming soon.&rdquo; MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone, it reaches your iMessage, notes, reminders, photos, health, and even your Obsidian vault.
+            Not &ldquo;coming soon.&rdquo; MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone it reaches iMessage, notes, reminders, photos and health — and connects to any MCP server on top.
           </p>
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

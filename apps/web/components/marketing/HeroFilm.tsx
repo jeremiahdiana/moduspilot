@@ -1,38 +1,23 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 
 /**
- * HeroFilm — the homepage hero: a live, looping 1:1 rebuild of the MODUS app
- * served full-bleed from /public/hero-film.html inside an isolated iframe. The
- * film is the whole hero on every viewport — no headline, no CTA.
+ * HeroFilm — the homepage hero, Cluely-style: a serif headline + one-line
+ * subtext + a single CTA, sitting ABOVE a contained "app window" that holds the
+ * live, looping 1:1 rebuild of the MODUS app (served from /public/hero-film.html
+ * in an isolated iframe).
  *
- * Desktop (lg+): the film COVERS the viewport (the landscape 16:9 app fills a
- * landscape screen edge-to-edge, car-site style).
- *
- * Mobile (<lg): a portrait screen can't cover-crop a landscape film without
- * pushing the app out of frame, so instead the film is scaled to the FULL WIDTH
- * of the screen and centered, so the whole app is visible large and edge-to-edge
- * — the same "the app is the hero" treatment as the laptop. The film only renders
- * correctly at its native size, so we mount the iframe at 1280×720 and CSS-scale
- * the whole element down to the viewport width (via ResizeObserver). The screen
- * above/below the film band is filled with the same aurora so it reads as one
- * cinematic full-screen hero.
+ * The film only renders correctly at its native 1280×720, so we always mount the
+ * iframe at that size and CSS-scale the whole element down to whatever width its
+ * container ends up (via ResizeObserver). No more full-bleed cover — the film is
+ * a floating product shot, not the whole viewport.
  */
 export default function HeroFilm() {
-  // Mount exactly one film per device: the desktop cover-film only on lg+, the
-  // mobile scaled-film only when its band is actually laid out (i.e. on mobile).
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const update = () => setIsDesktop(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-
   const filmRef = useRef<HTMLDivElement>(null);
   const [filmScale, setFilmScale] = useState(0);
+
   useEffect(() => {
     const el = filmRef.current;
     if (!el) return;
@@ -44,40 +29,61 @@ export default function HeroFilm() {
     return () => ro.disconnect();
   }, []);
 
-  const scrim = (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#060608]/80 via-[#060608]/30 to-transparent"
-    />
-  );
-
   return (
-    <>
-      {/* ── DESKTOP: full-bleed cover film ── */}
-      <section className="relative hidden lg:block w-full h-[100svh] overflow-hidden">
-        {isDesktop && (
-          <iframe
-            src="/hero-film.html"
-            title="MODUS in action — every frontier model, every task, one place"
-            loading="eager"
-            scrolling="no"
-            className="absolute inset-0 h-full w-full border-0"
-          />
-        )}
-        {scrim}
-      </section>
+    <section className="relative px-6 pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
+      <div className="max-w-5xl mx-auto text-center">
+        {/* Headline + subtext + CTA */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+          className="text-[2.6rem] leading-[1.05] sm:text-6xl md:text-7xl text-text tracking-tight"
+        >
+          The only AI you&apos;ll
+          <br className="hidden sm:block" /> ever pay for
+        </motion.h1>
 
-      {/* ── MOBILE: full-width film, centered on a full-screen aurora ── */}
-      <section className="relative lg:hidden w-full h-[100svh] overflow-hidden bg-[#060608]">
-        {/* Aurora backdrop filling the whole screen so the film band is seamless */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_60%_at_50%_42%,rgba(124,58,237,0.22),transparent_70%)]" />
-        </div>
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
+          className="mt-6 text-base sm:text-lg text-muted leading-relaxed max-w-xl mx-auto"
+        >
+          Every frontier model — Claude, GPT, Gemini — plus your whole life connected. One subscription.
+        </motion.p>
 
-        {/* The film, scaled to the full viewport width, vertically centered */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
+          className="mt-9 flex flex-col items-center gap-3"
+        >
+          <a
+            href="/login"
+            className="btn-primary group inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-white text-sm font-bold hover:scale-[1.02] active:scale-100 transition-transform"
+          >
+            Start your 3-day free trial
+            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+          </a>
+          <p className="text-xs text-muted/80">3 days free · card required · cancel anytime</p>
+        </motion.div>
+      </div>
+
+      {/* Contained hero-film "app window" */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
+        className="relative max-w-5xl mx-auto mt-14 sm:mt-20"
+      >
+        {/* Soft glow behind the window */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,rgba(124,58,237,0.16),transparent_70%)]"
+        />
         <div
           ref={filmRef}
-          className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full aspect-video overflow-hidden"
+          className="relative w-full aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-[0_30px_80px_-20px_rgba(30,20,60,0.35)] ring-1 ring-black/5"
         >
           {filmScale > 0 && (
             <iframe
@@ -90,9 +96,7 @@ export default function HeroFilm() {
             />
           )}
         </div>
-
-        {scrim}
-      </section>
-    </>
+      </motion.div>
+    </section>
   );
 }

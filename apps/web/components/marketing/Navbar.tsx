@@ -11,9 +11,11 @@ import { auth } from '@/lib/firebase';
 
 interface Props {
   solid?: boolean;
+  /** Light marketing chrome: dark-on-white glass + no theme toggler (homepage). */
+  light?: boolean;
 }
 
-export default function Navbar({ solid = false }: Props) {
+export default function Navbar({ solid = false, light = false }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [authedUser, setAuthedUser] = useState<{ name: string | null; email: string | null } | null>(null);
@@ -40,7 +42,6 @@ export default function Navbar({ solid = false }: Props) {
 
   const navLinks = [
     { href: '/', label: 'Home' },
-    { href: '/features', label: 'Features' },
     { href: '/pricing', label: 'Pricing' },
   ];
 
@@ -50,7 +51,9 @@ export default function Navbar({ solid = false }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 overflow-hidden transition-all duration-500 ${
-        showBg ? 'backdrop-blur-2xl shadow-[0_4px_32px_rgba(0,0,0,0.14)]' : 'bg-transparent'
+        light ? 'marketing-light-tokens' : ''
+      } ${
+        showBg ? `backdrop-blur-2xl ${light ? 'shadow-[0_4px_32px_rgba(30,20,60,0.08)]' : 'shadow-[0_4px_32px_rgba(0,0,0,0.14)]'}` : 'bg-transparent'
       }`}
     >
       {/* Glass gradient background */}
@@ -76,8 +79,14 @@ export default function Navbar({ solid = false }: Props) {
       </AnimatePresence>
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
         <Link href="/" className="flex items-center gap-1.5 shrink-0">
-          <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain block dark:hidden" />
-          <Image src="/logo-dark.png" alt="MODUS" width={52} height={40} className="object-contain hidden dark:block" />
+          {light ? (
+            <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain" />
+          ) : (
+            <>
+              <Image src="/logo.png" alt="MODUS" width={52} height={40} className="object-contain block dark:hidden" />
+              <Image src="/logo-dark.png" alt="MODUS" width={52} height={40} className="object-contain hidden dark:block" />
+            </>
+          )}
           <div className="flex flex-col leading-none">
             <span className="text-sm font-black tracking-widest text-brand">MODUS</span>
             <span className="text-[8px] font-semibold text-muted tracking-widest uppercase">pilot</span>
@@ -101,7 +110,7 @@ export default function Navbar({ solid = false }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
-          <AnimatedThemeToggler />
+          {!light && <AnimatedThemeToggler />}
           <AnimatePresence mode="wait">
             {authLoading ? (
               <motion.div

@@ -1,8 +1,8 @@
 export default function Footer() {
   const links = {
     Product: [
-      { label: 'Features', href: '/features' },
       { label: 'Pricing', href: '/pricing' },
+      { label: 'Download for Mac', href: '/download' },
     ],
     Company: [
       { label: 'Privacy', href: '/privacy' },
