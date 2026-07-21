@@ -27,13 +27,12 @@ const QUESTION_SCREENS: Screen[] = ['you', 'plan'];
 type PlanId = 'modus' | 'pilot';
 
 // ── data ───────────────────────────────────────────────────────────────────────
-const ROLE_OPTIONS = [
-  { icon: '🚀', label: 'Founder / builder',    desc: 'Running a startup or side project' },
-  { icon: '💼', label: 'Executive / manager',   desc: 'Leading a team or organization' },
-  { icon: '⚡', label: 'Professional',           desc: 'Employee, freelancer, or consultant' },
-  { icon: '📚', label: 'Student',                desc: 'School, bootcamp, or self-study' },
-  { icon: '🌐', label: 'Other',                  desc: '' },
-];
+// Text only. The emoji read as clip-art next to a serif headline.
+const ROLE_OPTIONS = ['Founder / builder', 'Executive / manager', 'Professional', 'Student', 'Other'];
+const AGE_OPTIONS = ['18-24', '25-34', '35-44', '45-54', '55+'];
+// "Prefer not to say" is a real option, not a fallback — nothing downstream
+// requires gender, it only sharpens personalContext when volunteered.
+const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
 // Premium model brands MODUS routes between — brand names only (no versions), so
 // nothing to keep updated. Reuses the shared marketing logo marks.
@@ -127,25 +126,8 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         className="text-center space-y-5"
       >
         <div className="flex flex-col items-center gap-3">
-          {/* Glowing logo */}
-          <div className="relative">
-            <div className="absolute inset-0 scale-[2.2] rounded-full bg-brand/12 blur-3xl" />
-            <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-[76px] h-[76px] rounded-[22px] bg-gradient-to-br from-brand/25 to-brand/10 border border-brand/30 flex items-center justify-center shadow-[0_8px_36px_rgba(124,58,237,0.38)]"
-            >
-              <Image src="/logo.png"      alt="MODUS" width={44} height={33} className="object-contain block dark:hidden" />
-              <Image src="/logo-dark.png" alt="MODUS" width={44} height={33} className="object-contain hidden dark:block" />
-            </motion.div>
-            {/* Pulse ring */}
-            <motion.div
-              animate={{ scale: [1, 1.75, 1], opacity: [0.35, 0, 0.35] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-0 rounded-[22px] border border-brand/40"
-            />
-          </div>
+          <Image src="/logo.png"      alt="MODUS" width={64} height={48} className="object-contain block dark:hidden" />
+          <Image src="/logo-dark.png" alt="MODUS" width={64} height={48} className="object-contain hidden dark:block" />
 
           <h2 className="hero-gradient-text text-2xl font-black tracking-widest">MODUS</h2>
         </div>
@@ -203,12 +185,42 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
 }
 
 // ── YouStep ────────────────────────────────────────────────────────────────────
-// name + role on ONE screen. The name is prefilled from the Google/Apple profile,
-// so for most people this is a single tap, not two screens of typing. Both still
-// feed `personalContext` in the chat system prompt, which is why neither was
-// simply deleted.
-function YouStep({ name, setName, role, setRole }: {
-  name: string; setName: (v: string) => void; role: string; setRole: (v: string) => void;
+// name + role + age + gender on ONE screen. Name is prefilled from the
+// Google/Apple profile, so this is mostly tapping. All of it feeds
+// `personalContext` in the chat system prompt — none of it is vanity data.
+function ChipGroup({ label, options, value, onChange }: {
+  label: string; options: readonly string[]; value: string; onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-muted mb-2">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => {
+          const active = value === opt;
+          return (
+            <button
+              key={opt}
+              onClick={() => onChange(opt)}
+              className={`rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                active
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-border/60 bg-panel text-text hover:border-brand/40'
+              }`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function YouStep({ name, setName, role, setRole, age, setAge, gender, setGender }: {
+  name: string; setName: (v: string) => void;
+  role: string; setRole: (v: string) => void;
+  age: string; setAge: (v: string) => void;
+  gender: string; setGender: (v: string) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -233,31 +245,9 @@ function YouStep({ name, setName, role, setRole }: {
         />
       </div>
 
-      <div>
-        <p className="text-xs font-semibold text-muted mb-2">What best describes you?</p>
-        <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {ROLE_OPTIONS.map(opt => (
-            <motion.button
-              key={opt.label}
-              variants={fadeUp}
-              whileTap={{ scale: 0.975 }}
-              onClick={() => setRole(opt.label)}
-              className={`relative w-full p-3 rounded-xl border text-left transition-all duration-200 ${
-                role === opt.label
-                  ? 'border-brand/60 bg-brand/[0.07]'
-                  : 'border-border/60 bg-panel hover:border-brand/25'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg shrink-0">{opt.icon}</span>
-                <p className={`text-sm font-semibold ${role === opt.label ? 'text-brand' : 'text-text'}`}>
-                  {opt.label}
-                </p>
-              </div>
-            </motion.button>
-          ))}
-        </motion.div>
-      </div>
+      <ChipGroup label="What best describes you?" options={ROLE_OPTIONS}   value={role}   onChange={setRole} />
+      <ChipGroup label="Age"                      options={AGE_OPTIONS}    value={age}    onChange={setAge} />
+      <ChipGroup label="Gender"                   options={GENDER_OPTIONS} value={gender} onChange={setGender} />
     </div>
   );
 }
@@ -511,6 +501,8 @@ export default function OnboardingPage() {
   // provider already gave us was an entire step that bought nothing.
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('modus');
   // Chosen back on /pricing. Read once on mount so the plan step DISPLAYS the
   // same cadence that checkout will CHARGE — those two drifting apart is how you
@@ -592,15 +584,20 @@ export default function OnboardingPage() {
       if (existing.data()?.onboardingComplete === true) return;
 
       const roleLabel = role.trim() || 'Other';
+      // Gender only enters personalContext when actually volunteered — a
+      // declined answer must not become "I am Prefer not to say."
+      const saidGender = gender && gender !== 'Prefer not to say' ? gender : '';
       const personalContext = [
         name.trim() && `My name is ${name.trim()}.`,
         roleLabel   && `I am a ${roleLabel}.`,
+        age         && `I am ${age} years old.`,
+        saidGender  && `I am ${saidGender.toLowerCase()}.`,
       ].filter(Boolean).join(' ');
 
       await setDoc(doc(db, 'users', uid), {
         displayName: name.trim() || null,
         onboardingComplete: true,
-        onboardingAnswers: { role: roleLabel },
+        onboardingAnswers: { role: roleLabel, age: age || null, gender: gender || null },
         settings: {
           personalContext,
           responseStyle: 'normal',
@@ -656,7 +653,9 @@ export default function OnboardingPage() {
     welcome: true,
     // Name is prefilled from the auth profile, so this is usually already
     // satisfied on arrival; role is the one real tap.
-    you:     name.trim() !== '' && role !== '',
+    // Gender is deliberately NOT required — 'Prefer not to say' is a real
+    // answer and nothing downstream needs it.
+    you:     name.trim() !== '' && role !== '' && age !== '',
     plan:    true,
     done:    true,
   };
@@ -723,7 +722,7 @@ export default function OnboardingPage() {
               exit="exit"
               transition={slideTx}
             >
-              {screen === 'you'    && <YouStep name={name} setName={setName} role={role} setRole={setRole} />}
+              {screen === 'you'    && <YouStep name={name} setName={setName} role={role} setRole={setRole} age={age} setAge={setAge} gender={gender} setGender={setGender} />}
               {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} cadence={cadence} setCadence={chooseCadence} />}
             </motion.div>
           </AnimatePresence>

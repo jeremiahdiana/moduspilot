@@ -240,7 +240,7 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
         <div className="w-[56px]" />
       </div>
 
-      <div className={`flex ${compact ? 'min-h-[300px]' : 'min-h-[480px]'}`}>
+      <div className={`flex ${compact ? 'h-[420px]' : 'min-h-[480px]'} ${compact ? 'overflow-hidden' : ''}`}>
         {/* model rail (real switcher) */}
         <div className={`w-56 shrink-0 bg-bg/40 p-3 ${showRail ? 'hidden md:flex' : 'hidden'} flex-col gap-1`}>
           <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-2 pb-1">Model</p>
@@ -279,7 +279,7 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
         </div>
 
         {/* conversation */}
-        <div className="flex-1 p-5 sm:p-6 flex flex-col justify-start gap-3.5 min-w-0">
+        <div className="flex-1 p-5 sm:p-6 flex flex-col justify-start gap-3.5 min-w-0 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={i}
