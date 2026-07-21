@@ -16,8 +16,13 @@ import { db } from '@/lib/firebase';
 import { CADENCE_STORAGE_KEY, PLAN_PRICING, isCadence, type Cadence } from '@/lib/pricing';
 
 // ── types ──────────────────────────────────────────────────────────────────────
-type Screen = 'welcome' | 'name' | 'role' | 'models' | 'plan' | 'done';
-const QUESTION_SCREENS: Screen[] = ['name', 'role', 'models', 'plan'];
+// Reordered 2026-07-21: the multi-model showcase now comes BEFORE any question,
+// so the first thing a new account sees is the reason to pay rather than a form.
+// `name` and `role` merged into one `you` screen, and the name is prefilled from
+// the Google/Apple profile we already have — asking for a name the auth provider
+// just handed us was a whole step that bought nothing.
+type Screen = 'welcome' | 'models' | 'you' | 'plan' | 'done';
+const QUESTION_SCREENS: Screen[] = ['models', 'you', 'plan'];
 type PlanId = 'modus' | 'pilot';
 
 // ── data ───────────────────────────────────────────────────────────────────────
@@ -56,11 +61,13 @@ const fadeUp  = {
 function PageBackground() {
   return (
     <div className="fixed inset-0 -z-10 bg-bg overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-bg to-bg dark:from-violet-950/40" />
-      <div className="hero-orb hero-orb-1" style={{ opacity: 0.65 }} />
-      <div className="hero-orb hero-orb-2" style={{ opacity: 0.42 }} />
-      <div className="hero-orb hero-orb-3" style={{ opacity: 0.32 }} />
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.07)_1px,transparent_1px)] bg-[size:28px_28px]" />
+      {/* One soft violet bloom instead of the old three-orb field + dot grid.
+          The marketing site went light and calm; onboarding followed. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-brand/[0.07] via-transparent to-transparent" />
+      <div
+        className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[560px] rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.16), transparent)' }}
+      />
     </div>
   );
 }
@@ -143,7 +150,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         </div>
 
         <div>
-          <h1 className="text-[2.6rem] font-black text-text leading-[1.05] tracking-tight">
+          <h1 className="text-[2.6rem] text-text leading-[1.08] tracking-tight" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>
             Every AI model.<br />One assistant.
           </h1>
           <p className="text-sm text-muted mt-3 leading-relaxed max-w-xs mx-auto">
@@ -230,105 +237,62 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   );
 }
 
-// ── NameScreen ─────────────────────────────────────────────────────────────────
-// Content only — the StepShell provides the width, progress, and Back/Continue nav.
-function NameScreen({ name, setName, onNext }: {
-  name: string; setName: (v: string) => void; onNext: () => void;
+// ── YouStep ────────────────────────────────────────────────────────────────────
+// name + role on ONE screen. The name is prefilled from the Google/Apple profile,
+// so for most people this is a single tap, not two screens of typing. Both still
+// feed `personalContext` in the chat system prompt, which is why neither was
+// simply deleted.
+function YouStep({ name, setName, role, setRole }: {
+  name: string; setName: (v: string) => void; role: string; setRole: (v: string) => void;
 }) {
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const preview  = name.trim()
-    ? `${greeting}, ${name.trim()}. I'm MODUS. Let's get to work.`
-    : `${greeting}. I'm MODUS. What are we working on today?`;
-
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">First things first</p>
-        <h1 className="text-2xl font-black text-text leading-tight">What should MODUS call you?</h1>
-        <p className="text-sm text-muted mt-1.5">Your assistant needs a name for you.</p>
+        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Make it yours</p>
+        <h1 className="text-3xl text-text leading-tight" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>
+          A little about you.
+        </h1>
+        <p className="text-sm text-muted mt-1.5">So MODUS knows who it is working for.</p>
       </div>
 
-      <input
-        autoFocus
-        value={name}
-        onChange={e => setName(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && name.trim() && onNext()}
-        placeholder="Your first name"
-        className="w-full bg-panel/70 border border-border/60 rounded-2xl px-5 py-4 text-base text-text placeholder:text-muted/40 focus:outline-none focus:border-brand/60 focus:bg-panel transition-all"
-      />
-
-      <motion.div
-        animate={{ opacity: name.trim() ? 1 : 0.35 }}
-        className="bg-panel/60 border border-border/60 rounded-2xl px-5 py-4 flex items-start gap-3"
-      >
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center shrink-0 mt-0.5">
-          <Image src="/logo.png" alt="M" width={14} height={14} className="object-contain opacity-90" />
-        </div>
-        <div>
-          <p className="text-xs text-muted mb-1">Preview</p>
-          <p className="text-sm text-text leading-relaxed">&ldquo;{preview}&rdquo;</p>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-// ── RoleStep ───────────────────────────────────────────────────────────────────
-function RoleStep({ role, setRole, name }: { role: string; setRole: (v: string) => void; name: string }) {
-  return (
-    <div className="space-y-6">
       <div>
-        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">
-          {name.trim() ? `Nice to meet you, ${name.trim()}.` : 'Quick profile'}
-        </p>
-        <h1 className="text-2xl font-black text-text leading-tight">What best describes you?</h1>
-        <p className="text-sm text-muted mt-1.5">MODUS will personalize how it works for you.</p>
+        <label htmlFor="onboarding-name" className="text-xs font-semibold text-muted mb-2 block">
+          What should MODUS call you?
+        </label>
+        <input
+          id="onboarding-name"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Your first name"
+          className="w-full bg-panel border border-border/60 rounded-xl px-4 py-3 text-base text-text placeholder:text-muted/40 focus:outline-none focus:border-brand/60 transition-all"
+        />
       </div>
 
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-2">
-        {ROLE_OPTIONS.map(opt => (
-          <motion.button
-            key={opt.label}
-            variants={fadeUp}
-            whileHover={{ scale: 1.012 }}
-            whileTap={{ scale: 0.975 }}
-            onClick={() => setRole(opt.label)}
-            className={`relative w-full p-3.5 rounded-2xl border text-left transition-all duration-200 overflow-hidden ${
-              role === opt.label
-                ? 'border-brand/60 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15),0_4px_20px_rgba(124,58,237,0.12)]'
-                : 'border-border/60 bg-panel/60 hover:border-brand/25 hover:bg-brand/4'
-            }`}
-          >
-            {role === opt.label && (
-              <motion.div
-                layoutId="role-glow"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute inset-0 bg-gradient-to-r from-brand/10 to-transparent pointer-events-none"
-              />
-            )}
-            <div className="flex items-center gap-3.5">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 transition-colors ${role === opt.label ? 'bg-brand/20' : 'bg-bg/70'}`}>
-                {opt.icon}
+      <div>
+        <p className="text-xs font-semibold text-muted mb-2">What best describes you?</p>
+        <motion.div variants={stagger} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {ROLE_OPTIONS.map(opt => (
+            <motion.button
+              key={opt.label}
+              variants={fadeUp}
+              whileTap={{ scale: 0.975 }}
+              onClick={() => setRole(opt.label)}
+              className={`relative w-full p-3 rounded-xl border text-left transition-all duration-200 ${
+                role === opt.label
+                  ? 'border-brand/60 bg-brand/[0.07]'
+                  : 'border-border/60 bg-panel hover:border-brand/25'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg shrink-0">{opt.icon}</span>
+                <p className={`text-sm font-semibold ${role === opt.label ? 'text-brand' : 'text-text'}`}>
+                  {opt.label}
+                </p>
               </div>
-              <div className="flex-1">
-                <p className={`text-sm font-semibold ${role === opt.label ? 'text-brand' : 'text-text'}`}>{opt.label}</p>
-                {opt.desc && <p className="text-xs text-muted mt-0.5">{opt.desc}</p>}
-              </div>
-              <motion.div
-                animate={{ scale: role === opt.label ? 1 : 0.5, opacity: role === opt.label ? 1 : 0 }}
-                transition={{ duration: 0.15 }}
-                className="w-5 h-5 rounded-full bg-brand flex items-center justify-center shrink-0"
-              >
-                <svg viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
-                  <path d="M2 6l3 3 5-5" />
-                </svg>
-              </motion.div>
-            </div>
-          </motion.button>
-        ))}
-      </motion.div>
+            </motion.button>
+          ))}
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -390,7 +354,7 @@ function PlanStep({ selected, setSelected, cadence }: { selected: PlanId; setSel
     <div className="space-y-6">
       <div>
         <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Pick your plan</p>
-        <h1 className="text-2xl font-black text-text leading-tight">Choose your plan.</h1>
+        <h1 className="text-3xl text-text leading-tight" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>Choose your plan.</h1>
         <p className="text-sm text-muted mt-1.5">
           Both start with a 3-day free trial. Cancel anytime.
           {annual && ' Billed yearly, 2 months free.'}
@@ -602,6 +566,8 @@ export default function OnboardingPage() {
   const [direction, setDirection] = useState(1);
   const [saving,    setSaving]    = useState(false);
 
+  // Prefilled from the Google/Apple profile below — asking for a name the auth
+  // provider already gave us was an entire step that bought nothing.
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('modus');
@@ -615,6 +581,15 @@ export default function OnboardingPage() {
       if (isCadence(stored)) setCadence(stored);
     } catch { /* private mode */ }
   }, []);
+
+  // Google and Apple both hand us a display name at sign-in. Seed the field from
+  // it (first name only — "What should MODUS call you?" wants Sarah, not Sarah
+  // Chen) and leave it editable. Only overwrite an empty field, so a user who
+  // clears it or edits it isn't fought by this effect.
+  useEffect(() => {
+    const fromAuth = user?.displayName?.trim().split(/\s+/)[0];
+    if (fromAuth) setName(prev => (prev === '' ? fromAuth : prev));
+  }, [user]);
 
   // Auth guard
   useEffect(() => {
@@ -727,13 +702,14 @@ export default function OnboardingPage() {
   }
 
   // Navigation maps
-  const NEXT: Partial<Record<Screen, Screen>> = { name: 'role', role: 'models', models: 'plan' };
-  const PREV: Partial<Record<Screen, Screen>> = { role: 'name', models: 'role', plan: 'models' };
+  const NEXT: Partial<Record<Screen, Screen>> = { models: 'you', you: 'plan' };
+  const PREV: Partial<Record<Screen, Screen>> = { you: 'models', plan: 'you' };
   const isValid: Record<Screen, boolean> = {
     welcome: true,
-    name:    name.trim() !== '',
-    role:    role !== '',
     models:  true,
+    // Name is prefilled from the auth profile, so this is usually already
+    // satisfied on arrival; role is the one real tap.
+    you:     name.trim() !== '' && role !== '',
     plan:    true,
     done:    true,
   };
@@ -744,10 +720,10 @@ export default function OnboardingPage() {
   // ── welcome ────────────────────────────────────────────────────────────────
   if (screen === 'welcome') {
     return (
-      <div className="relative min-h-screen flex flex-col items-center overflow-y-auto">
+      <div className="marketing marketing-light-tokens w-full relative min-h-screen flex flex-col items-center overflow-y-auto">
         <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
         <PageBackground />
-        <div className="relative z-10"><WelcomeScreen onStart={() => go('name')} /></div>
+        <div className="relative z-10"><WelcomeScreen onStart={() => go('models')} /></div>
       </div>
     );
   }
@@ -755,7 +731,7 @@ export default function OnboardingPage() {
   // ── done ───────────────────────────────────────────────────────────────────
   if (screen === 'done') {
     return (
-      <div className="relative min-h-screen flex flex-col items-center overflow-y-auto">
+      <div className="marketing marketing-light-tokens w-full relative min-h-screen flex flex-col items-center overflow-y-auto">
         <PageBackground />
         <div className="relative z-10 py-10">
           <CompletionScreen
@@ -782,7 +758,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div className="marketing marketing-light-tokens w-full relative min-h-screen flex flex-col">
       <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
       <PageBackground />
 
@@ -804,8 +780,7 @@ export default function OnboardingPage() {
               exit="exit"
               transition={slideTx}
             >
-              {screen === 'name'   && <NameScreen name={name} setName={setName} onNext={handleNext} />}
-              {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
+              {screen === 'you'    && <YouStep name={name} setName={setName} role={role} setRole={setRole} />}
               {screen === 'models' && <ModelsShowcaseScreen />}
               {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} cadence={cadence} />}
             </motion.div>
