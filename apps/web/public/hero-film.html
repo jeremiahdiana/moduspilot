@@ -1067,6 +1067,36 @@
   function showDash(on){dashapp.classList.toggle('on',on);dashapp.classList.remove('dim');app.classList.remove('dim');app.style.visibility=on?'hidden':'';if(!on){app.style.display='';}}
   // stagger the dashboard cards into view (briefing=0, inbox=1, tasks=2, schedule=3)
   function revealDash(i){const el=document.querySelector('.dreveal[data-d="'+i+'"]');if(el)el.classList.add('in');}
+  // Every view sits at inset:0 in the same stage and renders an identical
+  // sidebar, so navigation can genuinely cross-dissolve: the incoming view fades
+  // up ON TOP of the outgoing one. The sidebars are pixel-aligned and therefore
+  // appear perfectly still, and only the main area is seen to change. Swapping
+  // `display` outright (what this did before) made Projects simply pop into
+  // existence with no transition at all.
+  function viewOn(v,on){
+    if(v===app){app.classList.remove('dim');app.style.visibility=on?'':'hidden';if(on)app.style.display='';}
+    else v.classList.toggle('on',on);
+  }
+  function viewVisible(v){
+    return v===app ? (app.style.visibility!=='hidden'&&app.style.display!=='none') : v.classList.contains('on');
+  }
+  async function navTo(to,ms=460){
+    const outgoing=[app,dashapp,projlist,projdetail].filter(v=>v!==to&&viewVisible(v));
+    // Pin opacity:0 with transitions OFF, reveal, force a style recalc, then let
+    // two frames pass before enabling the transition. A bare offsetWidth reflow
+    // is not enough here: opacity needs no layout, so the starting value never
+    // got committed and the chat view snapped to full instead of dissolving.
+    to.style.transition='none'; to.style.opacity='0'; to.style.zIndex='6';
+    viewOn(to,true);
+    void getComputedStyle(to).opacity;
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    to.style.transition=`opacity ${ms}ms var(--ease-soft)`;
+    to.style.opacity='1';
+    await wait(ms);
+    to.style.transition=''; to.style.opacity=''; to.style.zIndex='';
+    outgoing.forEach(v=>viewOn(v,false));
+  }
+
   // Show exactly one of the projects views ('list' | 'detail' | null). Hides the
   // chat + dashboard views the same way showDash does, so only one app is ever up.
   function showProj(which){
@@ -1133,7 +1163,7 @@
       showDash(true); focusOn(dashapp,0.84,1100,true); await wait(700);
       revealDash(0); await wait(140); revealDash(1); await wait(140); revealDash(2); await wait(140); revealDash(3); await wait(500);
     }
-    focusOn(document.querySelector('#dashapp .dbrief'),1.06,1000,true); await wait(1750);  // push into the briefing and HOLD
+    focusOn(document.querySelector('#dashapp .dbrief'),1.06,1000,true); await wait(1400);  // push into the briefing and HOLD
     // (no bounce back to wide here — the next beat pans sideways to the nav at
     //  almost the same scale, so the camera keeps travelling instead of pulsing)
   }
@@ -1163,7 +1193,7 @@
     // move a pixel, which is what makes it read as navigation instead of a cut.
     // Moving the camera and swapping the content in the same instant was the
     // thing that felt like a glitch.
-    showDash(false); setNav(app,'chat'); scene('empty'); await wait(380);
+    setNav(app,'chat'); scene('empty'); await navTo(app,460); await wait(140);
     focusOn(app,0.88,850,true); await wait(1500);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
     focusOn(msMenu,1.14,900,true); await wait(900);
@@ -1199,9 +1229,9 @@
     // open the picker and switch back to a single model (Auto) — slowed down so the switch reads clearly
     focusOn(inputrow,1.14,600,true); await wait(460);
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
-    focusOn(msMenu,1.14,620,true); await wait(1000);   // pan
-    msMulti.classList.remove('on'); await wait(780);                 // multi-model toggles off (knob slides)
-    $('#msAuto').classList.add('hl'); await wait(1000);               // tap Auto — hold so you see it land on Auto
+    focusOn(msMenu,1.14,620,true); await wait(840);   // pan
+    msMulti.classList.remove('on'); await wait(640);                 // multi-model toggles off (knob slides)
+    $('#msAuto').classList.add('hl'); await wait(840);                // tap Auto — hold so you see it land on Auto
     msMenu.classList.remove('open'); modelTag.classList.remove('menuopen'); $('#msAuto').classList.remove('hl'); exitMultiModel(); await wait(560);
     focusOn(inputrow,1.14,650);   // pan back
     await typeInto('Chart my monthly revenue for 2026, and highlight where growth took off.',TYPE_CPS); await wait(100);
@@ -1223,7 +1253,7 @@
     await tapNav(app,'proj');
     // Same grammar as the Chat press above: hold the camera, swap the main area,
     // then pull back. Both navigations in the film now feel like one gesture.
-    showProj('list'); setNav(projlist,'proj'); await wait(380);
+    setNav(projlist,'proj'); await navTo(projlist,460); await wait(140);
     focusOn(projlist,0.86,850,true); await wait(1900);
 
     // open the paper
@@ -1233,7 +1263,8 @@
     pcard.classList.add('press'); await wait(180); pcard.classList.remove('press'); await wait(360);
 
     // the project itself
-    showProj('detail'); setNav(projdetail,'proj'); focusOn(projdetail,0.84,900,true); await wait(520);
+    setNav(projdetail,'proj'); await navTo(projdetail,460);
+    focusOn(projdetail,0.84,900,true); await wait(360);
     for(let k=0;k<7;k++){revealProj(k); await wait(70);}   // chat panel first, then the left column
     await wait(160);
     projdetail.classList.add('filled'); await wait(900);
@@ -1241,7 +1272,7 @@
     // the right edge, so centring it throws a third of the frame into black for
     // no extra legibility. At 1.0 the thread is fully readable and in position.
     focusOn(projdetail,1.0,950,true); await wait(4200);                // push in once and read the thread
-    focusOn(projdetail,0.84,1000,false); await wait(1700);             // pull back to the whole project
+    focusOn(projdetail,0.84,1000,false); await wait(1250);             // pull back, then straight into the outro
 
     // ✦ OUTRO — fade to the SAME still MODUS logo, hold, then loop straight back into
     //   the identical intro. The logo stays shown across the seam (reset re-adds it in
