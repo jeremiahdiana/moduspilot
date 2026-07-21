@@ -7,7 +7,7 @@ import { GlobalErrorCapture } from '@/components/GlobalErrorCapture';
 export const metadata: Metadata = {
   metadataBase: new URL('https://moduspilot.com'),
   title: {
-    default: 'Modus — AI Life OS',
+    default: 'Modus',
     template: '%s | Modus',
   },
   description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: 'https://moduspilot.com',
-    title: 'Modus — AI Life OS',
+    title: 'Modus',
     description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
     siteName: 'Modus',
     images: [
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Modus — AI Life OS',
+    title: 'Modus',
     description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
     images: ['/og.png'],
   },

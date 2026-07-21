@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 import MarketingHome from '@/components/marketing/MarketingHome';
 
 export const metadata: Metadata = {
-  title: 'Modus — AI Life OS',
+  title: 'Modus',
   description:
-    'Tell Modus your goals. It builds the plan, tracks your habits, triages your inbox, and tells you exactly what to focus on — every morning. You approve every action.',
+    'Modus runs your day: goals, habits, tasks, and a briefing every morning, with every frontier AI model behind it. One subscription.',
   alternates: {
     canonical: 'https://moduspilot.com',
   },
   openGraph: {
-    title: 'Modus — AI Life OS',
-    description: 'The AI personal operating system. Connects your goals, habits, inbox, and calendar. Acts with your approval. Nothing runs without you.',
+    title: 'Modus',
+    description: 'Modus runs your day: goals, habits, tasks, and a briefing every morning, with every frontier AI model behind it. One subscription.',
     url: 'https://moduspilot.com',
     siteName: 'Modus',
     type: 'website',
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Modus — AI Life OS',
-    description: 'The AI personal operating system. Connects your goals, habits, inbox, and calendar. Acts with your approval. Nothing runs without you.',
+    title: 'Modus',
+    description: 'Modus runs your day: goals, habits, tasks, and a briefing every morning, with every frontier AI model behind it. One subscription.',
     images: ['/og.png'],
   },
 };

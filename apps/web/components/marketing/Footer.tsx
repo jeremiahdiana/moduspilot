@@ -2,7 +2,7 @@ export default function Footer() {
   const links = {
     Product: [
       { label: 'Pricing', href: '/pricing' },
-      { label: 'Download for Mac', href: '/download' },
+      { label: 'Download for Mac', href: '/download/mac' },
     ],
     Company: [
       { label: 'Privacy', href: '/privacy' },

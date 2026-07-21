@@ -97,7 +97,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Contact">
-          <p>Questions about these terms? Email us at <a href="mailto:support@moduspilot.com" className="text-brand hover:underline">support@moduspilot.com</a>.</p>
+          <p>Questions about these terms? Email us at <a href="mailto:jeremiah@moduspilot.com" className="text-brand hover:underline">jeremiah@moduspilot.com</a>.</p>
         </Section>
 
         <div className="pt-6 border-t border-border flex items-center justify-between text-xs text-muted">
