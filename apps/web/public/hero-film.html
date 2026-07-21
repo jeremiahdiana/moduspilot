@@ -1001,32 +1001,13 @@
 
   const film=$('#film'),world=$('#world'),app=$('#app');
   function localCenter(el){const wr=world.getBoundingClientRect(),r=el.getBoundingClientRect();const s=(wr.width/world.offsetWidth)||1;return{cx:(r.left-wr.left+r.width/2)/s,cy:(r.top-wr.top+r.height/2)/s};}
-  /* Camera. Centring a sub-element used to drag the app window wildly off-frame:
-     measured, the "tap Chat" push left 525px of dead black on one side, and the
-     picker/chart beats 240-274px at the bottom. So the translate is clamped
-     against the app's own box: if the app is SMALLER than the frame at this
-     scale it is simply centred (sliding it around only ever buys asymmetric
-     gaps), and if it is LARGER it is clamped so no gap can open at all. Beats
-     that genuinely want a pan just ask for a scale above ~1.18, where the app
-     outgrows the frame and there is room to move. */
-  function frameAxis(want,pos,size,frame,scale){
-    if(size*scale<=frame) return (frame-size*scale)/2-pos*scale;   // fits → always centred
-    const a=-pos*scale,b=frame-(pos+size)*scale;                    // larger → clamp to cover
-    return Math.max(Math.min(a,b),Math.min(Math.max(a,b),want));
-  }
-  function focusOn(el,scale,dur=1400,blur=true){
-    if(!el||!film.clientWidth)return;
-    const {cx,cy}=localCenter(el);
-    const vw=film.clientWidth,vh=film.clientHeight;
-    const stage=document.querySelector('.stage3d');
-    const aw=stage.offsetWidth,ah=stage.offsetHeight;
-    const ax=stage.offsetLeft-aw/2,ay=stage.offsetTop-ah/2;         // stage3d is translate(-50%,-50%)
-    const tx=frameAxis(vw/2-cx*scale,ax,aw,vw,scale);
-    const ty=frameAxis(vh/2-cy*scale,ay,ah,vh,scale);
-    if(!reduce&&dur&&blur){world.classList.add('moving');setTimeout(()=>world.classList.remove('moving'),Math.min(dur*0.5,260));}
-    world.style.transition=(reduce||!dur)?'none':`transform ${dur}ms var(--ease-soft)`;
-    world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
-  }
+  /* Camera. The app window is a physical object on the aurora and the camera
+     TRAVELS to what it wants you to look at. A previous version clamped this so
+     the leftover background stayed symmetric — which sounds tidy and was
+     completely wrong: every push below the "app covers the frame" threshold
+     collapsed to dead-centre, so the camera stopped moving to its subject and
+     just pulsed in and out on the spot. Uneven background is the look. */
+  function focusOn(el,scale,dur=1400,blur=true){if(!el||!film.clientWidth)return;const {cx,cy}=localCenter(el);const vw=film.clientWidth,vh=film.clientHeight;const tx=vw/2-cx*scale,ty=vh/2-cy*scale;if(!reduce&&dur&&blur){world.classList.add('moving');setTimeout(()=>world.classList.remove('moving'),Math.min(dur*0.5,260));}world.style.transition=(reduce||!dur)?'none':`transform ${dur}ms var(--ease-soft)`;world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;}
 
   const scenes={empty:$('#sEmpty'),clarify:$('#sClarify'),compare:$('#sCompare'),action:$('#sAction'),chart:$('#sChart'),brief:$('#sBrief')};
   const ta=$('#ta'),taText=$('#taText'),wave=$('#wave'),mic=$('#mic'),send=$('#send'),picker=$('#picker'),
@@ -1078,7 +1059,12 @@
   // swap between the chat app-view and the dashboard app-view.
   // Turning the dashboard OFF also clears any leftover intro `dim` (blur) on the
   // chat app — otherwise the whole chat portion renders blurred.
-  function showDash(on){dashapp.classList.toggle('on',on);dashapp.classList.remove('dim');app.style.visibility=on?'hidden':'';if(!on){app.style.display='';app.classList.remove('dim');}}
+  // Clearing the chat view's intro `dim` on the way OUT (while it is hidden)
+  // instead of on the way back IN. It used to be dropped at the moment the view
+  // reappeared, so pressing Chat revealed an app mid-way through an 800ms
+  // blur(9px)→0 + opacity .32→1 transition: the navigation landed out of focus,
+  // which is what made the transition feel broken.
+  function showDash(on){dashapp.classList.toggle('on',on);dashapp.classList.remove('dim');app.classList.remove('dim');app.style.visibility=on?'hidden':'';if(!on){app.style.display='';}}
   // stagger the dashboard cards into view (briefing=0, inbox=1, tasks=2, schedule=3)
   function revealDash(i){const el=document.querySelector('.dreveal[data-d="'+i+'"]');if(el)el.classList.add('in');}
   // Show exactly one of the projects views ('list' | 'detail' | null). Hides the
@@ -1147,8 +1133,9 @@
       showDash(true); focusOn(dashapp,0.84,1100,true); await wait(700);
       revealDash(0); await wait(140); revealDash(1); await wait(140); revealDash(2); await wait(140); revealDash(3); await wait(500);
     }
-    focusOn(document.querySelector('#dashapp .dbrief'),1.04,1000,true); await wait(850);   // read the briefing
-    focusOn(dashapp,0.84,950,true); await wait(700);                                        // pull back to the whole thing
+    focusOn(document.querySelector('#dashapp .dbrief'),1.06,1000,true); await wait(1250);  // push into the briefing and HOLD
+    // (no bounce back to wide here — the next beat pans sideways to the nav at
+    //  almost the same scale, so the camera keeps travelling instead of pulsing)
   }
 
   async function run(){
@@ -1169,24 +1156,29 @@
 
     // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
     caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(26,40);
-    focusOn(document.querySelector('#dashapp .dnav'),1.14,820,true); await wait(700);
+    focusOn(document.querySelector('#dashapp .dnav'),1.14,900,true); await wait(760);
     await tapNav(dashapp,'chat');
-    showDash(false); setNav(app,'chat'); scene('empty');
-    focusOn(app,0.88,1000,true); await wait(1500);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
+    // Navigate with the camera HELD on the sidebar. Both views render the same
+    // sidebar, so pressing Chat changes only the main area — the rail doesn't
+    // move a pixel, which is what makes it read as navigation instead of a cut.
+    // Moving the camera and swapping the content in the same instant was the
+    // thing that felt like a glitch.
+    showDash(false); setNav(app,'chat'); scene('empty'); await wait(620);
+    focusOn(app,0.88,1100,true); await wait(1400);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
-    focusOn(msMenu,1.12,900,true); await wait(900);
+    focusOn(msMenu,1.14,900,true); await wait(900);
 
     // 3 · multi-model on + pick three
     caption('02 · Ask them all at once','One switch — three frontier models'); tlseg(40,54);
     msMulti.classList.add('on'); await wait(440);
     msMenu.classList.remove('open'); modelTag.classList.remove('menuopen'); setTagMulti(); mmPill.classList.add('on');
-    picker.classList.add('open'); focusOn(picker,1.18,820,true); await wait(460);
+    picker.classList.add('open'); focusOn(picker,1.14,820,true); await wait(460);   // pure pan, same scale
     for(const k of CHOSEN){const chip=document.querySelector('.mchip[data-k="'+k+'"]');chip.classList.add('on');pickCount.textContent=document.querySelectorAll('.mchip.on').length+'/3';await wait(240);}
     pickerFoot.textContent='Your next message goes to all 3, side by side.'; await wait(420);
 
     // 4 · ask once
     caption('03 · Ask once','Type it once — it fans out to all three'); tlseg(54,62);
-    focusOn(inputrow,1.16,800,true); inputrow.classList.add('focus'); await wait(320);
+    focusOn(inputrow,1.14,800,true); inputrow.classList.add('focus'); await wait(320);   // pure pan
     await typeInto('Plan my launch week.',TYPE_CPS); await wait(240);
     picker.classList.remove('open'); send.classList.add('live'); await wait(210);
     send.classList.add('press'); await wait(150); send.classList.remove('press');
@@ -1195,48 +1187,49 @@
     // 5 · compare → one clear verdict
     caption('04 · Three minds at once','GPT · Claude · Gemini — side by side'); tlseg(62,82);
     scene('compare'); showUser('compare'); await wait(280);
-    showBot('compare'); $('#cmpThink').classList.remove('rhide'); focusOn($('#cmpThink'),1.1,720,true);
+    showBot('compare'); $('#cmpThink').classList.remove('rhide');
     await respond($('#cmpThink'),$('#compareCard'),850);
     focusOn($('#compareCard'),0.98,780,true); await wait(360);
     await Promise.all(COLS.map((_,i)=>streamColumn(i))); await wait(250);
-    verdict.classList.add('show'); focusOn($('#compareCard'),1.01,1000,false); await wait(1350);
+    verdict.classList.add('show'); focusOn($('#compareCard'),0.98,1000,false); await wait(1350);   // re-centre as it grows, no zoom
 
     // 6 · it makes things too — first visibly switch multi-model → Auto, then chart
     caption('05 · It makes things too','Charts, docs & images on command'); tlseg(82,92);
     scene('chart');
     // open the picker and switch back to a single model (Auto) — slowed down so the switch reads clearly
-    focusOn(inputrow,1.2,600,true); await wait(460);
+    focusOn(inputrow,1.14,600,true); await wait(460);
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
-    focusOn(msMenu,1.13,620,true); await wait(820);
+    focusOn(msMenu,1.14,620,true); await wait(820);   // pan
     msMulti.classList.remove('on'); await wait(620);                 // multi-model toggles off (knob slides)
     $('#msAuto').classList.add('hl'); await wait(820);                // tap Auto — hold so you see it land on Auto
     msMenu.classList.remove('open'); modelTag.classList.remove('menuopen'); $('#msAuto').classList.remove('hl'); exitMultiModel(); await wait(560);
-    focusOn(inputrow,1.16,650);
+    focusOn(inputrow,1.14,650);   // pan back
     await typeInto('Chart my monthly revenue for 2026, and highlight where growth took off.',TYPE_CPS); await wait(160);
     send.classList.add('live'); await wait(180); send.classList.remove('live');
     taText.textContent='Talk to MODUS…'; ta.classList.add('placeholder');
     showUser('chart'); await wait(280);
-    showBot('chart'); $('#chThink').classList.remove('rhide'); focusOn($('#chThink'),1.12,680,true);
+    showBot('chart'); $('#chThink').classList.remove('rhide');
     await respond($('#chThink'),$('#chartCard'),850);
-    focusOn($('#chartCard'),1.06,780,true); await wait(280);
+    focusOn($('#chartCard'),1.02,780,true); await wait(280);   // pull back to read it
     $('#chartCard').classList.add('drawn'); await wait(1900);
-    focusOn($('#chartCard'),1.01,900,false); await wait(1400);   // hold on the finished chart so it can be read
+    focusOn($('#chartCard'),1.02,900,false); await wait(1400);   // re-centre as it draws, same scale
 
     // 7 · PROJECTS — tapped straight from Chat, in the same sidebar.
     // The film is now one forward journey through the app: Dashboard → Chat →
     // Projects. It used to double back to the dashboard here, purely because the
     // chat view had an icon rail with no Projects link to press.
     caption('06 · Projects','Everything about one thing, in one place'); tlseg(90,94);
-    focusOn(document.querySelector('#app .dnav'),1.14,860,true); await wait(760);
+    focusOn(document.querySelector('#app .dnav'),1.14,900,true); await wait(760);
     await tapNav(app,'proj');
-
-    // the projects list
-    showProj('list'); setNav(projlist,'proj'); focusOn(projlist,0.86,900,true); await wait(2000);
+    // Same grammar as the Chat press above: hold the camera, swap the main area,
+    // then pull back. Both navigations in the film now feel like one gesture.
+    showProj('list'); setNav(projlist,'proj'); await wait(620);
+    focusOn(projlist,0.86,1100,true); await wait(1900);
 
     // open the paper
     caption('06 · Projects','Open one and MODUS already knows it'); tlseg(94,97);
     const pcard=$('#pcardPaper');
-    focusOn(pcard,1.16,780,true); pcard.classList.add('hl'); await wait(820);
+    focusOn(pcard,1.14,780,true); pcard.classList.add('hl'); await wait(820);
     pcard.classList.add('press'); await wait(180); pcard.classList.remove('press'); await wait(360);
 
     // the project itself
@@ -1247,9 +1240,8 @@
     // Frame the whole view rather than centring the chat panel: the panel sits on
     // the right edge, so centring it throws a third of the frame into black for
     // no extra legibility. At 1.0 the thread is fully readable and in position.
-    focusOn(projdetail,1.0,950,true); await wait(3400);                // the thread, which is the point
-    focusOn($('#projdetail .pd-sec'),1.06,900,true); await wait(1600); // its tasks
-    focusOn(projdetail,0.84,1000,false); await wait(1700);             // the whole project
+    focusOn(projdetail,1.0,950,true); await wait(4200);                // push in once and read the thread
+    focusOn(projdetail,0.84,1000,false); await wait(1700);             // pull back to the whole project
 
     // ✦ OUTRO — fade to the SAME still MODUS logo, hold, then loop straight back into
     //   the identical intro. The logo stays shown across the seam (reset re-adds it in
