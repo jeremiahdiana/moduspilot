@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { PLAN_PRICING, CADENCE_STORAGE_KEY, type Cadence } from '@/lib/pricing';
+import AnimatedPrice from './AnimatedPrice';
+import CadenceToggle from './CadenceToggle';
 
 type Plan = {
+  id: 'modus' | 'pilot';
   name: string;
-  price: string;
-  cadence: string;
-  blurb: string;
+  tagline: string;
   features: string[];
   popular?: boolean;
   accent: 'violet' | 'white';
@@ -14,10 +17,9 @@ type Plan = {
 
 const PLANS: Plan[] = [
   {
+    id: 'modus',
     name: 'MODUS',
-    price: '$24',
-    cadence: '/mo',
-    blurb: '3 days free, then $24/mo. Card required, cancel anytime.',
+    tagline: 'Card required, cancel anytime.',
     popular: true,
     accent: 'violet',
     features: [
@@ -41,10 +43,9 @@ const PLANS: Plan[] = [
     ],
   },
   {
+    id: 'pilot',
     name: 'PILOT',
-    price: '$59',
-    cadence: '/mo',
-    blurb: 'For founders and executives. 3 days free, then $59/mo.',
+    tagline: 'For founders and executives.',
     accent: 'white',
     features: [
       'Everything in MODUS',
@@ -94,7 +95,28 @@ function Check({ accent }: { accent: Plan['accent'] }) {
  * drift between them — `showHeading={false}` on /pricing, where the page's own
  * hero already says this.
  */
-export default function HomePricingSection({ showHeading = true }: { showHeading?: boolean }) {
+export default function HomePricingSection({
+  showHeading = true,
+  showCadenceToggle = false,
+}: {
+  showHeading?: boolean;
+  /** Off on the homepage (kept as signed off); on for /pricing. */
+  showCadenceToggle?: boolean;
+}) {
+  const [cadence, setCadence] = useState<Cadence>('monthly');
+  const annual = cadence === 'annual';
+
+  /**
+   * Park the choice so it survives /login -> onboarding, where the trial is
+   * actually created. The href carries it too, but auth redirects can drop query
+   * params, and silently billing monthly after someone picked annual is exactly
+   * the class of bug this page just had.
+   */
+  function chooseCadence(next: Cadence) {
+    setCadence(next);
+    try { window.localStorage.setItem(CADENCE_STORAGE_KEY, next); } catch { /* private mode */ }
+  }
+
   return (
     // pt-6 even without the heading: the plan badges sit at -top-3 and this
     // section is overflow-hidden, so zero top padding clips them.
@@ -115,6 +137,12 @@ export default function HomePricingSection({ showHeading = true }: { showHeading
         </motion.div>
         )}
 
+        {showCadenceToggle && (
+          <div className="flex justify-center mb-10">
+            <CadenceToggle cadence={cadence} onChange={chooseCadence} />
+          </div>
+        )}
+
         <div className="grid md:grid-cols-2 gap-6 items-start">
           {PLANS.map((plan, i) => (
             <motion.div
@@ -133,13 +161,24 @@ export default function HomePricingSection({ showHeading = true }: { showHeading
                 <span className={`text-lg font-black tracking-widest ${ACCENT[plan.accent].name}`}>{plan.name}</span>
               </div>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-5xl text-text" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>{plan.price}</span>
-                <span className="text-muted text-lg">{plan.cadence}</span>
+                <AnimatedPrice
+                  value={annual ? PLAN_PRICING[plan.id].annualPerMonth : PLAN_PRICING[plan.id].monthlyPrice}
+                  direction={annual ? 'up' : 'down'}
+                  // Arbitrary-value font so the rolling digits keep the serif
+                  // face the static price used.
+                  className="text-5xl text-text [font-family:var(--font-serif)] font-medium"
+                />
+                <span className="text-muted text-lg">/mo</span>
               </div>
-              <p className="text-sm text-muted leading-relaxed mb-6 min-h-[40px]">{plan.blurb}</p>
+              <p className="text-sm text-muted leading-relaxed mb-6 min-h-[40px]">
+                {annual
+                  ? `Billed annually at $${PLAN_PRICING[plan.id].annualTotal}. ${plan.tagline}`
+                  : `3 days free, then $${PLAN_PRICING[plan.id].monthlyPrice}/mo. ${plan.tagline}`}
+              </p>
 
               <a
-                href="/login"
+                href={`/login?plan=${plan.id}&cadence=${cadence}`}
+                onClick={() => chooseCadence(cadence)}
                 className={`group flex items-center justify-center gap-2 w-full rounded-xl px-6 py-3.5 text-sm font-bold transition-all ${ACCENT[plan.accent].cta}`}
               >
                 Start 3-day trial

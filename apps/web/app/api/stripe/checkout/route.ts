@@ -1,12 +1,23 @@
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { TRIAL_DAYS } from '@/lib/constants';
+import { PRICE_ENV, isCadence, type Cadence } from '@/lib/pricing';
 
-const PRICE_IDS: Record<string, string | undefined> = {
-  modus: process.env.STRIPE_PRICE_MODUS,
-  pilot: process.env.STRIPE_PRICE_PILOT,
-  group: process.env.STRIPE_PRICE_GROUP,
-};
+/**
+ * Resolve plan + cadence to a Stripe price. Annual falls back to monthly when no
+ * annual price exists (Group), and when the env var is missing — better to bill
+ * the cadence we can actually honour than to 400 someone out of checkout.
+ */
+function resolvePrice(plan: string, cadence: Cadence): { priceId?: string; cadence: Cadence } {
+  const envs = PRICE_ENV[plan];
+  if (!envs) return { cadence };
+
+  if (cadence === 'annual' && envs.annual) {
+    const annual = process.env[envs.annual];
+    if (annual) return { priceId: annual, cadence: 'annual' };
+  }
+  return { priceId: envs.monthly ? process.env[envs.monthly] : undefined, cadence: 'monthly' };
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
 
@@ -24,8 +35,11 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { plan, returnTo } = await req.json() as { plan: string; returnTo?: string };
-  const priceId = PRICE_IDS[plan];
+  const { plan, returnTo, cadence: rawCadence } = await req.json() as {
+    plan: string; returnTo?: string; cadence?: string;
+  };
+  const requested: Cadence = isCadence(rawCadence) ? rawCadence : 'monthly';
+  const { priceId, cadence } = resolvePrice(plan, requested);
   if (!priceId) return Response.json({ error: 'Invalid plan' }, { status: 400 });
 
   // Reuse existing Stripe customer if one exists
@@ -68,12 +82,14 @@ export async function POST(req: Request) {
     // checkout.session.completed + a `trialing` subscription (handled in the
     // webhook → plan set immediately), then auto-charges when the trial ends.
     subscription_data: {
-      metadata: { uid, plan },
+      // `cadence` is the one that was actually resolved, not the one requested —
+      // an annual request for a monthly-only plan is recorded as monthly.
+      metadata: { uid, plan, cadence },
       trial_period_days: TRIAL_DAYS,
       trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
     },
     payment_method_collection: 'always',
-    metadata: { uid, plan },
+    metadata: { uid, plan, cadence },
   });
 
   return Response.json({ url: session.url });

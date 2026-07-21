@@ -39,10 +39,10 @@ const FAQS = [
   },
   {
     q: 'Is there annual billing?',
-    // Verified against live Stripe: every active price is monthly, and
-    // /api/stripe/checkout only knows STRIPE_PRICE_MODUS/PILOT/GROUP. Re-answer
-    // this the day an annual price actually exists, not before.
-    a: 'Not yet. MODUS and PILOT are billed monthly today. If you want annual, email us and we will sort it out with you directly.',
+    // True as of 2026-07-21: price_1TvWQu... ($240) and price_1TvWR0... ($588)
+    // are live in Stripe and wired through /api/stripe/checkout via `cadence`.
+    // Group has no annual price, which is why it isn't mentioned here.
+    a: 'Yes. Switch the toggle above to Annually and you get 2 months free: MODUS is $240 a year, which works out at $20/mo, and PILOT is $588 a year, $49/mo. Same 3-day trial either way, and you can still cancel before it ends.',
   },
   {
     q: "What's the difference between MODUS and PILOT?",
@@ -125,7 +125,7 @@ export default function PricingPage() {
           </section>
 
           {/* ── The two plans (shared with the homepage) ───────────────── */}
-          <HomePricingSection showHeading={false} />
+          <HomePricingSection showHeading={false} showCadenceToggle />
 
           {/* ── The honest cost line ──────────────────────────────────── */}
           <motion.section

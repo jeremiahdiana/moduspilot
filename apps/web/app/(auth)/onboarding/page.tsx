@@ -13,6 +13,7 @@ import {
   getDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { CADENCE_STORAGE_KEY, isCadence } from '@/lib/pricing';
 
 // ── types ──────────────────────────────────────────────────────────────────────
 type Screen = 'welcome' | 'name' | 'role' | 'models' | 'plan' | 'done';
@@ -617,10 +618,19 @@ export default function OnboardingPage() {
   async function startTrial() {
     try {
       const token = await user!.getIdToken();
+      // Cadence was chosen back on /pricing and parked in localStorage, because
+      // the /login hop can drop query params. Anything unrecognised bills
+      // monthly — the server re-validates and falls back the same way.
+      let cadence = 'monthly';
+      try {
+        const stored = window.localStorage.getItem(CADENCE_STORAGE_KEY);
+        if (isCadence(stored)) cadence = stored;
+      } catch { /* private mode */ }
+
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan: selectedPlan, returnTo: 'dashboard' }),
+        body: JSON.stringify({ plan: selectedPlan, returnTo: 'dashboard', cadence }),
       });
       const data = await res.json();
       if (res.ok && data.url) { window.location.href = data.url; return; }
