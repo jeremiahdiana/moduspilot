@@ -1032,8 +1032,8 @@
   async function tapNav(view,key){
     const el=navOf(view,key); if(!el)return;
     view.querySelectorAll('.dnavitem').forEach(n=>n.classList.remove('active'));
-    el.classList.add('active','press'); await wait(210);
-    el.classList.remove('press'); await wait(420);
+    el.classList.add('active','press'); await wait(190);
+    el.classList.remove('press'); await wait(240);   // press → navigate, no dwell
   }
   function caption(e,l){capEyebrow.style.opacity=0;capLine.style.opacity=0;setTimeout(()=>{capEyebrow.textContent=e;capLine.textContent=l;capEyebrow.style.opacity=1;capLine.style.opacity=1;},170);}
   function tlseg(f,t){tlbar.style.transition='none';tlbar.style.width=f+'%';requestAnimationFrame(()=>{tlbar.style.transition='width 1s linear';tlbar.style.width=t+'%';});}
@@ -1133,7 +1133,7 @@
       showDash(true); focusOn(dashapp,0.84,1100,true); await wait(700);
       revealDash(0); await wait(140); revealDash(1); await wait(140); revealDash(2); await wait(140); revealDash(3); await wait(500);
     }
-    focusOn(document.querySelector('#dashapp .dbrief'),1.06,1000,true); await wait(1250);  // push into the briefing and HOLD
+    focusOn(document.querySelector('#dashapp .dbrief'),1.06,1000,true); await wait(1750);  // push into the briefing and HOLD
     // (no bounce back to wide here — the next beat pans sideways to the nav at
     //  almost the same scale, so the camera keeps travelling instead of pulsing)
   }
@@ -1156,15 +1156,15 @@
 
     // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
     caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(26,40);
-    focusOn(document.querySelector('#dashapp .dnav'),1.14,900,true); await wait(760);
+    focusOn(document.querySelector('#dashapp .dnav'),1.14,700,true); await wait(340);
     await tapNav(dashapp,'chat');
     // Navigate with the camera HELD on the sidebar. Both views render the same
     // sidebar, so pressing Chat changes only the main area — the rail doesn't
     // move a pixel, which is what makes it read as navigation instead of a cut.
     // Moving the camera and swapping the content in the same instant was the
     // thing that felt like a glitch.
-    showDash(false); setNav(app,'chat'); scene('empty'); await wait(620);
-    focusOn(app,0.88,1100,true); await wait(1400);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
+    showDash(false); setNav(app,'chat'); scene('empty'); await wait(380);
+    focusOn(app,0.88,850,true); await wait(1500);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
     focusOn(msMenu,1.14,900,true); await wait(900);
 
@@ -1179,15 +1179,15 @@
     // 4 · ask once
     caption('03 · Ask once','Type it once — it fans out to all three'); tlseg(54,62);
     focusOn(inputrow,1.14,800,true); inputrow.classList.add('focus'); await wait(320);   // pure pan
-    await typeInto('Plan my launch week.',TYPE_CPS); await wait(240);
-    picker.classList.remove('open'); send.classList.add('live'); await wait(210);
+    await typeInto('Plan my launch week.',TYPE_CPS); await wait(110);   // finish typing → send, no dwell
+    picker.classList.remove('open'); send.classList.add('live'); await wait(130);
     send.classList.add('press'); await wait(150); send.classList.remove('press');
     taText.textContent='Talk to MODUS…'; ta.classList.add('placeholder'); send.classList.remove('live'); inputrow.classList.remove('focus');
 
     // 5 · compare → one clear verdict
     caption('04 · Three minds at once','GPT · Claude · Gemini — side by side'); tlseg(62,82);
     scene('compare'); showUser('compare'); await wait(280);
-    showBot('compare'); $('#cmpThink').classList.remove('rhide');
+    showBot('compare'); $('#cmpThink').classList.remove('rhide'); focusOn($('#cmpThink'),1.14,700,true);   // follow the send
     await respond($('#cmpThink'),$('#compareCard'),850);
     focusOn($('#compareCard'),0.98,780,true); await wait(360);
     await Promise.all(COLS.map((_,i)=>streamColumn(i))); await wait(250);
@@ -1199,16 +1199,16 @@
     // open the picker and switch back to a single model (Auto) — slowed down so the switch reads clearly
     focusOn(inputrow,1.14,600,true); await wait(460);
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
-    focusOn(msMenu,1.14,620,true); await wait(820);   // pan
-    msMulti.classList.remove('on'); await wait(620);                 // multi-model toggles off (knob slides)
-    $('#msAuto').classList.add('hl'); await wait(820);                // tap Auto — hold so you see it land on Auto
+    focusOn(msMenu,1.14,620,true); await wait(1000);   // pan
+    msMulti.classList.remove('on'); await wait(780);                 // multi-model toggles off (knob slides)
+    $('#msAuto').classList.add('hl'); await wait(1000);               // tap Auto — hold so you see it land on Auto
     msMenu.classList.remove('open'); modelTag.classList.remove('menuopen'); $('#msAuto').classList.remove('hl'); exitMultiModel(); await wait(560);
     focusOn(inputrow,1.14,650);   // pan back
-    await typeInto('Chart my monthly revenue for 2026, and highlight where growth took off.',TYPE_CPS); await wait(160);
+    await typeInto('Chart my monthly revenue for 2026, and highlight where growth took off.',TYPE_CPS); await wait(100);
     send.classList.add('live'); await wait(180); send.classList.remove('live');
     taText.textContent='Talk to MODUS…'; ta.classList.add('placeholder');
     showUser('chart'); await wait(280);
-    showBot('chart'); $('#chThink').classList.remove('rhide');
+    showBot('chart'); $('#chThink').classList.remove('rhide'); focusOn($('#chThink'),1.14,680,true);   // follow the send
     await respond($('#chThink'),$('#chartCard'),850);
     focusOn($('#chartCard'),1.02,780,true); await wait(280);   // pull back to read it
     $('#chartCard').classList.add('drawn'); await wait(1900);
@@ -1219,12 +1219,12 @@
     // Projects. It used to double back to the dashboard here, purely because the
     // chat view had an icon rail with no Projects link to press.
     caption('06 · Projects','Everything about one thing, in one place'); tlseg(90,94);
-    focusOn(document.querySelector('#app .dnav'),1.14,900,true); await wait(760);
+    focusOn(document.querySelector('#app .dnav'),1.14,700,true); await wait(340);
     await tapNav(app,'proj');
     // Same grammar as the Chat press above: hold the camera, swap the main area,
     // then pull back. Both navigations in the film now feel like one gesture.
-    showProj('list'); setNav(projlist,'proj'); await wait(620);
-    focusOn(projlist,0.86,1100,true); await wait(1900);
+    showProj('list'); setNav(projlist,'proj'); await wait(380);
+    focusOn(projlist,0.86,850,true); await wait(1900);
 
     // open the paper
     caption('06 · Projects','Open one and MODUS already knows it'); tlseg(94,97);
