@@ -1,12 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import type { User } from 'firebase/auth';
+import HeroFilmWindow from '@/components/marketing/HeroFilmWindow';
 import FoundingCard from './FoundingCard';
 import FoundingAuth from './FoundingAuth';
 import {
   FRONTIER_MODELS, PRICE_TEARDOWN, TEARDOWN_TOTAL, FOUNDING_PRICE,
-  JOURNEY_PERKS,
+  PILOT_PRICE, PILOT_SAVING, JOURNEY_PERKS,
 } from './foundingContent';
 
 // Each scene is a full-bleed centered composition. They remount as the journey
@@ -33,18 +33,12 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return <p className="text-[11px] tracking-[0.4em] uppercase text-violet-300/90">{children}</p>;
 }
 
-function DeviceShot({ src, alt }: { src: string; alt: string }) {
-  return (
-    <div className="fj-device w-full max-w-[540px] aspect-[16/10] mx-auto float">
-      <Image src={src} alt={alt} fill sizes="540px" className="object-cover object-top" priority />
-    </div>
-  );
-}
-
-/* 1 ── Opening: what MODUS is */
+/* 1 ── Opening: what MODUS is.
+   Shows the same live, looping hero film as the homepage rather than a static
+   screenshot, so the product shot is the real thing and never goes stale. */
 export function SceneOpening({}: SceneProps) {
   return (
-    <div className="w-full max-w-3xl text-center flex flex-col items-center">
+    <div className="w-full max-w-4xl text-center flex flex-col items-center">
       <div {...rise(0.1)}><Eyebrow>Welcome to MODUS</Eyebrow></div>
       <h1 {...rise(0.25)} className="fm-rise text-4xl sm:text-6xl font-semibold tracking-tight text-text text-balance mt-5 leading-[1.05]">
         The only AI<br />you’ll ever need.
@@ -52,8 +46,12 @@ export function SceneOpening({}: SceneProps) {
       <p {...rise(0.45)} className="fm-rise text-base text-muted mt-5 max-w-lg leading-relaxed">
         MODUS is the AI operating system that runs your day — every frontier model in one place, plus an assistant that actually acts, not just answers.
       </p>
-      <div {...rise(0.7)} className="fm-rise mt-10 w-full">
-        <DeviceShot src="/screenshot-models.png" alt="MODUS — every frontier model in one chat" />
+      <div {...rise(0.7)} className="fm-rise mt-9 w-full max-w-[820px] relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,rgba(124,58,237,0.16),transparent_70%)]"
+        />
+        <HeroFilmWindow />
       </div>
     </div>
   );
@@ -63,12 +61,13 @@ export function SceneOpening({}: SceneProps) {
 export function SceneModels({}: SceneProps) {
   return (
     <div className="w-full max-w-4xl text-center flex flex-col items-center">
-      <div {...rise(0.1)}><Eyebrow>One subscription · every lab</Eyebrow></div>
+      <div {...rise(0.1)}><Eyebrow>Our top tier · at our entry price</Eyebrow></div>
       <h2 {...rise(0.22)} className="fm-rise text-3xl sm:text-5xl font-semibold tracking-tight text-text text-balance mt-4">
-        The best model from every frontier lab.
+        Full PILOT, for what MODUS costs.
       </h2>
       <p {...rise(0.34)} className="fm-rise text-sm text-muted mt-3 max-w-xl leading-relaxed">
-        Pick one, or leave it on <span className="text-text font-medium">Auto</span> and MODUS routes each task to whichever model does it best.
+        PILOT is our highest tier — the best model from every frontier lab. Pick one, or leave it on{' '}
+        <span className="text-text font-medium">Auto</span> and MODUS routes each task to whichever model does it best.
       </p>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 w-full">
@@ -97,10 +96,26 @@ export function SceneModels({}: SceneProps) {
           <span className="text-sm text-muted">Total</span>
           <span className="fj-strike text-lg font-semibold text-text tabular-nums" style={{ ['--d' as string]: '1.2s' }}>~${TEARDOWN_TOTAL}/mo</span>
         </div>
+
+        {/* The offer itself: billed on the MODUS price, granted the PILOT tier. */}
+        <div className="mt-4 pt-4 border-t border-border/60 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text">MODUS <span className="font-semibold">PILOT</span> · our top tier</span>
+            <span className="fj-strike tabular-nums text-muted" style={{ ['--d' as string]: '1.6s' }}>${PILOT_PRICE}/mo</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted">You pay the entry MODUS price</span>
+            <span className="tabular-nums text-text font-semibold">${FOUNDING_PRICE}/mo</span>
+          </div>
+        </div>
+
         <div className="mt-4 flex items-end justify-center gap-2">
           <span className="fm-foil-text fm-emboss text-5xl font-black leading-none">${FOUNDING_PRICE}</span>
           <span className="text-sm text-muted pb-1">/mo · price never rises</span>
         </div>
+        <p className="text-[13px] text-text/90 mt-2 font-medium">
+          You pay for MODUS. You get PILOT — ${PILOT_SAVING}/mo more plan than you&apos;re paying for, every month, for good.
+        </p>
         <p className="text-[11px] text-muted/60 mt-2">Flagship consumer tiers, 2026. Llama 4 Maverick is open-weight — included free.</p>
       </div>
     </div>
@@ -148,7 +163,8 @@ export function SceneClaim({ label, foundingNumber, authed, onAuthed, onClaim, c
         Claim your seat{label ? `, ${label}` : ''}.
       </h2>
       <p {...rise(0.32)} className="fm-rise text-sm text-muted mt-3">
-        Founding Member No. {String(foundingNumber).padStart(3, '0')} — full PILOT, <span className="text-text font-medium">${FOUNDING_PRICE}/mo, your price never rises</span>.
+        Founding Member No. {String(foundingNumber).padStart(3, '0')} — full PILOT, normally ${PILOT_PRICE}/mo, yours for{' '}
+        <span className="text-text font-medium">${FOUNDING_PRICE}/mo. Your price never rises</span>.
       </p>
 
       <div {...rise(0.44)} className="fm-rise w-full mt-7">

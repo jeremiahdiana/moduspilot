@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import HeroFilmWindow from './HeroFilmWindow';
 
 /**
  * HeroFilm — the homepage hero, Cluely-style: a serif headline + one-line
@@ -15,20 +15,6 @@ import { motion } from 'framer-motion';
  * a floating product shot, not the whole viewport.
  */
 export default function HeroFilm() {
-  const filmRef = useRef<HTMLDivElement>(null);
-  const [filmScale, setFilmScale] = useState(0);
-
-  useEffect(() => {
-    const el = filmRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      const w = el.clientWidth;
-      if (w) setFilmScale(w / 1280);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   return (
     <section className="relative px-6 pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
       <div className="max-w-5xl mx-auto text-center">
@@ -80,21 +66,7 @@ export default function HeroFilm() {
           aria-hidden
           className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,rgba(124,58,237,0.16),transparent_70%)]"
         />
-        <div
-          ref={filmRef}
-          className="relative w-full aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-[0_30px_80px_-20px_rgba(30,20,60,0.35)] ring-1 ring-black/5"
-        >
-          {filmScale > 0 && (
-            <iframe
-              src="/hero-film.html"
-              title="MODUS in action: every frontier model, every task, one place"
-              loading="eager"
-              scrolling="no"
-              className="absolute top-0 left-0 border-0"
-              style={{ width: 1280, height: 720, transformOrigin: 'top left', transform: `scale(${filmScale})` }}
-            />
-          )}
-        </div>
+        <HeroFilmWindow />
       </motion.div>
     </section>
   );

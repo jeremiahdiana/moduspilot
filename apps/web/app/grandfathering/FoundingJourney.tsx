@@ -11,7 +11,13 @@ interface Props { label: string; foundingNumber: number; cap: number; claimed: n
 
 // Per-scene hold time before auto-advancing (ms). The final scene (claim) never
 // auto-advances — it waits for sign-in + payment.
-const DURATIONS = [6000, 9500, 8000, 0];
+//
+// Scene 1 holds long enough for the hero film to actually play its opening beats
+// (logo → dashboard → connected life → model menu). At the old 6s it cut away
+// while the film was still on its intro logo, which made the film pointless.
+// Scene 2 carries the price teardown + the PILOT-at-MODUS-price ladder, so it
+// needs reading time.
+const DURATIONS = [16000, 12000, 8000, 0];
 
 export default function FoundingJourney({ label, foundingNumber, cap, claimed }: Props) {
   const router = useRouter();

@@ -1,4 +1,5 @@
 import { OpenAILogo, ClaudeLogo, GeminiLogo, MetaLogo } from '@/components/marketing/ModelLogos';
+import { PLAN_PRICING } from '@/lib/pricing';
 
 // Single source of truth for the founding journey's facts. Everything here must
 // be accurate — a false claim on a page asking for money is worse than none.
@@ -39,7 +40,16 @@ export const PRICE_TEARDOWN: PriceRow[] = [
   { lab: 'Google',    tier: 'AI Ultra',    price: 200, logo: GeminiLogo },
 ];
 export const TEARDOWN_TOTAL = PRICE_TEARDOWN.reduce((s, r) => s + r.price, 0); // 600
-export const FOUNDING_PRICE = 24;
+
+// The founding offer, stated exactly as /api/founding/checkout bills it: the
+// line item is STRIPE_PRICE_MODUS (the entry MODUS price) while the webhook
+// grants plan 'pilot'. So a founder pays the MODUS price and receives the PILOT
+// tier. Both numbers come from lib/pricing.ts — the same file the checkout
+// resolves its Stripe price from — so the page can never quote an amount Stripe
+// isn't actually charging.
+export const FOUNDING_PRICE = PLAN_PRICING.modus.monthlyPrice; // what they're billed
+export const PILOT_PRICE = PLAN_PRICING.pilot.monthlyPrice;    // what they receive
+export const PILOT_SAVING = PILOT_PRICE - FOUNDING_PRICE;      // the gap the offer gives away
 
 // The five standing founding perks (single source of truth — FoundingOffer.tsx imports this).
 export const JOURNEY_PERKS: [string, string][] = [
