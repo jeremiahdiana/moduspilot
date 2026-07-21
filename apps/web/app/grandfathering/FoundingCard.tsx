@@ -75,7 +75,7 @@ export default function FoundingCard({ label, foundingNumber, cap, sealed = fals
         <div>
           <p className="text-[9px] font-medium tracking-[0.22em] uppercase text-white/40">Member</p>
           <p className="fm-emboss text-sm font-semibold tracking-wide text-white/95">
-            {sealed ? '— — —' : (label || 'Founding Member')}
+            {sealed ? '· · ·' : (label || 'Founding Member')}
           </p>
         </div>
         <p className="fm-emboss text-sm font-bold tracking-wide text-violet-200/80">/ {cap}</p>

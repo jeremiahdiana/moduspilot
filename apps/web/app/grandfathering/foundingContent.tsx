@@ -21,7 +21,7 @@ export const FRONTIER_MODELS: FrontierModel[] = [
   { name: 'Claude Opus',    provider: 'Anthropic', blurb: 'Deepest reasoning & code',      logo: ClaudeLogo, accent: '#D97757' },
   { name: 'GPT-5.6 Sol',    provider: 'OpenAI',    blurb: 'Frontier problem-solving',      logo: OpenAILogo, accent: '#10A37F' },
   { name: 'Gemini 3.1 Pro', provider: 'Google',    blurb: 'Massive-context research',      logo: GeminiLogo, accent: '#4285F4' },
-  { name: 'Claude Fable 5', provider: 'Anthropic', blurb: 'Most capable — writing & taste', logo: ClaudeLogo, accent: '#D97757' },
+  { name: 'Claude Fable 5', provider: 'Anthropic', blurb: 'Most capable for writing & taste', logo: ClaudeLogo, accent: '#D97757' },
   { name: 'Llama 4 Maverick', provider: 'Meta',    blurb: 'Open-weight, blazing fast',     logo: MetaLogo,   accent: '#0866FF' },
 ];
 
@@ -53,8 +53,8 @@ export const PILOT_SAVING = PILOT_PRICE - FOUNDING_PRICE;      // the gap the of
 
 // The five standing founding perks (single source of truth — FoundingOffer.tsx imports this).
 export const JOURNEY_PERKS: [string, string][] = [
-  ['Every frontier model', 'Full PILOT — Claude Opus, GPT-5.6 Sol, Gemini 3.1 Pro, Fable 5 and more.'],
-  ['$24/mo — your price never rises', 'You stay at $24 even as prices climb for everyone else.'],
+  ['Every frontier model', 'Full PILOT. Claude Opus, GPT-5.6 Sol, Gemini 3.1 Pro, Fable 5 and more.'],
+  ['$24/mo, and your price never rises', 'You stay at $24 even as prices climb for everyone else.'],
   ['Founder forever', 'You keep top-tier access as MODUS grows and plans change.'],
   ['A direct line to the founder', 'Reach Jeremiah directly and help shape the roadmap.'],
   ['Permanent founding badge', 'A founding mark that stays yours as MODUS grows.'],

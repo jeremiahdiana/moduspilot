@@ -6,7 +6,7 @@ import FoundingCard from './FoundingCard';
 import FoundingAuth from './FoundingAuth';
 import {
   FRONTIER_MODELS, PRICE_TEARDOWN, TEARDOWN_TOTAL, FOUNDING_PRICE,
-  PILOT_PRICE, PILOT_SAVING, JOURNEY_PERKS,
+  PILOT_PRICE, JOURNEY_PERKS,
 } from './foundingContent';
 
 // Each scene is a full-bleed centered composition. They remount as the journey
@@ -44,7 +44,7 @@ export function SceneOpening({}: SceneProps) {
         The only AI<br />you’ll ever need.
       </h1>
       <p {...rise(0.45)} className="fm-rise text-base text-muted mt-5 max-w-lg leading-relaxed">
-        MODUS is the AI operating system that runs your day — every frontier model in one place, plus an assistant that actually acts, not just answers.
+        MODUS is the AI operating system that runs your day. Every frontier model in one place, plus an assistant that actually acts instead of just answering.
       </p>
       <div {...rise(0.7)} className="fm-rise mt-9 w-full max-w-[820px] relative">
         <div
@@ -53,6 +53,11 @@ export function SceneOpening({}: SceneProps) {
         />
         <HeroFilmWindow />
       </div>
+      {/* This scene never auto-advances (see FoundingJourney DURATIONS), so say
+          so — otherwise a viewer waits for a cut that is never coming. */}
+      <p {...rise(0.9)} className="fm-rise text-[11px] text-muted/60 mt-4">
+        Watch as long as you like, then press Next.
+      </p>
     </div>
   );
 }
@@ -63,10 +68,10 @@ export function SceneModels({}: SceneProps) {
     <div className="w-full max-w-4xl text-center flex flex-col items-center">
       <div {...rise(0.1)}><Eyebrow>Our top tier · at our entry price</Eyebrow></div>
       <h2 {...rise(0.22)} className="fm-rise text-3xl sm:text-5xl font-semibold tracking-tight text-text text-balance mt-4">
-        Full PILOT, for what MODUS costs.
+        Our highest tier at grandfathering price
       </h2>
       <p {...rise(0.34)} className="fm-rise text-sm text-muted mt-3 max-w-xl leading-relaxed">
-        PILOT is our highest tier — the best model from every frontier lab. Pick one, or leave it on{' '}
+        PILOT is our highest tier, the best model from every frontier lab. Pick one, or leave it on{' '}
         <span className="text-text font-medium">Auto</span> and MODUS routes each task to whichever model does it best.
       </p>
 
@@ -114,9 +119,9 @@ export function SceneModels({}: SceneProps) {
           <span className="text-sm text-muted pb-1">/mo · price never rises</span>
         </div>
         <p className="text-[13px] text-text/90 mt-2 font-medium">
-          You pay for MODUS. You get PILOT — ${PILOT_SAVING}/mo more plan than you&apos;re paying for, every month, for good.
+          ${TEARDOWN_TOTAL} of frontier AI for the price of ${FOUNDING_PRICE}, every month, for good.
         </p>
-        <p className="text-[11px] text-muted/60 mt-2">Flagship consumer tiers, 2026. Llama 4 Maverick is open-weight — included free.</p>
+        <p className="text-[11px] text-muted/60 mt-2">Flagship consumer tiers, 2026. Llama 4 Maverick is open-weight, so it is included free.</p>
       </div>
     </div>
   );
@@ -155,7 +160,7 @@ export function SceneAdvantage({ label, foundingNumber, cap }: SceneProps) {
 }
 
 /* 4 ── Claim: branded sign-in → confirm → pay */
-export function SceneClaim({ label, foundingNumber, authed, onAuthed, onClaim, claiming, claimError }: SceneProps) {
+export function SceneClaim({ label, foundingNumber, cap, authed, onAuthed, onClaim, claiming, claimError }: SceneProps) {
   return (
     <div className="w-full max-w-md text-center flex flex-col items-center">
       <div {...rise(0.1)}><Eyebrow>The last step</Eyebrow></div>
@@ -163,23 +168,49 @@ export function SceneClaim({ label, foundingNumber, authed, onAuthed, onClaim, c
         Claim your seat{label ? `, ${label}` : ''}.
       </h2>
       <p {...rise(0.32)} className="fm-rise text-sm text-muted mt-3">
-        Founding Member No. {String(foundingNumber).padStart(3, '0')} — full PILOT, normally ${PILOT_PRICE}/mo, yours for{' '}
-        <span className="text-text font-medium">${FOUNDING_PRICE}/mo. Your price never rises</span>.
+        Founding Member No. {String(foundingNumber).padStart(3, '0')} of {cap}. Here is what the same access costs everywhere else.
       </p>
 
-      <div {...rise(0.44)} className="fm-rise w-full mt-7">
+      {/* The ladder the offer sits at the bottom of: every other lab's flagship,
+          then PILOT, then the founding price. Same numbers as scene 2, which
+          reads them from foundingContent, so the two can never disagree. */}
+      <div {...rise(0.4)} className="fm-rise w-full mt-6 rounded-2xl border border-border/60 bg-panel/50 backdrop-blur-md p-4 text-left">
+        <div className="space-y-2">
+          {PRICE_TEARDOWN.map(r => (
+            <div key={r.lab} className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted"><r.logo className="w-4 h-4" /> {r.lab} · {r.tier}</span>
+              <span className="tabular-nums text-muted">${r.price}/mo</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between text-sm mt-2 pt-2 border-t border-border/60">
+          <span className="text-muted">All three together</span>
+          <span className="tabular-nums text-muted">${TEARDOWN_TOTAL}/mo</span>
+        </div>
+        <div className="flex items-center justify-between text-sm mt-3 pt-3 border-t border-border/60">
+          <span className="text-text">MODUS <span className="font-semibold">PILOT</span>, our highest tier</span>
+          <span className="tabular-nums text-muted">${PILOT_PRICE}/mo</span>
+        </div>
+        <div className="flex items-center justify-between text-sm mt-2">
+          <span className="text-text font-medium">Your founding price</span>
+          <span className="tabular-nums text-brand dark:text-violet-300 font-semibold">${FOUNDING_PRICE}/mo</span>
+        </div>
+        <p className="text-[11px] text-muted/70 mt-3">Locked for as long as you stay. Your price never rises.</p>
+      </div>
+
+      <div {...rise(0.52)} className="fm-rise w-full mt-7">
         {authed ? (
           <>
             <button onClick={onClaim} disabled={claiming}
               className="btn-primary w-full py-4 rounded-xl text-white text-sm font-semibold disabled:opacity-60">
-              <span className="relative z-10">{claiming ? 'Opening secure checkout…' : `Claim my seat — $${FOUNDING_PRICE}/mo, billed today`}</span>
+              <span className="relative z-10">{claiming ? 'Opening secure checkout…' : 'Claim my seat'}</span>
             </button>
             {claimError && <p className="text-red-400 text-xs mt-3">{claimError}</p>}
             <p className="text-[11px] text-muted/60 mt-3">Secure checkout by Stripe · cancel anytime</p>
           </>
         ) : (
           <>
-            <p className="text-xs text-muted mb-4">Create your founding account to continue — 10 seconds.</p>
+            <p className="text-xs text-muted mb-4">Create your founding account to continue. It takes 10 seconds.</p>
             {onAuthed && <FoundingAuth onAuthed={onAuthed} />}
           </>
         )}

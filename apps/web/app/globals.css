@@ -123,8 +123,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The homepage's Sentient serif is now the product-wide heading face. Clash
+   Display read as heavy and geometric everywhere it appeared outside marketing
+   (the /login wordmark most of all), so the marketing type is the default and
+   `font-display` stays available for anything that still wants Clash. */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.015em;
 }
 
 /* Light mode: restrained gradient background + dot grid */

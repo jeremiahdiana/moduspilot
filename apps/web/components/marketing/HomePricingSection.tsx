@@ -31,7 +31,6 @@ const PLANS: Plan[] = [
       'Voice interface',
       'Calendar integration (read + write)',
       'Gmail / Outlook triage',
-      'Habit tracker + streaks',
       'End-of-day reflection',
       '90-day context memory',
       'Weekly review reports',
@@ -97,10 +96,11 @@ function Check({ accent }: { accent: Plan['accent'] }) {
  */
 export default function HomePricingSection({
   showHeading = true,
-  showCadenceToggle = false,
+  showCadenceToggle = true,
 }: {
   showHeading?: boolean;
-  /** Off on the homepage (kept as signed off); on for /pricing. */
+  /** On everywhere the plans are shown — the homepage and /pricing both sell
+      the annual cadence, so hiding it on one of them hid the cheaper price. */
   showCadenceToggle?: boolean;
 }) {
   const [cadence, setCadence] = useState<Cadence>('monthly');

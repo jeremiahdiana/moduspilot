@@ -20,6 +20,9 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        // `font-serif` = Sentient, the homepage heading face — now also the
+        // global h1–h6 default (see globals.css).
+        serif: ['var(--font-serif)', 'Georgia', 'serif'],
       },
     },
   },

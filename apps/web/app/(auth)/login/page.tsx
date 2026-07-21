@@ -245,10 +245,12 @@ export default function LoginPage() {
               height={54}
               className="object-contain hidden dark:block mb-3"
             />
-            <h1 className="hero-gradient-text text-3xl font-black tracking-widest">MODUS</h1>
-            <p className="text-muted text-xs tracking-widest uppercase mt-1">pilot</p>
+            {/* Sentient serif, the homepage face — the old Clash Display black
+                at wide tracking read as a logo from a different product. */}
+            <h1 className="hero-gradient-text font-serif text-[2.1rem] leading-none font-medium tracking-[0.06em]">MODUS</h1>
+            <p className="text-muted text-[10px] tracking-[0.34em] uppercase mt-2">pilot</p>
             <p className="text-muted/70 text-sm mt-3 text-center leading-relaxed">
-              Your AI operating system.<br />Sign in to pick up where you left off.
+              Sign in to pick up where you left off.
             </p>
           </div>
 
@@ -375,11 +377,6 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
-
-        {/* Trust line below card */}
-        <p className="text-center text-muted/40 text-xs mt-5">
-          3-day free trial · Card required · Cancel anytime
-        </p>
       </motion.div>
     </>
   );

@@ -112,7 +112,7 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
             {label ? `${label}, you’re in.` : 'You’re in.'}
           </h1>
           <p className="fm-rise text-sm text-muted mt-2.5 leading-relaxed max-w-md" style={{ animationDelay: '0.34s' }}>
-            A private invitation to the first {cap} members of MODUS — the AI operating system that runs your day. This card is yours to keep.
+            A private invitation to the first {cap} members of MODUS. You get our highest tier at our entry price, and you keep that price for as long as you stay.
           </p>
 
           <ul className="mt-6 space-y-3">

@@ -9,15 +9,15 @@ import { SCENES, type SceneProps } from './scenes';
 
 interface Props { label: string; foundingNumber: number; cap: number; claimed: number }
 
-// Per-scene hold time before auto-advancing (ms). The final scene (claim) never
-// auto-advances — it waits for sign-in + payment.
+// Per-scene hold time before auto-advancing (ms). 0 means "never auto-advance".
 //
-// Scene 1 holds long enough for the hero film to actually play its opening beats
-// (logo → dashboard → connected life → model menu). At the old 6s it cut away
-// while the film was still on its intro logo, which made the film pointless.
+// Scene 1 is 0 on purpose. It holds the live hero film, which runs about a
+// minute end to end, and ANY fixed hold cuts away mid-film — 16s landed
+// somewhere around the model menu. So the opening scene now waits for the
+// viewer: they watch as much of the film as they want and press Next.
 // Scene 2 carries the price teardown + the PILOT-at-MODUS-price ladder, so it
 // needs reading time.
-const DURATIONS = [16000, 12000, 8000, 0];
+const DURATIONS = [0, 12000, 8000, 0];
 
 export default function FoundingJourney({ label, foundingNumber, cap, claimed }: Props) {
   const router = useRouter();
@@ -77,10 +77,13 @@ export default function FoundingJourney({ label, foundingNumber, cap, claimed }:
           <button key={idx} onClick={() => go(idx)} className="fj-seg" aria-label={`Scene ${idx + 1}`}>
             {idx < i && <div className="fj-seg-fill" style={{ transform: 'scaleX(1)' }} />}
             {idx === i && (
+              // A scene that never auto-advances (DURATIONS[i] === 0) shows a
+              // full segment rather than a bar racing to a deadline that
+              // doesn't exist.
               <motion.div className="fj-seg-fill"
-                initial={{ scaleX: reduce || i === last ? 1 : 0 }}
+                initial={{ scaleX: reduce || DURATIONS[i] === 0 ? 1 : 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ duration: reduce || i === last ? 0 : DURATIONS[i] / 1000, ease: 'linear' }} />
+                transition={{ duration: reduce || DURATIONS[i] === 0 ? 0 : DURATIONS[i] / 1000, ease: 'linear' }} />
             )}
           </button>
         ))}

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://moduspilot.com/privacy' },
 };
 
-const LAST_UPDATED = 'May 23, 2025';
+const LAST_UPDATED = 'July 22, 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
             <li>We only access Google data that is necessary to provide the MODUS service</li>
             <li>We do not use Google data to serve ads</li>
             <li>We do not allow humans to read your Google data unless you explicitly ask for support and grant permission</li>
-            <li>We do not transfer Google data to third parties except to operate the service (e.g. AI inference via Groq)</li>
+            <li>We do not transfer Google data to third parties except to operate the service, which means sending the relevant context to the AI provider that answers your message</li>
             <li>We store OAuth tokens encrypted and refresh them automatically</li>
             <li>You can disconnect Google at any time from Settings → Connectors</li>
           </ul>
@@ -81,12 +81,20 @@ export default function PrivacyPage() {
         <Section title="Third-Party Services">
           <p>MODUS uses the following third-party services to operate:</p>
           <ul className="list-disc list-inside space-y-1.5 ml-2">
-            <li><span className="text-text font-medium">Groq</span> — AI inference (your messages are sent to Groq for processing)</li>
+            <li><span className="text-text font-medium">Vercel AI Gateway</span> — Routes each message to the AI provider that will answer it</li>
+            <li><span className="text-text font-medium">OpenAI, Anthropic, Google, Meta and DeepSeek</span> — AI inference. The message you send, plus the context MODUS attaches to it, goes to whichever of these providers serves the model handling that message, either the one you picked or the one Auto selected</li>
             <li><span className="text-text font-medium">Pinecone</span> — Vector memory storage</li>
             <li><span className="text-text font-medium">Stripe</span> — Payment processing (we never see or store your card details)</li>
             <li><span className="text-text font-medium">Firebase / Google Cloud</span> — Authentication and database</li>
-            <li><span className="text-text font-medium">Vercel</span> — Hosting and deployment</li>
+            <li><span className="text-text font-medium">Vercel</span> — Hosting, deployment, and privacy-friendly pageview analytics</li>
+            <li><span className="text-text font-medium">Sentry</span> — Error monitoring, so crashes get diagnosed and fixed</li>
           </ul>
+          <p>These providers process your data to deliver their part of the service. We do not permit any of them to use your data to train their models.</p>
+        </Section>
+
+        <Section title="AI Providers and Model Routing">
+          <p>MODUS is a multi-model product. On Auto, MODUS picks the model best suited to your message. You can also pick a model yourself, and on PILOT you can send one message to several frontier models at once and compare their answers side by side.</p>
+          <p>Whichever route it takes, your message and its attached context are sent to that provider for the length of that request. Providers are contractually bound not to train on data sent through the API tiers MODUS uses. If a model is unavailable, MODUS may fail over to another model, and the answer is labelled with the model that actually produced it.</p>
         </Section>
 
         <Section title="Your Rights">

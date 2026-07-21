@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://moduspilot.com/terms' },
 };
 
-const LAST_UPDATED = 'May 23, 2025';
+const LAST_UPDATED = 'July 22, 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -46,8 +46,10 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Subscription and Payment">
-          <p>MODUS is a paid service offered with a 3-day free trial. A payment method is required to start the trial. Unless you cancel before the trial ends, your card is charged for the plan you selected (MODUS at $24/mo or PILOT at $59/mo) and billed monthly thereafter until cancelled. You can cancel anytime from Settings → Billing.</p>
-          <p>Payments are processed by Stripe. By subscribing you authorize us to charge your payment method on a recurring monthly basis. You may cancel at any time from Settings → Billing. Cancellation takes effect at the end of your current billing period — no refunds for partial months.</p>
+          <p>MODUS is a paid service offered with a 3-day free trial. A payment method is required to start the trial. Unless you cancel before the trial ends, your card is charged for the plan and billing cadence you selected.</p>
+          <p>Current plans: MODUS at $24/mo billed monthly, or $240/yr billed annually. PILOT at $59/mo billed monthly, or $588/yr billed annually. Annual plans are charged once up front for the full year.</p>
+          <p>Payments are processed by Stripe. By subscribing you authorize us to charge your payment method on a recurring basis at the cadence you chose, until you cancel. You may cancel at any time from Settings → Billing. Cancellation takes effect at the end of your current billing period, and we do not refund partial months or partial years.</p>
+          <p>Founding member seats, where offered, are billed at the price stated at the time you claim the seat, and that price is honoured for as long as the subscription stays active.</p>
           <p>We reserve the right to change pricing with 30 days notice to existing subscribers.</p>
         </Section>
 
@@ -56,7 +58,12 @@ export default function TermsPage() {
         </Section>
 
         <Section title="AI Limitations">
-          <p>MODUS uses large language models to generate responses and take actions. AI outputs may be inaccurate, incomplete, or inappropriate. You are responsible for reviewing and approving any actions before they are executed. Do not rely on MODUS for medical, legal, financial, or safety-critical decisions.</p>
+          <p>MODUS routes your messages to large language models from several providers, including OpenAI, Anthropic, Google, Meta and DeepSeek, either automatically or to the model you pick. AI outputs may be inaccurate, incomplete, or inappropriate. You are responsible for reviewing and approving any actions before they are executed. Do not rely on MODUS for medical, legal, financial, or safety-critical decisions.</p>
+          <p>Which models are available depends on your plan, and the model line-up changes as providers release and retire models. We may substitute a model of equivalent or better capability without notice.</p>
+        </Section>
+
+        <Section title="Apps and Platforms">
+          <p>MODUS is available on the web and as a macOS desktop app. A Windows desktop app and an iPhone app are in beta. Beta software may be unstable and features may be incomplete. Desktop and mobile apps update themselves automatically, and these terms apply to every platform equally.</p>
         </Section>
 
         <Section title="Your Data">
