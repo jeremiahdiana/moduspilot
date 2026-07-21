@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
+import MarketingDecor from '@/components/marketing/MarketingDecor';
+import CadenceToggle from '@/components/marketing/CadenceToggle';
 import { ClaudeLogo, OpenAILogo, GeminiLogo, MetaLogo } from '@/components/marketing/ModelLogos';
 import { DemoWindow } from '@/components/marketing/ModelDemo';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -21,8 +22,8 @@ import { CADENCE_STORAGE_KEY, PLAN_PRICING, isCadence, type Cadence } from '@/li
 // `name` and `role` merged into one `you` screen, and the name is prefilled from
 // the Google/Apple profile we already have — asking for a name the auth provider
 // just handed us was a whole step that bought nothing.
-type Screen = 'welcome' | 'models' | 'you' | 'plan' | 'done';
-const QUESTION_SCREENS: Screen[] = ['models', 'you', 'plan'];
+type Screen = 'welcome' | 'you' | 'plan' | 'done';
+const QUESTION_SCREENS: Screen[] = ['you', 'plan'];
 type PlanId = 'modus' | 'pilot';
 
 // ── data ───────────────────────────────────────────────────────────────────────
@@ -57,18 +58,28 @@ const fadeUp  = {
   show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] as [number,number,number,number] } },
 };
 
-// ── PageBackground ─────────────────────────────────────────────────────────────
-function PageBackground() {
+// ── ThemeButton ────────────────────────────────────────────────────────────────
+// Onboarding owns its own light/dark state, exactly like MarketingHome. The
+// global AnimatedThemeToggler flips a class on <html>, which does nothing here:
+// the `.marketing-*-tokens` subtree re-declares its own colour tokens and wins.
+function ThemeButton({ dark, onToggle }: { dark: boolean; onToggle: () => void }) {
   return (
-    <div className="fixed inset-0 -z-10 bg-bg overflow-hidden pointer-events-none">
-      {/* One soft violet bloom instead of the old three-orb field + dot grid.
-          The marketing site went light and calm; onboarding followed. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-brand/[0.07] via-transparent to-transparent" />
-      <div
-        className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[560px] rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(closest-side, rgba(124,58,237,0.16), transparent)' }}
-      />
-    </div>
+    <button
+      onClick={onToggle}
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+      className="fixed top-4 right-4 z-50 w-9 h-9 rounded-full bg-panel border border-border/60 text-muted hover:text-text flex items-center justify-center transition-colors"
+    >
+      {dark ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+          <circle cx="12" cy="12" r="4" />
+          <path strokeLinecap="round" d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -136,17 +147,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
             />
           </div>
 
-          <div>
-            <h2 className="hero-gradient-text text-2xl font-black tracking-widest">MODUS</h2>
-            <div className="flex items-center justify-center gap-1.5 mt-1">
-              <motion.div
-                animate={{ opacity: [1, 0.35, 1] }}
-                transition={{ duration: 1.8, repeat: Infinity }}
-                className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-              />
-              <span className="text-xs text-emerald-400 font-semibold tracking-wide">Live and ready</span>
-            </div>
-          </div>
+          <h2 className="hero-gradient-text text-2xl font-black tracking-widest">MODUS</h2>
         </div>
 
         <div>
@@ -154,7 +155,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
             Every AI model.<br />One assistant.
           </h1>
           <p className="text-sm text-muted mt-3 leading-relaxed max-w-xs mx-auto">
-            ChatGPT, Claude, Gemini and Llama in one place — routed to the best one for every task, and put to work running your day.
+            Every frontier model in one place, routed to the best one for every task.
           </p>
         </div>
 
@@ -169,51 +170,15 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         </div>
       </motion.div>
 
-      {/* Animated demo card */}
+      {/* The real live demo. This used to be a separate `models` step that
+          repeated this screen's headline, logo strip and pitch almost verbatim;
+          merging them removes the repetition AND a whole step. */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-panel/70 border border-border/60 rounded-2xl p-5 space-y-4 backdrop-blur-sm"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-brand/20 flex items-center justify-center shrink-0">
-            <Image src="/logo.png" alt="" width={10} height={8} className="object-contain" />
-          </div>
-          <span className="text-xs text-muted font-medium">MODUS</span>
-          <div className="ml-auto flex items-center gap-1">
-            <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }} className="w-1 h-1 rounded-full bg-brand" />
-            <span className="text-xs text-brand font-semibold">active</span>
-          </div>
-        </div>
-
-        <div className="bg-brand/8 border border-brand/20 rounded-xl px-4 py-3 text-sm text-text/80 italic leading-relaxed">
-          "Reply to Marcus, block tomorrow morning for deep work, send Jamie&apos;s invoice."
-        </div>
-
-        <div className="space-y-2.5">
-          {[
-            'Reply to Marcus — drafted, awaiting your approval',
-            'Tomorrow 9–12 blocked on calendar',
-            "Jamie's invoice — sent ✓",
-          ].map((label, i) => (
-            <motion.div
-              key={i}
-              animate={{ opacity: visible[i] ? 1 : 0.15, x: visible[i] ? 0 : -6 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center gap-2.5 text-sm"
-            >
-              <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${visible[i] ? 'bg-brand/20' : 'bg-border/30'}`}>
-                {visible[i] && (
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-brand">
-                    <path d="M2 6l3 3 5-5" />
-                  </svg>
-                )}
-              </div>
-              <span className={visible[i] ? 'text-text/80' : 'text-muted/40'}>{label}</span>
-            </motion.div>
-          ))}
-        </div>
+        <DemoWindow showRail={false} compact />
       </motion.div>
 
       {/* CTA */}
@@ -297,40 +262,6 @@ function YouStep({ name, setName, role, setRole }: {
   );
 }
 
-// ── ModelsShowcaseScreen ─────────────────────────────────────────────────────────
-// The multi-model "wow" slide — its OWN dedicated step, and the ONLY step that
-// carries the live demo. Shows the real cycling reply (prompt → routed → a rich
-// formatted answer: email/table/chart/image/code) so the differentiator lands.
-function ModelsShowcaseScreen() {
-  return (
-    <div className="space-y-5">
-      <div className="text-center">
-        <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Your unfair advantage</p>
-        <h1 className="text-2xl md:text-[1.75rem] font-black text-text leading-tight">One subscription. Every model.</h1>
-        <p className="text-sm text-muted mt-2 max-w-md mx-auto">
-          ChatGPT, Claude, Gemini and Llama in one place — MODUS routes each task to whichever is best. Watch it work:
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 justify-center">
-        {BRAND_MODELS.map(({ name, Logo: L }) => (
-          <span key={name} className="inline-flex items-center gap-1.5 bg-panel/60 border border-border/60 rounded-full pl-2 pr-3 py-1.5">
-            <L className="w-4 h-4" />
-            <span className="text-xs font-semibold text-text">{name}</span>
-          </span>
-        ))}
-      </div>
-
-      {/* The real live demo — the whole point of this slide */}
-      <DemoWindow showRail={false} compact />
-
-      <p className="text-xs text-muted/70 text-center">
-        Leave it on <span className="text-text font-medium">Auto</span> and MODUS picks per task, or switch models anytime in the composer.
-      </p>
-    </div>
-  );
-}
-
 // ── PlanStep ───────────────────────────────────────────────────────────────────
 // Lets the user pick which plan to start their 3-day trial on, before checkout.
 // Prices come from lib/pricing, never from a literal here: someone who picked
@@ -348,7 +279,10 @@ const PLAN_OPTIONS: { id: PlanId; name: string; tagline: string; popular?: boole
   },
 ];
 
-function PlanStep({ selected, setSelected, cadence }: { selected: PlanId; setSelected: (v: PlanId) => void; cadence: Cadence }) {
+function PlanStep({ selected, setSelected, cadence, setCadence }: {
+  selected: PlanId; setSelected: (v: PlanId) => void;
+  cadence: Cadence; setCadence: (c: Cadence) => void;
+}) {
   const annual = cadence === 'annual';
   return (
     <div className="space-y-6">
@@ -357,8 +291,11 @@ function PlanStep({ selected, setSelected, cadence }: { selected: PlanId; setSel
         <h1 className="text-3xl text-text leading-tight" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>Choose your plan.</h1>
         <p className="text-sm text-muted mt-1.5">
           Both start with a 3-day free trial. Cancel anytime.
-          {annual && ' Billed yearly, 2 months free.'}
         </p>
+      </div>
+
+      <div className="flex justify-center">
+        <CadenceToggle cadence={cadence} onChange={setCadence} />
       </div>
 
       <div className="space-y-3">
@@ -564,6 +501,10 @@ export default function OnboardingPage() {
 
   const [screen,    setScreen]    = useState<Screen>(trialMode ? 'plan' : 'welcome');
   const [direction, setDirection] = useState(1);
+  // Same light-by-default marketing shell as the homepage. The old page used the
+  // global AnimatedThemeToggler, which does nothing once the subtree re-declares
+  // its own tokens — so onboarding was stuck light with a dead toggle.
+  const [dark, setDark] = useState(false);
   const [saving,    setSaving]    = useState(false);
 
   // Prefilled from the Google/Apple profile below — asking for a name the auth
@@ -590,6 +531,13 @@ export default function OnboardingPage() {
     const fromAuth = user?.displayName?.trim().split(/\s+/)[0];
     if (fromAuth) setName(prev => (prev === '' ? fromAuth : prev));
   }, [user]);
+
+  // Persist alongside setting state, so a cadence chosen here survives an
+  // abandoned checkout bouncing back to /onboarding?trial=1.
+  function chooseCadence(next: Cadence) {
+    setCadence(next);
+    try { window.localStorage.setItem(CADENCE_STORAGE_KEY, next); } catch { /* private mode */ }
+  }
 
   // Auth guard
   useEffect(() => {
@@ -702,11 +650,10 @@ export default function OnboardingPage() {
   }
 
   // Navigation maps
-  const NEXT: Partial<Record<Screen, Screen>> = { models: 'you', you: 'plan' };
-  const PREV: Partial<Record<Screen, Screen>> = { you: 'models', plan: 'you' };
+  const NEXT: Partial<Record<Screen, Screen>> = { you: 'plan' };
+  const PREV: Partial<Record<Screen, Screen>> = { plan: 'you' };
   const isValid: Record<Screen, boolean> = {
     welcome: true,
-    models:  true,
     // Name is prefilled from the auth profile, so this is usually already
     // satisfied on arrival; role is the one real tap.
     you:     name.trim() !== '' && role !== '',
@@ -720,10 +667,10 @@ export default function OnboardingPage() {
   // ── welcome ────────────────────────────────────────────────────────────────
   if (screen === 'welcome') {
     return (
-      <div className="marketing marketing-light-tokens w-full relative min-h-screen flex flex-col items-center overflow-y-auto">
-        <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
-        <PageBackground />
-        <div className="relative z-10"><WelcomeScreen onStart={() => go('models')} /></div>
+      <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col items-center overflow-y-auto`}>
+        <ThemeButton dark={dark} onToggle={() => setDark(d => !d)} />
+      <MarketingDecor dark={dark} />
+        <div className="relative z-10"><WelcomeScreen onStart={() => go('you')} /></div>
       </div>
     );
   }
@@ -731,8 +678,8 @@ export default function OnboardingPage() {
   // ── done ───────────────────────────────────────────────────────────────────
   if (screen === 'done') {
     return (
-      <div className="marketing marketing-light-tokens w-full relative min-h-screen flex flex-col items-center overflow-y-auto">
-        <PageBackground />
+      <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col items-center overflow-y-auto`}>
+        <MarketingDecor dark={dark} />
         <div className="relative z-10 py-10">
           <CompletionScreen
             name={name}
@@ -744,13 +691,9 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── name / role / models / plan — one centered, vertically-centered shell ────
-  // Clean focused steps in a centered column. The live demo is NOT on every step;
-  // it lives only on the 'models' slide (its own showcase), which widens to fit
-  // it. Back/Continue sit in the same place at the bottom of the column on every
-  // step, so the nav stays consistent even though the models slide is wider.
+  // ── you / plan — one centered column ────────────────────────────────────────
+  // Back/Continue sit in the same place at the bottom on every step.
   const isLast = screen === 'plan';
-  const isModels = screen === 'models';
   const handleNext = () => {
     if (isLast) { handleFinish(); return; }
     const next = NEXT[screen];
@@ -758,12 +701,12 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="marketing marketing-light-tokens w-full relative min-h-screen flex flex-col">
-      <div className="fixed top-4 right-4 z-50"><AnimatedThemeToggler /></div>
-      <PageBackground />
+    <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col`}>
+      <ThemeButton dark={dark} onToggle={() => setDark(d => !d)} />
+      <MarketingDecor dark={dark} />
 
       <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 sm:py-20">
-        <div className={`w-full mx-auto transition-[max-width] duration-300 ${isModels ? 'max-w-2xl' : 'max-w-lg'}`}>
+        <div className="w-full mx-auto max-w-lg">
           {/* Progress */}
           <div className="mb-8 flex justify-center">
             <DotProgress step={stepIndex} />
@@ -781,8 +724,7 @@ export default function OnboardingPage() {
               transition={slideTx}
             >
               {screen === 'you'    && <YouStep name={name} setName={setName} role={role} setRole={setRole} />}
-              {screen === 'models' && <ModelsShowcaseScreen />}
-              {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} cadence={cadence} />}
+              {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} cadence={cadence} setCadence={chooseCadence} />}
             </motion.div>
           </AnimatePresence>
 
