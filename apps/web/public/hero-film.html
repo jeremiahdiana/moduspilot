@@ -960,6 +960,9 @@
     sb.querySelectorAll('.dnavitem').forEach(n=>n.classList.remove('active'));
     slot.replaceWith(sb);
   });
+  // Project cards start hidden and ripple in after the list view lands (see the
+  // projects beat), so the navigation dissolves onto a calm shell, not a wall.
+  document.querySelectorAll('#projlist .pcard').forEach((c,i)=>{c.classList.add('preveal');c.dataset.pl=i;});
   document.querySelectorAll('.avimg').forEach(e=>e.src=LOGO);
 
   const L={
@@ -1080,7 +1083,7 @@
   function viewVisible(v){
     return v===app ? (app.style.visibility!=='hidden'&&app.style.display!=='none') : v.classList.contains('on');
   }
-  async function navTo(to,ms=460){
+  async function navTo(to,ms=560){
     const outgoing=[app,dashapp,projlist,projdetail].filter(v=>v!==to&&viewVisible(v));
     // Pin opacity:0 with transitions OFF, reveal, force a style recalc, then let
     // two frames pass before enabling the transition. A bare offsetWidth reflow
@@ -1107,6 +1110,8 @@
   }
   // stagger the detail view's sections in (header, tabs, stat cards, tasks, resources, notes)
   function revealProj(i){const el=document.querySelector('#projdetail .preveal[data-p="'+i+'"]');if(el)el.classList.add('in');}
+  // the list's project cards, revealed one after another AFTER the view arrives
+  function revealCard(i){const el=document.querySelector('#projlist .pcard[data-pl="'+i+'"]');if(el)el.classList.add('in');}
 
   // the "connected to everything" beat — a centered card on the aurora
   function showConn(on){connlayer.classList.toggle('on',on);if(on){app.style.visibility='hidden';app.style.display='none';dashapp.classList.remove('on');}else{connlayer.classList.remove('in');app.style.visibility='';app.style.display='';}}
@@ -1139,7 +1144,7 @@
     resetChat();
     dashapp.classList.remove('on','dim');document.querySelectorAll('.dreveal').forEach(d=>d.classList.remove('in'));
     [projlist,projdetail].forEach(v=>{v.classList.remove('on','filled','dim');v.style.opacity='';});
-    document.querySelectorAll('#projdetail .preveal').forEach(c=>c.classList.remove('in'));
+    document.querySelectorAll('#projdetail .preveal, #projlist .pcard').forEach(c=>c.classList.remove('in'));
     document.querySelectorAll('.pcard.hl,.pcard.press').forEach(c=>c.classList.remove('hl','press'));
     app.style.visibility='';app.style.display='';app.style.opacity='';
     connlayer.classList.remove('on','in');document.querySelectorAll('.conn-chip').forEach(c=>c.classList.remove('in'));
@@ -1186,14 +1191,14 @@
 
     // 2 · CHAT · the user taps "Chat" in the sidebar — a deliberate move, not an auto cut
     caption('01 · Every model, one place','Tap Chat — every frontier model’s here'); tlseg(26,40);
-    focusOn(document.querySelector('#dashapp .dnav'),1.14,700,true); await wait(340);
+    focusOn(document.querySelector('#dashapp .dnav'),1.14,1050,true); await wait(880);   // let the pan settle before pressing
     await tapNav(dashapp,'chat');
     // Navigate with the camera HELD on the sidebar. Both views render the same
     // sidebar, so pressing Chat changes only the main area — the rail doesn't
     // move a pixel, which is what makes it read as navigation instead of a cut.
     // Moving the camera and swapping the content in the same instant was the
     // thing that felt like a glitch.
-    setNav(app,'chat'); scene('empty'); await navTo(app,460); await wait(140);
+    setNav(app,'chat'); scene('empty'); await navTo(app); await wait(140);
     focusOn(app,0.88,850,true); await wait(1500);    // land on the chat UI and let it sit — the whole chat view is visible for a beat
     modelTag.classList.add('menuopen'); msMenu.classList.add('open');
     focusOn(msMenu,1.14,900,true); await wait(900);
@@ -1249,12 +1254,14 @@
     // Projects. It used to double back to the dashboard here, purely because the
     // chat view had an icon rail with no Projects link to press.
     caption('06 · Projects','Everything about one thing, in one place'); tlseg(90,94);
-    focusOn(document.querySelector('#app .dnav'),1.14,700,true); await wait(340);
+    focusOn(document.querySelector('#app .dnav'),1.14,1050,true); await wait(880);   // same pace as the Chat press
     await tapNav(app,'proj');
     // Same grammar as the Chat press above: hold the camera, swap the main area,
     // then pull back. Both navigations in the film now feel like one gesture.
-    setNav(projlist,'proj'); await navTo(projlist,460); await wait(140);
-    focusOn(projlist,0.86,850,true); await wait(1900);
+    setNav(projlist,'proj'); await navTo(projlist); await wait(120);
+    focusOn(projlist,0.86,850,true); await wait(360);        // pull back to the calm shell
+    for(let k=0;k<9;k++){revealCard(k); await wait(85);}     // then the cards ripple in, like the real app
+    await wait(900);
 
     // open the paper
     caption('06 · Projects','Open one and MODUS already knows it'); tlseg(94,97);
@@ -1263,7 +1270,7 @@
     pcard.classList.add('press'); await wait(180); pcard.classList.remove('press'); await wait(360);
 
     // the project itself
-    setNav(projdetail,'proj'); await navTo(projdetail,460);
+    setNav(projdetail,'proj'); await navTo(projdetail);
     focusOn(projdetail,0.84,900,true); await wait(360);
     for(let k=0;k<7;k++){revealProj(k); await wait(70);}   // chat panel first, then the left column
     await wait(160);
@@ -1299,7 +1306,7 @@
     if(n===6){exitMultiModel();scene('chart');showUser('chart');showBot('chart');reveal('chThink','chartCard');$('#chartCard').classList.add('drawn');requestAnimationFrame(()=>focusOn($('#chartCard'),1.06,0));return;}
     if(n===7){exitMultiModel();scene('action');showUser('action');showBot('action');reveal('actThink','actCard');$('#actCard').classList.add('done');requestAnimationFrame(()=>focusOn($('#actCard'),1.08,0));return;}
     if(n===8){app.classList.add('dim');logo.classList.add('show');logoTag.textContent=LOOP_TAGLINE;return;}
-    if(n===9){showProj('list');setNav(projlist,'proj');requestAnimationFrame(()=>focusOn(projlist,0.86,0));return;}
+    if(n===9){showProj('list');setNav(projlist,'proj');for(let k=0;k<9;k++)revealCard(k);requestAnimationFrame(()=>focusOn(projlist,0.86,0));return;}
     if(n===10){showProj('detail');setNav(projdetail,'proj');projdetail.classList.add('filled');[0,1,2,3,4,5,6].forEach(revealProj);requestAnimationFrame(()=>focusOn(projdetail,0.84,0));return;}
     requestAnimationFrame(()=>focusOn(app,0.9,0));
   }
