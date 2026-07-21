@@ -89,10 +89,18 @@ function Check({ accent }: { accent: Plan['accent'] }) {
   );
 }
 
-export default function HomePricingSection() {
+/**
+ * The two plan cards. Shared by the homepage and /pricing so the offer can never
+ * drift between them — `showHeading={false}` on /pricing, where the page's own
+ * hero already says this.
+ */
+export default function HomePricingSection({ showHeading = true }: { showHeading?: boolean }) {
   return (
-    <section id="pricing" className="py-24 sm:py-28 px-6 overflow-hidden">
+    // pt-6 even without the heading: the plan badges sit at -top-3 and this
+    // section is overflow-hidden, so zero top padding clips them.
+    <section id="pricing" className={`${showHeading ? 'py-24 sm:py-28' : 'pt-6 pb-8'} px-6 overflow-hidden`}>
       <div className="max-w-5xl mx-auto">
+        {showHeading && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -105,6 +113,7 @@ export default function HomePricingSection() {
             One subscription instead of five. 3 days free, cancel anytime.
           </p>
         </motion.div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6 items-start">
           {PLANS.map((plan, i) => (
