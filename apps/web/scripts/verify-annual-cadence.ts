@@ -78,10 +78,29 @@ process.env.STRIPE_PRICE_GROUP ??= 'price_group_stub';
   check('unknown plan -> no price (route 400s)', !r3.priceId);
 }
 
+console.log('\n4. No surface hardcodes a plan price');
+{
+  // The onboarding plan step sat one click before Stripe showing a literal
+  // "$24", so an annual buyer read $24/mo and got charged $240. Any file that
+  // renders a price must read it from lib/pricing.
+  const { readFileSync } = require('fs') as typeof import('fs');
+  const SURFACES = [
+    'app/(auth)/onboarding/page.tsx',
+    'components/marketing/HomePricingSection.tsx',
+  ];
+  for (const f of SURFACES) {
+    const src = readFileSync(`${__dirname}/../${f}`, 'utf8');
+    // A bare price literal in JSX/props, e.g. price: '$24' or >$59<
+    const bad = src.match(/(?:price|Price)\s*:\s*['"]\$\d+|>\s*\$\d+\s*</g);
+    check(`${f} has no hardcoded price literal`, !bad, bad ? bad.join(', ') : '');
+    check(`${f} imports from lib/pricing`, /from '@\/lib\/pricing'/.test(src));
+  }
+}
+
 // Wrapped in main() rather than top-level await: tsx compiles these scripts as
 // CJS and top-level await is a hard transform error there.
 async function main() {
-console.log('\n4. The live Stripe prices are real, active, annual, and correct');
+console.log('\n5. The live Stripe prices are real, active, annual, and correct');
 const secret = process.env.STRIPE_SECRET_KEY;
 if (!secret) {
   console.log('  skip  STRIPE_SECRET_KEY not set — offline checks only');

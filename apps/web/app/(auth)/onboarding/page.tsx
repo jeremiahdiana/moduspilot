@@ -13,7 +13,7 @@ import {
   getDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { CADENCE_STORAGE_KEY, isCadence } from '@/lib/pricing';
+import { CADENCE_STORAGE_KEY, PLAN_PRICING, isCadence, type Cadence } from '@/lib/pricing';
 
 // ── types ──────────────────────────────────────────────────────────────────────
 type Screen = 'welcome' | 'name' | 'role' | 'models' | 'plan' | 'done';
@@ -369,24 +369,32 @@ function ModelsShowcaseScreen() {
 
 // ── PlanStep ───────────────────────────────────────────────────────────────────
 // Lets the user pick which plan to start their 3-day trial on, before checkout.
-const PLAN_OPTIONS: { id: PlanId; name: string; price: string; tagline: string; popular?: boolean; features: string[] }[] = [
+// Prices come from lib/pricing, never from a literal here: someone who picked
+// Annually on /pricing gets billed the annual amount, so showing them a hardcoded
+// "$24 /mo" on the step right before checkout is a lie about what their card is
+// about to be charged.
+const PLAN_OPTIONS: { id: PlanId; name: string; tagline: string; popular?: boolean; features: string[] }[] = [
   {
-    id: 'modus', name: 'MODUS', price: '$24', tagline: 'Every provider, auto-routed',
+    id: 'modus', name: 'MODUS', tagline: 'Every provider, auto-routed',
     features: ['Claude + GPT-5.6 + Gemini, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
   },
   {
-    id: 'pilot', name: 'PILOT', price: '$59', tagline: 'Everything, higher limits', popular: true,
+    id: 'pilot', name: 'PILOT', tagline: 'Everything, higher limits', popular: true,
     features: ['Everything in MODUS', 'The frontier models — GPT-5.6 Sol, Claude Opus, Claude Fable 5 + Gemini 3.1 Pro', 'Much higher usage limits', 'Manual model pick per message'],
   },
 ];
 
-function PlanStep({ selected, setSelected }: { selected: PlanId; setSelected: (v: PlanId) => void }) {
+function PlanStep({ selected, setSelected, cadence }: { selected: PlanId; setSelected: (v: PlanId) => void; cadence: Cadence }) {
+  const annual = cadence === 'annual';
   return (
     <div className="space-y-6">
       <div>
         <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Pick your plan</p>
         <h1 className="text-2xl font-black text-text leading-tight">Choose your plan.</h1>
-        <p className="text-sm text-muted mt-1.5">Both start with a 3-day free trial. Cancel anytime.</p>
+        <p className="text-sm text-muted mt-1.5">
+          Both start with a 3-day free trial. Cancel anytime.
+          {annual && ' Billed yearly, 2 months free.'}
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -415,8 +423,15 @@ function PlanStep({ selected, setSelected }: { selected: PlanId; setSelected: (v
                   <p className="text-xs text-muted mt-0.5">{p.tagline}</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xl font-black text-text">{p.price}</span>
+                  <span className="text-xl font-black text-text">
+                    ${annual ? PLAN_PRICING[p.id].annualPerMonth : PLAN_PRICING[p.id].monthlyPrice}
+                  </span>
                   <span className="text-xs text-muted">/mo</span>
+                  {annual && (
+                    <p className="text-[10px] text-muted whitespace-nowrap">
+                      ${PLAN_PRICING[p.id].annualTotal} billed yearly
+                    </p>
+                  )}
                 </div>
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors ${active ? 'border-brand bg-brand' : 'border-muted/40'}`}>
                   {active && (
@@ -590,6 +605,16 @@ export default function OnboardingPage() {
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('modus');
+  // Chosen back on /pricing. Read once on mount so the plan step DISPLAYS the
+  // same cadence that checkout will CHARGE — those two drifting apart is how you
+  // show someone $24/mo and bill their card $240.
+  const [cadence, setCadence] = useState<Cadence>('monthly');
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(CADENCE_STORAGE_KEY);
+      if (isCadence(stored)) setCadence(stored);
+    } catch { /* private mode */ }
+  }, []);
 
   // Auth guard
   useEffect(() => {
@@ -618,15 +643,9 @@ export default function OnboardingPage() {
   async function startTrial() {
     try {
       const token = await user!.getIdToken();
-      // Cadence was chosen back on /pricing and parked in localStorage, because
-      // the /login hop can drop query params. Anything unrecognised bills
-      // monthly — the server re-validates and falls back the same way.
-      let cadence = 'monthly';
-      try {
-        const stored = window.localStorage.getItem(CADENCE_STORAGE_KEY);
-        if (isCadence(stored)) cadence = stored;
-      } catch { /* private mode */ }
-
+      // `cadence` is the same state the plan step rendered, so the price shown is
+      // the price charged. The server re-validates and falls back to monthly for
+      // anything it can't honour.
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -788,7 +807,7 @@ export default function OnboardingPage() {
               {screen === 'name'   && <NameScreen name={name} setName={setName} onNext={handleNext} />}
               {screen === 'role'   && <RoleStep role={role} setRole={setRole} name={name} />}
               {screen === 'models' && <ModelsShowcaseScreen />}
-              {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} />}
+              {screen === 'plan'   && <PlanStep selected={selectedPlan} setSelected={setSelectedPlan} cadence={cadence} />}
             </motion.div>
           </AnimatePresence>
 
