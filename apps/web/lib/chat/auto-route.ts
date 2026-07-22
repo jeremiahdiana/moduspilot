@@ -148,10 +148,11 @@ export async function routeTask(
     // hangs it would stall the entire chat (and eat into the function's time
     // budget). Cap it hard — a slow router must never block the answer; we just
     // fall back to the general/Llama default.
-    // 🚨 The losing promise must have its OWN handler — see the same trap in
-    // queryMemoryContext. If the 1200ms timer wins and the classifier call then
-    // rejects (the Gateway free tier 429s often), that rejection has nowhere to
-    // go and Node kills the process mid-response.
+    // The classifier owns its own failure so a Gateway 429 (common on the free
+    // tier) resolves to null instead of rejecting, and the cap resolves rather
+    // than throwing — the route then falls through to the general default in one
+    // place instead of two. Not a leak fix: Promise.race handles every input
+    // (scripts/verify-no-unhandled-rejection.ts).
     const classification = generateText({
       model: groq('meta/llama-3.1-8b'),
       system: CLASSIFIER_SYSTEM,

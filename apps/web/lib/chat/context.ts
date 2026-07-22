@@ -179,20 +179,11 @@ export function isVagueQuery(q: string): boolean {
 
 // ── Pinecone semantic memory ─────────────────────────────────────────────────
 export async function queryMemoryContext(uid: string, queryText: string): Promise<string> {
-  // 🚨 `Promise.race([work, rejectingTimer]).catch(...)` LOOKS safe and is not.
-  // The .catch belongs to the RACE. When the timer wins, the race is settled and
-  // handled — but `queryMemory` is still in flight with NO handler of its own,
-  // so if it rejects a second later that is an unhandled rejection. Node's
-  // default for those is to terminate the process, which on a serverless
-  // function means the response dies mid-stream with nothing logged. That is
-  // indistinguishable from the blank bubble this whole audit started on.
-  //
-  // Pinecone timing out here is not hypothetical: `[chat] memory query failed:
-  // Error: timeout` appears in production logs, which means the losing promise
-  // has been left dangling on every one of those requests.
-  //
-  // withCap attaches the handler to the work itself and resolves (never rejects)
-  // on timeout, so neither branch can ever go unhandled.
+  // Uses the same withCap every other fetcher in this file uses. The previous
+  // hand-rolled `Promise.race([work, rejectingTimer]).catch(...)` was not unsafe
+  // — Promise.race handles every input, so the losing branch cannot leak (see
+  // scripts/verify-no-unhandled-rejection.ts) — but it logged in its own format
+  // and rejected rather than failing open. One shape for every capped fetch.
   const matches = await withCap(queryMemory(uid, queryText, 4), 800, [], 'memory query');
   const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
   if (relevant.length > 0) {

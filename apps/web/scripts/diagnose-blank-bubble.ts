@@ -7,7 +7,7 @@
  * finishReason + usage, `3:` holds the sanitized error token, `9:`/`a:` hold
  * tool calls/results. Decoding them needs no deploy and no new logging.
  *
- *   cd apps/web && npx tsx scripts/tmp-repro-sonnet5.ts <model> "<prompt>"
+ *   cd apps/web && npx tsx scripts/diagnose-blank-bubble.ts <model> "<prompt>" [--multi] [--websearch]
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -75,6 +75,9 @@ async function main() {
           ]
         : [{ id: 'repro-1', role: 'user', content: PROMPT, parts: [{ type: 'text', text: PROMPT }] }],
       modelChoice: MODEL,
+      // --websearch mirrors the composer's "+ → Web search" toggle, which is the
+      // only way to prove the router can no longer overwrite an explicit choice.
+      ...(process.argv.includes('--websearch') ? { webSearch: true } : {}),
       personalContext: '',
       responseStyle: 'normal',
       briefingHour: 7,
@@ -82,7 +85,9 @@ async function main() {
     }),
   });
 
-  console.log(`HTTP ${res.status}  x-modus-model: ${res.headers.get('x-modus-model') ?? '(none)'}`);
+  const modusHeaders: string[] = [];
+  res.headers.forEach((v: string, k: string) => { if (k.startsWith('x-modus-')) modusHeaders.push(`${k}=${v}`); });
+  console.log(`HTTP ${res.status}  ${modusHeaders.join("  ") || "(no x-modus-* headers)"}`);
   if (!res.ok) { console.log(`body: ${(await res.text()).slice(0, 400)}`); process.exit(1); }
 
   const raw = await res.text();

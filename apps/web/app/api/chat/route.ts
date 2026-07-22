@@ -301,18 +301,16 @@ export async function POST(req: Request) {
         // Reject a promise after `ms` without leaving the underlying work
         // uncancelled leaking. Used to bound both connect and tools() so a slow
         // plugin can never stall the whole chat.
-        const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> => {
-          // 🚨 Give the work its OWN handler before racing it. Without this, a
-          // plugin that times out here and rejects a moment later produces an
-          // unhandled rejection — which Node answers by killing the process,
-          // mid-stream, with nothing in the logs. Same trap as
-          // queryMemoryContext and the auto-route classifier.
-          p.catch(() => {});
-          return Promise.race([
+        // ℹ️ No extra handler needed on `p`. Promise.race subscribes
+        // .then(resolve, reject) to EVERY input, so a losing branch that rejects
+        // after the race settled is still "handled" and cannot become an
+        // unhandled rejection. Proven in scripts/verify-no-unhandled-rejection.ts
+        // — do not add a defensive `p.catch(() => {})` here believing otherwise.
+        const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> =>
+          Promise.race([
             p,
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
           ]);
-        };
 
         const connections = await Promise.allSettled(
           mcpServers.map(async (server) => {
@@ -416,6 +414,9 @@ export async function POST(req: Request) {
     let wasAutoRouted = false;
     // The "+" menu web-search toggle forces it for this message; Auto-routing can also.
     let forceWebSearch = body.webSearch === true;
+    // A model the user explicitly asked for that their plan cannot run. Recorded
+    // so the answer can say so instead of quietly substituting another model.
+    let lockedChoice: string | undefined;
     if (uid && queryText) {
       // Saved Brain: 'auto' means MODUS routes per task. Used when the composer
       // sends no explicit per-message choice (or sends 'default').
@@ -448,8 +449,26 @@ export async function POST(req: Request) {
           console.log(`[route] sticky: follow-up stays on ${last} (router said general)`);
           forcedModelId = last;
         }
-      } else if (modelChoice && modelChoice !== 'default' && isModelUnlocked(modelChoice, userData.plan)) {
-        forcedModelId = modelChoice;
+      } else if (modelChoice && modelChoice !== 'default') {
+        if (isModelUnlocked(modelChoice, userData.plan)) {
+          forcedModelId = modelChoice;
+        } else {
+          // 🚨 A LOCKED PICK MUST NOT PASS SILENTLY. This branch used to be part
+          // of the `if` condition, so a model the plan cannot use simply fell
+          // through to the saved Brain — the user asked for Opus and got Sonnet
+          // with NO header, NO notice and NO log. Verified 2026-07-23 against
+          // prod: modelChoice=claude-opus-4-8 → x-modus-model=claude-sonnet-5,
+          // and no x-modus-downgraded at all.
+          //
+          // The silent-downgrade work (247a582) closed the RUNTIME failover path
+          // — a model that fails mid-request can't pose as your pick. This is the
+          // other door into the same lie: a pick that was never eligible to run.
+          // It is reachable without ever showing a locked model in the composer,
+          // because a saved selection outlives the plan that unlocked it (PILOT
+          // → MODUS, or a lapsed subscription).
+          lockedChoice = modelChoice;
+          console.warn(`[chat] locked model requested: ${modelChoice} (plan=${userData.plan ?? 'none'}) — serving the saved default instead`);
+        }
       }
     }
 
@@ -524,6 +543,14 @@ export async function POST(req: Request) {
     // Resolve model — an in-chat/Auto override wins for this message, else BYOK
     // keys, then the platform default (Groq). hasImage forces a vision model.
     const resolved = resolveChatModel(userData, { hasImage, modelId: forcedModelId });
+    // Fold a locked pick into the SAME downgrade signal the runtime failover
+    // uses, so it reaches the user through the machinery that already exists
+    // (x-modus-downgraded → the "X was unavailable, Y answered instead" notice)
+    // rather than needing a second, parallel way of telling the truth.
+    if (lockedChoice && lockedChoice !== resolved.modelId) {
+      resolved.downgraded = true;
+      resolved.requestedId = lockedChoice;
+    }
     const chatModel = resolved.model;
     // The model the USER was promised: their explicit pick, Auto's announced
     // choice, or their saved Brain. Nothing reassigns `resolved` after this now
