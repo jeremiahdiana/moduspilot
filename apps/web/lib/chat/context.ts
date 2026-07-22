@@ -37,13 +37,30 @@ import type { ProjectContext } from './prompt';
  * extra block, so every cap here fails open to ''.
  */
 export function withCap<T>(p: Promise<T>, ms: number, fallback: T, label: string): Promise<T> {
-  return Promise.race([
-    p.catch((e) => { console.error(`[chat] ${label} failed:`, String(e)); return fallback; }),
-    new Promise<T>(resolve => setTimeout(() => {
+  // 🚨 THE TIMER MUST BE CANCELLED, OR THE LOG LIES ON EVERY REQUEST.
+  //
+  // This used to be a bare `setTimeout` inside the losing branch of the race.
+  // Nothing cleared it, so the callback fired at `ms` REGARDLESS of whether the
+  // work had already won — printing "<label> timed out after Xms — answering
+  // without it" on essentially every request, for fetches that had succeeded
+  // hundreds of milliseconds earlier. Any request living longer than the cap got
+  // the warning, which is all of them.
+  //
+  // That is worse than noise: it is evidence that points the wrong way. It cost
+  // real debugging time during the 2026-07-23 audit — "memory query timed out on
+  // 25 of 25 requests" was read straight off these lines and was not true.
+  // A timeout log must mean a timeout happened.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>(resolve => {
+    timer = setTimeout(() => {
       console.warn(`[chat] ${label} timed out after ${ms}ms — answering without it`);
       resolve(fallback);
-    }, ms)),
-  ]);
+    }, ms);
+  });
+  return Promise.race([
+    p.catch((e) => { console.error(`[chat] ${label} failed:`, String(e)); return fallback; }),
+    timeout,
+  ]).finally(() => { if (timer) clearTimeout(timer); });
 }
 
 // ── Contact email cross-reference types ──────────────────────────────────────
@@ -265,9 +282,17 @@ export async function fetchGoogleData(
           // An empty account collection means never connected; records that exist
           // but yield no token means genuinely broken.
           const linked = await getAllGoogleAccounts(uid).catch(() => []);
+          // ⚠️ WRITTEN FOR THE WEAKEST MODEL, because that is the one that gets
+          // it. A brand-new customer has no saved Brain, so they default to
+          // Llama 3.3 — which on the free Gateway tier fails over to gpt-4o-mini.
+          // The first, politer version of this block ("do NOT say the calendar is
+          // empty") was simply ignored: gpt-4o-mini still answered "There are no
+          // events scheduled on your calendar for today." A negative instruction
+          // asks a small model to suppress its default; a SCRIPT gives it
+          // something to say instead, which it will reliably take.
           gmailBlock = linked.length === 0
-            ? '\n\nGOOGLE: NOT CONNECTED. This user has never linked a Google account, so there is NO inbox and NO calendar data available — none, not "empty". Do NOT invent emails or events, do NOT say the inbox or calendar is empty, and do NOT say anything is out of date or needs reconnecting. Tell them Google is not connected yet and that they can link it in Settings → Connectors to get inbox and calendar answers.'
-            : '\n\nGOOGLE: CONNECTED BUT THE TOKEN COULD NOT BE REFRESHED. Do NOT invent or fabricate any emails or events — tell the user their Google connection needs to be reconnected in Settings → Connectors.';
+            ? '\n\nGOOGLE ACCOUNT: NOT CONNECTED.\nYou have NO access to this user\'s email or calendar. You cannot see them at all. There is no data to report and no empty result to report either.\nFORBIDDEN, these statements are FALSE and must never be written: "there are no events", "your calendar is clear", "no new emails", "your inbox is empty", "nothing scheduled", "reconnect", "your token expired".\nREQUIRED: say you are not connected to their Google account yet, and that connecting it in Settings → Connectors is what lets you answer questions about their inbox and calendar. Answer in that spirit, in your own words.'
+            : '\n\nGOOGLE ACCOUNT: CONNECTED, BUT THE TOKEN IS BROKEN.\nYou cannot read their email or calendar right now. Do NOT invent emails or events and do NOT say there are none — you cannot see them. Tell the user their Google connection stopped working and needs reconnecting in Settings → Connectors.';
           return;
         }
         const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';

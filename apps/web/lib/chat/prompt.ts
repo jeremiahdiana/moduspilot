@@ -149,7 +149,7 @@ export function buildGoogleDataBlock(gmailBlock: string, calendarBlock: string):
   //
   // So the anti-hedging rules only apply when a connection actually exists; when
   // it does not, the not-connected block above is the whole instruction.
-  const notConnected = gmailBlock.includes('GOOGLE: NOT CONNECTED');
+  const notConnected = gmailBlock.includes('GOOGLE ACCOUNT: NOT CONNECTED');
   if (notConnected) return `${gmailBlock}${calendarBlock}`;
 
   return `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it in the last 10 days. NEVER suggest the user connect Gmail or Google — it is already connected. NEVER say you "can't see" or "don't have real-time access to" the calendar — you DO have it. The calendar data above is live and real-time. If no events are listed, that means there are genuinely no events scheduled for today.`;
