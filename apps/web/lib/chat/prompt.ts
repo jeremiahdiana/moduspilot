@@ -133,7 +133,24 @@ A short follow-up like "make it shorter" stays on whichever model wrote the thin
 }
 
 export function buildGoogleDataBlock(gmailBlock: string, calendarBlock: string): string {
-  return gmailBlock || calendarBlock
-    ? `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it in the last 10 days. NEVER suggest the user connect Gmail or Google — it is already connected. NEVER say you "can't see" or "don't have real-time access to" the calendar — you DO have it. The calendar data above is live and real-time. If no events are listed, that means there are genuinely no events scheduled for today.`
-    : '';
+  if (!gmailBlock && !calendarBlock) return '';
+
+  // 🚨 THIS TRAILER ASSUMED GOOGLE WAS CONNECTED, AND FORCED A LIE WHEN IT WASN'T.
+  // It tells the model "it is already connected", "you DO have it", and — worst —
+  // "if no events are listed, that means there are genuinely no events scheduled".
+  // For a user who has never linked Google, that instruction manufactures a false
+  // statement about data MODUS cannot see. Verified on prod with a fresh paid
+  // account (scripts/verify-new-consumer.ts):
+  //   "whats on my calendar today"
+  //     → "There are no events scheduled on your calendar for today."
+  // MODUS asserted it had checked. It had not. For a product asking people to
+  // trust it with their life, a confident answer about data it cannot see is the
+  // most expensive thing it can say — worse than refusing.
+  //
+  // So the anti-hedging rules only apply when a connection actually exists; when
+  // it does not, the not-connected block above is the whole instruction.
+  const notConnected = gmailBlock.includes('GOOGLE: NOT CONNECTED');
+  if (notConnected) return `${gmailBlock}${calendarBlock}`;
+
+  return `${gmailBlock}${calendarBlock}\n\nCRITICAL: Never invent, guess, or fabricate email senders, subjects, content, or calendar events. Only reference what is listed above. If asked about an email or event not in the list, say you don't see it in the last 10 days. NEVER suggest the user connect Gmail or Google — it is already connected. NEVER say you "can't see" or "don't have real-time access to" the calendar — you DO have it. The calendar data above is live and real-time. If no events are listed, that means there are genuinely no events scheduled for today.`;
 }

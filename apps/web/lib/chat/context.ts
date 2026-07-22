@@ -8,7 +8,7 @@
  */
 import { queryMemory } from '@/lib/pinecone';
 import { adminDb } from '@/lib/firebase-admin';
-import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth';
+import { getValidAccessToken, getAllValidAccessTokens, getAllGoogleAccounts } from '@/lib/google-oauth';
 import { getActionableThreads, type GmailThread } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime, type CalendarEvent } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
@@ -253,8 +253,21 @@ export async function fetchGoogleData(
       (async () => {
         const allAccounts = await getAllValidAccessTokens(uid);
         const googleToken = allAccounts[0]?.token ?? null;
-        if (allAccounts.length === 0 && wantsEmail) {
-          gmailBlock = '\n\nINBOX: Gmail is connected but the access token could not be refreshed. Do NOT invent or fabricate any emails — tell the user their Gmail token may need to be reconnected.';
+        if (allAccounts.length === 0 && (wantsEmail || wantsCalendar)) {
+          // 🚨 "NO VALID TOKEN" AND "NEVER CONNECTED" ARE NOT THE SAME THING, and
+          // conflating them makes MODUS lie to every brand-new customer. This
+          // branch used to say "Gmail is connected but the access token could not
+          // be refreshed" unconditionally — so a stranger who had never linked
+          // Google was told to RECONNECT an account they never had. Verified on
+          // prod with a fresh paid account (scripts/verify-new-consumer.ts):
+          //   "any emails i should care about"
+          //     → "Your Gmail token may need to be reconnected."
+          // An empty account collection means never connected; records that exist
+          // but yield no token means genuinely broken.
+          const linked = await getAllGoogleAccounts(uid).catch(() => []);
+          gmailBlock = linked.length === 0
+            ? '\n\nGOOGLE: NOT CONNECTED. This user has never linked a Google account, so there is NO inbox and NO calendar data available — none, not "empty". Do NOT invent emails or events, do NOT say the inbox or calendar is empty, and do NOT say anything is out of date or needs reconnecting. Tell them Google is not connected yet and that they can link it in Settings → Connectors to get inbox and calendar answers.'
+            : '\n\nGOOGLE: CONNECTED BUT THE TOKEN COULD NOT BE REFRESHED. Do NOT invent or fabricate any emails or events — tell the user their Google connection needs to be reconnected in Settings → Connectors.';
           return;
         }
         const gmailFilter = (userData.settings?.gmailFilter as 'primary' | 'all' | undefined) ?? 'primary';
