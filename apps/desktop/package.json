@@ -8,7 +8,7 @@
     "dev": "npm run build && electron .",
     "watch": "tsc -p tsconfig.json --watch",
     "dist": "npm run build && electron-builder --mac",
-    "release": "npm run build && electron-builder --mac --publish always"
+    "release": "node scripts/preflight-release.js && npm run build && electron-builder --mac --publish always"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
