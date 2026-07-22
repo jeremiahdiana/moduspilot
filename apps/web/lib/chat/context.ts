@@ -201,16 +201,27 @@ export async function fetchGoogleData(
 }
 
 // ── Web search (Tavily) ──────────────────────────────────────────────────────
+export interface WebSearchResult {
+  /** The system-prompt block, or '' when nothing was searched. */
+  block: string;
+  /** How many results came back. 0 means no search ran (or it found nothing). */
+  count: number;
+}
+
 export async function fetchWebSearchBlock(
   queryText: string,
   capabilities: Record<string, boolean>,
   explicit = false,
-): Promise<string> {
-  if (!queryText || !process.env.TAVILY_API_KEY) return '';
+): Promise<WebSearchResult> {
+  // `count` rides along so the answer can carry an honest "Searched the web · N
+  // results" marker. Deriving it by re-parsing the block would be guesswork; the
+  // only place that knows is right here.
+  const none: WebSearchResult = { block: '', count: 0 };
+  if (!queryText || !process.env.TAVILY_API_KEY) return none;
   // Never searchable, however the request arrived: there is nothing about MODUS
   // on the public web, and what IS there belongs to somebody else. This veto
   // outranks an explicit request. See lib/chat/self-query.ts.
-  if (isSelfQuery(queryText)) return '';
+  if (isSelfQuery(queryText)) return none;
   // `explicit` = the user hit the composer's "+ → Web search" toggle, or Auto
   // already classified this message as research. Either way the decision is
   // MADE, and shouldWebSearch() does not get to overrule it.
@@ -225,13 +236,16 @@ export async function fetchWebSearchBlock(
   //
   // The keyword list now decides ONE thing only: whether to search a message the
   // user never asked us to search.
-  if (!explicit && !(capabilities.webSearch && shouldWebSearch(queryText))) return '';
+  if (!explicit && !(capabilities.webSearch && shouldWebSearch(queryText))) return none;
   return withCap((async () => {
     const results = await webSearch(queryText, 5);
-    if (results.length === 0) return '';
-    return '\n\nWEB SEARCH RESULTS (for this query — use these to answer, cite sources naturally):\n' +
-      results.map((r, i) => `${i + 1}. ${r.title ?? ''}\n   Source: ${r.url ?? ''}\n   ${(r.content ?? '').slice(0, 350)}`).join('\n\n');
-  })(), 6000, '', 'web search');
+    if (results.length === 0) return none;
+    return {
+      count: results.length,
+      block: '\n\nWEB SEARCH RESULTS (for this query — use these to answer, cite sources naturally):\n' +
+        results.map((r, i) => `${i + 1}. ${r.title ?? ''}\n   Source: ${r.url ?? ''}\n   ${(r.content ?? '').slice(0, 350)}`).join('\n\n'),
+    };
+  })(), 6000, none, 'web search');
 }
 
 // ── Google Drive file search ─────────────────────────────────────────────────

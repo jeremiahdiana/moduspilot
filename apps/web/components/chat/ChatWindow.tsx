@@ -12,6 +12,7 @@ import { auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { modelName, unlockedModels } from '@/lib/models';
 import { isAwaitingAssistantText } from '@/lib/chat/pending';
+import { readWebSearchAnnotation } from '@/lib/chat/annotations';
 import { motion } from 'framer-motion';
 
 interface ConnectedServices {
@@ -689,6 +690,7 @@ export default function ChatWindow({
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
             routedModel={chipModel(m)}
             replacedModel={servedByMsgId[m.id]?.downgraded ? servedByMsgId[m.id]?.requested : undefined}
+            webSearchCount={readWebSearchAnnotation(m)}
             isLatest={idx === messages.length - 1}
             followingUserText={
               messages[idx + 1]?.role === 'user' ? messageText(messages[idx + 1]) : undefined

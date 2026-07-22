@@ -366,10 +366,14 @@ export const approvalHandlers: Record<string, ApprovalHandler> = {
     return Response.json({ ok: true });
   },
 
-  enable_web_search: async ({ userRef }) => {
-    await userRef.set({ capabilities: { webSearch: true } }, { merge: true });
-    return Response.json({ ok: true });
-  },
+  // enable_web_search was REMOVED on 2026-07-22. It flipped a persistent global
+  // (capabilities.webSearch) from inside a chat card, so one Approve click meant
+  // every keyword-matching message got silently searched from then on — with no
+  // indication on any answer that it had happened. That is how it ended up on
+  // without the account owner knowing. Web search is now either explicit per
+  // message ("+ → Web search") or an opt-in in Settings that says what it does.
+  // The handler map is keyed by type, so an old card still sitting in a thread
+  // now falls through to the unknown-action branch instead of writing anything.
 
   reschedule_event: async ({ uid, payload }) => {
     const { eventId, calendarId = 'primary', newStart, newEnd } = payload as {

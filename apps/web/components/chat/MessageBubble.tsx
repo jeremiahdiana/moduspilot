@@ -84,12 +84,37 @@ function RoutedChip({ modelId, replacedModel }: { modelId: string; replacedModel
   );
 }
 
+// "Searched the web · N results" — shown when the server actually injected web
+// results into this answer.
+//
+// Web search used to leave no trace at all: results arrived with a "cite sources
+// naturally" instruction attached, and nothing on the reply said the web had been
+// consulted, so a web-sourced answer looked exactly like the model's own
+// knowledge. Deliberately reads "Searched the web", not "Web search on" — this
+// states what HAPPENED, not what a setting says.
+function WebSearchChip({ count }: { count: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-center gap-1.5 text-xs text-muted"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0" aria-hidden>
+        <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <span>Searched the web · {count} {count === 1 ? 'result' : 'results'}</span>
+    </motion.div>
+  );
+}
+
 export default function MessageBubble({
   message,
   isStreaming = false,
   showAvatar = true,
   routedModel,
   replacedModel,
+  webSearchCount = 0,
   followingUserText,
   isLatest = true,
   onAppend,
@@ -101,6 +126,8 @@ export default function MessageBubble({
   routedModel?: string;
   /** The model the user picked, when it couldn't answer and routedModel replaced it. */
   replacedModel?: string;
+  /** How many web results the server injected into this answer. 0 = none. */
+  webSearchCount?: number;
   /** The user turn right after this one, if any — how a card knows it was answered. */
   followingUserText?: string;
   /** False once a later message exists, which closes any question this one asked. */
@@ -165,6 +192,7 @@ export default function MessageBubble({
     >
       {showAvatar ? <ModusAvatar /> : <div className="w-7 shrink-0" aria-hidden />}
       <div className="max-w-[85%] min-w-0 space-y-3">
+        {webSearchCount > 0 && <WebSearchChip count={webSearchCount} />}
         {routedModel && <RoutedChip modelId={routedModel} replacedModel={replacedModel} />}
         {parts.map((part, i) =>
           part.type === 'approval' ? (

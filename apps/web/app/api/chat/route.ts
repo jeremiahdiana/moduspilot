@@ -425,7 +425,7 @@ export async function POST(req: Request) {
     //     known names), so those two stay sequential INSIDE their own entry.
     const [
       googleData,
-      webSearchBlock,
+      webSearchResult,
       driveBlock,
       groupBlock,
       projectResourcesBlock,
@@ -463,6 +463,7 @@ export async function POST(req: Request) {
     ]);
     ({ gmailBlock, calendarBlock } = googleData);
     const { connectorBlock, notionBlock, slackBlock, githubBlock } = connectorData;
+    const { block: webSearchBlock, count: webSearchCount } = webSearchResult;
     const tContext = Date.now();
 
     // Resolve model — an in-chat/Auto override wins for this message, else BYOK
@@ -618,6 +619,18 @@ export async function POST(req: Request) {
     // data stream as a message annotation instead — the same channel the routing
     // chip already reads and useConversations already persists.
     const streamData = new StreamData();
+
+    // Tell the user when an answer used the web. Until now this was completely
+    // invisible: results were injected with a "cite sources naturally"
+    // instruction and nothing on the answer said where they came from, so a
+    // web-sourced reply was indistinguishable from the model's own knowledge.
+    // That is how "According to Dapto..." reached a question about MODUS without
+    // anything looking wrong. Rides the same annotation channel as the routing
+    // chip, so it persists with the thread like the model name does.
+    if (webSearchCount > 0) {
+      streamData.appendMessageAnnotation({ modusWebSearch: webSearchCount });
+    }
+
     let servedModelId = resolved.modelId;
     let streamDataClosed = false;
     // close() is idempotent here because onError and onFinish are mutually

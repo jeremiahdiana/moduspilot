@@ -21,7 +21,10 @@ interface Props { user: User }
 // AI behaviors (merged in from the old Capabilities tab). Non-beta features are
 // MODUS+ only; beta features are available on any plan.
 const AI_FEATURES: { key: 'webSearch' | 'dailyBriefing' | 'voiceInput' | 'inboxTriage' | 'relationshipNurture'; label: string; desc: string; beta?: boolean }[] = [
-  { key: 'webSearch', label: 'Web Search', desc: 'MODUS searches the web in real time for news, prices, research — anything current.' },
+  // NOT a master switch, and the label must not imply one: "+ → Web search" in the
+  // composer always works, and Auto searches when it routes a message to research.
+  // This governs ONE thing — searching a message you never asked to be searched.
+  { key: 'webSearch', label: 'Search the web automatically', desc: 'When a message looks like it needs current information, MODUS searches before answering. You can always search a single message with + → Web search.' },
   { key: 'dailyBriefing', label: 'Daily Briefing', desc: 'A morning brief with your top priorities, pending approvals, and a quick check-in.' },
   { key: 'voiceInput', label: 'Voice Input', desc: 'Speak to MODUS instead of typing. Audio is transcribed locally before sending.', beta: true },
   { key: 'inboxTriage', label: 'Inbox Triage', desc: 'MODUS drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft.', beta: true },
