@@ -23,6 +23,7 @@ import {
   needsMessagesCtx,
   needsContactsCtx,
   isVagueQuery,
+  SMALL_TALK,
   queryMemoryContext,
   fetchGoogleData,
   fetchWebSearchBlock,
@@ -266,7 +267,16 @@ export async function POST(req: Request) {
     const mcpClients: McpClient[] = [];
     let mcpTools: Record<string, unknown> = {};
     let mcpBlock = '';
-    const mcpSetupPromise: Promise<void> = uid ? (async () => {
+    // "yoyo" must never reach a documentation tool. MCP tools were attached to
+    // EVERY message regardless of what it said or which model answered it, so a
+    // one-word greeting routed to the weakest model (Llama 3.3, the 'general'
+    // default) arrived with GitMCP's full toolset and maxSteps:5 — and Llama did
+    // the obvious thing: it called the library matcher on "yoyo" and returned
+    // "matched to the owner/repo clickfwd/yoyo" as the whole answer. Small talk
+    // has no tool-shaped intent by definition, so skip discovery entirely. This
+    // also removes up to 8s (connect + tools()) from the fastest turns there are.
+    const isSmallTalk = SMALL_TALK.test(queryText.trim());
+    const mcpSetupPromise: Promise<void> = uid && !isSmallTalk ? (async () => {
       try {
         const mcpServers = await getMcpServers(uid);
         if (mcpServers.length === 0) return;

@@ -104,7 +104,14 @@ export function needsContactsCtx(q: string): boolean {
 // Pure greetings/acknowledgements. Anchored ^…$ so only a bare greeting matches —
 // "hi, check my inbox" still takes the full context path via needsEmailCtx.
 // Deliberately does NOT include "morning": "good morning" is a briefing intent.
-export const SMALL_TALK = /^(hi|hey+|hello|yo|sup|thanks?|thank you|ty|ok(ay)?|cool|nice|got it|k|lol|np|sure|yes|no|hey there)\b[\s!.?,]*$/i;
+// Repeated greeting tokens are the common form and the old list missed them:
+// `yo\b` cannot match "yoyo" (no word boundary between the two o/y), so "yoyo"
+// and "yoyoyo" were NOT small talk. That fell through to isVagueQuery (<6 words),
+// which fired a full Gmail + Calendar + contacts + notes fetch to answer a
+// greeting, and left the MCP toolset attached — GitMCP's library matcher then
+// answered "yoyo" with "matched to the owner/repo clickfwd/yoyo". `(?:yo+)+`
+// covers yo / yoo / yoyo / yoyoyo; same shape for hi and hey.
+export const SMALL_TALK = /^(?:(?:yo+)+|(?:hi+)+|(?:hey+)+|hell+o+|sup|thanks?|thank you|ty|ok(ay)?|cool|nice|got it|k|lol|np|sure|yes|no|hey there)\b[\s!.?,]*$/i;
 
 // Explicit "tell me what's going on" intent — these genuinely need live context.
 export function isBriefingIntent(q: string): boolean {

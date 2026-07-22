@@ -221,8 +221,44 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
 // Provider errors worth failing over on: transient rate / size / availability
 // limits (Groq's per-minute TPM 429 "request too large", overload, 5xx). NOT
 // auth/config errors — those would fail on every model, so retrying is pointless.
+// HTTP codes worth trying the next model for. 429 rate limit, 5xx availability.
+const FAILOVER_STATUS = new Set([408, 425, 429, 500, 502, 503, 504, 529]);
+
+/**
+ * Walk an error chain for a retryable HTTP status.
+ *
+ * String matching alone is NOT enough, and that gap took the whole chat down on
+ * 2026-07-22: the AI Gateway's free-tier rejection reads "...are rate-limited",
+ * and `AI_RetryError`'s own message is "Failed after 3 attempts. Last error: …".
+ * Hyphenated "rate-limited" does not contain "rate limit", and the 429 lives on
+ * `.lastError.statusCode` / `.errors[].statusCode` — never in the string. So
+ * isFailoverError returned false for a textbook 429, no fallback was tried, and
+ * the user got nothing at all instead of an answer from the next model.
+ * Status codes are structured data; read them as such.
+ */
+function hasFailoverStatus(err: unknown, depth = 0, seen = new Set<unknown>()): boolean {
+  if (!err || typeof err !== 'object' || depth > 4 || seen.has(err)) return false;
+  seen.add(err);
+  const o = err as Record<string, unknown>;
+  for (const key of ['statusCode', 'status'] as const) {
+    const v = o[key];
+    if (typeof v === 'number' && FAILOVER_STATUS.has(v)) return true;
+  }
+  // AI_RetryError nests the provider errors it gave up on.
+  if (hasFailoverStatus(o.lastError, depth + 1, seen)) return true;
+  if (hasFailoverStatus(o.cause, depth + 1, seen)) return true;
+  if (Array.isArray(o.errors) && o.errors.some(e => hasFailoverStatus(e, depth + 1, seen))) return true;
+  return false;
+}
+
+// Provider errors worth failing over on: transient rate / size / availability
+// limits (Groq's per-minute TPM 429 "request too large", overload, 5xx). NOT
+// auth/config errors — those would fail on every model, so retrying is pointless.
 function isFailoverError(err: unknown): boolean {
-  const s = String(err).toLowerCase();
+  if (hasFailoverStatus(err)) return true;
+  // Fold -/_ to spaces so "rate-limited", "rate_limit" and "ratelimited" all
+  // match the same phrase "rate limit" does.
+  const s = String(err).toLowerCase().replace(/[-_]+/g, ' ');
   return (
     s.includes('429') ||
     s.includes('rate limit') ||
