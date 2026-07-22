@@ -58,6 +58,11 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  // Time-to-first-token is the whole complaint this instrumentation exists for
+  // ("it took 30 seconds for it to register"). Everything between here and
+  // streamText is dead air the user stares at, so measure it rather than guess:
+  // grep Vercel logs for `[chat] timing`.
+  const t0 = Date.now();
   try {
     // The free floor is the AI Gateway now, not Groq. Gating on GROQ_API_KEY
     // here would keep 500ing after Groq is gone from the chat path entirely.
@@ -249,16 +254,99 @@ export async function POST(req: Request) {
       ? routeTask(queryText, userData.plan)
       : null;
 
+    // MCP tool discovery, started HERE rather than just before streamText.
+    //
+    // It depends on nothing but `uid`, yet it used to be the LAST thing before the
+    // model call, so its two 4s caps (connect, then tools) landed on top of every
+    // context fetch that came before it. It is the single most expensive step on
+    // the path — up to 8s — and now it overlaps the whole context block instead of
+    // following it. Awaited before streamText, which is what mcpClients needs:
+    // onFinish/onError close them.
+    type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
+    const mcpClients: McpClient[] = [];
+    let mcpTools: Record<string, unknown> = {};
+    let mcpBlock = '';
+    const mcpSetupPromise: Promise<void> = uid ? (async () => {
+      try {
+        const mcpServers = await getMcpServers(uid);
+        if (mcpServers.length === 0) return;
+        // Reject a promise after `ms` without leaving the underlying work
+        // uncancelled leaking. Used to bound both connect and tools() so a slow
+        // plugin can never stall the whole chat.
+        const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> =>
+          Promise.race([
+            p,
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
+          ]);
+
+        const connections = await Promise.allSettled(
+          mcpServers.map(async (server) => {
+            // Re-check at connection time: a stored URL could resolve to an
+            // internal address now (DNS rebinding) even if it was public when added.
+            await assertPublicUrl(server.url);
+            const connectP = connectMcpClient({ url: server.url, authHeader: server.authHeader, transport: server.transport });
+            let gaveUp = false;
+            // If the socket opens AFTER we already timed out, close it so the
+            // connection never leaks (the previous Promise.race dropped it).
+            connectP.then(c => { if (gaveUp) c.close().catch(() => {}); }).catch(() => {});
+            const client = await Promise.race([
+              connectP,
+              new Promise<never>((_, reject) => setTimeout(() => { gaveUp = true; reject(new Error('connect timeout')); }, 4000)),
+            ]) as McpClient;
+            return { server, client };
+          })
+        );
+
+        // tools() must run in PARALLEL across servers. It used to sit in a
+        // sequential for-loop, so each server serialised its own 4s cap —
+        // three plugins could add up to 12s before the first token, not 4s.
+        const fetched = await Promise.all(
+          connections.map(async (conn) => {
+            if (conn.status !== 'fulfilled') {
+              // Log instead of swallowing — a plugin that stopped working should
+              // be visible in logs, not silently dropped from the toolset.
+              console.error('[chat] MCP connect failed:', String((conn as PromiseRejectedResult).reason));
+              return null;
+            }
+            const { server, client } = conn.value;
+            try {
+              const tools = await withTimeout(client.tools(), 4000, 'tools');
+              if (Object.keys(tools).length === 0) {
+                try { await client.close(); } catch {}
+                return null;
+              }
+              return { server, client, tools };
+            } catch (e) {
+              console.error(`[chat] MCP tools() failed for ${server.name}:`, String(e));
+              try { await client.close(); } catch {}
+              return null;
+            }
+          })
+        );
+
+        // Merge in a stable, name-sorted order. Object key order feeds the
+        // provider's tool serialisation, which is the first thing in an
+        // Anthropic cache prefix — non-deterministic order would break caching
+        // (see the Phase 2 plan) and makes logs harder to diff.
+        const toolNamesByServer: string[] = [];
+        for (const ok of fetched.filter(x => x !== null).sort((a, b) => a!.server.name.localeCompare(b!.server.name))) {
+          const { server, client, tools } = ok!;
+          mcpTools = { ...mcpTools, ...tools };
+          toolNamesByServer.push(`${server.name}: ${Object.keys(tools).join(', ')}`);
+          mcpClients.push(client);
+        }
+        if (toolNamesByServer.length > 0) {
+          mcpBlock = '\n\nMCP TOOLS AVAILABLE (use these when the user asks for actions your connected servers can perform):\n' +
+            toolNamesByServer.join('\n');
+        }
+      } catch (e) {
+        console.error('[chat] MCP setup failed:', e);
+      }
+    })() : Promise.resolve();
+
     // Live Google data only when relevant to the query
     let gmailBlock = '';
     let calendarBlock = '';
-    if (uid && (wantsEmail || wantsCalendar)) {
-      const contactsEnabled = userData.settings?.deviceAccess?.contacts !== false;
-      // Build contact map first (~50ms Firestore read) so Gmail threads can be annotated with known contact names.
-      // This is sequential by necessity but adds negligible time vs the Gmail API which takes up to 5s.
-      const contactEmailMap = contactsEnabled ? await fetchContactEmailMap(uid) : new Map();
-      ({ gmailBlock, calendarBlock } = await fetchGoogleData(uid, userData, { wantsEmail, wantsCalendar, briefingTimezone, contactEmailMap }));
-    }
 
     // User capabilities (stored under settings.capabilities)
     const capabilities: Record<string, boolean> = uid ? {
@@ -311,14 +399,68 @@ export async function POST(req: Request) {
     }
 
     const searchCapabilities = forceWebSearch ? { ...capabilities, webSearch: true } : capabilities;
-    const webSearchBlock = await fetchWebSearchBlock(queryText, searchCapabilities);
-    const driveBlock = uid ? await fetchDriveBlock(uid, queryText) : '';
-    // Agent-to-agent: when the user asks about a groupmate's availability, pull
-    // the busy windows of members who opted to share their calendar.
-    const groupBlock = uid ? await fetchGroupAvailabilityBlock(uid, queryText, briefingTimezone) : '';
 
-    // Collect Pinecone result (started in parallel above)
-    const memoryContext = await memoryPromise;
+    // ── ONE parallel context fetch ────────────────────────────────────────────
+    // 🚨 EVERY FETCH IN THIS BLOCK IS INDEPENDENT OF EVERY OTHER ONE. Keep it that
+    // way, and add new context fetches HERE — never on their own `await` below.
+    //
+    // They each used to sit on a separate top-level `await`, so their timeouts
+    // stacked instead of overlapping, and the wait before the first token was the
+    // SUM of the slowest path through all of them:
+    //
+    //   Google (5s cap) → web search (uncapped) → Drive (uncapped) → group
+    //   (uncapped) → project resources (5s cap) → connectors (4s cap) → MCP
+    //   (4s connect + 4s tools)
+    //
+    // ~22s of caps plus three uncapped network calls, before streamText was even
+    // called. That is the reported "it took 30 seconds to register" — the request
+    // was not stuck, it was queueing. MCP moved earlier still (it overlaps this
+    // whole block), and the three uncapped fetches now have caps of their own, so
+    // the worst case is the SLOWEST fetch (~6s) rather than the sum.
+    //
+    // Ordering constraints that DO exist and are preserved:
+    //   · routePromise is awaited above — it decides forceWebSearch, which this
+    //     block reads via searchCapabilities.
+    //   · the contact map must precede the Gmail fetch (it annotates threads with
+    //     known names), so those two stay sequential INSIDE their own entry.
+    const [
+      googleData,
+      webSearchBlock,
+      driveBlock,
+      groupBlock,
+      projectResourcesBlock,
+      connectorData,
+      contactsBlock,
+      notesBlock,
+      messagesBlock,
+      memoryContext,
+    ] = await Promise.all([
+      (async () => {
+        if (!uid || !(wantsEmail || wantsCalendar)) return { gmailBlock: '', calendarBlock: '' };
+        const contactsEnabled = userData.settings?.deviceAccess?.contacts !== false;
+        // Build contact map first (~50ms Firestore read) so Gmail threads can be annotated with known contact names.
+        // This is sequential by necessity but adds negligible time vs the Gmail API which takes up to 5s.
+        const contactEmailMap = contactsEnabled ? await fetchContactEmailMap(uid) : new Map();
+        return fetchGoogleData(uid, userData, { wantsEmail, wantsCalendar, briefingTimezone, contactEmailMap });
+      })(),
+      fetchWebSearchBlock(queryText, searchCapabilities),
+      uid ? fetchDriveBlock(uid, queryText) : Promise.resolve(''),
+      // Agent-to-agent: when the user asks about a groupmate's availability, pull
+      // the busy windows of members who opted to share their calendar.
+      uid ? fetchGroupAvailabilityBlock(uid, queryText, briefingTimezone) : Promise.resolve(''),
+      (body.projectContext && uid) ? fetchProjectResources(uid, body.projectContext) : Promise.resolve(''),
+      uid ? fetchConnectorData(uid, queryText) : Promise.resolve({ connectorBlock: '', notionBlock: '', slackBlock: '', githubBlock: '' }),
+      uid ? fetchContactsBlock(uid, wantsContacts && userData.settings?.deviceAccess?.contacts !== false) : Promise.resolve(''),
+      uid ? fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false) : Promise.resolve(''),
+      // Opt-in only — defaults to OFF, unlike notesSync, since this surfaces
+      // other people's private messages, not just the user's own content.
+      uid ? fetchMessagesBlock(uid, wantsMessages && capabilities.messagesSync === true) : Promise.resolve(''),
+      // Pinecone, started before auto-routing above; collected here with the rest.
+      memoryPromise,
+    ]);
+    ({ gmailBlock, calendarBlock } = googleData);
+    const { connectorBlock, notionBlock, slackBlock, githubBlock } = connectorData;
+    const tContext = Date.now();
 
     // Resolve model — an in-chat/Auto override wins for this message, else BYOK
     // keys, then the platform default (Groq). hasImage forces a vision model.
@@ -345,30 +487,8 @@ export async function POST(req: Request) {
     const goalContextBlock = buildGoalContextBlock(body.goalContext);
     const projectContextBlock = buildProjectContextBlock(body.projectContext);
     const taskContextBlock = buildTaskContextBlock(body.taskContext);
-    const projectResourcesBlock = (body.projectContext && uid)
-      ? await fetchProjectResources(uid, body.projectContext)
-      : '';
     const googleDataBlock = buildGoogleDataBlock(gmailBlock, calendarBlock);
     const modelCatalogBlock = buildModelCatalogBlock(userData.plan);
-
-    // Connector status + live Notion / Slack / GitHub data
-    let connectorBlock = '';
-    let notionBlock = '';
-    let slackBlock = '';
-    let githubBlock = '';
-    let contactsBlock = '';
-    let notesBlock = '';
-    let messagesBlock = '';
-    if (uid) {
-      [{ connectorBlock, notionBlock, slackBlock, githubBlock }, contactsBlock, notesBlock, messagesBlock] = await Promise.all([
-        fetchConnectorData(uid, queryText),
-        fetchContactsBlock(uid, wantsContacts && userData.settings?.deviceAccess?.contacts !== false),
-        fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false),
-        // Opt-in only — defaults to OFF, unlike notesSync, since this surfaces
-        // other people's private messages, not just the user's own content.
-        fetchMessagesBlock(uid, wantsMessages && capabilities.messagesSync === true),
-      ]);
-    }
 
     // Files the user attached via the composer "+" menu — treat as primary context.
     // Budgeted in TOTAL, not per-file: the per-file 24k cap left the file COUNT
@@ -422,89 +542,11 @@ export async function POST(req: Request) {
     // finish='stop' in under 2s — 29,106 real prompt tokens at the top end, against a
     // 128K context window. Nothing above the old threshold fails.
 
-    // Load MCP tools from user's connected servers
-    type McpClient = Awaited<ReturnType<typeof experimental_createMCPClient>>;
-    const mcpClients: McpClient[] = [];
-    let mcpTools: Record<string, unknown> = {};
-    let mcpBlock = '';
-    if (uid) {
-      try {
-        const mcpServers = await getMcpServers(uid);
-        if (mcpServers.length > 0) {
-          // Reject a promise after `ms` without leaving the underlying work
-          // uncancelled leaking. Used to bound both connect and tools() so a slow
-          // plugin can never stall the whole chat.
-          const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> =>
-            Promise.race([
-              p,
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
-            ]);
-
-          const connections = await Promise.allSettled(
-            mcpServers.map(async (server) => {
-              // Re-check at connection time: a stored URL could resolve to an
-              // internal address now (DNS rebinding) even if it was public when added.
-              await assertPublicUrl(server.url);
-              const connectP = connectMcpClient({ url: server.url, authHeader: server.authHeader, transport: server.transport });
-              let gaveUp = false;
-              // If the socket opens AFTER we already timed out, close it so the
-              // connection never leaks (the previous Promise.race dropped it).
-              connectP.then(c => { if (gaveUp) c.close().catch(() => {}); }).catch(() => {});
-              const client = await Promise.race([
-                connectP,
-                new Promise<never>((_, reject) => setTimeout(() => { gaveUp = true; reject(new Error('connect timeout')); }, 4000)),
-              ]) as McpClient;
-              return { server, client };
-            })
-          );
-
-          // tools() must run in PARALLEL across servers. It used to sit in a
-          // sequential for-loop, so each server serialised its own 4s cap —
-          // three plugins could add up to 12s before the first token, not 4s.
-          const fetched = await Promise.all(
-            connections.map(async (conn) => {
-              if (conn.status !== 'fulfilled') {
-                // Log instead of swallowing — a plugin that stopped working should
-                // be visible in logs, not silently dropped from the toolset.
-                console.error('[chat] MCP connect failed:', String((conn as PromiseRejectedResult).reason));
-                return null;
-              }
-              const { server, client } = conn.value;
-              try {
-                const tools = await withTimeout(client.tools(), 4000, 'tools');
-                if (Object.keys(tools).length === 0) {
-                  try { await client.close(); } catch {}
-                  return null;
-                }
-                return { server, client, tools };
-              } catch (e) {
-                console.error(`[chat] MCP tools() failed for ${server.name}:`, String(e));
-                try { await client.close(); } catch {}
-                return null;
-              }
-            })
-          );
-
-          // Merge in a stable, name-sorted order. Object key order feeds the
-          // provider's tool serialisation, which is the first thing in an
-          // Anthropic cache prefix — non-deterministic order would break caching
-          // (see the Phase 2 plan) and makes logs harder to diff.
-          const toolNamesByServer: string[] = [];
-          for (const ok of fetched.filter(x => x !== null).sort((a, b) => a!.server.name.localeCompare(b!.server.name))) {
-            const { server, client, tools } = ok!;
-            mcpTools = { ...mcpTools, ...tools };
-            toolNamesByServer.push(`${server.name}: ${Object.keys(tools).join(', ')}`);
-            mcpClients.push(client);
-          }
-          if (toolNamesByServer.length > 0) {
-            mcpBlock = '\n\nMCP TOOLS AVAILABLE (use these when the user asks for actions your connected servers can perform):\n' +
-              toolNamesByServer.join('\n');
-          }
-        }
-      } catch (e) {
-        console.error('[chat] MCP setup failed:', e);
-      }
-    }
+    // Collect MCP tools (started before the context block above, so by now this
+    // is usually already resolved). Must settle before streamText: mcpTools feeds
+    // the call, and mcpClients is what onFinish/onError close.
+    await mcpSetupPromise;
+    console.log(`[chat] timing: context=${tContext - t0}ms mcp+total=${Date.now() - t0}ms model=${resolved.modelId}`);
 
     // Layer 2: if the latest message looks like a prompt-extraction / override
     // attempt, reinforce the refusal for this turn (the prompt's confidentiality

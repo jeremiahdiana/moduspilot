@@ -2,6 +2,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { PLATFORM_MODELS, effectivePlan } from '@/lib/models';
 import { SMALL_TALK } from '@/lib/chat/context';
+import { isSelfQuery } from '@/lib/chat/self-query';
 
 /**
  * Auto model routing. When a user leaves the in-chat model switcher on "Auto",
@@ -15,7 +16,7 @@ import { SMALL_TALK } from '@/lib/chat/context';
 
 const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
-export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'general';
+export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'general' | 'product';
 
 // Best-first model preference per task category. The router walks each list and
 // picks the first model the user's plan unlocks; if none match it falls back to
@@ -41,6 +42,14 @@ const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   reasoning: ['gpt-5.6-sol', 'claude-opus-4-8', 'gpt-5.6-terra', 'claude-sonnet-5'],
   // Everyday chat — fast & free.
   general:   ['meta/llama-3.3-70b'],
+  // Questions about MODUS itself: which models it has, how Auto routes, what the
+  // plan unlocks. The answer is sitting in the system prompt (buildModelCatalogBlock)
+  // and the ONLY thing that matters is that the model reads it instead of
+  // free-associating from training data — which is exactly what Llama did when it
+  // answered "how do u route ur models?" by describing somebody else's product.
+  // So this is ranked by instruction-following, not by raw capability, and it is
+  // deliberately cheap-ish: these are short, factual, high-frequency questions.
+  product:   ['claude-sonnet-5', 'gpt-5.6-terra', 'gemini-3.5-flash'],
 };
 
 const LLAMA = 'meta/llama-3.3-70b';
@@ -51,6 +60,7 @@ const CLASSIFIER_SYSTEM =
   `- research: questions needing current, factual, or web-sourced information\n` +
   `- code: programming, debugging, scripts, technical/engineering tasks\n` +
   `- reasoning: math, logic, planning, strategy, or hard multi-step problems\n` +
+  `- product: questions about MODUS itself — its models, how it routes, plans, pricing, limits, or what it can do\n` +
   `- general: casual conversation, quick questions, task/calendar/personal-assistant actions\n` +
   `Reply with ONLY the single category word, lowercase, nothing else.`;
 
@@ -81,6 +91,11 @@ function heuristicCategory(q: string): TaskCategory | null {
   // Code-shaped prompts must never fall to the classifier's 'general' bucket (→ Llama).
   if (/```|\bdef |\bfunction\b|\bimport |\bclass |=>|console\.|std::|public (static|class)/.test(q)) return 'code';
   const t = q.trim();
+  // ⚠️ MUST come before the short-query check below. "ur models?" is two words, so
+  // the `< 4` rule would call it small talk and hand a question about MODUS to the
+  // weakest model in the catalog. Small talk itself is unaffected: isSelfQuery
+  // requires a product noun, and "hi"/"thanks" carry none.
+  if (isSelfQuery(t)) return 'product';
   // Greetings/acks and ultra-short asks are 'general' by definition — no round trip.
   if (SMALL_TALK.test(t) || t.split(/\s+/).length < 4) return 'general';
   if (/\b(debug|refactor|stack ?trace|compile|typescript|python|javascript|sql query|regex|api endpoint)\b/i.test(t)) return 'code';
@@ -99,7 +114,7 @@ export async function routeTask(
   plan: string | null | undefined,
 ): Promise<RouteResult> {
   const fallback: RouteResult = { category: 'general', modelId: LLAMA, webSearch: false };
-  if (!queryText.trim() || !process.env.AI_GATEWAY_API_KEY) return fallback;
+  if (!queryText.trim()) return fallback;
 
   // ── Heuristic fast-path ────────────────────────────────────────────────────
   // The classifier is a network round trip that BLOCKS the stream (see below).
@@ -111,6 +126,13 @@ export async function routeTask(
     console.log(`[route] heuristic=${heuristic}`);
     return { category: heuristic, modelId: pickModel(heuristic, plan), webSearch: heuristic === 'research' };
   }
+
+  // Only the LLM classifier below needs the Gateway key — the heuristic above
+  // needs nothing. This guard used to sit at the top of the function, which meant
+  // a missing or rotated AI_GATEWAY_API_KEY silently collapsed EVERY category to
+  // 'general' → Llama, including the ones the regex already knew for free and the
+  // ones that would have been served by Anthropic's or OpenAI's own key.
+  if (!process.env.AI_GATEWAY_API_KEY) return fallback;
 
   try {
     // Bound the classifier: it runs BEFORE the main stream starts, so if Groq
@@ -131,7 +153,7 @@ export async function routeTask(
     ]);
     const word = text.trim().toLowerCase().replace(/[^a-z]/g, '');
     const category: TaskCategory =
-      (['writing', 'research', 'code', 'reasoning', 'general'] as const).includes(word as TaskCategory)
+      (['writing', 'research', 'code', 'reasoning', 'general', 'product'] as const).includes(word as TaskCategory)
         ? (word as TaskCategory)
         : 'general';
     console.log(`[route] llm=${category}`);

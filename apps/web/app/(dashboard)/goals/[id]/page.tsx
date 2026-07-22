@@ -11,6 +11,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
+import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
@@ -1271,7 +1272,7 @@ export default function GoalDetailPage() {
             {messages.map((m, idx) => (
               <MessageBubble key={m.id} message={m} isStreaming={isLoading && idx === messages.length - 1} />
             ))}
-            {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            {isAwaitingAssistantText(messages, isLoading) && (
               <div className="flex gap-1 px-1">
                 <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
                 <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />

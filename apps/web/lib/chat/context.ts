@@ -21,6 +21,30 @@ import { getRecentSlackActivity } from '@/lib/slack-data';
 import { getGitHubWorkItems } from '@/lib/github-data';
 import type { ProjectContext } from './prompt';
 
+/**
+ * Resolve to `fallback` if `p` hasn't settled within `ms`. Never rejects, never
+ * blocks past the cap.
+ *
+ * The file header has always claimed every fetcher sits behind a hard timeout.
+ * Two did not: fetchWebSearchBlock (Tavily) and fetchDriveBlock (a Google token
+ * refresh + a Drive search) each awaited an unbounded network call on the path to
+ * the first token, and fetchGroupAvailabilityBlock was the same. A missing cap is
+ * invisible until the day the provider is slow, and then it shows up as a chat
+ * that appears to hang.
+ *
+ * Context is a NICE-TO-HAVE. Answering late is worse than answering without the
+ * extra block, so every cap here fails open to ''.
+ */
+export function withCap<T>(p: Promise<T>, ms: number, fallback: T, label: string): Promise<T> {
+  return Promise.race([
+    p.catch((e) => { console.error(`[chat] ${label} failed:`, String(e)); return fallback; }),
+    new Promise<T>(resolve => setTimeout(() => {
+      console.warn(`[chat] ${label} timed out after ${ms}ms — answering without it`);
+      resolve(fallback);
+    }, ms)),
+  ]);
+}
+
 // ── Contact email cross-reference types ──────────────────────────────────────
 export interface ContactEmailEntry {
   name: string;
@@ -178,32 +202,25 @@ export async function fetchGoogleData(
 // ── Web search (Tavily) ──────────────────────────────────────────────────────
 export async function fetchWebSearchBlock(queryText: string, capabilities: Record<string, boolean>): Promise<string> {
   if (!(capabilities.webSearch && queryText && shouldWebSearch(queryText) && process.env.TAVILY_API_KEY)) return '';
-  try {
+  return withCap((async () => {
     const results = await webSearch(queryText, 5);
-    if (results.length > 0) {
-      return '\n\nWEB SEARCH RESULTS (for this query — use these to answer, cite sources naturally):\n' +
-        results.map((r, i) => `${i + 1}. ${r.title ?? ''}\n   Source: ${r.url ?? ''}\n   ${(r.content ?? '').slice(0, 350)}`).join('\n\n');
-    }
-  } catch (e) {
-    console.error('[chat] web search failed:', e);
-  }
-  return '';
+    if (results.length === 0) return '';
+    return '\n\nWEB SEARCH RESULTS (for this query — use these to answer, cite sources naturally):\n' +
+      results.map((r, i) => `${i + 1}. ${r.title ?? ''}\n   Source: ${r.url ?? ''}\n   ${(r.content ?? '').slice(0, 350)}`).join('\n\n');
+  })(), 6000, '', 'web search');
 }
 
 // ── Google Drive file search ─────────────────────────────────────────────────
 export async function fetchDriveBlock(uid: string, queryText: string): Promise<string> {
   if (!(queryText && shouldSearchDrive(queryText))) return '';
-  try {
+  return withCap((async () => {
     const googleToken = await getValidAccessToken(uid);
-    if (googleToken) {
-      const files = await searchDriveFiles(googleToken, queryText, 5);
-      if (files.length > 0) {
-        return '\n\nGOOGLE DRIVE FILES (matching this query):\n' +
-          files.map(f => `- ${mimeLabel(f.mimeType)}: ${f.name} — ${f.webViewLink} (modified ${f.modifiedTime.slice(0, 10)})`).join('\n');
-      }
-    }
-  } catch (e) { console.error('[chat] drive context failed:', String(e)); }
-  return '';
+    if (!googleToken) return '';
+    const files = await searchDriveFiles(googleToken, queryText, 5);
+    if (files.length === 0) return '';
+    return '\n\nGOOGLE DRIVE FILES (matching this query):\n' +
+      files.map(f => `- ${mimeLabel(f.mimeType)}: ${f.name} — ${f.webViewLink} (modified ${f.modifiedTime.slice(0, 10)})`).join('\n');
+  })(), 5000, '', 'drive context');
 }
 
 // ── Connector status + live Notion / Slack / GitHub data ─────────────────────

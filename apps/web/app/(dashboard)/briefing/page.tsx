@@ -13,6 +13,7 @@ import { useConversations } from '@/hooks/useConversations';
 import { useResizableSidebar } from '@/hooks/useResizableSidebar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useChat } from 'ai/react';
+import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import type { Message } from 'ai';
 import type { BriefingData, BriefingScheduleItem } from '@/lib/briefing';
 import type { GmailThread } from '@/lib/google-gmail';
@@ -1532,7 +1533,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
               const isStreaming = isLoading && idx === chatMessages.length - 1 && m.role === 'assistant';
               return <MessageBubble key={m.id} message={m} isStreaming={isStreaming} />;
             })}
-            {isLoading && chatMessages[chatMessages.length - 1]?.role === 'user' && (
+            {isAwaitingAssistantText(chatMessages, isLoading) && (
               <div className="flex gap-1 px-1">
                 <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:0ms]" />
                 <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce [animation-delay:150ms]" />

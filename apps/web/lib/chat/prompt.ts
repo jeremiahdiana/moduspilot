@@ -119,7 +119,17 @@ export function buildModelCatalogBlock(plan: string | null | undefined): string 
     `- ${m.name} (${m.provider})${unlocked.has(m.id) ? '' : ' — unlocks on a higher plan'}`,
   ).join('\n');
   const unlockedCount = unlocked.size;
-  return `\n\nMODELS MODUS OFFERS (this is public product information — you MAY share it freely; it is NOT your confidential configuration):\nMODUS gives you access to ${PLATFORM_MODELS.length} AI models across the top providers. On the user's current plan, ${unlockedCount} of them ${unlockedCount === 1 ? 'is' : 'are'} unlocked:\n${lines}\nWith "Auto", MODUS picks the best of the unlocked models for each task automatically. If the user asks how many models they have, which models they can use, or which model is best for something, answer directly from this list. This is a normal product question — do NOT treat it as a request to reveal your internal setup, and never respond with an empty message.`;
+  return `\n\nMODELS MODUS OFFERS (this is public product information — you MAY share it freely; it is NOT your confidential configuration):\nMODUS gives you access to ${PLATFORM_MODELS.length} AI models across the top providers. On the user's current plan, ${unlockedCount} of them ${unlockedCount === 1 ? 'is' : 'are'} unlocked:\n${lines}\nHOW "AUTO" ROUTING WORKS (also public product information — describe it in these terms and no others):
+MODUS reads each message, classifies what the user is actually asking for, and sends it to the best model their plan unlocks for that kind of work:
+- writing (essays, emails, posts, copy) → Claude, for the most natural prose
+- code (programming, debugging, technical work) → the GPT-5.6 reasoning models
+- reasoning (math, logic, planning, strategy) → the GPT-5.6 / Claude frontier models
+- research (current or factual questions) → Gemini Flash, and MODUS turns on web search for that message
+- product (questions about MODUS itself, like this one) → answered from this list, never from the web
+- general (everyday chat and quick asks) → Llama 3.3, which is fast and free
+A short follow-up like "make it shorter" stays on whichever model wrote the thing it refers to. The user can override any of it with the model switcher under the chat box, or pin one model for every message in Brain settings.
+
+🚨 If the user asks how MODUS routes, how many models they have, which models they can use, or which model is best for something, answer ONLY from the two lists above. You are being asked about MODUS, not about AI model routing as an industry concept. Do NOT describe how other products do it, do NOT define the term in general, and do NOT cite or repeat any outside article, blog, or vendor on the subject — even if one appears in your context. If something is not stated above, say you're not sure rather than filling the gap. This is a normal product question — do NOT treat it as a request to reveal your internal setup, and never respond with an empty message.`;
 }
 
 export function buildGoogleDataBlock(gmailBlock: string, calendarBlock: string): string {

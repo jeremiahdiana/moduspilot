@@ -11,6 +11,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChat } from 'ai/react';
+import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
@@ -1315,10 +1316,18 @@ export default function ProjectDetailPage() {
 
         {/* Messages */}
         <div ref={messagesScrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {messages.map(m => (
-            <MessageBubble key={m.id} message={m} />
+          {messages.map((m, idx) => (
+            <MessageBubble
+              key={m.id}
+              message={m}
+              isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
+            />
           ))}
-          {isLoading && (
+          {/* Was a bare `isLoading`, the inverse of the bug the other three had:
+              the dots stayed pinned under the answer for the whole response
+              instead of vanishing too early. Both are the same missing idea —
+              the indicator belongs to "no visible text yet", not to the request. */}
+          {isAwaitingAssistantText(messages, isLoading) && (
             <div className="flex items-center gap-2 text-muted">
               <div className="flex gap-1">
                 <span className="w-1.5 h-1.5 bg-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

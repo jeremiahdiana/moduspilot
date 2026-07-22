@@ -1,6 +1,7 @@
 import { adminDb } from '@/lib/firebase-admin';
 import { getValidAccessToken } from '@/lib/google-oauth';
 import { getTodayEvents, fmtEventTime } from '@/lib/google-calendar';
+import { withCap } from './context';
 
 // Whether a chat query is asking about scheduling / a person's availability,
 // which is the only time we reach into other members' calendars.
@@ -20,13 +21,20 @@ interface MemberDoc {
 // member who has opted to share their availability. Only time ranges are
 // exposed — never event titles, locations, or attendees — so a member's MODUS
 // answers "when is Sarah free" without leaking what Sarah is doing.
-export async function fetchGroupAvailabilityBlock(
+export function fetchGroupAvailabilityBlock(
   uid: string,
   queryText: string,
   timezone = 'UTC',
 ): Promise<string> {
-  if (!needsGroupCtx(queryText)) return '';
+  if (!needsGroupCtx(queryText)) return Promise.resolve('');
+  // Capped and fail-open like every other context fetcher. This one walks up to
+  // four members SEQUENTIALLY per member (token refresh, then a Calendar call),
+  // so it was the least bounded fetch on the whole path — and it had no try/catch
+  // either, so a Firestore hiccup threw straight out of the chat route as a 500.
+  return withCap(buildGroupAvailabilityBlock(uid, timezone), 5000, '', 'group availability');
+}
 
+async function buildGroupAvailabilityBlock(uid: string, timezone: string): Promise<string> {
   const userSnap = await adminDb.collection('users').doc(uid).get();
   const groupId = userSnap.data()?.groupId as string | undefined;
   if (!groupId) return '';

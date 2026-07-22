@@ -11,6 +11,7 @@ import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { modelName, unlockedModels } from '@/lib/models';
+import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import { motion } from 'framer-motion';
 
 interface ConnectedServices {
@@ -748,7 +749,7 @@ export default function ChatWindow({
             />
           </div>
         )}
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+        {isAwaitingAssistantText(messages, isLoading) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
