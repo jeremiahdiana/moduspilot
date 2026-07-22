@@ -38,7 +38,21 @@ let retryTimer: NodeJS.Timeout | null = null;
 let retryDelay = 1000;
 const MAX_RETRY_DELAY = 15000;
 
+// TRAP: a failed navigation still fires did-finish-load. Chromium commits its
+// internal error page AT the failed URL, so ~4ms after did-fail-load a
+// did-finish-load arrives with getURL() still reading https://moduspilot.com/…
+// — indistinguishable from a real load by URL alone. did-finish-load treated
+// that as success and cleared the pending retry, so the retry NEVER ran once:
+// every launch since 0.1.1 logged "load failed (-106)" then, 4ms later, a lying
+// "loaded MODUS web app", and the window sat on "Reconnecting…" until quit.
+// This flag is the only thing that separates the error page from the real one.
+let loadFailed = false;
+
 function loadRemote(win: BrowserWindow): void {
+  // Cleared here, not in did-finish-load: this is the one place a fresh attempt
+  // at the real URL begins, so it is the only correct place to forget the last
+  // failure. Reset it anywhere later and the retry's own success gets discarded.
+  loadFailed = false;
   // did-fail-load drives the retry; the catch just prevents an unhandled
   // rejection when the network isn't ready.
   win.loadURL(MODUS_URL).catch(() => {});
@@ -109,6 +123,9 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   win.webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
     if (!isMainFrame || errorCode === -3) return;
     if (!validatedURL.startsWith('http')) return; // ignore the data: splash
+    // Always fires before the error page's did-finish-load, which is what makes
+    // this flag reliable rather than a race.
+    loadFailed = true;
     log.warn(`[window] load failed (${errorCode} ${errorDescription}) — retrying in ${retryDelay}ms`);
     // Show branded "reconnecting" instead of Chromium's error page or white.
     win.loadURL(splashUrl('Reconnecting…')).catch(() => {});
@@ -121,6 +138,9 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   });
 
   win.webContents.on('did-finish-load', () => {
+    // The error page for a failed load reports the http URL too — only the flag
+    // can tell them apart, so it is checked before the URL.
+    if (loadFailed) return;
     // Only the real app (http) counts as success — the data: splash also fires.
     if (win.webContents.getURL().startsWith('http')) {
       retryDelay = 1000;
