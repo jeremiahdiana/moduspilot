@@ -1,8 +1,8 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { PLATFORM_MODELS, effectivePlan } from '@/lib/models';
 import { SMALL_TALK } from '@/lib/chat/context';
 import { isSelfQuery } from '@/lib/chat/self-query';
+import { backgroundModel } from '@/lib/chat/model';
 
 /**
  * Auto model routing. When a user leaves the in-chat model switcher on "Auto",
@@ -14,7 +14,6 @@ import { isSelfQuery } from '@/lib/chat/self-query';
  * failure we degrade to 'general' → Llama, so Auto never blocks a chat.
  */
 
-const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
 
 export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'general' | 'product';
 
@@ -154,7 +153,11 @@ export async function routeTask(
     // place instead of two. Not a leak fix: Promise.race handles every input
     // (scripts/verify-no-unhandled-rejection.ts).
     const classification = generateText({
-      model: groq('meta/llama-3.1-8b'),
+      // The classifier degrades to 'general' → Llama on failure, which is a
+      // silent quality loss on every message while the Gateway is limited: the
+      // router stops routing and everything lands on the cheapest model. Give it
+      // the same direct-key net the rest of the background work now has.
+      model: backgroundModel('meta/llama-3.1-8b', 'route'),
       system: CLASSIFIER_SYSTEM,
       prompt: queryText.slice(0, 2000),
       maxTokens: 4,

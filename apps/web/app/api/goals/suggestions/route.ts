@@ -1,6 +1,6 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { adminAuth } from '@/lib/firebase-admin';
+import { backgroundModel } from '@/lib/chat/model';
 
 export async function POST(req: Request) {
   try {
@@ -18,9 +18,11 @@ export async function POST(req: Request) {
     if (!title?.trim()) return Response.json({ suggestions: [] });
 
     const key = process.env.AI_GATEWAY_API_KEY;
-    if (!key) return Response.json({ suggestions: [] });
+    // Either key is enough to answer: backgroundModel falls over to gpt-4o-mini on a
+    // direct vendor key when the Gateway is rate-limited. Gating on the Gateway key
+    // alone used to return an empty list whenever the Gateway was the problem.
+    if (!key && !process.env.OPENAI_API_KEY?.trim()) return Response.json({ suggestions: [] });
 
-    const gateway = createOpenAI({ baseURL: 'https://ai-gateway.vercel.sh/v1', apiKey: key });
 
     const tfLabel = timeframe === 'short' ? 'under 1 year' : timeframe === 'long' ? 'more than 1 year' : '';
 
@@ -41,7 +43,7 @@ Example for goal "Launch my Shopify store by August":
 Output ONLY a valid JSON array of exactly 5 strings. No explanation, no markdown.`;
 
     const { text } = await generateText({
-      model: gateway('meta/llama-3.3-70b'),
+      model: backgroundModel('meta/llama-3.3-70b', 'goals-suggestions'),
       prompt,
       maxTokens: 512,
     });

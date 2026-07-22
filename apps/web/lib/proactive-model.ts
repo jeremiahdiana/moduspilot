@@ -23,7 +23,12 @@ export function proactiveModels(plan: string | null | undefined): LanguageModel[
   if (isPaidPlan(plan) && anthropicKey) {
     models.push(createAnthropic({ apiKey: anthropicKey })('claude-sonnet-4-6'));
   }
+  // ⚠️ Two GATEWAY models share one account and one tier — a free-tier 429 takes
+  // both down at once, so this chain was effectively one link deep. gpt-4o-mini
+  // rides a DIRECT vendor key and is the only link that can survive that.
   models.push(groq('meta/llama-3.3-70b'), groq('meta/llama-3.1-8b'));
+  const openAIKey = process.env.OPENAI_API_KEY?.trim();
+  if (openAIKey) models.push(createOpenAI({ apiKey: openAIKey })('gpt-4o-mini'));
   return models;
 }
 

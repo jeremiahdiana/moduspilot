@@ -1,7 +1,5 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-
-const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseURL: 'https://ai-gateway.vercel.sh/v1' });
+import { backgroundModel } from '@/lib/chat/model';
 
 /**
  * Decide what (if anything) from one chat exchange is worth saving to long-term
@@ -17,7 +15,12 @@ export async function extractDurableMemory(userMsg: string, assistantText: strin
 
   try {
     const { text } = await generateText({
-      model: groq('meta/llama-3.3-70b'),
+      // 🚨 Was the raw Gateway model. A rate-limited free tier then meant this
+      // threw on EVERY message, was caught below, and returned null — so MODUS
+      // silently learned nothing about the user for as long as the balance was
+      // low. Memory is the product's whole wedge; losing it must not be quieter
+      // than losing a chat reply.
+      model: backgroundModel('meta/llama-3.3-70b', 'memory'),
       maxTokens: 80,
       prompt: `You curate a user's long-term memory. Decide if this chat exchange contains a DURABLE fact about the USER worth remembering for weeks.
 

@@ -372,6 +372,41 @@ export function createFallbackModel(
  * (gpt-4o-mini) so MODUS ALWAYS answers instead of surfacing "ran out / too long".
  * Duplicates (e.g. primary already gpt-4o-mini) are skipped.
  */
+/**
+ * A Gateway model for BACKGROUND work, with the same safety net chat has.
+ *
+ * 🚨 EVERY NON-CHAT AI CALL WAS GATEWAY-ONLY AND FAILED SILENTLY. Chat has had a
+ * failover chain for months; memory extraction, the daily briefing, proactive
+ * nudges and goal planning did not — they called the Gateway directly, caught
+ * their own error, and returned null. So while the Gateway sat on its
+ * rate-limited free tier, production logged this on essentially EVERY request:
+ *
+ *   [memory] extraction failed: AI_RetryError: Failed after 3 attempts.
+ *   Last error: Free tier requests on this model are rate-limited.
+ *
+ * Nothing surfaced. MODUS simply stopped learning anything about the user —
+ * silently, for as long as the balance stayed low. That is the life-OS wedge
+ * failing quietly, which is far more expensive than any chat model swap, and it
+ * is invisible precisely BECAUSE each caller handles its own failure politely.
+ *
+ * `gpt-4o-mini` is the net for the same reason it is chat's: it is the only
+ * model reachable on a DIRECT vendor key, so it cannot fail for the tier reason
+ * that just took the Gateway link down. Background work is cheap and small, so
+ * the cost of the net is negligible against losing the write entirely.
+ */
+export function backgroundModel(gatewayModelId: string, label: string): LM {
+  const chain: LM[] = [];
+  if (process.env.AI_GATEWAY_API_KEY?.trim()) chain.push(gateway(gatewayModelId));
+  const openAIKey = process.env.OPENAI_API_KEY?.trim();
+  if (openAIKey) chain.push(createOpenAI({ apiKey: openAIKey })('gpt-4o-mini'));
+  // No keys at all → let the caller's own try/catch report it, as before.
+  if (chain.length === 0) return gateway(gatewayModelId);
+  return createFallbackModel(chain, {
+    onFallback: (from, to, err) =>
+      console.warn(`[${label}] failover: ${from}→${to} (${String(err).slice(0, 120)})`),
+  });
+}
+
 export function chatFallbackChain(primary: LM): LM[] {
   const chain: LM[] = [primary];
   const seen = new Set<string>([primary.modelId]);

@@ -197,7 +197,16 @@ ${scheduleText}${emailsText ? `\n\nUNREAD EMAILS (awaiting reply):\n${emailsText
   if (opts.premium && anthropicKey) {
     models.push(createAnthropic({ apiKey: anthropicKey })('claude-sonnet-4-6'));
   }
+  // ⚠️ Two GATEWAY models is not two fallbacks. They share one account and one
+  // tier, so a free-tier 429 takes both down in the same instant and for the
+  // identical reason — the chain looked three deep and was effectively one.
+  // gpt-4o-mini is on a DIRECT vendor key, so it is the only link that survives
+  // a Gateway tier failure. Without it the briefing simply never generated.
   models.push(groq('meta/llama-3.3-70b'), groq('meta/llama-3.1-8b'));
+  const openAIKeyForBriefing = process.env.OPENAI_API_KEY?.trim();
+  if (openAIKeyForBriefing) {
+    models.push(createOpenAI({ apiKey: openAIKeyForBriefing })('gpt-4o-mini'));
+  }
   for (const model of models) {
     try {
       const { text } = await generateText({

@@ -1,6 +1,6 @@
-import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { adminAuth } from '@/lib/firebase-admin';
+import { backgroundModel } from '@/lib/chat/model';
 
 export async function POST(req: Request) {
   try {
@@ -16,13 +16,15 @@ export async function POST(req: Request) {
     if (!title?.trim()) return Response.json({ milestones: [] });
 
     const key = process.env.AI_GATEWAY_API_KEY;
-    if (!key) return Response.json({ milestones: [] });
+    // Either key is enough to answer: backgroundModel falls over to gpt-4o-mini on a
+    // direct vendor key when the Gateway is rate-limited. Gating on the Gateway key
+    // alone used to return an empty list whenever the Gateway was the problem.
+    if (!key && !process.env.OPENAI_API_KEY?.trim()) return Response.json({ milestones: [] });
 
-    const gateway = createOpenAI({ baseURL: 'https://ai-gateway.vercel.sh/v1', apiKey: key });
     const tfLabel = timeframe === 'long' ? 'long-term (1+ years)' : 'short-term (under 1 year)';
 
     const { text } = await generateText({
-      model: gateway('meta/llama-3.3-70b'),
+      model: backgroundModel('meta/llama-3.3-70b', 'goals-plan'),
       prompt: `Goal: "${title}"${description ? `\nContext: ${description}` : ''}\nTimeframe: ${tfLabel}
 
 Generate 5–7 concrete milestones that take this goal from 0% to 100% complete. Each should be a clear, definitively completable checkpoint — not a vague phase.
