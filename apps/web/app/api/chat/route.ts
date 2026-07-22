@@ -5,6 +5,7 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
 import { messageTextLength, trimMessageText } from '@/lib/chat/messages';
+import { needsExplicitTemperature, maxTokensFor } from '@/lib/chat/model-params';
 import { getMcpServers } from '@/lib/mcp-servers';
 import { connectMcpClient } from '@/lib/mcp-client';
 import { sanitizeMcpToolSchemas, makeToolErrorsNonFatal } from '@/lib/mcp-schema';
@@ -667,20 +668,12 @@ export async function POST(req: Request) {
     // Flash was losing the back half of its answers in production. This is a CAP,
     // not a target — a short answer bills what it generates, so raising it costs
     // nothing except on the long answers the user actually asked for.
-    const isReasoningModel = /^o\d/.test(resolved.modelId)
-      || /^gpt-5/.test(resolved.modelId)
-      || /-5$/.test(resolved.modelId)
-      || /^gemini-3/.test(resolved.modelId);
-    const maxTokens = isReasoningModel ? 16000 : 2048;
+    // Provider constraints, keyed on model FAMILY and pinned by
+    // scripts/verify-model-params.ts across the whole catalog — see
+    // lib/chat/model-params.ts for why they no longer live inline here.
+    const maxTokens = maxTokensFor(resolved.modelId);
 
-    // 🚨 Claude 5 REJECTS a non-default temperature — and the AI SDK always sends one.
-    // ai@4.3.19 hardcodes `temperature: temperature != null ? temperature : 0` (its own
-    // comment: "TODO v5 remove default 0 for temperature"), so omitting it is impossible:
-    // every request would 400 with "`temperature` is deprecated for this model" — not a
-    // blank reply, a hard failure on every message. Anthropic's own default is 1, and
-    // passing the default explicitly is accepted, which is what makes these models
-    // servable on this SDK version at all. Verified: temp 0 → 400, temp 1 → answers.
-    const isClaude5 = /^claude-.*-5$/.test(resolved.modelId);
+    const isCurrentClaude = needsExplicitTemperature(resolved.modelId);
 
     // Transparent model failover: if the chosen model rejects the request with a
     // transient rate/size limit (e.g. Groq's per-minute TPM 429 on the free
@@ -809,7 +802,7 @@ export async function POST(req: Request) {
         ? { messages: [...cachedSystemMessages, ...cappedMessages] }
         : { system: fullSystemPrompt + activeMcpBlock + extractionGuard, messages: cappedMessages }),
       maxTokens,
-      ...(isClaude5 ? { temperature: 1 } : {}),
+      ...(isCurrentClaude ? { temperature: 1 } : {}),
       ...(Object.keys(activeMcpTools).length > 0 ? { tools: activeMcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onError: async ({ error }) => {
         // onFinish does NOT fire when the stream errors, so without this the MCP
