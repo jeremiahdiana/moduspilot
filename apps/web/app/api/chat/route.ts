@@ -301,11 +301,18 @@ export async function POST(req: Request) {
         // Reject a promise after `ms` without leaving the underlying work
         // uncancelled leaking. Used to bound both connect and tools() so a slow
         // plugin can never stall the whole chat.
-        const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> =>
-          Promise.race([
+        const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> => {
+          // 🚨 Give the work its OWN handler before racing it. Without this, a
+          // plugin that times out here and rejects a moment later produces an
+          // unhandled rejection — which Node answers by killing the process,
+          // mid-stream, with nothing in the logs. Same trap as
+          // queryMemoryContext and the auto-route classifier.
+          p.catch(() => {});
+          return Promise.race([
             p,
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
           ]);
+        };
 
         const connections = await Promise.allSettled(
           mcpServers.map(async (server) => {
@@ -417,7 +424,13 @@ export async function POST(req: Request) {
         wasAutoRouted = true;
         const routed = await routePromise;
         forcedModelId = routed.modelId;
-        forceWebSearch = routed.webSearch;
+        // 🚨 OR, never assign. The user's "+ → Web search" toggle arrives as
+        // body.webSearch and was being OVERWRITTEN here by the router's own
+        // opinion, which is false for every category except 'research'. So on
+        // Auto — the default — switching web search on did nothing at all
+        // unless the router happened to agree. An explicit toggle is a
+        // decision; the router may only ever ADD to it.
+        forceWebSearch = forceWebSearch || routed.webSearch;
 
         // Sticky Auto. The router only ever sees the LATEST message, so a short
         // follow-up like "make it shorter" or "try again" classifies as 'general'
@@ -735,6 +748,12 @@ export async function POST(req: Request) {
     const systemTail = volatileSystem + activeMcpBlock + extractionGuard;
     const useAnthropicCache = resolved.modelId.startsWith('claude-');
 
+    // What we are about to send, in characters — the fallback basis for token
+    // accounting when a provider reports no usage (see onFinish).
+    const promptCharsSent =
+      stableSystem.length + systemTail.length +
+      cappedMessages.reduce((n, m) => n + messageTextLength(m), 0);
+
     // ⚠️ THE BREAKPOINT ONLY SURVIVES BECAUSE cappedMessages WERE NORMALISED TO
     // CoreMessage AT THE BOUNDARY, AND IT DIES THE MOMENT THAT STOPS BEING TRUE.
     // If any UI-shaped message reaches this array, streamText retypes the WHOLE
@@ -802,8 +821,22 @@ export async function POST(req: Request) {
         // Must close or the data stream (and so the response) never ends.
         await closeStreamData();
         // Track tokens for paid users (fire-and-forget)
-        if (uid && usage?.totalTokens) {
-          trackTokenUsage(uid, userData, usage.totalTokens);
+        // 🚨 NOT every provider reports usage. Measured 2026-07-23 on the live
+        // stream: Anthropic returns real counts, but Gateway-hosted models AND
+        // gpt-5.6-terra both return {promptTokens: null, completionTokens: null},
+        // so `usage.totalTokens` is null/NaN — falsy — and the daily/weekly
+        // ceilings were simply never incremented for them. The limits looked
+        // enforced and were not, on most of the catalog.
+        //
+        // A rough estimate is strictly better than silently counting zero: ~4
+        // chars per token over what we actually sent and received. Prefer real
+        // usage whenever the provider gives it.
+        if (uid) {
+          const reported = usage?.totalTokens;
+          const total = typeof reported === 'number' && Number.isFinite(reported) && reported > 0
+            ? reported
+            : Math.ceil((promptCharsSent + (text?.length ?? 0)) / 4);
+          if (total > 0) trackTokenUsage(uid, userData, total);
         }
         if (!uid || !queryText || !process.env.PINECONE_API_KEY) return;
         // Respect the user's "generate memory from chat" setting (was ignored).

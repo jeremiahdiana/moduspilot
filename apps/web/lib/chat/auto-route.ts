@@ -96,8 +96,17 @@ function heuristicCategory(q: string): TaskCategory | null {
   // weakest model in the catalog. Small talk itself is unaffected: isSelfQuery
   // requires a product noun, and "hi"/"thanks" carry none.
   if (isSelfQuery(t)) return 'product';
-  // Greetings/acks and ultra-short asks are 'general' by definition — no round trip.
-  if (SMALL_TALK.test(t) || t.split(/\s+/).length < 4) return 'general';
+  // Greetings/acks are 'general' by definition — no round trip.
+  if (SMALL_TALK.test(t)) return 'general';
+  // ⚠️ SHORTNESS IS NOT EASINESS. `length < 4` sent every brief question straight
+  // to Llama, the weakest model in the catalog: "explain quantum tunnelling",
+  // "prove the halting problem", "refactor this hook" are all three words. The
+  // fast path is still worth having for genuine throwaways, but a real question
+  // — one that asks something, or ends in a question mark — deserves the 1200ms
+  // classifier rather than being pre-judged by word count.
+  const asksSomething = /\?\s*$/.test(t)
+    || /^\s*(explain|why|how|what|when|where|who|which|prove|solve|calculate|compare|debug|fix|refactor|summari[sz]e|translate|write|design|review)\b/i.test(t);
+  if (t.split(/\s+/).length < 4 && !asksSomething) return 'general';
   if (/\b(debug|refactor|stack ?trace|compile|typescript|python|javascript|sql query|regex|api endpoint)\b/i.test(t)) return 'code';
   if (/\b(latest|news|current(ly)?|today'?s|price of|search for|look ?up|who won|stock|weather)\b/i.test(t)) return 'research';
   if (/\b(write|draft|rewrite|edit|essay|blog post|caption|copy|linkedin post|tweet|reply to)\b/i.test(t)) return 'writing';
@@ -139,18 +148,28 @@ export async function routeTask(
     // hangs it would stall the entire chat (and eat into the function's time
     // budget). Cap it hard — a slow router must never block the answer; we just
     // fall back to the general/Llama default.
-    const { text } = await Promise.race([
-      generateText({
-        model: groq('meta/llama-3.1-8b'),
-        system: CLASSIFIER_SYSTEM,
-        prompt: queryText.slice(0, 2000),
-        maxTokens: 4,
-        temperature: 0,
-      }),
+    // 🚨 The losing promise must have its OWN handler — see the same trap in
+    // queryMemoryContext. If the 1200ms timer wins and the classifier call then
+    // rejects (the Gateway free tier 429s often), that rejection has nowhere to
+    // go and Node kills the process mid-response.
+    const classification = generateText({
+      model: groq('meta/llama-3.1-8b'),
+      system: CLASSIFIER_SYSTEM,
+      prompt: queryText.slice(0, 2000),
+      maxTokens: 4,
+      temperature: 0,
+    }).catch((e) => {
+      // Owned here, so a late rejection can never be unhandled.
+      console.error('[route] classifier failed:', String(e).slice(0, 140));
+      return null;
+    });
+
+    const { text } = (await Promise.race([
+      classification,
       // 1200ms, was 3500. meta/llama-3.1-8b with maxTokens:4 answers well
       // inside this; slower than that and the route was going to be stale anyway.
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('classifier timeout')), 1200)),
-    ]);
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 1200)),
+    ])) ?? { text: '' };
     const word = text.trim().toLowerCase().replace(/[^a-z]/g, '');
     const category: TaskCategory =
       (['writing', 'research', 'code', 'reasoning', 'general', 'product'] as const).includes(word as TaskCategory)

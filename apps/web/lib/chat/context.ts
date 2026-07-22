@@ -68,11 +68,48 @@ function normalizeEmail(email: string): string {
 }
 
 // ── Intent detection ─────────────────────────────────────────────────────────
+/**
+ * ⏱️ INTENT REGEXES ARE A LATENCY BUDGET, NOT A GUESS.
+ *
+ * Every `true` here buys a Google round trip on the path to the first token.
+ * Measured 2026-07-23 on the live route: a turn that fetches Gmail + Calendar
+ * spends ~2.5s MORE in `context=` than one that fetches nothing. So a regex that
+ * fires on an ordinary English word taxes messages that could never use the
+ * result — "can you send me a draft blog post about fitness" was pulling the
+ * user's inbox because it contains "send" and "draft" (measured 3887ms vs
+ * 1375ms), and "how are you doing today" pulled the calendar because it contains
+ * "today" (5918ms). High precision matters more than high recall: a missed block
+ * costs one clarifying question, a false block costs every user 2.5s forever.
+ */
+
+/** Words that are ABOUT mail. Always sufficient. */
+const EMAIL_STRONG = /\b(e-?mails?|inbox|gmail|unread|threads?|mailbox)\b/i;
+
 export function needsEmailCtx(q: string): boolean {
-  return /\b(emails?|mails?|inbox|reply|draft|send|unread|threads?|gmail|message from|wrote|missed)\b/i.test(q);
+  if (EMAIL_STRONG.test(q)) return true;
+  // Ordinary verbs — reply/respond/forward/wrote — only mean "mail" when they
+  // have a counterparty. "draft a reply TO Sam" is an inbox question; "send me a
+  // draft blog post" is not. Bare `send`/`draft`/`missed` are gone entirely:
+  // they were the false positives, and every real use of them also names a
+  // recipient or a mail noun.
+  return /\b(reply|respond|forward)\s+to\b/i.test(q)
+    || /\bmessage\s+from\b/i.test(q)
+    || /\bwrote\s+(to\s+)?me\b/i.test(q);
 }
+
+/** Words that are ABOUT the calendar. Always sufficient. */
+const CAL_STRONG = /\b(calendar|schedule|meetings?|events?|appointments?|when am i|free time|busy)\b/i;
+/** Time words that are only a calendar question in the right company. */
+const CAL_TEMPORAL = /\b(today|tonight|tomorrow|this week|next week)\b/i;
+
 export function needsCalendarCtx(q: string): boolean {
-  return /\b(calendar|schedule|meeting|event|appointment|today|tomorrow|this week|next week|when am i|busy|free time)\b/i.test(q);
+  if (CAL_STRONG.test(q)) return true;
+  if (!CAL_TEMPORAL.test(q)) return false;
+  // A bare "today" is not a calendar question. Require it to be about the user's
+  // own time ("what do I have today") or an actual enquiry about the day
+  // ("anything on tomorrow"). "How are you doing today" now correctly asks for
+  // nothing.
+  return /\b(i|me|my|we|our)\b/i.test(q) || /\b(what'?s?|anything|any|got)\b/i.test(q);
 }
 export function needsNotionCtx(q: string): boolean {
   return /\b(notion|notion page|notion doc|notion database|obsidian)\b/i.test(q);
@@ -124,15 +161,39 @@ export function isBriefingIntent(q: string): boolean {
 // Small talk is now excluded; every other short query keeps the old behaviour.
 export function isVagueQuery(q: string): boolean {
   const t = q.trim();
-  return isBriefingIntent(t) || (t.split(/\s+/).length < 6 && !SMALL_TALK.test(t));
+  if (isBriefingIntent(t)) return true;
+  if (SMALL_TALK.test(t)) return false;
+  if (t.split(/\s+/).length >= 6) return false;
+  // ⏱️ SHORT IS NOT THE SAME AS PERSONAL — and this rule fans out to email,
+  // calendar, notes AND contacts at once, so it is the single most expensive
+  // predicate in the file. "explain recursion in one sentence" is five words
+  // with nothing to do with the user's life, yet it pulled their whole personal
+  // context: measured 3931ms of `context=` against 1375ms for a seven-word
+  // question that skipped it. Short questions are the most common kind there
+  // are, so this made the commonest messages the slowest.
+  //
+  // A vague question worth answering from personal data is one that is ABOUT the
+  // user ("what should I do today", "how's my week looking"). Require that.
+  return /\b(i|me|my|mine|we|us|our)\b/i.test(t);
 }
 
 // ── Pinecone semantic memory ─────────────────────────────────────────────────
 export async function queryMemoryContext(uid: string, queryText: string): Promise<string> {
-  const matches = await Promise.race([
-    queryMemory(uid, queryText, 4),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 800)),
-  ]).catch(e => { console.error('[chat] memory query failed:', e); return []; });
+  // 🚨 `Promise.race([work, rejectingTimer]).catch(...)` LOOKS safe and is not.
+  // The .catch belongs to the RACE. When the timer wins, the race is settled and
+  // handled — but `queryMemory` is still in flight with NO handler of its own,
+  // so if it rejects a second later that is an unhandled rejection. Node's
+  // default for those is to terminate the process, which on a serverless
+  // function means the response dies mid-stream with nothing logged. That is
+  // indistinguishable from the blank bubble this whole audit started on.
+  //
+  // Pinecone timing out here is not hypothetical: `[chat] memory query failed:
+  // Error: timeout` appears in production logs, which means the losing promise
+  // has been left dangling on every one of those requests.
+  //
+  // withCap attaches the handler to the work itself and resolves (never rejects)
+  // on timeout, so neither branch can ever go unhandled.
+  const matches = await withCap(queryMemory(uid, queryText, 4), 800, [], 'memory query');
   const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
   if (relevant.length > 0) {
     return '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +

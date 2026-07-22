@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
 import { canonicalModelId, isModelUnlocked, PLATFORM_MODELS } from '@/lib/models';
+import { repairReasoningStream } from '@/lib/chat/stream-repair';
 
 // gpt-5.6-* included because it IS multimodal — verified 2026-07-16 by sending a
 // real image and getting the colour back. Without it, a paying user on Terra who
@@ -147,14 +148,21 @@ export interface ResolvedChatModel {
 }
 
 function served(model: LanguageModel, modelId: string): ResolvedChatModel {
-  return { model, modelId, downgraded: false };
+  // EVERY resolved model goes through the stream repair, not just Anthropic's.
+  // The defect is a malformed part reaching a core that throws inside the stream
+  // transform — where nothing can catch it — and any thinking-capable provider
+  // can produce one. Gating this to `claude-` would mean rediscovering the same
+  // blank bubble the next time Gemini or xAI ships reasoning deltas.
+  return { model: repairReasoningStream(model), modelId, downgraded: false };
 }
 
 /** Free Llama, flagged so the caller can tell the user which model did NOT run. */
 function downgradedToFree(requested: string): ResolvedChatModel {
   const requestedPremium = isPremiumModel(requested) ? requested : undefined;
   return {
-    model: gateway(LLAMA_FALLBACK),
+    // Same repair as served() — a downgrade must not be the one path that can
+    // still die mid-stream.
+    model: repairReasoningStream(gateway(LLAMA_FALLBACK)),
     modelId: LLAMA_FALLBACK,
     downgraded: !!requestedPremium,
     requestedId: requestedPremium,
@@ -370,7 +378,10 @@ export function chatFallbackChain(primary: LM): LM[] {
   const add = (model: LM) => {
     if (seen.has(model.modelId)) return;
     seen.add(model.modelId);
-    chain.push(model);
+    // The failover links are the models we reach for when things are ALREADY
+    // going wrong, so they are the last place to leave unrepaired. (`primary`
+    // arrives wrapped from served().)
+    chain.push(repairReasoningStream(model) as LM);
   };
   if (process.env.AI_GATEWAY_API_KEY?.trim()) add(gateway(FREE_FALLBACK_SECONDARY));
   const openAIKey = process.env.OPENAI_API_KEY?.trim();

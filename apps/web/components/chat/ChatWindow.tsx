@@ -385,10 +385,22 @@ export default function ChatWindow({
   // ancestor (including the document) and, during the loading→loaded hand-off,
   // scrolled the whole window up and cropped the header + sidebar. Instant on
   // first load (no visible jump), smooth for messages that arrive after.
+  // ⚠️ `behavior: 'smooth'` must NOT be used for streaming growth. `messages` gets
+  // a new identity on EVERY token, so this effect fires per token — and each call
+  // cancels the previous smooth animation and starts a new one, which is a scroll
+  // that never settles while the answer is being written. Smooth belongs to the
+  // arrival of a NEW message (a real event worth animating); token-by-token growth
+  // has to be instant or it fights itself.
+  const prevMsgCountRef = useRef(0);
   useEffect(() => {
     const el = scrollContainerRef.current;
     if (!el || messages.length === 0) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: didInitialScrollRef.current ? 'smooth' : 'auto' });
+    const isNewMessage = messages.length !== prevMsgCountRef.current;
+    prevMsgCountRef.current = messages.length;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: didInitialScrollRef.current && isNewMessage ? 'smooth' : 'auto',
+    });
     didInitialScrollRef.current = true;
   }, [messages]);
 
@@ -412,9 +424,17 @@ export default function ChatWindow({
   // request at 60s (maxDuration); if a connection instead stalls open with no
   // finish/error, isLoading would stick true forever and the composer would stay
   // disabled. After 75s of continuous loading, force-stop and surface an error.
+  // ⚠️ The watchdog's own message must survive. stop() flips isLoading, which runs
+  // the just-finished effect below — and that effect sees an assistant message
+  // with no text and overwrites "timed out" with "the model returned an empty
+  // response". The user was told the wrong thing about the one failure we
+  // actually understood. This flag lets the empty-answer check stand down when it
+  // was the watchdog that ended the turn.
+  const timedOutRef = useRef(false);
   useEffect(() => {
     if (!isLoading) return;
     const t = setTimeout(() => {
+      timedOutRef.current = true;
       stop();
       setChatError('That response timed out. Please try again.');
     }, 65000);
@@ -513,7 +533,13 @@ export default function ChatWindow({
       // Must list every block type MessageBubble can render — a reply that is
       // ONLY a block (no prose) would otherwise trip the empty-response error.
       const hasBlock = /```(approval|draft_options|options|image|document|chart)/.test(text);
-      if (!hasBlock && text.trim() === '') {
+      // The watchdog already told the user what happened, and it knows more than
+      // this check does — so stand down rather than talking over it. Note this
+      // only suppresses the MESSAGE: the partial response must still be saved
+      // below, which an early return here would have quietly skipped.
+      const watchdogSpoke = timedOutRef.current;
+      timedOutRef.current = false;
+      if (!watchdogSpoke && !hasBlock && text.trim() === '') {
         setChatError('The model returned an empty response. Try again, or switch models below.');
       }
     }
