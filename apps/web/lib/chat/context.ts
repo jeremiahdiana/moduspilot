@@ -184,8 +184,52 @@ export async function queryMemoryContext(uid: string, queryText: string): Promis
   // — Promise.race handles every input, so the losing branch cannot leak (see
   // scripts/verify-no-unhandled-rejection.ts) — but it logged in its own format
   // and rejected rather than failing open. One shape for every capped fetch.
-  const matches = await withCap(queryMemory(uid, queryText, 4), 800, [], 'memory query');
-  const relevant = matches.filter(m => (m.score ?? 0) > 0.55);
+  // ⏱️ 800ms WAS NOT A BUDGET, IT WAS AN OFF SWITCH. queryMemory makes TWO
+  // sequential network round trips (Pinecone inference embed, then the index
+  // query). Measured on the live index (scripts/measure-memory-latency.ts):
+  // 688 / 713 / 736 / 986 / 4136ms — avg 1452ms, and the cold first call is the
+  // slow one, which on serverless is the common case. Production bore that out:
+  // `memory query timed out after 800ms` on 25 of 25 consecutive requests.
+  //
+  // The cap is sized for a COLD call, because on serverless that is the common
+  // case — especially at low traffic, where nearly every request gets a fresh
+  // instance. A warm query lands at ~700–1100ms; the first call in a process
+  // pays client construction and TLS on top and measured 4136ms. A 2500ms cap
+  // was verified to still drop that cold call, which would have meant memory
+  // working only for users with enough traffic to keep instances warm.
+  //
+  // This overlaps rather than adds: the promise is started early and awaited in
+  // the same parallel block as the Google/notes/contacts fetches (1000–2900ms of
+  // `context=` on their own), and it fails open, so the worst case is exactly
+  // today's behaviour — no memory — rather than a slower answer with none.
+  const matches = await withCap(queryMemory(uid, queryText, 4), 4000, [], 'memory query');
+
+  // 🚨 0.55 DISCARDED EVERYTHING. Cosine scores are model-specific, and 0.55 is a
+  // sensible bar for OpenAI-style embeddings (relevant ≈ 0.7–0.85) — but this
+  // index runs `llama-text-embed-v2`, whose scores for short third-person facts
+  // land in a much tighter band. Measured across five natural questions against
+  // the real stored memories:
+  //
+  //   "am I raising money"  → 0.349  "The user is actively fundraising."
+  //   "tell me about MODUS" → 0.273  "The user is the CEO of MODUS."
+  //   "where do I live"     → 0.135  "…raising a pre-seed for MODUS, based in Sydney."
+  //   noise floor           → 0.009 … -0.046
+  //
+  //   whole index: range 0.009–0.349, and the 0.55 filter kept 0 of 7.
+  //
+  // So memory was written, stored correctly, retrieved correctly, RANKED
+  // correctly — and then thrown away every single time. The life-OS layer has
+  // never once put a remembered fact into a prompt.
+  //
+  // The ranking is trustworthy (the right fact is top for every probe), so the
+  // job of the threshold is only to cut the noise floor, not to judge relevance.
+  // 0.10 clears the -0.05…0.05 junk while keeping the real hits, and TOP_N caps
+  // the blast radius of a marginal one.
+  const MIN_SCORE = 0.10;
+  const TOP_N = 3;
+  const relevant = matches
+    .filter(m => (m.score ?? 0) > MIN_SCORE)
+    .slice(0, TOP_N);
   if (relevant.length > 0) {
     return '\n\nRELEVANT MEMORY FROM PAST CONVERSATIONS:\n' +
       relevant.map(m => `- ${String(m.metadata?.text ?? '')}`).join('\n');
