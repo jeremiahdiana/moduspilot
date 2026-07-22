@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from 'ai/react';
-import MessageBubble from './MessageBubble';
+import MessageBubble, { extractTextContent } from './MessageBubble';
 import ChatInput from './ChatInput';
 import CompareCard from './CompareCard';
 import { useRef, useEffect, useState, useMemo } from 'react';
@@ -506,7 +506,10 @@ export default function ChatWindow({
     // provider hiccup). Tell the user and let them retry — never leave it empty.
     const last = messages[messages.length - 1];
     if (last?.role === 'assistant') {
-      const text = typeof last.content === 'string' ? last.content : '';
+      // Same reader MessageBubble uses — see extractTextContent. Reading this
+      // field two different ways is how a rendered answer could still be called
+      // empty.
+      const text = extractTextContent(last.content);
       // Must list every block type MessageBubble can render — a reply that is
       // ONLY a block (no prose) would otherwise trip the empty-response error.
       const hasBlock = /```(approval|draft_options|options|image|document|chart)/.test(text);

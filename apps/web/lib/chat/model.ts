@@ -109,6 +109,29 @@ export function isPremiumModel(id: string): boolean {
     || PLATFORM_MODELS.some(m => m.id === canonical);
 }
 
+/**
+ * Can this model be given function tools on the endpoint we call it on?
+ *
+ * 🪤 OpenAI's gpt-5.x reasoning family CANNOT, over /v1/chat/completions — which
+ * is the endpoint @ai-sdk/openai uses by default:
+ *
+ *   Function tools with reasoning_effort are not supported for gpt-5.6-terra in
+ *   /v1/chat/completions. To use function tools, use /v1/responses or set
+ *   reasoning_effort to 'none'.
+ *
+ * It is a hard 400, so attaching MCP tools to a PILOT user's best model turned
+ * every message into a blank bubble. Tools are best-effort; an answer is not.
+ * Dropping the tools costs a capability the user probably wasn't invoking on
+ * that turn — sending them costs the entire reply.
+ *
+ * Kept as an allow-by-default deny-list: a model we know nothing about keeps its
+ * tools, because the failure mode of guessing "no tools" is silent capability
+ * loss, which is far harder to notice than an error.
+ */
+export function modelSupportsTools(id: string): boolean {
+  return !/^gpt-5/.test(canonicalModelId(id));
+}
+
 export interface ResolvedChatModel {
   model: LanguageModel;
   /** The model id actually used for this request. */

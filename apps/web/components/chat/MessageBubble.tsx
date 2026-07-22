@@ -33,7 +33,12 @@ function parseBlocks(content: string): Part[] {
   return parts;
 }
 
-function extractTextContent(content: Message['content']): string {
+// Exported because the blank-answer check in ChatWindow MUST read a message the
+// same way the bubble that renders it does. It used to inline
+// `typeof content === 'string' ? content : ''`, so array-shaped content counted
+// as empty and could raise "the model returned an empty response" over a reply
+// that had rendered perfectly well.
+export function extractTextContent(content: Message['content']): string {
   if (typeof content === 'string') return content;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parts = content as any[];

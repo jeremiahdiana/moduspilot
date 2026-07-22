@@ -7,13 +7,14 @@ import { extractDurableMemory } from '@/lib/chat/memory';
 import { messageTextLength, trimMessageText } from '@/lib/chat/messages';
 import { getMcpServers } from '@/lib/mcp-servers';
 import { connectMcpClient } from '@/lib/mcp-client';
+import { sanitizeMcpToolSchemas, makeToolErrorsNonFatal } from '@/lib/mcp-schema';
 import { assertPublicUrl } from '@/lib/ssrf';
 import {
   enforceSubscriptionGate,
   enforcePaidTokenLimit,
   trackTokenUsage,
 } from '@/lib/chat/limits';
-import { resolveChatModel, chatFallbackChain, createFallbackModel, isPremiumModel } from '@/lib/chat/model';
+import { resolveChatModel, chatFallbackChain, createFallbackModel, isPremiumModel, modelSupportsTools } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
 import { isModelUnlocked } from '@/lib/models';
 import {
@@ -276,7 +277,24 @@ export async function POST(req: Request) {
     // has no tool-shaped intent by definition, so skip discovery entirely. This
     // also removes up to 8s (connect + tools()) from the fastest turns there are.
     const isSmallTalk = SMALL_TALK.test(queryText.trim());
-    const mcpSetupPromise: Promise<void> = uid && !isSmallTalk ? (async () => {
+
+    // Small talk was the right gate but not a wide enough one. "any emails i
+    // should care about" is not small talk, so it still arrived holding GitMCP's
+    // documentation toolset — a question answered entirely from the Gmail block
+    // we already fetched. Tools the model cannot use are not free: they cost
+    // discovery time, they enlarge every request, and a single malformed one
+    // fails the whole call.
+    //
+    // So: when a message is squarely about the user's OWN data — the paths that
+    // already have dedicated context blocks — skip MCP unless it also shows
+    // tool-shaped intent (a URL, or docs/code vocabulary a connected server
+    // could actually serve). Anything ambiguous still gets the tools.
+    const isPersonalDataQuery = wantsEmail || wantsCalendar || wantsNotes || wantsMessages;
+    const hasToolIntent = /\bhttps?:\/\/|\b(repo|repository|github|docs?|documentation|readme|library|package|api|source code|codebase)\b/i
+      .test(queryText);
+    const skipMcp = isSmallTalk || (isPersonalDataQuery && !hasToolIntent);
+
+    const mcpSetupPromise: Promise<void> = uid && !skipMcp ? (async () => {
       try {
         const mcpServers = await getMcpServers(uid);
         if (mcpServers.length === 0) return;
@@ -341,7 +359,21 @@ export async function POST(req: Request) {
         const toolNamesByServer: string[] = [];
         for (const ok of fetched.filter(x => x !== null).sort((a, b) => a!.server.name.localeCompare(b!.server.name))) {
           const { server, client, tools } = ok!;
-          mcpTools = { ...mcpTools, ...tools };
+          // A foreign schema is untrusted input to the model request. GitMCP's
+          // `search_generic_code` omits its optional `page` from `required`,
+          // which OpenAI rejects outright — and since the tools go out with the
+          // request, that 400s the WHOLE message before a token is generated.
+          // Every non-small-talk turn on gpt-5.6-terra was a blank bubble.
+          // Normalise at the boundary; see lib/mcp-schema.ts.
+          const { tools: safeTools, nonConforming } = sanitizeMcpToolSchemas(tools as Record<string, unknown>);
+          if (nonConforming.length > 0) {
+            console.warn(`[chat] MCP schema repaired for ${server.name}: ${nonConforming.join(', ')}`);
+          }
+          // And a tool that throws must not end the turn — see makeToolErrorsNonFatal.
+          makeToolErrorsNonFatal(safeTools, (toolName, message) =>
+            console.warn(`[chat] MCP tool ${server.name}/${toolName} failed (recovered): ${message}`),
+          );
+          mcpTools = { ...mcpTools, ...safeTools };
           toolNamesByServer.push(`${server.name}: ${Object.keys(tools).join(', ')}`);
           mcpClients.push(client);
         }
@@ -689,7 +721,18 @@ export async function POST(req: Request) {
     // Groq can't cache, and OpenAI/Gemini cache the prefix automatically for free
     // (Gemini's implicit caching needs the stable half FIRST, which is why the
     // stable/volatile split above is not Anthropic-specific).
-    const systemTail = volatileSystem + mcpBlock + extractionGuard;
+    // Some models cannot be handed function tools at all (see modelSupportsTools).
+    // Drop the toolset AND the prompt block that advertises it together — telling
+    // a model "MCP TOOLS AVAILABLE" while sending it none invites it to promise
+    // an action it has no way to perform.
+    const toolsUsable = modelSupportsTools(resolved.modelId);
+    const activeMcpTools = toolsUsable ? mcpTools : {};
+    const activeMcpBlock = toolsUsable ? mcpBlock : '';
+    if (!toolsUsable && Object.keys(mcpTools).length > 0) {
+      console.log(`[chat] tools dropped: ${resolved.modelId} cannot take function tools — answering without them`);
+    }
+
+    const systemTail = volatileSystem + activeMcpBlock + extractionGuard;
     const useAnthropicCache = resolved.modelId.startsWith('claude-');
 
     // ⚠️ THE BREAKPOINT ONLY SURVIVES BECAUSE cappedMessages WERE NORMALISED TO
@@ -718,10 +761,10 @@ export async function POST(req: Request) {
       model: failoverModel,
       ...(useAnthropicCache
         ? { messages: [...cachedSystemMessages, ...cappedMessages] }
-        : { system: fullSystemPrompt + mcpBlock + extractionGuard, messages: cappedMessages }),
+        : { system: fullSystemPrompt + activeMcpBlock + extractionGuard, messages: cappedMessages }),
       maxTokens,
       ...(isClaude5 ? { temperature: 1 } : {}),
-      ...(Object.keys(mcpTools).length > 0 ? { tools: mcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
+      ...(Object.keys(activeMcpTools).length > 0 ? { tools: activeMcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onError: async ({ error }) => {
         // onFinish does NOT fire when the stream errors, so without this the MCP
         // sockets opened above would leak on every failed request. Also surfaces
@@ -735,7 +778,23 @@ export async function POST(req: Request) {
         // the response stream — the client would hang instead of seeing the error.
         await closeStreamData();
       },
-      onFinish: async ({ text, usage }) => {
+      onFinish: async ({ text, usage, finishReason }) => {
+        // 🚨 An empty answer used to be INVISIBLE here. The route logged a 200,
+        // the timing line looked healthy, and nothing recorded that zero
+        // characters reached the user — so the blank bubble could only ever be
+        // found by a person reproducing it by hand. finishReason is the single
+        // most diagnostic field the SDK gives us ('length' = token cap eaten by
+        // reasoning, 'tool-calls' = ended on a tool, 'stop' with 0 chars = the
+        // provider genuinely returned nothing). Log it whenever the user got
+        // nothing, at error level, naming the model that owed them an answer.
+        if (!text || text.trim() === '') {
+          console.error(
+            `[chat] EMPTY ANSWER: finishReason=${finishReason} model=${servedModelId} ` +
+            `tools=${Object.keys(mcpTools).length} tokens=${usage?.completionTokens ?? '?'} uid=${uid ?? 'guest'}`,
+          );
+        } else {
+          console.log(`[chat] finish: reason=${finishReason} chars=${text.length} model=${servedModelId}`);
+        }
         // Close MCP clients
         for (const client of mcpClients) {
           try { await client.close(); } catch {}
