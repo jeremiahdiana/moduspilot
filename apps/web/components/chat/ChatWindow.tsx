@@ -319,6 +319,11 @@ export default function ChatWindow({
       } else if (msg.includes('subscription_required')) {
         setChatError('Start your 3-day free trial to use MODUS.');
         onShowPaywall?.();
+      } else if (msg.includes('empty_message')) {
+        // The composer already blocks this, so it only reaches here from another
+        // client (mobile, the API directly). Say something useful rather than
+        // "something went wrong".
+        setChatError('That message was empty — type something first.');
       } else if (msg.includes('token_limit_reached')) {
         setChatError("You've hit your daily AI token limit. Resets at midnight.");
       } else if (msg.includes('groq_daily_limit')) {

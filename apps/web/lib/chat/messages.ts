@@ -28,6 +28,28 @@ import type { CoreMessage } from 'ai';
 // narrow to it and cast back at the boundary.
 type ContentPart = { type: string; text?: string };
 
+/**
+ * Remove unpaired surrogates.
+ *
+ * 🪤 A LONE SURROGATE IS NOT VALID JSON, AND THE PROVIDER REJECTS THE WHOLE
+ * REQUEST — a 200 with zero characters, i.e. a blank bubble. Measured against
+ * prod 2026-07-23:
+ *
+ *   AI_APICallError: The request body is not valid JSON:
+ *   no low surrogate in string: line 1 column 27143
+ *   PineconeBadRequestError: unexpected end of hex escape
+ *
+ * This is NOT an exotic input. `trimMessageText` below slices by UTF-16 code
+ * UNIT, and every emoji is two of them — so cutting a long message at the
+ * history budget lands mid-emoji roughly one time in two whenever the boundary
+ * falls on one. An ordinary long message with emoji in it could do this by
+ * itself. (The slice is now pair-aware too; this is the belt to that's braces,
+ * because surrogates also arrive from clients, clipboards and mobile keyboards.)
+ */
+export function stripLoneSurrogates(s: string): string {
+  return s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
+}
+
 /** Length of a message's TEXT. Images, files and tool parts don't count. */
 export function messageTextLength(m: CoreMessage): number {
   if (typeof m.content === 'string') return m.content.length;
@@ -41,9 +63,24 @@ export function messageTextLength(m: CoreMessage): number {
  * Attachments must survive: dropping an image to save characters would break
  * vision on the very message the user attached it to.
  */
+/**
+ * Slice without ever splitting a surrogate pair.
+ *
+ * `"🔥".slice(0, 1)` yields half an emoji — an unpaired high surrogate, which
+ * makes the outgoing JSON invalid and costs the user their whole answer. Back
+ * off one unit when the cut lands between a pair.
+ */
+function safeSlice(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const code = s.charCodeAt(max - 1);
+  // High surrogate at the cut → its partner is at `max`, so drop it too.
+  const end = code >= 0xd800 && code <= 0xdbff ? max - 1 : max;
+  return s.slice(0, end);
+}
+
 export function trimMessageText(m: CoreMessage, max: number): CoreMessage {
   if (typeof m.content === 'string') {
-    return m.content.length > max ? ({ ...m, content: m.content.slice(0, max) } as CoreMessage) : m;
+    return m.content.length > max ? ({ ...m, content: safeSlice(m.content, max) } as CoreMessage) : m;
   }
   if (!Array.isArray(m.content) || messageTextLength(m) <= max) return m;
   let budget = max;
@@ -51,7 +88,7 @@ export function trimMessageText(m: CoreMessage, max: number): CoreMessage {
     if (p?.type !== 'text') return [p];
     if (budget <= 0) return []; // fully-truncated text part: drop it, don't ship an empty block
     const text = p.text ?? '';
-    const next = text.length > budget ? text.slice(0, budget) : text;
+    const next = text.length > budget ? safeSlice(text, budget) : text;
     budget -= next.length;
     return [{ ...p, text: next }];
   });

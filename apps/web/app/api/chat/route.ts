@@ -4,7 +4,7 @@ import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMIN
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
-import { messageTextLength, trimMessageText } from '@/lib/chat/messages';
+import { messageTextLength, trimMessageText, stripLoneSurrogates } from '@/lib/chat/messages';
 import { needsExplicitTemperature, maxTokensFor } from '@/lib/chat/model-params';
 import { getMcpServers } from '@/lib/mcp-servers';
 import { connectMcpClient } from '@/lib/mcp-client';
@@ -166,6 +166,43 @@ export async function POST(req: Request) {
       // Thrown on a malformed history (e.g. an assistant turn whose toolInvocation
       // has no result). streamText threw on this before, just later and as a 500.
       return Response.json({ error: 'invalid_request' }, { status: 400 });
+    }
+
+    // 🚨 TWO INPUTS COULD 400 THE PROVIDER AND LOSE THE ANSWER (verified on prod,
+    // scripts/verify-never-blank.ts). Both arrive as a 200 with zero characters,
+    // which is indistinguishable from the product being broken:
+    //
+    //   whitespace-only → "messages: text content blocks must contain
+    //                      non-whitespace text"
+    //   lone surrogate  → "The request body is not valid JSON: no low surrogate
+    //                      in string" (and Pinecone: "unexpected end of hex escape")
+    //
+    // Strip the surrogates rather than reject: half an emoji is never what the
+    // user meant, and dropping it costs them nothing. The whitespace case is a
+    // genuinely empty turn, so it gets a clean 400 the UI can explain instead of
+    // an empty stream that looks like a failure.
+    clientCore = clientCore.map(m => {
+      if (typeof m.content === 'string') return { ...m, content: stripLoneSurrogates(m.content) } as CoreMessage;
+      if (!Array.isArray(m.content)) return m;
+      const parts = (m.content as { type: string; text?: string }[]).map(p =>
+        p?.type === 'text' && typeof p.text === 'string' ? { ...p, text: stripLoneSurrogates(p.text) } : p,
+      );
+      return { ...m, content: parts } as unknown as CoreMessage;
+    });
+
+    // An "empty" turn is only empty if it also carries no image/file part — an
+    // image with no caption is a perfectly good message and must still go through.
+    const newest = clientCore[clientCore.length - 1];
+    if (newest?.role === 'user') {
+      const hasAttachment = Array.isArray(newest.content)
+        && (newest.content as { type: string }[]).some(p => p?.type !== 'text');
+      const text = typeof newest.content === 'string'
+        ? newest.content
+        : (newest.content as { type: string; text?: string }[])
+            .filter(p => p?.type === 'text').map(p => p.text ?? '').join('');
+      if (!hasAttachment && text.trim() === '') {
+        return Response.json({ error: 'empty_message' }, { status: 400 });
+      }
     }
 
     // Cap history by TOTAL size, walking backwards from the newest message.
