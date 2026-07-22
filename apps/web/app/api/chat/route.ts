@@ -443,7 +443,10 @@ export async function POST(req: Request) {
         const contactEmailMap = contactsEnabled ? await fetchContactEmailMap(uid) : new Map();
         return fetchGoogleData(uid, userData, { wantsEmail, wantsCalendar, briefingTimezone, contactEmailMap });
       })(),
-      fetchWebSearchBlock(queryText, searchCapabilities),
+      // forceWebSearch means the user hit "+ → Web search" for THIS message, or
+      // Auto classified it as research. Passed as `explicit` so the keyword
+      // heuristic can't veto a decision that was already made.
+      fetchWebSearchBlock(queryText, searchCapabilities, forceWebSearch),
       uid ? fetchDriveBlock(uid, queryText) : Promise.resolve(''),
       // Agent-to-agent: when the user asks about a groupmate's availability, pull
       // the busy windows of members who opted to share their calendar.

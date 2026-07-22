@@ -12,6 +12,7 @@ import { getValidAccessToken, getAllValidAccessTokens } from '@/lib/google-oauth
 import { getActionableThreads, type GmailThread } from '@/lib/google-gmail';
 import { getTodayEvents, fmtEventTime, type CalendarEvent } from '@/lib/google-calendar';
 import { webSearch, shouldWebSearch } from '@/lib/tavily';
+import { isSelfQuery } from '@/lib/chat/self-query';
 import { searchDriveFiles, shouldSearchDrive, mimeLabel } from '@/lib/google-drive';
 import { getNotionAccounts, getFirstNotionToken } from '@/lib/notion-oauth';
 import { getSlackAccounts, getFirstSlackToken } from '@/lib/slack-oauth';
@@ -200,8 +201,31 @@ export async function fetchGoogleData(
 }
 
 // ── Web search (Tavily) ──────────────────────────────────────────────────────
-export async function fetchWebSearchBlock(queryText: string, capabilities: Record<string, boolean>): Promise<string> {
-  if (!(capabilities.webSearch && queryText && shouldWebSearch(queryText) && process.env.TAVILY_API_KEY)) return '';
+export async function fetchWebSearchBlock(
+  queryText: string,
+  capabilities: Record<string, boolean>,
+  explicit = false,
+): Promise<string> {
+  if (!queryText || !process.env.TAVILY_API_KEY) return '';
+  // Never searchable, however the request arrived: there is nothing about MODUS
+  // on the public web, and what IS there belongs to somebody else. This veto
+  // outranks an explicit request. See lib/chat/self-query.ts.
+  if (isSelfQuery(queryText)) return '';
+  // `explicit` = the user hit the composer's "+ → Web search" toggle, or Auto
+  // already classified this message as research. Either way the decision is
+  // MADE, and shouldWebSearch() does not get to overrule it.
+  //
+  // It used to. shouldWebSearch() was ANDed in regardless of why webSearch was
+  // on, so the "+" toggle did not mean "search this" — it meant "search this, if
+  // my keyword list happens to agree too". It usually didn't: "who won the game
+  // last night", "tesla stock", "anthropic funding round" and "is claude 5 out
+  // yet" all came back silent with the toggle explicitly ON. Auto fared no better
+  // — its research heuristic matches 'who won' and 'stock', which Tavily's list
+  // lacks, so the router turned search on and this line turned it back off.
+  //
+  // The keyword list now decides ONE thing only: whether to search a message the
+  // user never asked us to search.
+  if (!explicit && !(capabilities.webSearch && shouldWebSearch(queryText))) return '';
   return withCap((async () => {
     const results = await webSearch(queryText, 5);
     if (results.length === 0) return '';

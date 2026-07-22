@@ -68,6 +68,25 @@ for (const q of ['what is the latest news on the fed', 'what is the price of bit
   check(JSON.stringify(q), shouldWebSearch(q) === true);
 }
 
+// ── 3b. Explicit intent is not vetoed by the keyword list ────────────────────
+// The "+ → Web search" toggle used to mean "search this, IF shouldWebSearch()
+// agrees too" — and for most real searches it didn't. fetchWebSearchBlock now
+// takes `explicit`; these are the queries that proved the bug.
+console.log('\nexplicit "+" searches that the keyword list would have silently vetoed:');
+const EXPLICIT_ONLY = [
+  'who won the game last night',
+  'tesla stock',
+  'anthropic funding round',
+  'is claude 5 out yet',
+  'find me competitors to moduspilot',
+];
+for (const q of EXPLICIT_ONLY) {
+  // Not caught by the keyword list...
+  check(`${JSON.stringify(q)} is NOT a keyword match`, shouldWebSearch(q) === false);
+  // ...and not a self-question, so `explicit` is what must carry it through.
+  check(`${JSON.stringify(q)} is not vetoed as a self-question`, isSelfQuery(q) === false);
+}
+
 // ── 4. Routing: never Llama for a product question on a paid plan ────────────
 (async () => {
   console.log('\nrouting (plan=modus):');
