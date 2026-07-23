@@ -167,6 +167,61 @@ export function needsContactsCtx(q: string): boolean {
 // covers yo / yoo / yoyo / yoyoyo; same shape for hi and hey.
 export const SMALL_TALK = /^(?:(?:yo+)+|(?:hi+)+|(?:hey+)+|hell+o+|sup|thanks?|thank you|ty|ok(ay)?|cool|nice|got it|k|lol|np|sure|yes|no|hey there)\b[\s!.?,]*$/i;
 
+/**
+ * Input carrying no answerable content: punctuation, symbols/emoji only, or a
+ * single stray character. A slip of the keyboard, not a request.
+ *
+ * 🪤 SMALL_TALK cannot cover this and never could — every branch of it needs a
+ * WORD, and "." has none. So a lone period fell through the small-talk gate,
+ * kept GitMCP's full toolset, and was handed to Llama 3.3. Measured on prod
+ * 2026-07-23: 3 of 5 sends returned ZERO characters, because the model spent
+ * its steps on tool calls and never emitted text —
+ *
+ *   . → match_common_libs_owner_repo_mapping({library:"react"})
+ *     → fetch_generic_documentation({owner:"facebook", repo:"react"})
+ *     → finishReason "tool-calls", 0 chars
+ *
+ * — and one send answered a period with 7,785 characters about the React docs
+ * repo. A blank answer leaves the composer's typing indicator running forever,
+ * which is what the user reports as "stuck loading".
+ *
+ * This is the "yoyo" bug re-entering through an input with no word in it, so
+ * the predicate is about CONTENT, not vocabulary: no letters and no digits
+ * means nothing a tool could act on.
+ */
+// ⚠️ Written with charCodeAt rather than /[\p{L}\p{N}]/u ON PURPOSE: this file's
+// TS target predates the `u` flag (TS1501), and the naive ASCII fallback
+// /[a-z0-9]/i would classify 日本語 / العربية / Кириллица as "contentless" and
+// silently strip their tools — verify-never-blank covers those inputs precisely
+// because they are real. Anything non-ASCII outside the punctuation/arrow and
+// emoji blocks counts as a letter, which errs toward "has content" (status quo).
+export function isContentlessQuery(q: string): boolean {
+  const t = q.trim();
+  if (!t) return true;
+
+  let codePoints = 0;
+  let hasContent = false;
+  for (let i = 0; i < t.length; i++) {
+    const unit = t.charCodeAt(i);
+    let cp = unit;
+    if (unit >= 0xd800 && unit <= 0xdbff && i + 1 < t.length) {
+      cp = (unit - 0xd800) * 0x400 + (t.charCodeAt(i + 1) - 0xdc00) + 0x10000;
+      i++; // surrogate pair is ONE code point — an emoji must not count as two
+    }
+    codePoints++;
+    const asciiAlnum = (cp >= 48 && cp <= 57) || (cp >= 65 && cp <= 90) || (cp >= 97 && cp <= 122);
+    const letterish = cp > 0x7f
+      && !(cp >= 0x2000 && cp <= 0x2bff)    // general punctuation, arrows, symbols
+      && !(cp >= 0x1f000 && cp <= 0x1ffff); // emoji planes
+    if (asciiAlnum || letterish) hasContent = true;
+  }
+
+  // One code point is a slip of the keyboard, not a request. Counting code
+  // points (not UTF-16 units) is what makes a lone emoji one character.
+  if (codePoints === 1) return true;
+  return !hasContent;
+}
+
 // Explicit "tell me what's going on" intent — these genuinely need live context.
 export function isBriefingIntent(q: string): boolean {
   return /\b(focus|priorit|what('s| is) (next|up|happening|going on)|catch me up|status|brief|overview|update me|check in|morning|today)\b/i.test(q);
@@ -180,6 +235,9 @@ export function isVagueQuery(q: string): boolean {
   const t = q.trim();
   if (isBriefingIntent(t)) return true;
   if (SMALL_TALK.test(t)) return false;
+  // "." is one word and under six, so it used to pull a full Gmail + Calendar
+  // + contacts + notes fetch (~5s, ~5k tokens) to answer a keystroke.
+  if (isContentlessQuery(t)) return false;
   if (t.split(/\s+/).length >= 6) return false;
   // ⏱️ SHORT IS NOT THE SAME AS PERSONAL — and this rule fans out to email,
   // calendar, notes AND contacts at once, so it is the single most expensive

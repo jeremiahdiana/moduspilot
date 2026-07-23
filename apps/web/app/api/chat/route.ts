@@ -26,6 +26,7 @@ import {
   needsContactsCtx,
   isVagueQuery,
   SMALL_TALK,
+  isContentlessQuery,
   queryMemoryContext,
   fetchGoogleData,
   fetchWebSearchBlock,
@@ -330,7 +331,10 @@ export async function POST(req: Request) {
     const isPersonalDataQuery = wantsEmail || wantsCalendar || wantsNotes || wantsMessages;
     const hasToolIntent = /\bhttps?:\/\/|\b(repo|repository|github|docs?|documentation|readme|library|package|api|source code|codebase)\b/i
       .test(queryText);
-    const skipMcp = isSmallTalk || (isPersonalDataQuery && !hasToolIntent);
+    // A message with no word in it cannot be a tool request. Without this a
+    // lone "." reached GitMCP and came back with zero characters 3 times in 5.
+    const isContentless = isContentlessQuery(queryText);
+    const skipMcp = isSmallTalk || isContentless || (isPersonalDataQuery && !hasToolIntent);
 
     const mcpSetupPromise: Promise<void> = uid && !skipMcp ? (async () => {
       try {

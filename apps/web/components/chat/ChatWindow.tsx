@@ -219,17 +219,22 @@ export default function ChatWindow({
   // saved Brain (defaultModelChoice) and written back to it on change, so the
   // composer and the Brain settings page are one synced setting. The ref keeps the
   // value stable for the useChat request body (avoids stale closures).
-  const [modelChoice, setModelChoice] = useState(defaultModelChoice);
-  const modelChoiceRef = useRef(defaultModelChoice);
-  // Keep in sync if the saved default loads/changes (e.g. from another device).
+  // 🧭 A MODEL PICK BELONGS TO THE CONVERSATION, NOT TO THE ACCOUNT.
+  // The picker used to be bound to the saved Brain setting and wrote every
+  // change back, so choosing Claude Sonnet once made it the default for every
+  // future chat on every device. Auto is the product's own recommendation and
+  // is what a new conversation should start from, so picking a model now
+  // applies to THIS conversation only and is not persisted.
+  const [modelChoice, setModelChoice] = useState('auto');
+  const modelChoiceRef = useRef('auto');
+  // Every new/switched conversation starts at Auto.
   useEffect(() => {
-    setModelChoice(defaultModelChoice);
-    modelChoiceRef.current = defaultModelChoice;
-  }, [defaultModelChoice]);
+    setModelChoice('auto');
+    modelChoiceRef.current = 'auto';
+  }, [conversationId]);
   function handleModelChange(v: string) {
     setModelChoice(v);
     modelChoiceRef.current = v;
-    onModelChoiceChange?.(v);
   }
   const inputAreaRef = useRef<HTMLTextAreaElement>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
