@@ -37,7 +37,14 @@ export default function ChatPage() {
   // Draft = "New chat" clicked but nothing typed yet. No Firestore doc exists;
   // one is created lazily on the first message. Blocks the auto-select effect
   // so we don't snap back to the most-recent chat.
-  const [isDraft, setIsDraft] = useState(false);
+  // 🆕 OPENING /chat ALWAYS STARTS A NEW CHAT.
+  // It used to auto-open the most recent conversation, so arriving at the chat
+  // dropped you into the middle of something old — usually yesterday's briefing
+  // — instead of an empty composer. Starting in draft suppresses that effect
+  // (it is gated on !isDraft); picking a conversation in the list clears the
+  // draft as before. No Firestore doc is created until the first message, so
+  // this does not leave empty "New chat" ghosts behind.
+  const [isDraft, setIsDraft] = useState(true);
   const [editingHeader, setEditingHeader] = useState(false);
   const [headerTitle, setHeaderTitle] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);

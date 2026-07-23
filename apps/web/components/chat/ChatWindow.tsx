@@ -653,10 +653,13 @@ export default function ChatWindow({
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="min-h-full flex flex-col items-center justify-center gap-5 px-4 md:px-8 py-8"
           >
-            {/* Avatar */}
-            <div className="w-14 h-14 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
-              <Image src="/logo.png" alt="MODUS" width={28} height={28} className="opacity-80 dark:hidden" />
-              <Image src="/logo-dark.png" alt="MODUS" width={28} height={28} className="opacity-80 hidden dark:block" />
+            {/* The mark itself, with no container. The tinted rounded-2xl box
+                that used to sit behind it read as a generic app medallion —
+                the "vibecoded" tell — and a chat opening screen wants the
+                brand present, not framed. */}
+            <div className="flex items-center justify-center">
+              <Image src="/logo.png" alt="MODUS" width={40} height={40} className="dark:hidden" />
+              <Image src="/logo-dark.png" alt="MODUS" width={40} height={40} className="hidden dark:block" />
             </div>
 
             {/* Title */}
