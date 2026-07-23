@@ -902,9 +902,13 @@ export default function ChatWindow({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28, type: 'spring', stiffness: 220, damping: 24 }}
-          className="px-4 md:px-8 pb-6"
+          /* Same container as ChatInput's inner box (max-w-6xl mx-auto px-4
+             md:px-8) so the rows line up with the composer's left edge. The
+             -mx-2 / px-2 pair puts the TEXT on that edge while letting the
+             hover background bleed slightly outside it. */
+          className="max-w-6xl mx-auto w-full px-4 md:px-8 pb-6"
         >
-          <div className="max-w-3xl mx-auto w-full">
+          <div className="-mx-2">
             {getSmartPrompts(connectedServices).map((prompt) => (
               <button
                 key={prompt.text}
