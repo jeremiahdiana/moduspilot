@@ -307,8 +307,14 @@ export default function ChatPage() {
 
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div className="border-b border-border shrink-0">
-        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 py-3 flex items-center gap-3">
+        {/* No border-b: the transcript below already reads as its own region,
+            and a full-width rule under a single line of text was the heaviest
+            thing on the screen. */}
+        <div className="shrink-0">
+        {/* Full width, not max-w-6xl mx-auto — centring the header meant the
+            conversation title floated in the middle of the pane instead of
+            sitting against the sidebar it belongs to. */}
+        <div className="w-full px-4 md:px-6 py-3 flex items-center gap-3">
           {/* Mobile: open the conversation drawer (desktop has the sidebar) */}
           {!isGuest && (
             <button
