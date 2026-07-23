@@ -14,6 +14,7 @@ import {
   enforceSubscriptionGate,
   enforcePaidTokenLimit,
   trackTokenUsage,
+  usagePercent,
 } from '@/lib/chat/limits';
 import { resolveChatModel, chatFallbackChain, createFallbackModel, isPremiumModel, modelSupportsTools } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
@@ -914,6 +915,8 @@ export async function POST(req: Request) {
       },
     });
 
+    const usageNow = usagePercent(userData);
+
     return result.toDataStreamResponse({
       data: streamData,
       headers: {
@@ -927,6 +930,10 @@ export async function POST(req: Request) {
         // and OVERRIDES this value on the client. Header = intent, annotation =
         // truth; when they disagree, the annotation wins.
         'x-modus-model': resolved.modelId,
+        // Where this account stands against its plan ceiling, 0-100. Omitted
+        // entirely when no ceiling applies, so the client shows nothing rather
+        // than a percentage of nothing.
+        ...(usageNow !== null ? { 'x-modus-usage': String(usageNow) } : {}),
         // Auto mode picked this model for the task → client shows a routing chip.
         ...(wasAutoRouted ? { 'x-modus-auto': '1' } : {}),
         ...(resolved.downgraded

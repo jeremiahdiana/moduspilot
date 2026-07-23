@@ -12,7 +12,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { modelName, unlockedModels } from '@/lib/models';
 import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import { readWebSearchAnnotation } from '@/lib/chat/annotations';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
@@ -97,6 +97,17 @@ function timeGreeting(): string {
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
 }
+
+/**
+ * Usage is only worth saying once it changes what you'd do. Below this it is
+ * noise, and a meter that is always on screen turns "you have plenty left" into
+ * a thing to watch while you type.
+ */
+const USAGE_NOTICE_AT = 75;
+/** Past this the tone stops being informational — you are about to be cut off. */
+const USAGE_URGENT_AT = 90;
+/** How long the notice stays before it gets out of the way. */
+const USAGE_NOTICE_MS = 6000;
 
 type SmartPrompt = { text: string; icon: PromptIconName };
 
@@ -310,6 +321,22 @@ export default function ChatWindow({
   // Llama off as the model the user selected.
   const [modelNotice, setModelNotice] = useState<string | null>(null);
 
+  // Plan usage, 0–100, from the x-modus-usage header. Only ever SHOWN past
+  // USAGE_NOTICE_AT — below that it is a number nobody needs, and a permanent
+  // meter on a chat screen is a reason to feel watched while you type.
+  const [usagePct, setUsagePct] = useState<number | null>(null);
+  const [usageDismissed, setUsageDismissed] = useState(false);
+
+  // Show it, then get out of the way. Re-arms whenever the figure MOVES, so a
+  // user who keeps going gets told again as they climb — but a stable number
+  // does not keep interrupting.
+  useEffect(() => {
+    if (usagePct === null || usagePct < USAGE_NOTICE_AT) return;
+    setUsageDismissed(false);
+    const t = setTimeout(() => setUsageDismissed(true), USAGE_NOTICE_MS);
+    return () => clearTimeout(t);
+  }, [usagePct]);
+
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop, reload } = useChat({
     api: '/api/chat',
     onResponse: (response) => {
@@ -317,6 +344,13 @@ export default function ChatWindow({
       const routedModelId = response.headers.get('x-modus-model') || '';
       const auto = response.headers.get('x-modus-auto') === '1';
       routedRef.current = routedModelId ? { modelId: routedModelId, auto } : null;
+
+      // Plan usage. Absent header = no ceiling on this plan; show nothing.
+      const rawUsage = response.headers.get('x-modus-usage');
+      if (rawUsage !== null) {
+        const pct = Number(rawUsage);
+        if (Number.isFinite(pct)) setUsagePct(pct);
+      }
       if (response.headers.get('x-modus-downgraded') === '1') {
         const requested = response.headers.get('x-modus-requested-model') || '';
         const label = requested ? modelName(requested) : 'The selected model';
@@ -810,6 +844,54 @@ export default function ChatWindow({
           </div>
         )}
       </div>
+
+      {/* Plan usage. Appears only past USAGE_NOTICE_AT, sits on the composer's
+          column, and leaves on its own after a few seconds. A hairline bar
+          rather than a number alone, because "82%" means nothing without the
+          shape of how far along that is. */}
+      <AnimatePresence>
+        {usagePct !== null && usagePct >= USAGE_NOTICE_AT && !usageDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="max-w-4xl mx-auto w-full px-4 md:px-8 mb-2"
+          >
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border bg-panel">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                  <span className="text-xs text-muted truncate">
+                    {usagePct >= USAGE_URGENT_AT
+                      ? 'You’re close to this period’s limit'
+                      : 'Usage this period'}
+                  </span>
+                  <span className={`text-xs tabular-nums ${usagePct >= USAGE_URGENT_AT ? 'text-amber-500' : 'text-muted'}`}>
+                    {usagePct}%
+                  </span>
+                </div>
+                <div className="h-1 rounded-full bg-border overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${usagePct}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className={`h-full rounded-full ${usagePct >= USAGE_URGENT_AT ? 'bg-amber-500' : 'bg-muted'}`}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => setUsageDismissed(true)}
+                className="text-muted hover:text-text shrink-0 -mr-1"
+                aria-label="Dismiss"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {modelNotice && (
         <div className="mx-4 md:mx-8 mb-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-3">

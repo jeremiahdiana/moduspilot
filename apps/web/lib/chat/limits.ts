@@ -99,6 +99,36 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
 }
 
 /**
+ * How much of the plan's ceiling this account has consumed, 0–100.
+ *
+ * Takes the HIGHER of the daily and weekly figures, because whichever will stop
+ * the user first is the only one worth showing them — reporting 20% of the week
+ * while the day is at 95% would be true and useless.
+ *
+ * Returns null where no ceiling applies (guests, free, unpaid): a percentage of
+ * a limit that does not exist is worse than showing nothing.
+ *
+ * ⏱️ Computed BEFORE the answer streams, from the counters as they stand at the
+ * start of the request — so it excludes the message being sent right now. It is
+ * a "where you stand" figure, not a live meter, which is what makes it stable
+ * enough to show without flickering mid-stream.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function usagePercent(userData: Record<string, any>): number | null {
+  const plan = userData.plan as string | undefined;
+  if (!isPaidPlan(plan)) return null;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const weekKey = getWeekKey();
+  const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
+  const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+  const tokensToday = (userData.tokenDate as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
+  const tokensWeek  = (userData.tokenWeek as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
+  const worst = Math.max(tokensToday / dailyLimit, tokensWeek / weeklyLimit);
+  if (!Number.isFinite(worst)) return null;
+  return Math.max(0, Math.min(100, Math.round(worst * 100)));
+}
+
+/**
  * Track token usage for paid users (fire-and-forget). No-op for free plans.
  * Increments daily + weekly counters atomically, resetting on date/week roll.
  */
