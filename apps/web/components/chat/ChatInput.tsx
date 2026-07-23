@@ -42,6 +42,13 @@ interface Props {
   plan?: string;
   modelChoice?: string;
   onModelChange?: (value: string) => void;
+  /**
+   * True when the composer is docked at the bottom of a conversation. The
+   * hairline above it separates it from the transcript — but on the opening
+   * screen the composer floats in the middle of an empty pane, where that same
+   * rule reads as a stray line drawn across the page.
+   */
+  docked?: boolean;
 }
 
 const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|log|ya?ml|xml|tsx?|jsx?|py|rb|go|rs|java|kt|swift|c|cc|cpp|h|hpp|cs|php|css|scss|html?|sh|bash|zsh|sql|toml|ini|env)$/i;
@@ -53,6 +60,7 @@ export default function ChatInput({
   webSearchOn = false, onToggleWebSearch, compareOn = false, onToggleCompare,
   compareSelected = [], onToggleCompareModel,
   connectedServices, onSeedPrompt, openQuestion = false, textareaRef, plan, modelChoice, onModelChange,
+  docked = true,
 }: Props) {
   const [recording, setRecording] = useState(false);
   const [voiceError, setVoiceError] = useState('');
@@ -192,7 +200,7 @@ export default function ChatInput({
   ];
 
   return (
-    <form onSubmit={onSubmit} className="border-t border-border">
+    <form onSubmit={onSubmit} className={docked ? 'border-t border-border' : ''}>
       <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
       <input ref={docRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleDocChange} />
 

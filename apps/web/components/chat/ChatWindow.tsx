@@ -912,6 +912,7 @@ export default function ChatWindow({
           plan={isGuest ? undefined : plan}
           modelChoice={modelChoice}
           onModelChange={handleModelChange}
+          docked={!isEmpty}
         />
         </motion.div>
       )}
