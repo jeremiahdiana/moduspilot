@@ -204,7 +204,7 @@ export default function ChatInput({
       <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
       <input ref={docRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleDocChange} />
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-4">
+      <div className="max-w-4xl mx-auto px-4 md:px-8 py-4">
         {/* Multi-model picker — visible while the mode is on, so the chosen set
             is in front of you at the moment you send. */}
         {onToggleCompareModel && plan && (
