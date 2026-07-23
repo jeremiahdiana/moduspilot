@@ -45,7 +45,12 @@ const gateway = createOpenAI({
   baseURL: 'https://ai-gateway.vercel.sh/v1',
 });
 
-/** The free default, the failover chain's free link, and what downgradedToFree() serves. */
+/**
+ * What a user gets when they have not chosen a model — i.e. every new customer's
+ * entire first session. On a DIRECT vendor key on purpose: see freeDefaultModel().
+ */
+export const FREE_DEFAULT = 'gemini-3.5-flash';
+/** The failover chain's free link. Still Gateway-hosted, still selectable. */
 export const LLAMA_FALLBACK = 'meta/llama-3.3-70b';
 /**
  * Second free model — a separate budget from the primary, so a throttled first
@@ -81,6 +86,13 @@ const GATEWAY_HOSTED = new Set<string>([
 type LM = Exclude<LanguageModel, string>;
 
 /** Ids that promise nothing: the free defaults MODUS falls back to by design. */
+// ⚠️ FREE_DEFAULT deliberately does NOT belong here, though it is tempting.
+// gemini-3.5-flash is BOTH the unchosen default AND a model a user can pick from
+// the composer. Marking it "free" would silence the downgrade notice for someone
+// who explicitly chose it — the silent-downgrade bug (247a582) re-entering
+// through the back door. scripts/verify-failover-annotation.ts caught exactly
+// that when it was tried. The "user picked nothing" case is handled where it
+// belongs instead: the FREE_DEFAULT exemption on the unlock gate below.
 const FREE_DEFAULTS = new Set<string>([LLAMA_FALLBACK, FREE_FALLBACK_SECONDARY]);
 
 /**
@@ -156,14 +168,48 @@ function served(model: LanguageModel, modelId: string): ResolvedChatModel {
   return { model: repairReasoningStream(model), modelId, downgraded: false };
 }
 
-/** Free Llama, flagged so the caller can tell the user which model did NOT run. */
+/**
+ * The model served when nothing was chosen, or when a choice can't be honoured.
+ *
+ * 🚨 THIS USED TO BE GATEWAY LLAMA, AND "FREE" WAS FICTION. A new customer has no
+ * saved Brain, so every one of their messages started at `meta/llama-3.3-70b` on
+ * the Gateway's free tier, 429'd, fell to `meta/llama-3.1-8b` (same Gateway, same
+ * tier, same 429) and was answered by `gpt-4o-mini`. Verified repeatedly on prod
+ * 2026-07-23. So MODUS was ALREADY paying gpt-4o-mini rates on every default
+ * message and buying ~1s of dead air for two doomed round trips.
+ *
+ * Two Gateway links are not two fallbacks — they share one account and one tier.
+ * The fix is not a different Llama; it is a different KEY PATH.
+ *
+ * Order is deliberate:
+ *   1. gemini-3.5-flash on a DIRECT Google key — cheap, better than both models
+ *      it replaces, and crucially a DIFFERENT VENDOR to the failover floor. The
+ *      default and the floor were both OpenAI, so one OpenAI outage took out
+ *      everything (the Gateway being already throttled).
+ *   2. gpt-4o-mini — what was actually answering anyway, minus the wasted hops.
+ *   3. Gateway Llama — only when neither vendor key exists.
+ */
+function freeDefaultModel(): { model: LanguageModel; modelId: string } {
+  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
+  if (googleKey) {
+    return { model: createGoogleGenerativeAI({ apiKey: googleKey })(FREE_DEFAULT), modelId: FREE_DEFAULT };
+  }
+  const openAIKey = process.env.OPENAI_API_KEY?.trim();
+  if (openAIKey) {
+    return { model: createOpenAI({ apiKey: openAIKey })('gpt-4o-mini'), modelId: 'gpt-4o-mini' };
+  }
+  return { model: gateway(LLAMA_FALLBACK), modelId: LLAMA_FALLBACK };
+}
+
+/** The free default, flagged so the caller can tell the user which model did NOT run. */
 function downgradedToFree(requested: string): ResolvedChatModel {
   const requestedPremium = isPremiumModel(requested) ? requested : undefined;
+  const { model, modelId } = freeDefaultModel();
   return {
     // Same repair as served() — a downgrade must not be the one path that can
     // still die mid-stream.
-    model: repairReasoningStream(gateway(LLAMA_FALLBACK)),
-    modelId: LLAMA_FALLBACK,
+    model: repairReasoningStream(model),
+    modelId,
     downgraded: !!requestedPremium,
     requestedId: requestedPremium,
   };
@@ -196,7 +242,11 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
 
   // canonicalModelId so a saved Brain naming a retired model (gpt-4o, grok-3, …)
   // resolves to its successor instead of failing the gate and dropping to Llama.
-  const selectedModel = canonicalModelId(opts.modelId ?? ms?.model ?? LLAMA_FALLBACK);
+  // ⚠️ THIS `??` IS THE ACTUAL DEFAULT — the one every new customer gets, because
+  // they have no saved Brain. It was LLAMA_FALLBACK, which is Gateway-hosted and
+  // 429s on the free tier, so their whole first session was really gpt-4o-mini
+  // arriving ~1s late via two doomed hops. See freeDefaultModel().
+  const selectedModel = canonicalModelId(opts.modelId ?? ms?.model ?? FREE_DEFAULT);
 
   // If image attached and we'd fall back to text-only Groq, route to OpenAI vision
   const openAIKey = process.env.OPENAI_API_KEY?.trim();
@@ -214,7 +264,10 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // the ungated ms?.model, a $24 user whose saved Brain was o4-mini got served a
   // PILOT model. The prefix chain below now ONLY picks the provider SDK; it makes
   // no access decisions, so the catalog is the source of truth its header claims.
-  if (!isModelUnlocked(selectedModel, plan)) {
+  // FREE_DEFAULT is exempt: it is what an unchosen request resolves to, so gating
+  // it on the catalog would make a grandfathered/plan-less account "downgrade"
+  // from a model it never asked for — and show them a notice naming it.
+  if (selectedModel !== FREE_DEFAULT && !isModelUnlocked(selectedModel, plan)) {
     return downgradedToFree(selectedModel);
   }
 
