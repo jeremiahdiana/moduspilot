@@ -80,7 +80,11 @@ async function send(token: string, text: string, modelChoice = 'default') {
     if (m) { try { answer += JSON.parse(m[1]); } catch { /* partial */ } }
   }
   const err = raw.split('\n').find(l => l.startsWith('3:'));
-  return { status: res.status, answer: answer.trim(), err, ms: Date.now() - started, raw };
+  // Which model actually faced a brand-new customer. The intent rides in the
+  // header; a runtime failover overrides it via the annotation.
+  const intended = res.headers.get('x-modus-model') ?? '?';
+  const servedM = raw.match(/"modusServedModel":"([^"]+)"/)?.[1];
+  return { status: res.status, answer: answer.trim(), err, ms: Date.now() - started, raw, model: servedM ?? intended, failedOver: !!servedM };
 }
 
 async function main() {
@@ -132,7 +136,7 @@ async function main() {
 
     for (const c of cases) {
       const r = await send(token, c.text);
-      console.log(`\n   ${c.label}  (${r.ms}ms, ${r.answer.length} chars)`);
+      console.log(`\n   ${c.label}  (${r.ms}ms, ${r.answer.length} chars)  model=${r.model}${r.failedOver ? ' [FAILED OVER]' : ''}`);
       console.log(`   → ${JSON.stringify(r.answer.slice(0, 160))}`);
       check(`  ${c.label}: answers at all`, r.status === 200 && r.answer.length > 0, r.err ?? r.status);
       if (c.mustNotSay) {
