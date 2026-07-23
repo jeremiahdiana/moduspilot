@@ -643,15 +643,32 @@ export default function ChatWindow({
     );
   }
 
+  // 🎬 THE OPENING SCREEN AND THE CONVERSATION ARE ONE LAYOUT, NOT TWO.
+  // On a new chat the greeting and the composer sit together in the middle of
+  // the pane; the first message drops the composer to the bottom and the
+  // transcript takes the space above it. That move is a real animation, not a
+  // cut, and it only works because <ChatInput> stays the SAME React node
+  // across both states — framer-motion's `layout` then FLIPs it between the two
+  // measured positions. Rendering a second composer inside the empty state
+  // would remount it (losing focus, draft text and attachments) and could not
+  // animate at all.
+  const isEmpty = messages.length === 0 && !compare;
+
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
+    <div className={`flex flex-col h-full min-h-0 ${isEmpty ? 'justify-center' : ''}`}>
+      <div
+        ref={scrollContainerRef}
+        className={isEmpty ? 'shrink-0 overflow-y-auto' : 'flex-1 min-h-0 overflow-y-auto'}
+      >
         {messages.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="min-h-full flex flex-col items-center justify-center gap-5 px-4 md:px-8 py-8"
+            /* No min-h-full here: the block must be CONTENT height so it can be
+               centred as a group with the composer. min-h-full forced it to
+               fill the pane, which is what pinned the composer to the bottom. */
+            className="flex flex-col items-center justify-center gap-5 px-4 md:px-8 py-8"
           >
             {/* The mark itself, with no container. The tinted rounded-2xl box
                 that used to sit behind it read as a generic app medallion —
@@ -858,6 +875,14 @@ export default function ChatWindow({
           </button>
         </div>
       ) : (
+        <motion.div
+          layout
+          /* Spring, not a duration: the distance travelled changes with the
+             viewport, and a fixed duration reads as fast on a laptop and slow
+             on a large display. Damped hard enough not to overshoot into the
+             transcript. */
+          transition={{ type: 'spring', stiffness: 260, damping: 30, mass: 0.9 }}
+        >
         <ChatInput
           input={input}
           onChange={handleInputChange}
@@ -888,6 +913,7 @@ export default function ChatWindow({
           modelChoice={modelChoice}
           onModelChange={handleModelChange}
         />
+        </motion.div>
       )}
     </div>
   );
