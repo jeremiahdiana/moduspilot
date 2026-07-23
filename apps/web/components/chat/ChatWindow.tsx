@@ -714,7 +714,12 @@ export default function ChatWindow({
 
           </motion.div>
         ) : (
-          <div className="px-4 md:px-8 py-6 space-y-4 max-w-6xl mx-auto w-full">
+          {/* Same max-w-4xl + px as ChatInput's inner box, so the transcript and
+              the composer it came from share one column and one left edge.
+              Measured before this change: prose ran 84 characters per line,
+              where 60–75 is the comfortable range for reading — and prose is
+              the entire product. */}
+          <div className="px-4 md:px-8 py-6 space-y-4 max-w-4xl mx-auto w-full">
         {messages.map((m, idx) => (
           <MessageBubble
             key={m.id}
