@@ -6,7 +6,6 @@ import ChatInput from './ChatInput';
 import CompareCard from './CompareCard';
 import { useRef, useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import type { Message } from 'ai';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -99,27 +98,46 @@ function timeGreeting(): string {
   return 'Good evening';
 }
 
-function getSmartPrompts(svc: ConnectedServices): string[] {
-  const prompts: string[] = [];
-  if (svc.google)   prompts.push("What's on my calendar today?", "Any important emails?");
-  if (svc.notion)   prompts.push("Search my Notion notes");
-  if (svc.slack)    prompts.push("Catch me up on Slack");
-  if (svc.github)   prompts.push("What are my open pull requests?");
-  if (svc.contacts) prompts.push("Who do I know at [company]?");
+type SmartPrompt = { text: string; icon: PromptIconName };
+
+function getSmartPrompts(svc: ConnectedServices): SmartPrompt[] {
+  const prompts: SmartPrompt[] = [];
+  if (svc.google)   prompts.push({ text: "What's on my calendar today?", icon: 'calendar' }, { text: 'Any important emails?', icon: 'mail' });
+  if (svc.notion)   prompts.push({ text: 'Search my Notion notes', icon: 'doc' });
+  if (svc.slack)    prompts.push({ text: 'Catch me up on Slack', icon: 'chat' });
+  if (svc.github)   prompts.push({ text: 'What are my open pull requests?', icon: 'branch' });
+  if (svc.contacts) prompts.push({ text: 'Who do I know at [company]?', icon: 'people' });
   if (prompts.length === 0) {
-    return ["Help me plan my day", "Generate an image", "Make a PDF", "Set a goal"];
+    return [
+      { text: 'Help me plan my day', icon: 'calendar' },
+      { text: 'Generate an image',   icon: 'image' },
+      { text: 'Make a PDF',          icon: 'doc' },
+      { text: 'Set a goal',          icon: 'target' },
+    ];
   }
   // Keep a generation prompt discoverable alongside connected-service prompts.
-  prompts.push("Generate an image");
+  prompts.push({ text: 'Generate an image', icon: 'image' });
   return prompts.slice(0, 4);
 }
 
-function ServiceBadge({ label }: { label: string }) {
+type PromptIconName = 'calendar' | 'mail' | 'doc' | 'chat' | 'branch' | 'people' | 'image' | 'target';
+
+/** Line icons only — a filled or coloured glyph here would out-shout the text. */
+function PromptIcon({ name }: { name: PromptIconName }) {
+  const paths: Record<PromptIconName, React.ReactNode> = {
+    calendar: <><rect x="3" y="4.5" width="18" height="16" rx="2" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" /></>,
+    mail:     <><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></>,
+    doc:      <><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></>,
+    chat:     <path d="M21 11.5a7.5 7.5 0 0 1-9.9 7.1L4 21l1.5-5.4A7.5 7.5 0 1 1 21 11.5z" />,
+    branch:   <><circle cx="6.5" cy="5.5" r="2.2" /><circle cx="6.5" cy="18.5" r="2.2" /><circle cx="17.5" cy="8.5" r="2.2" /><path d="M6.5 7.7v8.6M17.5 10.7c0 4-4.4 3.3-11 5.6" /></>,
+    people:   <><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 11.2A3.2 3.2 0 0 0 17 5M18.5 20a6.2 6.2 0 0 0-3-5.3" /></>,
+    image:    <><rect x="3" y="4.5" width="18" height="15" rx="2" /><circle cx="8.5" cy="10" r="1.6" /><path d="M21 16l-5-5-8 8.5" /></>,
+    target:   <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="0.6" /></>,
+  };
   return (
-    <span className="flex items-center gap-1.5 text-xs text-muted">
-      <span className="w-1.5 h-1.5 rounded-full bg-green-400/70" />
-      {label}
-    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] shrink-0">
+      {paths[name]}
+    </svg>
   );
 }
 
@@ -694,50 +712,6 @@ export default function ChatWindow({
               </p>
             </motion.div>
 
-            {/* Smart prompt chips */}
-            {!isGuest && connectedServices && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, type: 'spring', stiffness: 220, damping: 24 }}
-                className="flex flex-wrap gap-2 justify-center max-w-sm"
-              >
-                {getSmartPrompts(connectedServices).map((prompt) => (
-                  <button
-                    key={prompt}
-                    onClick={() => { setInput(prompt); setTimeout(() => inputAreaRef.current?.focus(), 50); }}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Connected services strip */}
-            {!isGuest && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.42 }}
-                className="flex items-center gap-3 flex-wrap justify-center"
-              >
-                {connectedServices && Object.values(connectedServices).some(Boolean) ? (
-                  <>
-                    {connectedServices.google   && <ServiceBadge label="Google" />}
-                    {connectedServices.notion   && <ServiceBadge label="Notion" />}
-                    {connectedServices.slack    && <ServiceBadge label="Slack" />}
-                    {connectedServices.github   && <ServiceBadge label="GitHub" />}
-                    {connectedServices.contacts && <ServiceBadge label="Contacts" />}
-                    <Link href="/capabilities" className="text-xs text-muted hover:text-text transition-colors">Manage →</Link>
-                  </>
-                ) : connectedServices !== null ? (
-                  <Link href="/capabilities" className="text-xs text-muted hover:text-brand transition-colors">
-                    Connect your tools →
-                  </Link>
-                ) : null}
-              </motion.div>
-            )}
           </motion.div>
         ) : (
           <div className="px-4 md:px-8 py-6 space-y-4 max-w-6xl mx-auto w-full">
@@ -914,6 +888,34 @@ export default function ChatWindow({
           onModelChange={handleModelChange}
           docked={!isEmpty}
         />
+        </motion.div>
+      )}
+
+      {/* Suggestions sit UNDER the composer, not above it. Above, they wrapped
+          into a ragged 2–1–1 centred pile that pushed the composer off centre
+          and read as clutter. A left-aligned column below reads as a quiet
+          menu: the composer stays the thing you look at, and each row is a
+          full-width hit target instead of a small pill. They disappear the
+          moment the conversation starts. */}
+      {isEmpty && !isGuest && connectedServices && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28, type: 'spring', stiffness: 220, damping: 24 }}
+          className="px-4 md:px-8 pb-6"
+        >
+          <div className="max-w-3xl mx-auto w-full">
+            {getSmartPrompts(connectedServices).map((prompt) => (
+              <button
+                key={prompt.text}
+                onClick={() => { setInput(prompt.text); setTimeout(() => inputAreaRef.current?.focus(), 50); }}
+                className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg text-left text-muted hover:text-text hover:bg-text/[0.04] transition-colors"
+              >
+                <PromptIcon name={prompt.icon} />
+                <span className="text-sm">{prompt.text}</span>
+              </button>
+            ))}
+          </div>
         </motion.div>
       )}
     </div>
