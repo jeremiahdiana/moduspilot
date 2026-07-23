@@ -2,3 +2,5 @@
 
 # Private founding-member password list (plaintext record — never commit)
 scripts/founding-codes.local.json
+.gstack/
+tsconfig.tsbuildinfo
