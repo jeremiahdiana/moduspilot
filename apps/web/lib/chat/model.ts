@@ -141,8 +141,26 @@ export function isPremiumModel(id: string): boolean {
  * tools, because the failure mode of guessing "no tools" is silent capability
  * loss, which is far harder to notice than an error.
  */
+/**
+ * Ids whose PROVIDER rejects function tools outright. Listed explicitly and
+ * never matched by pattern — the same lesson GATEWAY_HOSTED records above.
+ * `/^gpt-5/` is a pattern only because OpenAI's limitation is family-wide; tool
+ * support is otherwise a per-model, per-host fact that a name cannot predict.
+ *
+ * 🪤 meta/llama-4-maverick — found 2026-07-23, blank on EVERY message since it
+ * was listed. Its Gateway host serves it as Llama-4-Maverick-17B-128E-Instruct-FP8
+ * and hard 400s: "Tool calling is not supported for model". Nothing surfaced it,
+ * because the route still returns 200 and Vercel logs a healthy request. Note
+ * llama-3.3-70b and deepseek-v3.1 take tools fine on the SAME Gateway key, which
+ * is exactly why this cannot be inferred from the provider or the id.
+ */
+const NO_FUNCTION_TOOLS = new Set<string>([
+  'meta/llama-4-maverick',
+]);
+
 export function modelSupportsTools(id: string): boolean {
-  return !/^gpt-5/.test(canonicalModelId(id));
+  const canonical = canonicalModelId(id);
+  return !/^gpt-5/.test(canonical) && !NO_FUNCTION_TOOLS.has(canonical);
 }
 
 export interface ResolvedChatModel {
