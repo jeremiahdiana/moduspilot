@@ -22,7 +22,7 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   if (!(m[1] in process.env)) process.env[m[1]] = v;
 }
 
-const UID = 'hSBcOHKSX9eCHaKSDczccTRzv093';
+const UID = process.env.MODUS_UID || 'hSBcOHKSX9eCHaKSDczccTRzv093';
 // MODUS_APP_URL points this at a preview deployment, so a fix can be proven
 // before it reaches production.
 const APP = process.env.MODUS_APP_URL || 'https://app.moduspilot.com';
