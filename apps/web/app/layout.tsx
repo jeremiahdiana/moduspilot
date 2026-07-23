@@ -54,7 +54,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
-        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@300,400,500,700,900&f[]=sentient@400,500,700&display=swap" />
+        {/* 🔤 SATOSHI AND SENTIENT ARE LOADED AS VARIABLE FONTS (`@1,2`), NOT
+            AS STATIC WEIGHTS — because Satoshi ships NO 600 and Sentient ships
+            no 600 either. Tailwind's `font-semibold` IS 600, so every semibold
+            in the product was being rendered by the Bold 700 file: measured on
+            prod, Satoshi 600 and 700 had an identical advance width
+            (717.77px), which is why bold text read as too heavy everywhere,
+            the dashboard included.
+            The variable faces cover 300–900 (Satoshi) and 200–700 (Sentient),
+            so 600 is now a real interpolated weight sitting between Medium and
+            Bold. It is also FEWER requests — one file per family per style
+            instead of five. Verify with advance width, never
+            document.fonts.check(): check() answers "can this family render
+            this text" and returns true for weights whose file does not exist. */}
+        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@1,2&f[]=sentient@1,2&display=swap" />
         {/* Always start dark. Light mode is in-session only and never persisted. */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
