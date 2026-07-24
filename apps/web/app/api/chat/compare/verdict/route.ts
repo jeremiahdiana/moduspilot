@@ -7,12 +7,18 @@ import { modelName } from '@/lib/models';
 // columns finish. Judgement is about which answer served the user better, not
 // which model is "best" in the abstract.
 
-// Answers are capped at 900 output tokens (~3.6k chars) by the compare route, so
-// this holds a full one. It was 1500, which silently cut a normal 5-paragraph
-// essay in half — and the judge then reported the answer as "cut off, leaving it
-// incomplete" and marked the model DOWN for damage we had done to it. A judge
-// must see what the user saw, or it is reviewing our truncation, not the model.
-const MAX_ANSWER_CHARS = 4000;
+// This must hold a WHOLE answer, whatever the compare route is currently willing
+// to generate. It was 1500, which silently cut a normal 5-paragraph essay in half
+// — and the judge then reported the answer as "cut off, leaving it incomplete"
+// and marked the model DOWN for damage we had done to it. A judge must see what
+// the user saw, or it is reviewing our truncation, not the model.
+//
+// 🪤 That is a coupling, and it drifted: 4000 was correct when compare capped
+// answers at 900 output tokens, but reasoning models there now get 16000 (~64k
+// chars). So the identical bug came back on exactly the long-form answers the
+// clarify gate invites the user to ask for. Sized to the cap, not to a guess.
+// Worst case is 3 x 64k chars ≈ 48k tokens into gpt-4o-mini's 128k context.
+const MAX_ANSWER_CHARS = 64000;
 
 export async function POST(req: Request) {
   const auth = await requireAuth(req);

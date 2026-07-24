@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { resolveChatModel } from '@/lib/chat/model';
+import { needsExplicitTemperature, maxTokensFor } from '@/lib/chat/model-params';
 import { isModelUnlocked, effectivePlan } from '@/lib/models';
 
 // Compare mode: the same prompt answered by up to 3 models side by side.
@@ -70,32 +71,22 @@ export async function POST(req: Request) {
     model: resolved.model,
     system: SYSTEM,
     prompt,
-    // 900 could not deliver what the clarify gate OFFERS. That card's own
-    // example options include "Long-form — Full narrative with sections", and
-    // 900 tokens is ~675 words: pick long-form and the answer was guaranteed to
-    // stop mid-sentence, in all three columns, with nothing saying why. Never
-    // offer a length the pipe behind it cannot carry.
+    // 🪤 BOTH of these were inline regexes here, and BOTH were the buggy spelling
+    // that lib/chat/model-params.ts exists to have deleted. The 2026-07-23 fix
+    // landed in chat/route.ts only — and because this file has its own streamText
+    // call and inherits nothing from it, `claude-opus-4-8` went on being sent
+    // temperature:0 (a hard 400) with a 2000-token cap, in compare mode, for
+    // another day. Measured on prod 2026-07-24: HTTP 200, 625ms, **0 chars**,
+    // while the other nine columns answered.
     //
-    // This is a cap, not a target — a short answer bills what it generates, so
-    // raising it costs nothing except on the long answers the user asked for.
+    // That is the worst place in the product for this bug to live. A dead column
+    // does not read as an error — it reads as "Opus lost the comparison", which is
+    // precisely the lie this route 503s a silent downgrade to avoid telling.
     //
-    // Reasoning models need their own budget for the same reason chat/route.ts
-    // does: gpt-5.x and the o-series spend hidden reasoning tokens against this
-    // cap, and gpt-5.6-sol measurably burns 2048/2048 on a hard prompt and emits
-    // NOTHING. A blank column would read as "that model lost", which is exactly
-    // the lie compare mode refuses above when it 503s a downgrade.
-    //
-    // The Claude 5 family belongs here too — measured 2026-07-17, claude-sonnet-5
-    // returns 0 chars at 2048 and 3541 at 16000. Sonnet 5 losing a race it never
-    // got to run is the exact failure this comment is about.
-    // gemini-3.x too — measured 2026-07-17: gemini-3.5-flash truncates at 2048
-    // (finish 'length', 881 chars) and completes at 16000 (2258). A half-finished
-    // Gemini column is the same lie as a blank one.
-    maxTokens: /^o\d/.test(resolved.modelId) || /^gpt-5/.test(resolved.modelId) || /-5$/.test(resolved.modelId) || /^gemini-3/.test(resolved.modelId) ? 16000 : 2000,
-    // Claude 5 rejects the AI SDK's hardcoded temperature:0 with a 400 on EVERY
-    // request; Anthropic's default of 1 is accepted. See chat/route.ts for the full
-    // note — this file has its own streamText call and inherits nothing from it.
-    ...(/^claude-.*-5$/.test(resolved.modelId) ? { temperature: 1 } : {}),
+    // Never re-derive a provider constraint at a second call site. Import it.
+    // scripts/verify-compare-params.ts fails if these become literals again.
+    maxTokens: maxTokensFor(resolved.modelId),
+    ...(needsExplicitTemperature(resolved.modelId) ? { temperature: 1 } : {}),
     onFinish: () => {
       console.log(`[compare] ${resolved.modelId} finished in ${Date.now() - started}ms`);
     },
