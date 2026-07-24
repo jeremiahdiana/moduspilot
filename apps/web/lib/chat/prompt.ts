@@ -83,6 +83,32 @@ export function buildSettingsBlock(briefingHour: number, briefingTimezone: strin
   return `\n\nUSER SETTINGS:\n- Daily briefing: ${briefingTimeDisplay}. Only mention this if the user asks about their briefing time — never volunteer it.`;
 }
 
+/**
+ * The current date, in the USER's timezone, injected on every message.
+ *
+ * 🐛 Without this the model had no idea what day it was, so an approval card for
+ * "add a task for tomorrow" saved dueDate:"tomorrow" — the literal word. The
+ * /reminders view does string comparisons on dueDate (isOverdue = d < today), so
+ * a non-ISO value never sorts as overdue/Today and renders as raw text. Every
+ * relative date the user speaks ("next Friday", "in two weeks") had the same
+ * problem. The model cannot resolve any of them without knowing today.
+ *
+ * ⚠️ VOLATILE, never stable: this string changes daily, so it must sit AFTER the
+ * Anthropic prompt-cache prefix or it would bust the cache once per day per user.
+ * The date-to-ISO instruction it references lives in MODUS_SYSTEM_PROMPT (stable).
+ */
+export function buildDateBlock(timezone: string): string {
+  const now = new Date();
+  let iso = now.toISOString().slice(0, 10);
+  let human = iso;
+  try {
+    // en-CA yields YYYY-MM-DD; do it in the user's tz so "today" is their today.
+    iso = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+    human = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(now);
+  } catch { /* fall back to UTC iso */ }
+  return `\n\nCURRENT DATE: ${human} (${iso}), timezone ${timezone}. When the user refers to a relative date ("today", "tomorrow", "next Friday", "in two weeks"), resolve it against THIS date and emit it as ISO in any approval-card payload — dueDate/date as "YYYY-MM-DD", startDateTime/endDateTime/newStart/newEnd as full ISO 8601. Never put a relative word in a payload date field.`;
+}
+
 export function buildGoalContextBlock(gc?: GoalContext): string {
   if (!gc) return '';
   const isMainChat = !gc?.activeChatId || gc.activeChatId === `goal-${gc?.id}`;

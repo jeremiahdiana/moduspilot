@@ -101,6 +101,17 @@ async function main() {
     process.exit(1);
   }
 
+  // 🐛 The ask says "for tomorrow". Before the current-date fix the model, blind
+  // to today, emitted dueDate:"tomorrow" (literal) — which /reminders' string
+  // date logic mis-sorts. A relative word here is the regression; a payload date
+  // must be ISO.
+  const due = card.payload?.dueDate;
+  if (due !== undefined) {
+    const iso = typeof due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(due);
+    console.log(`   dueDate=${JSON.stringify(due)} → ${iso ? '✅ ISO date' : '❌ NOT ISO (the "tomorrow" bug)'}`);
+    if (!iso) { console.log('❌ relative date leaked into a payload — current-date injection is not working.'); process.exit(1); }
+  }
+
   // ── Half 2: execute ──
   console.log(`\n── half 2: EXECUTE — POST ${APP}/api/approval ──`);
   const ar = await fetch(`${APP}/api/approval`, {

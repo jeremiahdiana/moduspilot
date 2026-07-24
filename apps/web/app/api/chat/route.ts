@@ -44,6 +44,7 @@ import {
   buildUserContextBlock,
   buildStyleBlock,
   buildSettingsBlock,
+  buildDateBlock,
   buildGoalContextBlock,
   buildProjectContextBlock,
   buildTaskContextBlock,
@@ -613,6 +614,8 @@ export async function POST(req: Request) {
     const userContextBlock = buildUserContextBlock(personalContext);
     const styleBlock = buildStyleBlock(responseStyle, customStyle);
     const settingsBlock = buildSettingsBlock(briefingHour, briefingTimezone);
+    // Volatile (changes daily) — must NOT join the cached stable prefix below.
+    const dateBlock = buildDateBlock(briefingTimezone);
     const goalContextBlock = buildGoalContextBlock(body.goalContext);
     const projectContextBlock = buildProjectContextBlock(body.projectContext);
     const taskContextBlock = buildTaskContextBlock(body.taskContext);
@@ -655,7 +658,7 @@ export async function POST(req: Request) {
     //   stable   = the ~5.2k-token constant + this user's fixed preferences
     //   volatile = live context (inbox, notes, memory, connectors, …)
     const stableSystem = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
-    const volatileSystem = projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    const volatileSystem = dateBlock + projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
     const fullSystemPrompt = stableSystem + volatileSystem;
 
     // The Llama size guard lived here. It existed for ONE reason: Groq's free tier
