@@ -56,6 +56,26 @@ export async function POST(req: Request) {
         trialReminderSent: false,
         ...(session.metadata?.founding === 'true' ? { founding: true } : {}),
       });
+
+      // Founding: the seat is claimed HERE — on successful payment — never at
+      // checkout creation. So abandoning the Stripe page never consumes a seat.
+      // Best-effort: the plan grant above is what matters. A claim hiccup must not
+      // throw (Stripe would retry the whole event and re-grant); already-claimed
+      // is a no-op (webhook retry, or the vanishingly rare two-payers race — the
+      // second payer still got their plan above, just not the seat number).
+      const foundingCodeId = session.metadata?.foundingCodeId;
+      if (session.metadata?.founding === 'true' && foundingCodeId) {
+        try {
+          const codeRef = adminDb.collection('foundingCodes').doc(foundingCodeId);
+          await adminDb.runTransaction(async tx => {
+            const data = (await tx.get(codeRef)).data() as { status?: string } | undefined;
+            if (!data || data.status === 'claimed') return;
+            tx.update(codeRef, { status: 'claimed', claimedByUid: uid, claimedAt: FieldValue.serverTimestamp() });
+          });
+        } catch (e) {
+          console.error('founding: claim-on-payment failed', foundingCodeId, uid, e);
+        }
+      }
     }
   }
 

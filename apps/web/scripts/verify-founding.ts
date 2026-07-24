@@ -54,7 +54,9 @@ async function main() {
   const loaded = await getFoundingCode(codeId);
   check('lookup: password → code', !!loaded && loaded.label === 'Verify Bot' && loaded.foundingNumber === 999);
 
-  // 3. Claim transaction (same logic as app/api/founding/checkout/route.ts)
+  // 3. Claim transaction (same logic as the claim-on-payment step in
+  //    app/api/webhooks/stripe/route.ts — the seat is claimed when payment
+  //    succeeds, NOT at checkout creation).
   async function claim(uid: string): Promise<string> {
     return adminDb.runTransaction(async tx => {
       const snap = await tx.get(ref);
