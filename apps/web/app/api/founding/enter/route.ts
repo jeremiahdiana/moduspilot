@@ -4,6 +4,8 @@ import { adminDb } from '@/lib/firebase-admin';
 import {
   hashPassword,
   signGate,
+  getFoundingCode,
+  isExpired,
   FOUNDING_COOKIE,
   FOUNDING_COOKIE_MAX_AGE,
 } from '@/lib/founding';
@@ -45,9 +47,13 @@ export async function POST(req: Request) {
   }
 
   const codeId = hashPassword(password);
-  const snap = await adminDb.collection('foundingCodes').doc(codeId).get();
-  if (!snap.exists) {
+  const code = await getFoundingCode(codeId);
+  if (!code) {
     return Response.json({ error: 'That key isn’t valid.' }, { status: 401 });
+  }
+  // Expiry blocks only an unclaimed key — a founder who already claimed keeps access.
+  if (code.status !== 'claimed' && isExpired(code)) {
+    return Response.json({ error: 'This invitation has expired.' }, { status: 410 });
   }
 
   // Reusable entry: a valid key sets a signed cookie that lasts 30 days, so they

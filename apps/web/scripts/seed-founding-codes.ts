@@ -4,6 +4,9 @@
  * 1. Copy scripts/founding-codes.local.example.json to scripts/founding-codes.local.json
  *    (gitignored) and fill in one entry per person:
  *       { "label": "Mom", "foundingNumber": 1, "password": "whatever-you-pick" }
+ *    Optional: add "expiresAt": "<ISO date>" to make a key stop being claimable
+ *    after that instant (absolute — re-seeding does NOT push it forward). Omit it
+ *    (or remove it and re-seed) for a key that never expires.
  * 2. Run:  cd apps/web && npx tsx scripts/seed-founding-codes.ts
  *
  * The Firestore doc id is sha256(password) — the plaintext is never stored. Your
@@ -22,7 +25,7 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   if (!(m[1] in process.env)) process.env[m[1]] = v;
 }
 
-interface Entry { label: string; foundingNumber: number; password: string }
+interface Entry { label: string; foundingNumber: number; password: string; expiresAt?: string }
 
 async function main() {
   const path = resolve(process.cwd(), 'scripts/founding-codes.local.json');
@@ -40,6 +43,10 @@ async function main() {
   for (const e of entries) {
     if (!e.password || !e.label || typeof e.foundingNumber !== 'number') {
       console.error('Every entry needs { label, foundingNumber, password }:', JSON.stringify(e));
+      process.exit(1);
+    }
+    if (e.expiresAt !== undefined && Number.isNaN(Date.parse(e.expiresAt))) {
+      console.error(`"${e.label}" has an invalid expiresAt (use an ISO date, e.g. "2026-08-01T00:00:00Z"): ${e.expiresAt}`);
       process.exit(1);
     }
     if (seenPw.has(e.password)) { console.error(`Duplicate password for "${e.label}" — each must be unique.`); process.exit(1); }
@@ -60,6 +67,8 @@ async function main() {
       skipped++;
       continue;
     }
+    // expiresAt is written explicitly (Date or null) so removing it from the JSON
+    // and re-seeding clears a previous expiry rather than silently leaving it.
     await ref.set({
       label: e.label,
       foundingNumber: e.foundingNumber,
@@ -67,8 +76,9 @@ async function main() {
       claimedByUid: null,
       claimedAt: null,
       createdAt: FieldValue.serverTimestamp(),
+      expiresAt: e.expiresAt ? new Date(e.expiresAt) : null,
     }, { merge: true });
-    console.log(`seed  #${e.foundingNumber} ${e.label}`);
+    console.log(`seed  #${e.foundingNumber} ${e.label}${e.expiresAt ? ` — expires ${e.expiresAt}` : ''}`);
     wrote++;
   }
 

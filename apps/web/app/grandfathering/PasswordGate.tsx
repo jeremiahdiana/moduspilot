@@ -8,11 +8,11 @@ import FoundingCard from './FoundingCard';
 
 // The locked door, styled as a sealed invitation: your card is waiting, blurred,
 // until your personal key unseals it.
-export default function PasswordGate({ cap }: { cap: number }) {
+export default function PasswordGate({ cap, expired = false }: { cap: number; expired?: boolean }) {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(expired ? 'This invitation has expired.' : '');
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

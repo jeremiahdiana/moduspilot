@@ -73,6 +73,25 @@ export interface FoundingCode {
   foundingNumber: number;
   status: 'available' | 'claimed';
   claimedByUid: string | null;
+  /** ms epoch when this key stops being claimable, or null for no expiry. */
+  expiresAt: number | null;
+}
+
+/** Coerce a Firestore Timestamp (or raw ms number) to ms epoch, else null. */
+export function toMillis(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === 'number') return v;
+  if (typeof (v as { toMillis?: unknown }).toMillis === 'function') return (v as { toMillis(): number }).toMillis();
+  return null;
+}
+
+/**
+ * A key is expired once past its expiresAt — but expiry only ever blocks a NEW
+ * claim. A code that's already `claimed` is a paying member; expiry must never
+ * revoke that, so callers check status first.
+ */
+export function isExpired(code: Pick<FoundingCode, 'expiresAt'>): boolean {
+  return code.expiresAt != null && Date.now() > code.expiresAt;
 }
 
 export async function getFoundingCode(codeId: string): Promise<FoundingCode | null> {
@@ -84,6 +103,7 @@ export async function getFoundingCode(codeId: string): Promise<FoundingCode | nu
     foundingNumber: (d.foundingNumber as number) ?? 0,
     status: (d.status as 'available' | 'claimed') ?? 'available',
     claimedByUid: (d.claimedByUid as string | null) ?? null,
+    expiresAt: toMillis(d.expiresAt),
   };
 }
 
