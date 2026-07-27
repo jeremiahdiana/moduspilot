@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import Navbar from '@/components/marketing/Navbar';
+import { BlogPostShell } from '@/components/blog/BlogPostShell';
 import { BlogHero } from '@/components/blog/BlogHero';
 import { BlogBlock, stripInline } from '@/components/blog/BlogContent';
 import { BlogFaq } from '@/components/blog/BlogFaq';
@@ -104,8 +104,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
   ];
 
   return (
-    <main className="min-h-screen bg-bg">
-      <Navbar solid />
+    <BlogPostShell>
       <script
         type="application/ld+json"
         // Schema is built from typed post data above, never from user input.
@@ -222,6 +221,6 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           </section>
         )}
       </div>
-    </main>
+    </BlogPostShell>
   );
 }
