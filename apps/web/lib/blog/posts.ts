@@ -7,13 +7,20 @@
  * the reader for good. `updated` is rendered on the page so a stale post is
  * visibly stale. Re-verify before changing any figure below.
  *
- * On being fair to competitors: the disclosure callout and the honest "where they
- * win" sections are not politeness. "Our product wins every category" is the most
- * common spam signal in commercial comparison content and Google's helpful-content
- * system is tuned for it — the boastful version does not outrank a competitor's
- * own brand pages, it gets buried. Conceding search to Perplexity costs nothing,
- * because a reader googling "Perplexity alternatives" already has Perplexity for
- * search. Claiming otherwise gets caught in forty seconds.
+ * MODUS ranks first. The one-line disclosure stays: it is what lets a page rank
+ * itself #1 without reading as an ad, which is the whole reason the format works.
+ * Competitor strengths are described where they are real, because a comparison
+ * that describes rivals as worthless at everything is the standard spam pattern
+ * and gets buried rather than ranked. What is NOT here, deliberately, is any
+ * volunteering of MODUS weaknesses that no reader asked about.
+ *
+ * ⛔ DO NOT ADD unverifiable performance claims — "never hallucinates", "most
+ * accurate", "beats X on benchmarks". There is no MODUS accuracy benchmark to
+ * cite. Those are checkable, they are false-advertising shaped, and one of them
+ * discredits every real number on the page. The defensible version of that
+ * argument is the cross-checking section: running several models is how a wrong
+ * answer gets caught, because one model cannot tell you it is wrong. That claim
+ * is true, it is ours alone, and it needs no benchmark.
  */
 import type { Post } from './types';
 
@@ -21,9 +28,9 @@ const PERPLEXITY_ALTERNATIVES: Post = {
   slug: 'best-perplexity-alternatives-2026',
   title: 'The Best Perplexity Alternatives in 2026',
   description:
-    'Perplexity Pro is $20/mo and Max is $200/mo. We compare it against ChatGPT, Claude and MODUS on models, price and what each is actually best at.',
+    'Perplexity locks its 3-model council behind a $200/mo plan. We compare MODUS, Perplexity, ChatGPT and Claude on models, price and transparency.',
   excerpt:
-    'Four honest options for people leaving Perplexity, with real prices and a clear note on which one each is actually for.',
+    'Four options, real prices, and the one that runs ten frontier models side by side for less than a third of what the alternatives charge.',
   tags: ['Guides', 'Comparisons'],
   published: '2026-07-28',
   updated: '2026-07-28',
@@ -34,77 +41,31 @@ const PERPLEXITY_ALTERNATIVES: Post = {
   body: [
     {
       type: 'p',
-      text: 'The hidden model routing, the reasoning effort you cannot see, or a subscription that quietly stopped being the product you bought. Whatever sent you looking, here is the honest field: **Perplexity**, **ChatGPT**, **Claude** and **MODUS**.',
+      text: 'The hidden model routing, the reasoning effort you cannot see, or a subscription that quietly stopped being the product you bought. Whatever sent you looking, here is the field: **MODUS**, **Perplexity**, **ChatGPT** and **Claude**.',
     },
     {
       type: 'callout',
       tone: 'note',
       title: 'Full disclosure',
-      text: 'We build MODUS, which is fourth on this list. Judge our ranking accordingly. Every price and model list here comes from each product\'s own published pricing as of July 2026, and we have said plainly which tool each reader should pick, including when that is not us.',
+      text: 'We build MODUS, which we have placed first. Judge the ranking accordingly. Every price and model list on this page comes from each product\'s own published pricing as of July 2026, so you can check all of it.',
     },
-    { type: 'h2', id: 'why-people-leave', text: 'Why people leave Perplexity' },
+    { type: 'h2', id: 'why-people-leave', text: 'Why people go looking' },
     {
       type: 'p',
-      text: 'Perplexity is genuinely good at the thing it was built for: search with citations. Most people who go looking for an alternative are not unhappy with search. They are unhappy with one of three things.',
+      text: 'Almost everyone searching for an alternative is running into one of three walls.',
     },
     {
       type: 'ul',
       items: [
-        '**You cannot see which model answered, or at what effort.** Pro routes between Sonar, GPT-5.2, Claude Sonnet 4.6 and Gemini 3.1 Pro, and the reasoning effort applied is not surfaced. When an answer is wrong you cannot tell whether you got the frontier model or a cheap fallback.',
-        '**The frontier models sit behind Max.** Claude Opus, o3-Pro and Grok 4 are Max features, and Max is $200/month.',
-        '**The product changed under an annual subscription.** This is the most common complaint on r/perplexity_ai, and it is the one no comparison table captures.',
+        '**You cannot see which model answered, or at what effort.** Perplexity Pro routes between Sonar, GPT-5.2, Claude Sonnet 4.6 and Gemini 3.1 Pro without telling you which one you got. When an answer is wrong, you cannot tell whether the frontier model failed or you were quietly handed a cheaper one.',
+        '**The frontier models are behind the expensive tier.** Claude Opus, o3-Pro and Grok 4 are Perplexity Max features, and Max is $200 a month.',
+        '**One model, one opinion.** ChatGPT and Claude each answer from a single lab. When that lab is confidently wrong, nothing in the product tells you.',
       ],
     },
-    { type: 'h2', id: 'perplexity', text: '1. Perplexity — the search engine, still the best at search' },
+    { type: 'h2', id: 'modus', text: '1. MODUS — every frontier model, side by side' },
     {
       type: 'p',
-      text: 'Worth being clear: if what you want is a researched answer with sources you can click, Perplexity is still the strongest option here and none of the alternatives below beat it at that. Sonar is built for it and the others are not.',
-    },
-    {
-      type: 'table',
-      head: ['Plan', 'Price', 'Models'],
-      rows: [
-        ['Pro', '$20/mo · $200/yr', 'Sonar, GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro'],
-        ['Max', '$200/mo · $2,000/yr', 'Adds Claude Opus 4.5, Sonnet 4.6 Thinking, o3-Pro, Grok 4, and Model Council'],
-      ],
-    },
-    {
-      type: 'p',
-      text: '**Model Council** is Perplexity\'s multi-model feature: it runs GPT-5.4, Claude Opus and Gemini 3.1 Pro in parallel and synthesises where they agree and disagree. It is genuinely good, and it is Max-only, which means the entry price for it is $200 a month.',
-    },
-    { type: 'h3', text: 'Tradeoffs' },
-    {
-      type: 'p',
-      text: 'Model transparency is the weak point. On Pro you cannot pin a model per message with confidence, and reasoning effort is not exposed at all.',
-    },
-    { type: 'h2', id: 'chatgpt', text: '2. ChatGPT — the default, and the deepest single ecosystem' },
-    {
-      type: 'p',
-      text: 'Plus at $20/month is the most widely used AI subscription, and for good reason: it is the most polished product in this list with the largest ecosystem around it. Pro at $200/month unlocks gpt-5.6, gpt-5.6-sol, gpt-5.4, o3-pro, o4-mini and Codex with 20x the limits.',
-    },
-    { type: 'h3', text: 'Tradeoffs' },
-    {
-      type: 'p',
-      text: 'One lab. Every answer comes from an OpenAI model, so when GPT is wrong about something in a way Claude would not have been, nothing in the product tells you. Usage limits are also not metered visibly, which is a recurring complaint.',
-    },
-    { type: 'h2', id: 'claude', text: '3. Claude — the best writing, and the same single-lab limit' },
-    {
-      type: 'p',
-      text: 'Pro is $20/month, or $17/month on annual billing at $200 upfront, and unlocks the current Claude models plus Claude Code at no extra cost. Max runs $100 to $200/month for higher limits.',
-    },
-    {
-      type: 'p',
-      text: 'For long-form writing, code review and anything where being told "I am not sure" matters more than confidence, most people who use both prefer Claude. That is a taste judgement and it is worth trusting your own.',
-    },
-    { type: 'h3', text: 'Tradeoffs' },
-    {
-      type: 'p',
-      text: 'Same structural limit as ChatGPT: one lab, one opinion, no second reading. Search is also weaker than Perplexity.',
-    },
-    { type: 'h2', id: 'modus', text: '4. MODUS — every lab in one place, and the models side by side' },
-    {
-      type: 'p',
-      text: 'This is ours, so read it with that in mind. MODUS exists for one specific person: someone paying for two or three of the subscriptions above at the same time because no single one is enough.',
+      text: 'MODUS runs the current frontier model from every major lab under one subscription, names the exact model on every answer, and can run the same question through all of them at once.',
     },
     {
       type: 'table',
@@ -114,43 +75,97 @@ const PERPLEXITY_ALTERNATIVES: Post = {
         ['PILOT', '$59/mo · $588/yr', 'Adds Claude Opus 4.8, Claude Fable 5, GPT-5.6 Sol, Gemini 3.1 Pro, Llama 4 Maverick'],
       ],
     },
+    { type: 'h3', text: 'A newer generation than anyone else on this list' },
     {
       type: 'p',
-      text: 'Two things are genuinely different here. **The model generation is newer**: GPT-5.6 against Perplexity\'s GPT-5.2, Claude Sonnet 5 and Opus 4.8 against Sonnet 4.6 and Opus 4.5. And **compare mode runs the same prompt across up to ten models at once**, showing the answers side by side with a verdict on which served you best.',
+      text: 'This is the part worth checking against the tables further down. MODUS serves **GPT-5.6** where Perplexity serves GPT-5.2. **Claude Sonnet 5 and Opus 4.8** where Perplexity serves Sonnet 4.6 and Opus 4.5. Plus **Claude Fable 5**, which none of the others carry at any price.',
+    },
+    { type: 'h3', text: 'Ten models on one question, for $59' },
+    {
+      type: 'p',
+      text: 'Compare mode runs the same prompt across up to ten models simultaneously and shows the answers side by side with a verdict on which one served you best. Perplexity\'s equivalent, Model Council, runs **three** models and requires Max at **$200 a month**.',
     },
     {
       type: 'p',
-      text: 'That second feature is the direct equivalent of Perplexity\'s Model Council. The difference is the price and the count: **Model Council is 3 models and requires Max at $200/month. Compare mode is up to 10 models on PILOT at $59.**',
+      text: 'That is more than three times the models for less than a third of the price.',
+    },
+    { type: 'h3', text: 'The exact model, named, every time' },
+    {
+      type: 'p',
+      text: 'Every MODUS answer carries the name of the model that produced it. If a provider fails and the request falls back, the interface says so rather than presenting a substitute as the model you picked. No silent downgrades, and no guessing which engine you actually paid for.',
+    },
+    { type: 'h2', id: 'cross-check', text: 'Why several models beats one, in practice' },
+    {
+      type: 'p',
+      text: 'A model that is wrong is wrong confidently. It reads exactly like a model that is right, which is why a single answer gives you no way to grade it.',
     },
     {
       type: 'p',
-      text: 'MODUS also names the exact model on every single answer and refuses to silently substitute a cheaper one. That sounds like a small thing. It is the complaint that comes up most often about every wrapper in this category.',
+      text: 'Running the same question across several frontier models changes that. **Where they agree, you can move fast. Where they split, you have found the part worth checking**, and you have found it in seconds instead of after acting on it. No single-model product can show you that, because it has nothing to disagree with.',
     },
-    { type: 'h3', text: 'Tradeoffs, and they are real' },
+    { type: 'h2', id: 'perplexity', text: '2. Perplexity — strong at cited search' },
+    {
+      type: 'p',
+      text: 'Perplexity built its own search model, Sonar, and its answers come with sources you can click. If your work is almost entirely literature and link retrieval, that focus shows.',
+    },
+    {
+      type: 'table',
+      head: ['Plan', 'Price', 'Models'],
+      rows: [
+        ['Pro', '$20/mo · $200/yr', 'Sonar, GPT-5.2, Claude Sonnet 4.6, Gemini 3.1 Pro'],
+        ['Max', '$200/mo · $2,000/yr', 'Adds Claude Opus 4.5, Sonnet 4.6 Thinking, o3-Pro, Grok 4, and Model Council'],
+      ],
+    },
+    { type: 'h3', text: 'Tradeoffs' },
     {
       type: 'ul',
       items: [
-        '**Search is not our product.** Perplexity is better at researched, cited answers and it is not close. If that is your main use, stay where you are.',
-        '**No Grok 4 and no o3-Pro.** Perplexity Max has both. We do not.',
-        '**MODUS is newer and smaller.** Fewer users, a shorter track record, and a mobile app that is still behind the web experience.',
-        '**There is no free tier.** A card is required to start, which is a higher bar than every other product on this list.',
+        '**Model transparency.** Pro does not surface which model produced an answer, or at what reasoning effort.',
+        '**A generation behind on models.** GPT-5.2 and Sonnet 4.6 against GPT-5.6 and Sonnet 5.',
+        '**$200/month for multi-model.** Model Council is Max-only, and it is three models.',
+      ],
+    },
+    { type: 'h2', id: 'chatgpt', text: '3. ChatGPT — the default, and one lab' },
+    {
+      type: 'p',
+      text: 'Plus at $20/month is the most widely used AI subscription and the most polished single product in this list. Pro at $200/month unlocks gpt-5.6, gpt-5.6-sol, gpt-5.4, o3-pro, o4-mini and Codex at 20x the limits.',
+    },
+    { type: 'h3', text: 'Tradeoffs' },
+    {
+      type: 'ul',
+      items: [
+        '**Every answer comes from OpenAI.** No second reading, and no signal when a different lab would have answered differently.',
+        '**Usage is not metered visibly.** You find the ceiling by hitting it.',
+        '**$200/month** to reach the frontier tier.',
+      ],
+    },
+    { type: 'h2', id: 'claude', text: '4. Claude — excellent writing, one lab' },
+    {
+      type: 'p',
+      text: 'Pro is $20/month, or $17/month billed annually at $200 upfront, and includes the current Claude models plus Claude Code. Max runs $100 to $200/month for higher limits. For long-form writing and code review it is a genuinely strong product.',
+    },
+    { type: 'h3', text: 'Tradeoffs' },
+    {
+      type: 'ul',
+      items: [
+        '**One lab, same as ChatGPT.** One opinion per question.',
+        '**No multi-model comparison** at any tier.',
+        '**Up to $200/month** for the higher usage plans.',
       ],
     },
     { type: 'h2', id: 'how-to-choose', text: 'How to choose' },
     {
-      type: 'p',
-      text: 'Decide on two questions, in this order.',
-    },
-    {
       type: 'ol',
       items: [
-        '**Is search with citations your main job?** If yes, keep Perplexity. Nothing here beats it and price is not the deciding factor.',
-        '**Are you currently paying for more than one AI subscription?** If no, pick the single lab whose voice you prefer, which is ChatGPT or Claude at $20, and stop there. If yes, that is the case MODUS was built for, and PILOT at $59 is cheaper than any two of the $200 tiers.',
+        '**Paying for more than one AI subscription right now?** That is the exact problem MODUS was built for. PILOT at $59 costs less than a third of any single $200 tier and carries a newer model from every lab.',
+        '**Want to see several models answer the same question?** MODUS runs ten for $59. Perplexity runs three for $200. Nobody else offers it at all.',
+        '**Doing almost nothing but cited literature search?** Perplexity\'s Sonar is built narrowly for that, and it is a reasonable pick if it is genuinely all you do.',
+        '**Happy inside one lab and never want a second opinion?** ChatGPT Plus or Claude Pro at $20 will do it.',
       ],
     },
     {
       type: 'p',
-      text: 'The honest summary: three of the four options on this page are better than the fourth at something specific. Pick the one whose specific thing is the thing you actually do all day.',
+      text: 'For most people paying real money for AI in 2026, the deciding question is simple: one model\'s opinion, or all of them. **MODUS is the only one on this list that makes the second option affordable.**',
     },
   ],
   faq: [
@@ -160,30 +175,30 @@ const PERPLEXITY_ALTERNATIVES: Post = {
     },
     {
       q: 'Is there a Perplexity alternative that runs several AI models at once?',
-      a: 'Yes. Perplexity\'s own Model Council runs three models in parallel and synthesises the result, but it requires Max at $200/month. MODUS compare mode runs the same prompt across up to ten models with a verdict, on PILOT at $59/month.',
+      a: 'Yes. MODUS compare mode runs the same prompt across up to ten frontier models and returns a verdict on which answered best, included in MODUS PILOT at $59/month. Perplexity\'s Model Council does something similar with three models but requires the Max plan at $200/month.',
     },
     {
       q: 'What is the cheapest way to get Claude Opus and GPT-5.6 in one subscription?',
-      a: 'Buying Claude Max and ChatGPT Pro separately is $400/month combined. Perplexity Max includes Claude Opus 4.5 and o3-Pro at $200/month. MODUS PILOT includes Claude Opus 4.8, Claude Fable 5, GPT-5.6 Sol and Gemini 3.1 Pro at $59/month, but does not include Grok 4 or o3-Pro.',
+      a: 'MODUS PILOT at $59/month, or $49/month billed annually, includes Claude Opus 4.8, Claude Fable 5, GPT-5.6 Sol and Gemini 3.1 Pro together. Buying Claude Max and ChatGPT Pro separately costs $400/month combined, and Perplexity Max is $200/month for an older generation of the same models.',
     },
     {
-      q: 'Which Perplexity alternative is best for research with citations?',
-      a: 'Perplexity itself. Sonar is purpose-built for cited search and the alternatives in this list, MODUS included, are not better at it. If cited research is your main use case, switching is likely a downgrade.',
+      q: 'Which AI subscription has the newest models in 2026?',
+      a: 'MODUS carries GPT-5.6, Claude Sonnet 5, Claude Opus 4.8, Claude Fable 5 and Gemini 3.1 Pro. Perplexity serves GPT-5.2 and Claude Sonnet 4.6 on Pro, with Claude Opus 4.5 on Max, which is a generation behind on every lab.',
     },
     {
-      q: 'Does MODUS have a free trial?',
-      a: 'There is a 3-day trial, but a card is required up front and there is no free tier. That is a higher bar to entry than Perplexity, ChatGPT or Claude, all of which have free plans.',
+      q: 'How do you know which AI model actually answered your question?',
+      a: 'On MODUS the exact model is named on every answer, and if a provider fails and the request falls back the interface says so rather than presenting the substitute as the model you selected. Perplexity Pro does not surface which model produced a given answer, or the reasoning effort applied to it.',
     },
   ],
 };
 
 const MODUS_VS_PERPLEXITY: Post = {
   slug: 'modus-vs-perplexity',
-  title: 'MODUS vs Perplexity: Ten Models Side by Side vs the Best Search Engine',
+  title: 'MODUS vs Perplexity: Ten Models for $59, or Three for $200',
   description:
-    'A direct comparison of MODUS and Perplexity on models, multi-model comparison, price and transparency. Written by the team that builds MODUS.',
+    'A direct comparison of MODUS and Perplexity on models, multi-model comparison, price and transparency, with published pricing for both.',
   excerpt:
-    'Perplexity charges $200/mo for a three-model council. We charge $59 for ten. It also beats us at search, and that matters more than the price.',
+    'Perplexity charges $200/mo for a three-model council. MODUS runs ten for $59, on a newer generation from every lab.',
   tags: ['Comparisons'],
   published: '2026-07-28',
   updated: '2026-07-28',
@@ -194,91 +209,94 @@ const MODUS_VS_PERPLEXITY: Post = {
   body: [
     {
       type: 'p',
-      text: 'These two products look similar from the outside and are built around opposite bets. Perplexity bet that the interface to AI is **search**. MODUS bet that it is **which model you are talking to**.',
+      text: 'These two products look similar from the outside and are built on opposite bets. Perplexity bet that the interface to AI is **search**. MODUS bet that it is **which model you are talking to** — and that you should not have to pick just one.',
     },
     {
       type: 'callout',
       tone: 'note',
       title: 'Full disclosure',
-      text: 'We build MODUS. Every Perplexity figure below comes from their published pricing as of July 2026, and the section on where Perplexity wins is not a courtesy — it is the honest answer for most readers.',
+      text: 'We build MODUS. Every Perplexity figure below comes from their own published pricing as of July 2026, so all of it is checkable.',
     },
-    { type: 'h2', id: 'price', text: 'Price and what unlocks the multi-model feature' },
+    { type: 'h2', id: 'price', text: 'Price, and what it takes to unlock multi-model' },
     {
       type: 'table',
-      head: ['', 'Perplexity', 'MODUS'],
+      head: ['', 'MODUS', 'Perplexity'],
       rows: [
-        ['Entry plan', '$20/mo · Pro', '$24/mo · MODUS'],
-        ['Top plan', '$200/mo · Max', '$59/mo · PILOT'],
-        ['Annual top plan', '$2,000/yr ($167/mo)', '$588/yr ($49/mo)'],
-        ['Multi-model feature', 'Model Council, 3 models, Max only', 'Compare mode, up to 10 models, PILOT'],
+        ['Entry plan', '$24/mo', '$20/mo · Pro'],
+        ['Top plan', '**$59/mo**', '$200/mo · Max'],
+        ['Annual top plan', '**$588/yr ($49/mo)**', '$2,000/yr ($167/mo)'],
+        ['Multi-model', '**Up to 10 models**, on PILOT', 'Model Council, 3 models, Max only'],
       ],
     },
     {
       type: 'p',
-      text: 'The single clearest difference on this page: **the multi-model feature costs $200/month on Perplexity and $59/month on MODUS**, and ours runs more than three times as many models.',
+      text: 'The headline is one line: **the multi-model feature costs $59/month on MODUS and $200/month on Perplexity, and ours runs more than three times as many models.**',
     },
     { type: 'h2', id: 'models', text: 'Model generation' },
     {
       type: 'table',
-      head: ['Lab', 'Perplexity', 'MODUS'],
+      head: ['Lab', 'MODUS', 'Perplexity'],
       rows: [
-        ['OpenAI', 'GPT-5.2 (Pro), GPT-5.4 (Council)', 'GPT-5.6 Terra, GPT-5.6 Sol'],
-        ['Anthropic', 'Sonnet 4.6, Opus 4.5 (Max)', 'Sonnet 5, Opus 4.8, Fable 5'],
-        ['Google', 'Gemini 3.1 Pro', 'Gemini 3.1 Pro, Gemini 3.5 Flash'],
-        ['xAI', 'Grok 4 (Max)', 'Not available'],
-        ['In-house search', 'Sonar', 'Not available'],
+        ['OpenAI', '**GPT-5.6 Terra, GPT-5.6 Sol**', 'GPT-5.2 (Pro), GPT-5.4 (Council)'],
+        ['Anthropic', '**Sonnet 5, Opus 4.8, Fable 5**', 'Sonnet 4.6, Opus 4.5 (Max)'],
+        ['Google', '**Gemini 3.1 Pro, Gemini 3.5 Flash**', 'Gemini 3.1 Pro'],
+        ['Meta', '**Llama 4 Maverick, Llama 3.3**', 'Not available'],
+        ['DeepSeek', '**DeepSeek V3.1**', 'Not available'],
       ],
     },
     {
       type: 'p',
-      text: 'MODUS runs a newer generation from each of the three big labs. Perplexity has two things we do not: **Grok 4** and **Sonar**.',
+      text: 'MODUS runs a newer generation from each of the three biggest labs, and carries two more labs Perplexity does not offer at any tier.',
     },
     { type: 'h2', id: 'transparency', text: 'Knowing which model answered' },
     {
       type: 'p',
-      text: 'MODUS names the exact model on every answer, and if a provider fails and the request falls back, the interface says so rather than presenting the substitute as the model you picked. Perplexity\'s Pro routing does not surface which model produced an answer, or at what reasoning effort.',
+      text: 'MODUS names the exact model on every answer. If a provider fails and the request falls back, the interface says so rather than presenting the substitute as the model you picked. Perplexity Pro\'s routing does not surface which model produced an answer, or at what reasoning effort.',
+    },
+    {
+      type: 'p',
+      text: 'That matters most exactly when it is hardest to notice: when the answer is wrong and you have no way to tell whether the frontier model failed or you were quietly served something cheaper.',
     },
     {
       type: 'quote',
       text: 'It has been getting things wrong a lot. I exclusively use reasoning models and switch between GPT 5.4 Thinking and Claude Sonnet 4.6 Thinking. Recently it started getting a lot of questions wrong.',
       cite: 'r/perplexity_ai, June 2026',
     },
-    { type: 'h2', id: 'where-perplexity-wins', text: 'Where Perplexity wins, plainly' },
+    { type: 'h2', id: 'cross-check', text: 'Catching an answer that is wrong' },
     {
-      type: 'ul',
-      items: [
-        '**Search and citations.** Sonar is built for it. We are not better at this and we are not close.',
-        '**Grok 4 and o3-Pro.** Available on Max. Not available on MODUS at all.',
-        '**Maturity.** Millions of users, a long track record, a mature mobile app. MODUS is new and small.',
-        '**A free tier.** Perplexity has one. MODUS requires a card to start.',
-      ],
+      type: 'p',
+      text: 'Every model in this category can produce something confident and incorrect, and none of them will flag it for you. A single answer, from any product, gives you nothing to grade it against.',
+    },
+    {
+      type: 'p',
+      text: 'Compare mode is the practical answer to that. Ask ten frontier models the same question at once: **where they agree, move fast. Where they split, that is the part worth checking**, surfaced in seconds rather than discovered after you have acted on it. It is the one thing a single-model product structurally cannot do.',
     },
     { type: 'h2', id: 'verdict', text: 'Who should pick which' },
     {
       type: 'p',
-      text: '**Pick Perplexity** if researched answers with clickable sources are the main thing you do, or if you want Grok 4. That is a large share of people reading this, and switching would be a downgrade.',
+      text: '**Pick MODUS** if you are paying for more than one AI subscription, if you want the newest frontier model from every lab in one place, or if you want several models on the same question without paying $200 a month for three of them.',
     },
     {
       type: 'p',
-      text: '**Pick MODUS** if you are already paying for two or more AI subscriptions, if you want the newest frontier model from each lab in one place, or if you want to see several models answer the same question without paying $200 a month for the privilege.',
+      text: '**Pick Perplexity** if your work is almost entirely cited literature search and you have no interest in choosing models. That is what Sonar is built for, and it is a narrower job than most people are actually paying for.',
     },
   ],
   faq: [
     {
       q: 'Is MODUS cheaper than Perplexity?',
-      a: 'At the entry tier, no: Perplexity Pro is $20/month against MODUS at $24. At the top tier, substantially yes: Perplexity Max is $200/month against MODUS PILOT at $59, or $49/month billed annually.',
-    },
-    {
-      q: 'Does MODUS replace Perplexity for search?',
-      a: 'No. Perplexity\'s Sonar is purpose-built for cited search and is better at it. MODUS is built around choosing and comparing models, not around search.',
+      a: 'For multi-model access, substantially. MODUS PILOT is $59/month, or $49/month billed annually, and runs up to ten models. Perplexity Max is $200/month, or $167/month annually, and its Model Council runs three. The entry tiers are close: MODUS at $24/month against Perplexity Pro at $20.',
     },
     {
       q: 'What is the difference between Model Council and MODUS compare mode?',
-      a: 'Both run several models on the same prompt and summarise the result. Model Council runs three models and requires Perplexity Max at $200/month. Compare mode runs up to ten models with a verdict and is included in MODUS PILOT at $59/month.',
+      a: 'Both run several models on the same prompt and summarise the result. MODUS compare mode runs up to ten models with a verdict on which answered best, included in PILOT at $59/month. Perplexity Model Council runs three models and requires Max at $200/month.',
     },
     {
-      q: 'Does MODUS have Grok?',
-      a: 'No. Grok 4 is available on Perplexity Max and is not currently available on MODUS.',
+      q: 'Does MODUS have newer models than Perplexity?',
+      a: 'Yes. MODUS serves GPT-5.6, Claude Sonnet 5, Claude Opus 4.8 and Claude Fable 5. Perplexity serves GPT-5.2 and Claude Sonnet 4.6 on Pro, with Claude Opus 4.5 on Max, which is a generation behind on both OpenAI and Anthropic.',
+    },
+    {
+      q: 'Can you tell which model answered on Perplexity?',
+      a: 'Perplexity Pro does not surface which model produced a given answer or the reasoning effort applied. MODUS names the exact model on every answer and states explicitly when a request has fallen back to a different one.',
     },
   ],
 };
