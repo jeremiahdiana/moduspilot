@@ -22,9 +22,9 @@ https://www.reddit.com/r/OpenAI/comments/1uyxmn0/codex_as_the_control_plane_for_
 > Running ChatGPT Pro ($200/mo, 20x) and Claude Max 20x, strongest workflow uses both ecosystems.
 
 ```
-Your control plane post describes the product I have spent a year building, except I
-came at it from the chat side rather than Codex. Running Pro at $200 plus Max 20x and
-pulling from both ecosystems is exactly the person I built it for.
+Your control plane post describes the thing I have been building, except I came at it
+from the chat side rather than Codex. Running Pro at $200 plus Max 20x and pulling from
+both ecosystems is exactly the person I built it for.
 
 Genuine question. Would you want the control plane inside Codex specifically, or is a
 separate surface fine as long as it drives both? I keep going back and forth and you
@@ -114,7 +114,7 @@ https://www.reddit.com/r/perplexity_ai/comments/1u7oskm/on_perplexity_pro_do_we_
 Hidden reasoning effort is the thing that made me stop trusting wrappers. You cannot
 tell whether you got the model or a quietly cheaper version of it. I built an
 alternative that names the exact model on every answer and refuses to silently
-downgrade, because that bug cost me a week once.
+downgrade, because mine had that exact bug and it is genuinely hard to spot.
 
 Since you already switch between GPT and Sonnet Thinking, do you switch mid
 conversation or start a fresh one? I still have not got that part right.
