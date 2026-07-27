@@ -46,6 +46,7 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/pricing', label: 'Pricing' },
+    { href: '/blog', label: 'Blog' },
   ];
 
   return (
