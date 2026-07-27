@@ -1,0 +1,538 @@
+{
+  "ranAt": "2026-07-27T12:31:40.891Z",
+  "models": [
+    "claude-opus-4-8",
+    "gpt-5.6-sol",
+    "gemini-3.1-pro-preview",
+    "meta/llama-4-maverick",
+    "deepseek/deepseek-v3.1"
+  ],
+  "results": [
+    {
+      "id": "postgres-vs-sqlite-saas",
+      "topic": "engineering",
+      "question": "You are shipping a solo-founder B2B SaaS that will realistically have under 5,000 users for its first two years. Which database should it launch on?",
+      "options": [
+        "Postgres",
+        "SQLite"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 5468,
+          "text": "PICK: Postgres\nWHY: As a solo founder you want managed hosting, easy backups, and painless concurrent writes without operational fuss, all of which Postgres providers give you for free-tier prices at this scale. It also removes any future migration pain as you grow beyond 5,000 users or add background workers and analytics.",
+          "pick": "Postgres",
+          "why": "As a solo founder you want managed hosting, easy backups, and painless concurrent writes without operational fuss, all of which Postgres providers give you for free-tier prices at this scale. It also removes any future migration pain as you grow beyond 5,000 users or add background workers and analytics.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 4523,
+          "text": "PICK: Postgres\nWHY: It provides reliable concurrency, managed hosting, backups, and a straightforward path to growth without requiring an early database migration.",
+          "pick": "Postgres",
+          "why": "It provides reliable concurrency, managed hosting, backups, and a straightforward path to growth without requiring an early database migration.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 10265,
+          "text": "PICK: Postgres\nWHY: Managed services like Supabase or Neon eliminate operational overhead for solo founders while providing a robust, scalable foundation. It prevents any future migration headaches or concurrent write limitations as your B2B SaaS grows.",
+          "pick": "Postgres",
+          "why": "Managed services like Supabase or Neon eliminate operational overhead for solo founders while providing a robust, scalable foundation. It prevents any future migration headaches or concurrent write limitations as your B2B SaaS grows.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 3148,
+          "text": "PICK: Postgres\nWHY: Postgres offers robust features and scalability that can handle the growth of the SaaS, even if it's initially small, and it's widely supported and documented. It can handle concurrent connections and transactions more efficiently than SQLite.",
+          "pick": "Postgres",
+          "why": "Postgres offers robust features and scalability that can handle the growth of the SaaS, even if it's initially small, and it's widely supported and documented. It can handle concurrent connections and transactions more efficiently than SQLite.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 6878,
+          "text": "PICK: Postgres\nWHY: It offers robust features and scalability for future growth while handling moderate concurrency well. SQLite is simpler but less suitable for concurrent B2B SaaS usage.",
+          "pick": "Postgres",
+          "why": "It offers robust features and scalability for future growth while handling moderate concurrency well. SQLite is simpler but less suitable for concurrent B2B SaaS usage.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "Postgres": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "Llama 4 Maverick",
+          "DeepSeek V3.1"
+        ]
+      },
+      "disagreement": 0,
+      "verdict": "All three models provided similar answers, recommending Postgres for its managed hosting, ease of use, and scalability. However, Gemini 3.1 Pro specifically mentioned services like Supabase or Neon, which adds a practical aspect for solo founders looking for operational support."
+    },
+    {
+      "id": "rewrite-vs-refactor",
+      "topic": "engineering",
+      "question": "A four-year-old production codebase has no tests, one original author who left, and a feature backlog the team cannot land. Rewrite it or refactor it incrementally?",
+      "options": [
+        "Rewrite",
+        "Refactor incrementally"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 3809,
+          "text": "PICK: Refactor incrementally\nWHY: A rewrite discards four years of encoded business logic and edge-case fixes that nobody remaining understands, and with no tests you can't verify the new version preserves behavior. Incremental refactoring lets you add characterization tests around code before changing it, keeping the product shippable while you regain control.",
+          "pick": "Refactor incrementally",
+          "why": "A rewrite discards four years of encoded business logic and edge-case fixes that nobody remaining understands, and with no tests you can't verify the new version preserves behavior. Incremental refactoring lets you add characterization tests around code before changing it, keeping the product shippable while you regain control.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 2353,
+          "text": "PICK: Refactor incrementally\nWHY: Preserve proven production behavior while adding characterization tests around each change. A rewrite would delay the backlog and risk reintroducing years of solved edge cases.",
+          "pick": "Refactor incrementally",
+          "why": "Preserve proven production behavior while adding characterization tests around each change. A rewrite would delay the backlog and risk reintroducing years of solved edge cases.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 7657,
+          "text": "PICK: Refactor incrementally\nWHY: A four-year-old production system contains countless undocumented edge cases and bug fixes that a rewrite will inevitably destroy, causing massive regressions. Incremental refactoring allows you to add characterization tests and safely unblock the backlog while maintaining a working product.",
+          "pick": "Refactor incrementally",
+          "why": "A four-year-old production system contains countless undocumented edge cases and bug fixes that a rewrite will inevitably destroy, causing massive regressions. Incremental refactoring allows you to add characterization tests and safely unblock the backlog while maintaining a working product.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1622,
+          "text": "PICK: Refactor incrementally\nWHY: Refactoring incrementally allows the team to make gradual improvements while still delivering features from the backlog, and it reduces the risk associated with a complete rewrite of a complex, four-year-old codebase.",
+          "pick": "Refactor incrementally",
+          "why": "Refactoring incrementally allows the team to make gradual improvements while still delivering features from the backlog, and it reduces the risk associated with a complete rewrite of a complex, four-year-old codebase.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 5840,
+          "text": "PICK: Refactor incrementally\nWHY: Rewriting risks introducing new bugs and losing domain knowledge embedded in the existing code. Incremental refactoring allows adding tests and improving code while maintaining functionality and delivering features.",
+          "pick": "Refactor incrementally",
+          "why": "Rewriting risks introducing new bugs and losing domain knowledge embedded in the existing code. Incremental refactoring allows adding tests and improving code while maintaining functionality and delivering features.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "Refactor incrementally": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "Llama 4 Maverick",
+          "DeepSeek V3.1"
+        ]
+      },
+      "disagreement": 0,
+      "verdict": "All three models provided similar answers advocating for incremental refactoring, effectively serving the user by emphasizing the importance of preserving existing functionality and minimizing risk. A meaningful difference is that Claude Opus specifically mentions the importance of keeping the product shippable, while the others focus more on avoiding regressions and maintaining proven behavior."
+    },
+    {
+      "id": "raise-vs-bootstrap",
+      "topic": "startups",
+      "question": "A solo founder has a working product, $2k MRR growing 15% a month, and 14 months of personal runway. Raise a seed round now, or keep bootstrapping?",
+      "options": [
+        "Raise a seed round",
+        "Keep bootstrapping"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 4146,
+          "text": "PICK: Keep bootstrapping\nWHY: At $2k MRR with strong 15% monthly growth, you'll raise on far better terms (or not need to) in a few months, and 14 months of runway gives you room to build leverage. Raising now means selling equity cheaply while you still lack the traction to command a strong valuation.",
+          "pick": "Keep bootstrapping",
+          "why": "At $2k MRR with strong 15% monthly growth, you'll raise on far better terms (or not need to) in a few months, and 14 months of runway gives you room to build leverage. Raising now means selling equity cheaply while you still lack the traction to command a strong valuation.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 2800,
+          "text": "PICK: Keep bootstrapping\nWHY: With 15% monthly growth and 14 months of runway, the founder has time to validate traction and improve leverage. Raise later when capital has a clear acceleration use and stronger metrics support better terms.",
+          "pick": "Keep bootstrapping",
+          "why": "With 15% monthly growth and 14 months of runway, the founder has time to validate traction and improve leverage. Raise later when capital has a clear acceleration use and stronger metrics support better terms.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 7980,
+          "text": "PICK: Keep bootstrapping\nWHY: With 14 months of runway and 15% monthly growth, you will reach over $12k MRR before running out of cash, making you default alive and giving you significantly better leverage if you raise later. Additionally, as a solo founder, the time-intensive fundraising process would distract you and likely kill your current growth momentum.",
+          "pick": "Keep bootstrapping",
+          "why": "With 14 months of runway and 15% monthly growth, you will reach over $12k MRR before running out of cash, making you default alive and giving you significantly better leverage if you raise later. Additionally, as a solo founder, the time-intensive fundraising process would distract you and likely kill your current growth momentum.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1159,
+          "text": "PICK: Raise a seed round\nWHY: With a proven product and consistent growth, raising a seed round can help accelerate the growth further by investing in marketing, sales, and potentially hiring more talent. This can be a strategic move to scale the business more quickly than bootstrapping alone.",
+          "pick": "Raise a seed round",
+          "why": "With a proven product and consistent growth, raising a seed round can help accelerate the growth further by investing in marketing, sales, and potentially hiring more talent. This can be a strategic move to scale the business more quickly than bootstrapping alone.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 4513,
+          "text": "PICK: Keep bootstrapping\nWHY: With strong organic growth and ample runway, bootstrapping allows retaining full equity and control while scaling sustainably. Raising now might dilute ownership prematurely without a clear need for accelerated capital.",
+          "pick": "Keep bootstrapping",
+          "why": "With strong organic growth and ample runway, bootstrapping allows retaining full equity and control while scaling sustainably. Raising now might dilute ownership prematurely without a clear need for accelerated capital.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "Keep bootstrapping": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "DeepSeek V3.1"
+        ],
+        "Raise a seed round": [
+          "Llama 4 Maverick"
+        ]
+      },
+      "disagreement": 0.2,
+      "verdict": "All three answers effectively advise the founder to keep bootstrapping, emphasizing the benefits of maintaining leverage and the potential for better terms later. However, Gemini 3.1 Pro stands out by highlighting the risk of distraction from fundraising, which adds a meaningful consideration not mentioned by the others."
+    },
+    {
+      "id": "free-tier-vs-paywall",
+      "topic": "startups",
+      "question": "An unknown founder launches a $20/mo AI product with no reviews and no users. Should the first message require a credit card, or should there be a free daily allowance first?",
+      "options": [
+        "Require a card",
+        "Free allowance first"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 3486,
+          "text": "PICK: Free allowance first\nWHY: An unknown founder with no reviews or users has zero trust to justify upfront payment friction, so a card requirement will kill nearly all conversions. Letting people experience value first is the fastest way to build credibility and earn paid conversions.",
+          "pick": "Free allowance first",
+          "why": "An unknown founder with no reviews or users has zero trust to justify upfront payment friction, so a card requirement will kill nearly all conversions. Letting people experience value first is the fastest way to build credibility and earn paid conversions.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 2722,
+          "text": "PICK: Free allowance first\nWHY: With no reputation or social proof, requiring a card creates too much friction. A limited daily allowance lets users experience the value before paying.",
+          "pick": "Free allowance first",
+          "why": "With no reputation or social proof, requiring a card creates too much friction. A limited daily allowance lets users experience the value before paying.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 5886,
+          "text": "PICK: Free allowance first\nWHY: An unknown founder with zero social proof lacks the trust required to overcome the high friction of an upfront paywall. A free allowance lets users experience the product's value firsthand, building the necessary trust to justify a $20/month subscription.",
+          "pick": "Free allowance first",
+          "why": "An unknown founder with zero social proof lacks the trust required to overcome the high friction of an upfront paywall. A free allowance lets users experience the product's value firsthand, building the necessary trust to justify a $20/month subscription.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1100,
+          "text": "PICK: Free allowance first\nWHY: Requiring a credit card upfront can deter potential users from trying the product, while a free daily allowance can encourage them to test and potentially adopt the AI product.",
+          "pick": "Free allowance first",
+          "why": "Requiring a credit card upfront can deter potential users from trying the product, while a free daily allowance can encourage them to test and potentially adopt the AI product.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 5014,
+          "text": "PICK: Free allowance first\nWHY: A free daily allowance builds trust and reduces signup friction for an unknown product, allowing users to experience value before committing payment. This approach increases initial adoption and generates social proof more effectively than requiring immediate payment.",
+          "pick": "Free allowance first",
+          "why": "A free daily allowance builds trust and reduces signup friction for an unknown product, allowing users to experience value before committing payment. This approach increases initial adoption and generates social proof more effectively than requiring immediate payment.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "Free allowance first": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "Llama 4 Maverick",
+          "DeepSeek V3.1"
+        ]
+      },
+      "disagreement": 0,
+      "verdict": "All three answers effectively argue for a free daily allowance first, emphasizing the importance of building trust without upfront payment. A meaningful difference is that Claude Opus highlights the potential impact on conversion rates, while Gemini 3.1 Pro focuses more on the necessity of trust to justify the subscription."
+    },
+    {
+      "id": "monorepo-vs-polyrepo",
+      "topic": "engineering",
+      "question": "A five-engineer team runs a web app, a mobile app, and three shared packages. Monorepo or separate repos?",
+      "options": [
+        "Monorepo",
+        "Separate repos"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 3042,
+          "text": "PICK: Monorepo\nWHY: With three shared packages consumed by both apps, a monorepo lets a small team make atomic cross-cutting changes and avoid version-syncing overhead. Five engineers is small enough that repo coordination and access concerns stay negligible.",
+          "pick": "Monorepo",
+          "why": "With three shared packages consumed by both apps, a monorepo lets a small team make atomic cross-cutting changes and avoid version-syncing overhead. Five engineers is small enough that repo coordination and access concerns stay negligible.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 1483,
+          "text": "PICK: Monorepo\nWHY: A small team benefits from unified tooling, atomic cross-project changes, and simpler dependency management across shared packages.",
+          "pick": "Monorepo",
+          "why": "A small team benefits from unified tooling, atomic cross-project changes, and simpler dependency management across shared packages.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 6171,
+          "text": "PICK: Monorepo\nWHY: A small team will benefit from atomic commits and simplified dependency management without the overhead of publishing and versioning the three shared packages separately. It eliminates context switching and keeps the web and mobile apps perfectly in sync with the shared code.",
+          "pick": "Monorepo",
+          "why": "A small team will benefit from atomic commits and simplified dependency management without the overhead of publishing and versioning the three shared packages separately. It eliminates context switching and keeps the web and mobile apps perfectly in sync with the shared code.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1063,
+          "text": "PICK: Monorepo\nWHY: The team is relatively small and manages multiple interconnected projects, making it easier to manage dependencies and make changes across projects in a single repository. This setup simplifies the development workflow and reduces the overhead of managing multiple separate repositories.",
+          "pick": "Monorepo",
+          "why": "The team is relatively small and manages multiple interconnected projects, making it easier to manage dependencies and make changes across projects in a single repository. This setup simplifies the development workflow and reduces the overhead of managing multiple separate repositories.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 9045,
+          "text": "PICK: Monorepo\nWHY: A monorepo simplifies dependency management and code sharing across the web app, mobile app, and shared packages. It also streamlines collaboration and tooling for a small team of five engineers.",
+          "pick": "Monorepo",
+          "why": "A monorepo simplifies dependency management and code sharing across the web app, mobile app, and shared packages. It also streamlines collaboration and tooling for a small team of five engineers.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "Monorepo": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "Llama 4 Maverick",
+          "DeepSeek V3.1"
+        ]
+      },
+      "disagreement": 0,
+      "verdict": "All three answers effectively support the choice of a monorepo for the given scenario, highlighting benefits like atomic changes and simplified dependency management. However, Gemini 3.1 Pro stands out by emphasizing the reduction of context switching, which adds a meaningful layer to the reasoning that the others do not explicitly mention."
+    },
+    {
+      "id": "typescript-strict",
+      "topic": "engineering",
+      "question": "You are inheriting a 60k-line JavaScript codebase and adding TypeScript. Turn on `strict` immediately and suppress the errors, or migrate file-by-file with strict off?",
+      "options": [
+        "Strict immediately",
+        "File-by-file, strict off"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 3404,
+          "text": "PICK: File-by-file, strict off\nWHY: Turning on `strict` across 60k lines at once buries you in thousands of suppressed errors that become invisible tech debt and get ignored. Migrating file-by-file with `strict` enabled per-file (via `// @ts-check` or incremental includes) gives you real, enforced type safety on the code you've actually converted.",
+          "pick": "File-by-file, strict off",
+          "why": "Turning on `strict` across 60k lines at once buries you in thousands of suppressed errors that become invisible tech debt and get ignored. Migrating file-by-file with `strict` enabled per-file (via `// @ts-check` or incremental includes) gives you real, enforced type safety on the code you've actually converted.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 4730,
+          "text": "PICK: Strict immediately\nWHY: It establishes a clear safety baseline and prevents new non-strict code. Track suppressions explicitly and remove them incrementally during migration.",
+          "pick": "Strict immediately",
+          "why": "It establishes a clear safety baseline and prevents new non-strict code. Track suppressions explicitly and remove them incrementally during migration.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 7425,
+          "text": "PICK: Strict immediately\nWHY: Turning on `strict` immediately stops the bleeding by ensuring all new code is fully type-safe from day one. Suppressing existing errors creates a clear, trackable burndown list of technical debt rather than allowing loose typing to proliferate indefinitely.",
+          "pick": "Strict immediately",
+          "why": "Turning on `strict` immediately stops the bleeding by ensuring all new code is fully type-safe from day one. Suppressing existing errors creates a clear, trackable burndown list of technical debt rather than allowing loose typing to proliferate indefinitely.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1141,
+          "text": "PICK: File-by-file, strict off\nWHY: Turning on `strict` immediately would result in a huge number of errors that would be overwhelming to address all at once, and suppressing them would not provide the benefits of TypeScript. Migrating file-by-file with `strict` off allows for a more incremental and manageable transition.",
+          "pick": "File-by-file, strict off",
+          "why": "Turning on `strict` immediately would result in a huge number of errors that would be overwhelming to address all at once, and suppressing them would not provide the benefits of TypeScript. Migrating file-by-file with `strict` off allows for a more incremental and manageable transition.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 4143,
+          "text": "PICK: File-by-file, strict off\nWHY: A gradual migration reduces immediate disruption and allows for incremental type safety improvements. Turning on strict immediately would overwhelm with errors and hinder development progress.",
+          "pick": "File-by-file, strict off",
+          "why": "A gradual migration reduces immediate disruption and allows for incremental type safety improvements. Turning on strict immediately would overwhelm with errors and hinder development progress.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "File-by-file, strict off": [
+          "Claude Opus",
+          "Llama 4 Maverick",
+          "DeepSeek V3.1"
+        ],
+        "Strict immediately": [
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro"
+        ]
+      },
+      "disagreement": 0.4,
+      "verdict": "Claude Opus served the user best by advocating for a file-by-file migration with strict off, emphasizing the importance of addressing tech debt incrementally while maintaining type safety on converted code. In contrast, both GPT-5.6 Sol and Gemini 3.1 Pro suggested turning on strict immediately, which could lead to overwhelming errors and hinder the migration process."
+    }
+  ]
+}

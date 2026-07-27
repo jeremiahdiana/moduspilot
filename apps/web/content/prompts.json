@@ -1,0 +1,160 @@
+{
+  "_comment": [
+    "The prompt set the content engine runs through /api/chat/compare.",
+    "",
+    "DECIDABLE prompts (with `options`) are the valuable ones. An open-ended",
+    "question produces ten paraphrases of the same answer, which is not content —",
+    "it is filler. A question with a forced pick produces a HEADLINE: '7 models,",
+    "4 picked Postgres, 3 picked SQLite'. That is the only shareable artifact",
+    "MODUS owns that a single-model competitor structurally cannot produce.",
+    "",
+    "Pick questions that a competent engineer could genuinely answer either way.",
+    "A question with a correct answer yields consensus, scores 0, and is dropped.",
+    "",
+    "📊 MEASURED 2026-07-27, first real run, 5 models x 6 prompts on prod:",
+    "only 2 of 6 split. The four that went 5/0 unanimous (Postgres, refactor,",
+    "monorepo, free-allowance) all have a well-known textbook answer, and frontier",
+    "models have all read the same textbook. The two that split (strict-immediately",
+    "3/2, raise-vs-bootstrap 4/1) were both about SEQUENCING and RISK TOLERANCE,",
+    "where the right answer genuinely depends on values the prompt does not supply.",
+    "",
+    "🔑 So the rule is not 'pick a debatable topic'. It is: pick a question whose",
+    "answer turns on something the question deliberately withholds. Expect to burn",
+    "3 prompts for every 1 that yields content, and budget the rate limit for it."
+  ],
+  "prompts": [
+    {
+      "id": "postgres-vs-sqlite-saas",
+      "topic": "engineering",
+      "question": "You are shipping a solo-founder B2B SaaS that will realistically have under 5,000 users for its first two years. Which database should it launch on?",
+      "options": ["Postgres", "SQLite"]
+    },
+    {
+      "id": "rewrite-vs-refactor",
+      "topic": "engineering",
+      "question": "A four-year-old production codebase has no tests, one original author who left, and a feature backlog the team cannot land. Rewrite it or refactor it incrementally?",
+      "options": ["Rewrite", "Refactor incrementally"]
+    },
+    {
+      "id": "raise-vs-bootstrap",
+      "topic": "startups",
+      "question": "A solo founder has a working product, $2k MRR growing 15% a month, and 14 months of personal runway. Raise a seed round now, or keep bootstrapping?",
+      "options": ["Raise a seed round", "Keep bootstrapping"]
+    },
+    {
+      "id": "free-tier-vs-paywall",
+      "topic": "startups",
+      "question": "An unknown founder launches a $20/mo AI product with no reviews and no users. Should the first message require a credit card, or should there be a free daily allowance first?",
+      "options": ["Require a card", "Free allowance first"]
+    },
+    {
+      "id": "monorepo-vs-polyrepo",
+      "topic": "engineering",
+      "question": "A five-engineer team runs a web app, a mobile app, and three shared packages. Monorepo or separate repos?",
+      "options": ["Monorepo", "Separate repos"]
+    },
+    {
+      "id": "typescript-strict",
+      "topic": "engineering",
+      "question": "You are inheriting a 60k-line JavaScript codebase and adding TypeScript. Turn on `strict` immediately and suppress the errors, or migrate file-by-file with strict off?",
+      "options": ["Strict immediately", "File-by-file, strict off"]
+    },
+    {
+      "id": "price-anchor-annual",
+      "topic": "startups",
+      "question": "A $20/mo product wants to add annual billing. Is a 12-months-for-the-price-of-10 discount too generous, or not generous enough to change behaviour?",
+      "options": ["Too generous", "Not generous enough"]
+    },
+    {
+      "id": "hire-vs-contract",
+      "topic": "startups",
+      "question": "An agency owner at $30k/mo revenue is the bottleneck on delivery. Hire a full-time employee, or scale with contractors?",
+      "options": ["Full-time hire", "Contractors"]
+    },
+    {
+      "id": "server-components-default",
+      "topic": "engineering",
+      "question": "For a new Next.js App Router product with heavy interactivity, should most components default to Server Components, or is a mostly-client architecture more honest about the app's needs?",
+      "options": ["Server Components by default", "Mostly client"]
+    },
+    {
+      "id": "ai-code-review",
+      "topic": "ai",
+      "question": "Should an AI code reviewer be allowed to block a pull request from merging, or should it only ever leave advisory comments?",
+      "options": ["Allowed to block", "Advisory only"]
+    },
+    {
+      "id": "one-model-vs-many",
+      "topic": "ai",
+      "question": "For daily professional work, is it better to master one frontier model deeply, or to route each task to whichever model is strongest at it?",
+      "options": ["Master one", "Route per task"]
+    },
+    {
+      "id": "rag-vs-long-context",
+      "topic": "ai",
+      "question": "You need a model to answer questions over a 500-page internal handbook that changes monthly. Build RAG, or just stuff it into a long context window?",
+      "options": ["Build RAG", "Long context"]
+    },
+
+    {
+      "id": "ship-broken-or-slip",
+      "topic": "startups",
+      "question": "It is launch day. One feature out of six is visibly janky but not broken. Ship on time with the janky feature visible, or slip the launch two weeks?",
+      "options": ["Ship on time", "Slip two weeks"]
+    },
+    {
+      "id": "fire-fast-underperformer",
+      "topic": "startups",
+      "question": "A six-person startup has an engineer who is well-liked, works hard, and ships noticeably slower than everyone else after nine months. Let them go now, or invest another quarter in coaching?",
+      "options": ["Let them go now", "Coach another quarter"]
+    },
+    {
+      "id": "raise-price-on-existing",
+      "topic": "startups",
+      "question": "You are doubling your price because you underpriced at launch. Do you grandfather every existing customer forever, or migrate them to the new price after 12 months?",
+      "options": ["Grandfather forever", "Migrate after 12 months"]
+    },
+    {
+      "id": "solo-founder-cofounder",
+      "topic": "startups",
+      "question": "A solo technical founder with a live product and modest revenue is offered a co-founder who is genuinely strong at sales and wants 40%. Take it, or stay solo and hire sales later?",
+      "options": ["Take the co-founder", "Stay solo"]
+    },
+    {
+      "id": "tests-before-users",
+      "topic": "engineering",
+      "question": "A pre-revenue product with zero users has no test suite. Write tests now while the codebase is small, or wait until something has users worth protecting?",
+      "options": ["Write tests now", "Wait for users"]
+    },
+    {
+      "id": "abstraction-third-time",
+      "topic": "engineering",
+      "question": "You have copy-pasted the same 30-line block twice and are about to do it a third time. Extract the abstraction now, or copy it a third time and wait for the shape to settle?",
+      "options": ["Extract now", "Copy it a third time"]
+    },
+    {
+      "id": "on-call-solo-dev",
+      "topic": "engineering",
+      "question": "A solo developer runs a paid product used during business hours. Set up real paging alerts that wake them at 3am, or check dashboards each morning and accept overnight downtime?",
+      "options": ["Page at 3am", "Check in the morning"]
+    },
+    {
+      "id": "ai-written-code-review",
+      "topic": "ai",
+      "question": "Your team ships code that is 80% AI-generated. Should human review get stricter than it was before, or should it get lighter because the model already handles the mechanical mistakes?",
+      "options": ["Stricter", "Lighter"]
+    },
+    {
+      "id": "learn-fundamentals-or-ship",
+      "topic": "ai",
+      "question": "A self-taught developer who ships fast with AI assistance cannot explain how a hash map works internally. Should they stop and learn fundamentals, or keep shipping and learn on demand?",
+      "options": ["Stop and learn fundamentals", "Keep shipping"]
+    },
+    {
+      "id": "disclose-ai-writing",
+      "topic": "ai",
+      "question": "A consultant delivers a client report that they directed and edited but a model drafted. Are they obligated to disclose that a model wrote the first draft?",
+      "options": ["Must disclose", "No obligation"]
+    }
+  ]
+}

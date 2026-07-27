@@ -1,0 +1,188 @@
+{
+  "ranAt": "2026-07-27T12:34:51.396Z",
+  "models": [
+    "claude-opus-4-8",
+    "gpt-5.6-sol",
+    "gemini-3.1-pro-preview",
+    "meta/llama-4-maverick",
+    "deepseek/deepseek-v3.1"
+  ],
+  "results": [
+    {
+      "id": "ship-broken-or-slip",
+      "topic": "startups",
+      "question": "It is launch day. One feature out of six is visibly janky but not broken. Ship on time with the janky feature visible, or slip the launch two weeks?",
+      "options": [
+        "Ship on time",
+        "Slip two weeks"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 2983,
+          "text": "PICK: Ship on time\nWHY: One janky-but-functional feature out of six doesn't justify a two-week slip, which carries real costs in momentum, morale, and market timing. Ship it and fast-follow with a fix.",
+          "pick": "Ship on time",
+          "why": "One janky-but-functional feature out of six doesn't justify a two-week slip, which carries real costs in momentum, morale, and market timing. Ship it and fast-follow with a fix.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 2421,
+          "text": "PICK: Ship on time\nWHY: A visibly janky but functional feature is usually less costly than a two-week delay. Ship it, monitor feedback, and prioritize a rapid polish update.",
+          "pick": "Ship on time",
+          "why": "A visibly janky but functional feature is usually less costly than a two-week delay. Ship it, monitor feedback, and prioritize a rapid polish update.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 7082,
+          "text": "PICK: Ship on time\nWHY: Delivering the five solid features provides immediate value to your users and maintains momentum. You can patch the janky, non-breaking feature in a fast-follow update rather than delaying the entire product.",
+          "pick": "Ship on time",
+          "why": "Delivering the five solid features provides immediate value to your users and maintains momentum. You can patch the janky, non-breaking feature in a fast-follow update rather than delaying the entire product.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1309,
+          "text": "PICK: Ship on time\nWHY: The feature is visibly janky but still functional, and delaying the launch may impact other timely dependent factors. Shipping on time allows for real-world testing and iteration on the janky feature post-launch.",
+          "pick": "Ship on time",
+          "why": "The feature is visibly janky but still functional, and delaying the launch may impact other timely dependent factors. Shipping on time allows for real-world testing and iteration on the janky feature post-launch.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 8775,
+          "text": "PICK: Ship on time\nWHY: The feature is functional despite being janky, and delaying launch could risk missing market opportunities or momentum. A quick post-launch patch can address the issue while maintaining schedule integrity.",
+          "pick": "Ship on time",
+          "why": "The feature is functional despite being janky, and delaying launch could risk missing market opportunities or momentum. A quick post-launch patch can address the issue while maintaining schedule integrity.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "Ship on time": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "Llama 4 Maverick",
+          "DeepSeek V3.1"
+        ]
+      },
+      "disagreement": 0,
+      "verdict": "All three models provided similar answers, advocating for shipping on time despite the janky feature. However, Claude Opus emphasized the impact on momentum and morale, while Gemini 3.1 Pro focused on delivering immediate value to users, making their reasoning slightly more user-centric."
+    },
+    {
+      "id": "disclose-ai-writing",
+      "topic": "ai",
+      "question": "A consultant delivers a client report that they directed and edited but a model drafted. Are they obligated to disclose that a model wrote the first draft?",
+      "options": [
+        "Must disclose",
+        "No obligation"
+      ],
+      "columns": [
+        {
+          "modelId": "claude-opus-4-8",
+          "modelName": "Claude Opus",
+          "provider": "Anthropic",
+          "ok": true,
+          "status": 200,
+          "served": "claude-opus-4-8",
+          "ms": 3417,
+          "text": "PICK: No obligation\nWHY: Clients contract for the consultant's judgment, direction, and accountability over the final work product, not for a specific drafting method, so the tool used to produce an early draft is generally immaterial. Disclosure becomes necessary only if there's a contractual term, confidentiality concern, or explicit representation that no such tools were used.",
+          "pick": "No obligation",
+          "why": "Clients contract for the consultant's judgment, direction, and accountability over the final work product, not for a specific drafting method, so the tool used to produce an early draft is generally immaterial. Disclosure becomes necessary only if there's a contractual term, confidentiality concern, or explicit representation that no such tools were used.",
+          "detail": ""
+        },
+        {
+          "modelId": "gpt-5.6-sol",
+          "modelName": "GPT-5.6 Sol",
+          "provider": "OpenAI",
+          "ok": true,
+          "status": 200,
+          "served": "gpt-5.6-sol",
+          "ms": 4213,
+          "text": "PICK: No obligation\nWHY: If the consultant directed, verified, and accepts responsibility for the report, using a model for the first draft does not inherently require disclosure. Disclosure is required only if a contract, law, professional rule, or client policy mandates it.",
+          "pick": "No obligation",
+          "why": "If the consultant directed, verified, and accepts responsibility for the report, using a model for the first draft does not inherently require disclosure. Disclosure is required only if a contract, law, professional rule, or client policy mandates it.",
+          "detail": ""
+        },
+        {
+          "modelId": "gemini-3.1-pro-preview",
+          "modelName": "Gemini 3.1 Pro",
+          "provider": "Google",
+          "ok": true,
+          "status": 200,
+          "served": "gemini-3.1-pro-preview",
+          "ms": 6870,
+          "text": "PICK: No obligation\nWHY: Consultants are hired for their expertise and take full professional responsibility for the final deliverable, regardless of the tools used to draft it. Unless explicitly required by the client contract, there is no general ethical or legal duty to disclose the use of AI as a drafting assistant.",
+          "pick": "No obligation",
+          "why": "Consultants are hired for their expertise and take full professional responsibility for the final deliverable, regardless of the tools used to draft it. Unless explicitly required by the client contract, there is no general ethical or legal duty to disclose the use of AI as a drafting assistant.",
+          "detail": ""
+        },
+        {
+          "modelId": "meta/llama-4-maverick",
+          "modelName": "Llama 4 Maverick",
+          "provider": "Meta",
+          "ok": true,
+          "status": 200,
+          "served": "meta/llama-4-maverick",
+          "ms": 1258,
+          "text": "PICK: No obligation\nWHY: The consultant directed and edited the report, taking ownership of its content, and the use of a model to draft it is a tool used in the process, not necessarily relevant to the client. Disclosure of the drafting process is not inherently required for the report's validity or the consultant's responsibility.",
+          "pick": "No obligation",
+          "why": "The consultant directed and edited the report, taking ownership of its content, and the use of a model to draft it is a tool used in the process, not necessarily relevant to the client. Disclosure of the drafting process is not inherently required for the report's validity or the consultant's responsibility.",
+          "detail": ""
+        },
+        {
+          "modelId": "deepseek/deepseek-v3.1",
+          "modelName": "DeepSeek V3.1",
+          "provider": "DeepSeek",
+          "ok": true,
+          "status": 200,
+          "served": "deepseek/deepseek-v3.1",
+          "ms": 3901,
+          "text": "PICK: Must disclose\nWHY: Transparency is required to maintain trust and avoid misleading the client about the origin of the work. Failing to disclose could be seen as misrepresenting the consultant's direct authorship.",
+          "pick": "Must disclose",
+          "why": "Transparency is required to maintain trust and avoid misleading the client about the origin of the work. Failing to disclose could be seen as misrepresenting the consultant's direct authorship.",
+          "detail": ""
+        }
+      ],
+      "split": {
+        "No obligation": [
+          "Claude Opus",
+          "GPT-5.6 Sol",
+          "Gemini 3.1 Pro",
+          "Llama 4 Maverick"
+        ],
+        "Must disclose": [
+          "DeepSeek V3.1"
+        ]
+      },
+      "disagreement": 0.2,
+      "verdict": "All three answers effectively convey that there is no obligation to disclose the use of a model for the first draft, making them equally valid in addressing the user's question. A meaningful difference is that Claude Opus emphasizes the immateriality of the drafting method, while GPT-5.6 Sol and Gemini 3.1 Pro focus more on the consultant's responsibility and the lack of general ethical or legal duty to disclose."
+    }
+  ]
+}
