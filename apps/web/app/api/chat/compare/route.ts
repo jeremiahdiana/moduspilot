@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { resolveChatModel } from '@/lib/chat/model';
 import { needsExplicitTemperature, maxTokensFor } from '@/lib/chat/model-params';
 import { isModelUnlocked, effectivePlan } from '@/lib/models';
+import { enforcePaidTokenLimit, trackTokenUsage } from '@/lib/chat/limits';
 
 // Compare mode: the same prompt answered by up to 3 models side by side.
 //
@@ -49,6 +50,14 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Model not available on your plan', code: 'model_locked' }, { status: 402 });
   }
 
+  // 🚨 Compare mode counted NOTHING against the token ceiling and never checked
+  // it. The per-hour counter below caps REQUESTS, not spend: 40 calls/hour of
+  // Claude Fable 5 at a 16k cap is far past a day's budget, invisibly, and the
+  // client fires three of these per comparison. The most expensive surface in the
+  // product was the one surface with no cost accounting at all.
+  const overBudget = enforcePaidTokenLimit(userData);
+  if (overBudget) return overBudget;
+
   const nowHour = new Date().toISOString().slice(0, 13);
   if (userData.compareHour === nowHour && (userData.compareCount ?? 0) >= MAX_PER_HOUR) {
     return Response.json({ error: 'Rate limit: too many comparisons this hour' }, { status: 429 });
@@ -87,8 +96,16 @@ export async function POST(req: Request) {
     // scripts/verify-compare-params.ts fails if these become literals again.
     maxTokens: maxTokensFor(resolved.modelId),
     ...(needsExplicitTemperature(resolved.modelId) ? { temperature: 1 } : {}),
-    onFinish: () => {
+    onFinish: ({ text, usage }) => {
       console.log(`[compare] ${resolved.modelId} finished in ${Date.now() - started}ms`);
+      // Same estimate fallback as chat/route.ts: Gateway-hosted models and
+      // gpt-5.6-terra report {promptTokens: null, completionTokens: null}, so a
+      // truthiness check on usage silently counts zero for most of the catalog.
+      const reported = usage?.totalTokens;
+      const total = typeof reported === 'number' && Number.isFinite(reported) && reported > 0
+        ? reported
+        : Math.ceil((prompt.length + (text?.length ?? 0)) / 4);
+      if (total > 0) trackTokenUsage(uid, userData, total, resolved.modelId);
     },
   });
 

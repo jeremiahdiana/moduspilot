@@ -6,6 +6,7 @@ import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
 import { messageTextLength, trimMessageText, stripLoneSurrogates } from '@/lib/chat/messages';
 import { needsExplicitTemperature, maxTokensFor } from '@/lib/chat/model-params';
+import { effortProviderOptions, effortFor } from '@/lib/chat/effort';
 import { getMcpServers } from '@/lib/mcp-servers';
 import { connectMcpClient } from '@/lib/mcp-client';
 import { sanitizeMcpToolSchemas, makeToolErrorsNonFatal } from '@/lib/mcp-schema';
@@ -717,6 +718,12 @@ export async function POST(req: Request) {
     // scripts/verify-model-params.ts across the whole catalog — see
     // lib/chat/model-params.ts for why they no longer live inline here.
     const maxTokens = maxTokensFor(resolved.modelId);
+    // Keyed on the model the user asked for. providerOptions is namespaced per
+    // provider and each provider reads only its own key, so if the failover chain
+    // lands somewhere else the stale namespace is ignored rather than rejected —
+    // the fallback just runs at its own default effort. Safe, and the alternative
+    // (recomputing inside onServed) is impossible: the request is already in flight.
+    const activeEffortOptions = effortProviderOptions(resolved.modelId, effortFor(userData));
 
     const isCurrentClaude = needsExplicitTemperature(resolved.modelId);
 
@@ -848,6 +855,11 @@ export async function POST(req: Request) {
         : { system: fullSystemPrompt + activeMcpBlock + extractionGuard, messages: cappedMessages }),
       maxTokens,
       ...(isCurrentClaude ? { temperature: 1 } : {}),
+      // Reasoning effort. Empty at the default 'medium' (which is already every
+      // provider's own default), so this changes nothing until a user picks
+      // low or high. maxTokens stays the ceiling — see lib/chat/effort.ts for
+      // why lowering it instead brings the blank bubbles back.
+      ...(Object.keys(activeEffortOptions).length > 0 ? { providerOptions: activeEffortOptions } : {}),
       ...(Object.keys(activeMcpTools).length > 0 ? { tools: activeMcpTools as Parameters<typeof streamText>[0]['tools'], maxSteps: 5 } : {}),
       onError: async ({ error }) => {
         // onFinish does NOT fire when the stream errors, so without this the MCP
@@ -901,7 +913,8 @@ export async function POST(req: Request) {
           const total = typeof reported === 'number' && Number.isFinite(reported) && reported > 0
             ? reported
             : Math.ceil((promptCharsSent + (text?.length ?? 0)) / 4);
-          if (total > 0) trackTokenUsage(uid, userData, total);
+          // Weighted by what the model actually costs — see lib/chat/model-cost.ts.
+          if (total > 0) trackTokenUsage(uid, userData, total, resolved.modelId);
         }
         if (!uid || !queryText || !process.env.PINECONE_API_KEY) return;
         // Respect the user's "generate memory from chat" setting (was ignored).

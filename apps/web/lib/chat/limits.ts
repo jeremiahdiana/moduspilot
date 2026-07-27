@@ -10,6 +10,7 @@ import {
   PILOT_WEEKLY_LIMIT,
 } from '@/lib/constants';
 import { hasActiveAccess, isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
+import { weightedTokens } from '@/lib/chat/model-cost';
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
 export function getWeekKey(): string {
@@ -131,11 +132,25 @@ export function usagePercent(userData: Record<string, any>): number | null {
 /**
  * Track token usage for paid users (fire-and-forget). No-op for free plans.
  * Increments daily + weekly counters atomically, resetting on date/week roll.
+ *
+ * 🚨 `modelId` IS REQUIRED AND THE WEIGHTING HAPPENS IN HERE, ON PURPOSE.
+ *
+ * The counters store COST UNITS, not raw tokens: one Claude Fable 5 token is ~24
+ * Llama 3.3 tokens of spend, and before this the ceiling treated them as equal, so
+ * it bounded token count while bounding nothing about the bill. See
+ * lib/chat/model-cost.ts for the measured exposure.
+ *
+ * Doing the multiply at the call site instead would mean every future call site
+ * has to remember, and the one that forgets is invisible: usage still increments,
+ * the limit still appears enforced, and the model is served at a loss. Taking the
+ * model id as a required argument makes that mistake a type error.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function trackTokenUsage(uid: string, userData: Record<string, any>, totalTokens: number): void {
+export function trackTokenUsage(uid: string, userData: Record<string, any>, rawTokens: number, modelId: string): void {
   const plan = userData.plan as string | undefined;
   if (!isPaidPlan(plan)) return;
+  const totalTokens = weightedTokens(modelId, rawTokens);
+  if (totalTokens <= 0) return;
   const userRef = adminDb.collection('users').doc(uid);
   adminDb.runTransaction(async (txn) => {
     const snap = await txn.get(userRef);
