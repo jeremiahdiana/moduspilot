@@ -142,6 +142,32 @@ export async function downgradeIfNoLiveSubscription(
 }
 
 /**
+ * Which cadence is this subscription actually billed on, read off the live price
+ * rather than anything we stored. Anything that isn't a yearly interval is
+ * monthly — repricing someone onto a cadence they didn't buy is a billing change
+ * they never agreed to.
+ */
+export function cadenceOfSubscription(sub: Stripe.Subscription): 'monthly' | 'annual' {
+  return sub.items.data[0]?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly';
+}
+
+/**
+ * Is this a founding member's subscription?
+ *
+ * Founders pay the $24 MODUS price but carry `plan: 'pilot'` — the discount lives
+ * entirely in that mismatch, not in a coupon or a dedicated price. So ANY
+ * repricing silently moves them onto the $59 list price and the founding rate is
+ * gone for good. Both signals are checked because either can be the one that
+ * survived: `founding` on the users doc, or the Stripe metadata stamped at checkout.
+ */
+export function isFoundingSubscription(
+  userData: Record<string, unknown> | undefined | null,
+  sub: Stripe.Subscription | null | undefined,
+): boolean {
+  return userData?.founding === true || sub?.metadata?.founding === 'true';
+}
+
+/**
  * Did this checkout session actually get paid for?
  * `no_payment_required` is the legitimate trial case (card on file, $0 today).
  * `unpaid` is not — granting on it hands out a plan, and burns a founding seat,

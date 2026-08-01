@@ -45,3 +45,26 @@ export const PRICE_ENV: Record<string, Record<Cadence, string | undefined>> = {
 
 /** Where the chosen cadence is parked across the /login -> onboarding hop. */
 export const CADENCE_STORAGE_KEY = 'modus.cadence';
+
+/**
+ * Resolve plan + cadence to a Stripe price. Annual falls back to monthly when no
+ * annual price exists (Group), and when the env var is missing — better to bill
+ * the cadence we can actually honour than to 400 someone out of checkout.
+ *
+ * Lives here, not in a route, because BOTH /api/stripe/checkout and
+ * /api/stripe/change-plan need it. change-plan used to hold its own monthly-only
+ * map, so an annual subscriber who changed plan was silently moved onto monthly
+ * billing — the classic "the fix landed in one of the two call sites" bug.
+ *
+ * Always returns the cadence actually resolved, never the one requested.
+ */
+export function resolvePlanPrice(plan: string, cadence: Cadence): { priceId?: string; cadence: Cadence } {
+  const envs = PRICE_ENV[plan];
+  if (!envs) return { cadence };
+
+  if (cadence === 'annual' && envs.annual) {
+    const annual = process.env[envs.annual];
+    if (annual) return { priceId: annual, cadence: 'annual' };
+  }
+  return { priceId: envs.monthly ? process.env[envs.monthly] : undefined, cadence: 'monthly' };
+}

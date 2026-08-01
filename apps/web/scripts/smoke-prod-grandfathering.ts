@@ -1,6 +1,6 @@
 /**
  * Drive the REAL production grandfathering / founding-member GATE end to end,
- * using a real password (default: N1GTIS).
+ * using a password (default: a synthetic one this script seeds and cleans up).
  *
  *   1. SEED   — write a founding code at sha256(password) in prod Firestore
  *               (only if it doesn't already exist — never clobbers a real code).
@@ -33,7 +33,9 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   if (!(m[1] in process.env)) process.env[m[1]] = v;
 }
 
-const PASSWORD = process.argv[2] || 'N1GTIS';
+// Synthetic by default: seeded on entry, deleted on exit. The old default was a
+// real test code (N1GTIS) which has since been removed.
+const PASSWORD = process.argv[2] || 'VERIFY-ONLY-gate-fixture';
 // Always the deployed host (NEXT_PUBLIC_APP_URL points at localhost in dev).
 // Override with MODUS_SMOKE_URL only if you need to aim elsewhere.
 const APP = process.env.MODUS_SMOKE_URL || 'https://app.moduspilot.com';

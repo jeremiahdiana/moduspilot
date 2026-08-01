@@ -1,24 +1,8 @@
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { TRIAL_DAYS } from '@/lib/constants';
-import { PRICE_ENV, isCadence, type Cadence } from '@/lib/pricing';
+import { isCadence, resolvePlanPrice, type Cadence } from '@/lib/pricing';
 import { ensureUserDoc, resolveStripeCustomer, findLiveSubscription, stripeId } from '@/lib/billing';
-
-/**
- * Resolve plan + cadence to a Stripe price. Annual falls back to monthly when no
- * annual price exists (Group), and when the env var is missing — better to bill
- * the cadence we can actually honour than to 400 someone out of checkout.
- */
-function resolvePrice(plan: string, cadence: Cadence): { priceId?: string; cadence: Cadence } {
-  const envs = PRICE_ENV[plan];
-  if (!envs) return { cadence };
-
-  if (cadence === 'annual' && envs.annual) {
-    const annual = process.env[envs.annual];
-    if (annual) return { priceId: annual, cadence: 'annual' };
-  }
-  return { priceId: envs.monthly ? process.env[envs.monthly] : undefined, cadence: 'monthly' };
-}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
 
@@ -40,7 +24,7 @@ export async function POST(req: Request) {
     plan: string; returnTo?: string; cadence?: string;
   };
   const requested: Cadence = isCadence(rawCadence) ? rawCadence : 'monthly';
-  const { priceId, cadence } = resolvePrice(plan, requested);
+  const { priceId, cadence } = resolvePlanPrice(plan, requested);
   if (!priceId) return Response.json({ error: 'Invalid plan' }, { status: 400 });
 
   // Never let a later write hit `5 NOT_FOUND` on a users doc that doesn't exist yet.

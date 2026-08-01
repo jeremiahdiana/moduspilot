@@ -10,7 +10,9 @@
  *
  *   cd apps/web && npx tsx scripts/smoke-prod-founding-no-claim.ts [password] [uid]
  *
- * Default password N1GTIS (JACKTIS #24), default uid = kahzatic (free). Leaves the
+ * Default password is a SYNTHETIC one this script seeds and deletes itself (the
+ * old default, N1GTIS/JACKTIS #24, was a test code and has been removed).
+ * Default uid = kahzatic (free). Leaves the
  * code available — safe to re-run. Never completes payment.
  */
 import crypto from 'crypto';
@@ -28,7 +30,9 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   if (!(m[1] in process.env)) process.env[m[1]] = v;
 }
 
-const PASSWORD = process.argv[2] || 'N1GTIS';
+// Synthetic by default: seeded on entry, deleted on exit, so this never depends
+// on a real founder's key still existing. Pass a real password to test that instead.
+const PASSWORD = process.argv[2] || 'VERIFY-ONLY-no-claim-fixture';
 const UID = process.argv[3] || 'fuzdgorHBoYuAZOaRrUKF60jFLF2'; // kahzatic (free)
 const APP = process.env.MODUS_SMOKE_URL || 'https://app.moduspilot.com';
 
