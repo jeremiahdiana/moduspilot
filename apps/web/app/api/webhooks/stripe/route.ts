@@ -49,13 +49,18 @@ export async function POST(req: Request) {
     const uid = session.metadata?.uid;
     const plan = session.metadata?.plan;
     if (uid && (plan === 'modus' || plan === 'pilot' || plan === 'group')) {
-      await adminDb.collection('users').doc(uid).update({
+      // set+merge, NOT update: a user can pay BEFORE the users doc exists (sign in
+      // with Google → straight to /grandfathering → pay, all before onboarding
+      // completes, which is what actually creates the doc). update() throws
+      // 5 NOT_FOUND on a missing doc, so the webhook 500'd and a real founder was
+      // left paid-but-on-no-plan. merge creates it and is still idempotent on retry.
+      await adminDb.collection('users').doc(uid).set({
         plan,
         stripeCustomerId: session.customer,
         subscriptionId: session.subscription,
         trialReminderSent: false,
         ...(session.metadata?.founding === 'true' ? { founding: true } : {}),
-      });
+      }, { merge: true });
 
       // Founding: the seat is claimed HERE — on successful payment — never at
       // checkout creation. So abandoning the Stripe page never consumes a seat.
@@ -82,10 +87,26 @@ export async function POST(req: Request) {
   if (event.type === 'customer.subscription.updated') {
     const sub = event.data.object;
     const ref = await findUserBySubscription(sub.id, sub.customer as string | null, sub.metadata?.uid);
-    if (!ref) return Response.json({ received: true });
-
     const plan = sub.metadata?.plan;
     const status = sub.status; // active, past_due, canceled, unpaid, etc.
+
+    // This handler is the safety net for a paid sub whose checkout.session.completed
+    // didn't land. findUserBySubscription returns null when the users doc doesn't
+    // exist yet (paid before onboarding), which used to make this silently 200 and
+    // leave a payer on no plan. Our own metadata.uid is trustworthy, so grant on it.
+    if (!ref) {
+      const uid = sub.metadata?.uid;
+      if (uid && (status === 'active' || status === 'trialing') &&
+          (plan === 'modus' || plan === 'pilot' || plan === 'group')) {
+        await adminDb.collection('users').doc(uid).set({
+          plan,
+          subscriptionId: sub.id,
+          stripeCustomerId: sub.customer,
+          ...(sub.metadata?.founding === 'true' ? { founding: true } : {}),
+        }, { merge: true });
+      }
+      return Response.json({ received: true });
+    }
 
     if (status === 'active' || status === 'trialing') {
       if (plan === 'modus' || plan === 'pilot' || plan === 'group') {
