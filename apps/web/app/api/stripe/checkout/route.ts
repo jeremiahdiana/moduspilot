@@ -2,6 +2,7 @@ import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { TRIAL_DAYS } from '@/lib/constants';
 import { PRICE_ENV, isCadence, type Cadence } from '@/lib/pricing';
+import { ensureUserDoc, resolveStripeCustomer, findLiveSubscription, stripeId } from '@/lib/billing';
 
 /**
  * Resolve plan + cadence to a Stripe price. Annual falls back to monthly when no
@@ -42,21 +43,35 @@ export async function POST(req: Request) {
   const { priceId, cadence } = resolvePrice(plan, requested);
   if (!priceId) return Response.json({ error: 'Invalid plan' }, { status: 400 });
 
-  // Reuse existing Stripe customer if one exists
-  const userDoc = await adminDb.collection('users').doc(uid).get();
-  const existingCustomerId = userDoc.data()?.stripeCustomerId as string | undefined;
+  // Never let a later write hit `5 NOT_FOUND` on a users doc that doesn't exist yet.
+  await ensureUserDoc(uid, email);
 
   // Guard: an active subscriber must NOT get a second (trialing) subscription
   // here — that would double-bill them and grant a fresh trial. Plan changes go
   // through /api/stripe/change-plan, which reprices the existing subscription.
-  const existingSubId = userDoc.data()?.subscriptionId as string | undefined;
-  const currentPlan = userDoc.data()?.plan as string | undefined;
-  if (existingSubId && currentPlan && currentPlan !== 'free') {
+  //
+  // This asks STRIPE, not our Firestore mirror. The mirror is only written by the
+  // success webhook, so it reads "no subscription" exactly when the webhook failed
+  // — the one moment this guard has to work. Firestore-based checking is how a
+  // founder ended up paying twice.
+  const live = await findLiveSubscription(uid, email);
+  if (live) {
+    // Self-heal the mirror so the user isn't stuck behind a stale paywall.
+    const livePlan = live.metadata?.plan;
+    await adminDb.collection('users').doc(uid).set({
+      subscriptionId: live.id,
+      stripeCustomerId: stripeId(live.customer),
+      ...(livePlan === 'modus' || livePlan === 'pilot' || livePlan === 'group' ? { plan: livePlan } : {}),
+    }, { merge: true });
     return Response.json(
       { error: 'You already have an active subscription. Use plan change instead.', code: 'has_subscription' },
       { status: 409 },
     );
   }
+
+  // Resolve + PERSIST the customer up front, so a retry reuses it instead of
+  // minting a second customer (and, with it, a second subscription).
+  const existingCustomerId = await resolveStripeCustomer(uid, email);
 
   // Optional post-checkout destination (e.g. new users land on the dashboard
   // after starting their trial; billing changes stay in settings).
@@ -77,7 +92,7 @@ export async function POST(req: Request) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: email }),
+    customer: existingCustomerId,
     // Card required now; MODUS is billed after the 3-day trial. Stripe fires
     // checkout.session.completed + a `trialing` subscription (handled in the
     // webhook → plan set immediately), then auto-charges when the trial ends.

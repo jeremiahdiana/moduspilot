@@ -59,7 +59,8 @@ export async function POST(req: Request) {
   });
 
   // Reflect immediately; the subscription.updated webhook also sets this (idempotent).
-  await userRef.update({ plan: newPlan });
+  // set+merge so this can never throw `5 NOT_FOUND` on a missing users doc.
+  await userRef.set({ plan: newPlan }, { merge: true });
 
   return Response.json({ updated: true, plan: newPlan });
 }

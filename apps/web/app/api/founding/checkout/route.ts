@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FOUNDING_COOKIE, verifyGate, toMillis } from '@/lib/founding';
+import { ensureUserDoc, resolveStripeCustomer, findLiveSubscription, stripeId } from '@/lib/billing';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
 // Founding members are billed on the $24 MODUS price but granted PILOT tier.
@@ -53,17 +54,31 @@ export async function POST(req: Request) {
     }
   }
 
-  // Reuse an existing Stripe customer if present.
-  const userDoc = await adminDb.collection('users').doc(uid).get();
-  const existingCustomerId = userDoc.data()?.stripeCustomerId as string | undefined;
-  const existingSubId = userDoc.data()?.subscriptionId as string | undefined;
-  const currentPlan = userDoc.data()?.plan as string | undefined;
+  // The founding flow signs in and comes straight here — onboarding, which is
+  // what normally creates users/<uid>, hasn't run. Guarantee the doc exists
+  // before Stripe is involved, so no later write can hit `5 NOT_FOUND`.
+  await ensureUserDoc(uid, email);
 
-  // Already an active subscriber (e.g. they finished checkout, then revisited):
-  // don't double-bill — just send them into the app.
-  if (existingSubId && currentPlan && currentPlan !== 'free') {
+  // Ask STRIPE whether they already pay, not our own Firestore mirror. The mirror
+  // is only written by the success webhook, so it is precisely blank when the
+  // webhook failed — which is exactly when a user is about to buy a SECOND
+  // subscription. Checking Firestore here is how one founder ended up at $48/mo.
+  const live = await findLiveSubscription(uid, email);
+  if (live) {
+    // Self-heal: the money is real, so make Firestore agree before sending them in.
+    const plan = live.metadata?.plan;
+    await adminDb.collection('users').doc(uid).set({
+      subscriptionId: live.id,
+      stripeCustomerId: stripeId(live.customer),
+      ...(plan === 'modus' || plan === 'pilot' || plan === 'group' ? { plan } : {}),
+    }, { merge: true });
     return Response.json({ alreadyActive: true, url: `${APP_URL}/welcome` });
   }
+
+  // Resolve + PERSIST the customer before checkout. Passing customer_email lets
+  // Stripe mint a brand new customer on every retry (declined card, back button),
+  // and each one can carry its own subscription — the double-billing mechanism.
+  const customerId = await resolveStripeCustomer(uid, email);
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -71,7 +86,7 @@ export async function POST(req: Request) {
     line_items: [{ price: FOUNDING_PRICE, quantity: 1 }],
     success_url: `${APP_URL}/welcome`,
     cancel_url: `${APP_URL}/grandfathering`,
-    ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: email }),
+    customer: customerId,
     // Founders are charged $24 immediately (no trial). The webhook reads
     // metadata.plan ('pilot') — NOT the price — so this $24 sub grants PILOT.
     // foundingCodeId lets the webhook claim the seat on payment success.
