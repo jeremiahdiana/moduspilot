@@ -3,12 +3,15 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
-import { canonicalModelId, isModelUnlocked, PLATFORM_MODELS } from '@/lib/models';
+import { canonicalModelId, isModelUnlocked, modelSupportsVision, PLATFORM_MODELS } from '@/lib/models';
 import { repairReasoningStream } from '@/lib/chat/stream-repair';
 
+// Vision for a user's OWN OpenAI key (BYOK). BYOK models are NOT in the catalog —
+// the user can name any id their key serves — so this is the one place capability
+// still has to be guessed from the id. Platform models go through
+// modelSupportsVision() and the catalog instead.
 // gpt-5.6-* included because it IS multimodal — verified 2026-07-16 by sending a
-// real image and getting the colour back. Without it, a paying user on Terra who
-// attaches an image is silently answered by gpt-4o-mini instead.
+// real image and getting the colour back.
 const OPENAI_VISION = /gpt-5\.6|gpt-4o|gpt-4\.1|gpt-4-turbo/;
 function visionOpenAIModel(model: string): string {
   return OPENAI_VISION.test(model) ? model : 'gpt-4o-mini';
@@ -175,6 +178,18 @@ export interface ResolvedChatModel {
   downgraded: boolean;
   /** The premium model that was requested but not served, when downgraded. */
   requestedId?: string;
+  /**
+   * WHY the swap happened, so the user is told something true.
+   *
+   * 'unavailable' — plan gate or a missing provider key; the model could not run.
+   * 'vision'      — the model runs fine, it just cannot READ IMAGES, so an image
+   *                 message went to one that can.
+   *
+   * These are not the same sentence. The client's only notice used to be "…is
+   * temporarily unavailable", which would be a plain lie about a working model
+   * that simply has no vision tower. Absent = 'unavailable' (the prior behaviour).
+   */
+  downgradeReason?: 'unavailable' | 'vision';
 }
 
 function served(model: LanguageModel, modelId: string): ResolvedChatModel {
@@ -207,7 +222,7 @@ function served(model: LanguageModel, modelId: string): ResolvedChatModel {
  *   2. gpt-4o-mini — what was actually answering anyway, minus the wasted hops.
  *   3. Gateway Llama — only when neither vendor key exists.
  */
-function freeDefaultModel(): { model: LanguageModel; modelId: string } {
+function freeDefaultModel(hasImage = false): { model: LanguageModel; modelId: string } {
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
   if (googleKey) {
     return { model: createGoogleGenerativeAI({ apiKey: googleKey })(FREE_DEFAULT), modelId: FREE_DEFAULT };
@@ -216,13 +231,20 @@ function freeDefaultModel(): { model: LanguageModel; modelId: string } {
   if (openAIKey) {
     return { model: createOpenAI({ apiKey: openAIKey })('gpt-4o-mini'), modelId: 'gpt-4o-mini' };
   }
+  // Last resort, and the ONE branch that cannot see. Both vendor keys would have
+  // to be missing to reach it, at which point the product is already broken — but
+  // an image sent to text-only Llama fails in the provider rather than here, so
+  // log it as the misconfiguration it is instead of letting it look like a model bug.
+  if (hasImage) {
+    console.error('[model] image request with no vision-capable key (GOOGLE_GENERATIVE_AI_API_KEY / OPENAI_API_KEY both unset) — falling back to text-only Llama');
+  }
   return { model: gateway(LLAMA_FALLBACK), modelId: LLAMA_FALLBACK };
 }
 
 /** The free default, flagged so the caller can tell the user which model did NOT run. */
-function downgradedToFree(requested: string): ResolvedChatModel {
+function downgradedToFree(requested: string, hasImage = false): ResolvedChatModel {
   const requestedPremium = isPremiumModel(requested) ? requested : undefined;
-  const { model, modelId } = freeDefaultModel();
+  const { model, modelId } = freeDefaultModel(hasImage);
   return {
     // Same repair as served() — a downgrade must not be the one path that can
     // still die mid-stream.
@@ -230,7 +252,44 @@ function downgradedToFree(requested: string): ResolvedChatModel {
     modelId,
     downgraded: !!requestedPremium,
     requestedId: requestedPremium,
+    downgradeReason: 'unavailable',
   };
+}
+
+/**
+ * The model that answers when the user's pick cannot read images.
+ *
+ * Prefers gemini-3.5-flash on the DIRECT Google key — same first choice as
+ * freeDefaultModel(), and genuinely the right one here: it is a strong, cheap
+ * vision model, and every screenshot MODUS sends is a big image. gpt-4o-mini
+ * (what the old code forced on EVERYONE) is the second choice, not the default.
+ *
+ * `downgraded` is set unconditionally, unlike downgradedToFree's premium-only
+ * rule: a free-model user whose image went somewhere else still deserves to know
+ * who actually answered.
+ */
+function visionFallback(requested: string): ResolvedChatModel {
+  const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
+  if (googleKey) {
+    return {
+      model: repairReasoningStream(createGoogleGenerativeAI({ apiKey: googleKey })(FREE_DEFAULT)),
+      modelId: FREE_DEFAULT,
+      downgraded: true,
+      requestedId: requested,
+      downgradeReason: 'vision',
+    };
+  }
+  const openAIKey = process.env.OPENAI_API_KEY?.trim();
+  if (openAIKey) {
+    return {
+      model: repairReasoningStream(createOpenAI({ apiKey: openAIKey })('gpt-4o-mini')),
+      modelId: 'gpt-4o-mini',
+      downgraded: true,
+      requestedId: requested,
+      downgradeReason: 'vision',
+    };
+  }
+  return downgradedToFree(requested, true);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -266,13 +325,25 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // arriving ~1s late via two doomed hops. See freeDefaultModel().
   const selectedModel = canonicalModelId(opts.modelId ?? ms?.model ?? FREE_DEFAULT);
 
-  // If image attached and we'd fall back to text-only Groq, route to OpenAI vision
   const openAIKey = process.env.OPENAI_API_KEY?.trim();
-  if (hasImage && openAIKey) {
-    const id = visionOpenAIModel(selectedModel);
-    return served(createOpenAI({ apiKey: openAIKey })(id), id);
-  }
 
+  // 🚨 THE IMAGE BRANCH USED TO LIVE HERE, ABOVE THE TIER GATE, AND IT WAS WRONG
+  // TWICE OVER:
+  //
+  //   if (hasImage && openAIKey) → served(visionOpenAIModel(selectedModel))
+  //
+  //   1. It sent EVERY image to OpenAI and, via visionOpenAIModel's regex,
+  //      collapsed anything not named gpt-* to gpt-4o-mini. Claude Sonnet 5,
+  //      Claude Opus, Claude Fable 5, both Geminis and Llama 4 Maverick are all
+  //      natively multimodal — and not one of them could ever see an image. A $59
+  //      PILOT customer attached a screenshot to Opus and was answered by the
+  //      cheapest model in the building, with the switcher still reading "Opus".
+  //   2. Sitting ABOVE the tier gate, it also bypassed it: attaching an image was
+  //      a way to route around the plan check entirely.
+  //
+  // Both are fixed by doing nothing here. The gate runs first, then vision is
+  // handled below off the CATALOG (models.ts `vision`), not an id regex.
+  //
   // ONE tier gate, read off PLATFORM_MODELS[].plans.
   //
   // This used to be re-derived from id prefixes here (isPaid for gpt-*, isPilot
@@ -286,7 +357,17 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // it on the catalog would make a grandfathered/plan-less account "downgrade"
   // from a model it never asked for — and show them a notice naming it.
   if (selectedModel !== FREE_DEFAULT && !isModelUnlocked(selectedModel, plan)) {
-    return downgradedToFree(selectedModel);
+    return downgradedToFree(selectedModel, hasImage);
+  }
+
+  // 👁️ The model has to be able to SEE. Text-only models (Llama 3.3, DeepSeek
+  // V3.1) do not fail loudly on an image part — the provider either 400s from
+  // inside the SDK or, worse, answers confidently about an image it never
+  // received. Route to one that can, and SAY SO: this is a real swap the user is
+  // entitled to know about, flagged 'vision' so they are told the model cannot
+  // read images rather than the false "temporarily unavailable".
+  if (hasImage && !modelSupportsVision(selectedModel)) {
+    return visionFallback(selectedModel);
   }
 
   // Gateway-hosted models FIRST — they match no prefix, and a looser rule would

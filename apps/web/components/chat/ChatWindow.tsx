@@ -354,7 +354,17 @@ export default function ChatWindow({
       if (response.headers.get('x-modus-downgraded') === '1') {
         const requested = response.headers.get('x-modus-requested-model') || '';
         const label = requested ? modelName(requested) : 'The selected model';
-        setModelNotice(`${label} is temporarily unavailable — answered with the fast default model instead.`);
+        const served = response.headers.get('x-modus-model') || '';
+        // 'vision' is a DIFFERENT fact from 'unavailable' and must not borrow its
+        // sentence: the model is working perfectly, it just has no vision tower.
+        // Naming who did answer matters more here than in the unavailable case —
+        // the user is about to judge an image answer and deserves to know whose.
+        if (response.headers.get('x-modus-downgrade-reason') === 'vision') {
+          const by = served ? modelName(served) : 'a vision model';
+          setModelNotice(`${label} can't read images — ${by} answered this one instead.`);
+        } else {
+          setModelNotice(`${label} is temporarily unavailable — answered with the fast default model instead.`);
+        }
       } else {
         setModelNotice(null);
       }

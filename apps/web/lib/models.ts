@@ -10,6 +10,22 @@ export interface ModelInfo {
   provider: string;
   /** Plans that unlock this model. 'group' is normalized to 'pilot' access. */
   plans: string[];
+  /**
+   * Can this model actually READ an attached image?
+   *
+   * 🚨 Load-bearing, and it is the flag that fixes a real defect: resolveChatModel
+   * used to send EVERY image request to OpenAI and downgrade it to gpt-4o-mini
+   * unless the id matched a hardcoded regex. So a $59 customer on Claude Opus or
+   * Gemini 3.1 Pro who attached a screenshot was silently answered by the weakest
+   * model we serve, while the UI named the one they picked.
+   *
+   * ⚠️ Same rule as the ids themselves: this is NOT taken from docs. A model that
+   * cannot see does not error on an image part — it either 400s deep in the
+   * provider SDK or, worse, answers confidently about nothing. Every `vision: true`
+   * below is proven by `scripts/verify-vision-routing.ts`, which sends a real
+   * generated image containing a known word and asserts the model reads it back.
+   */
+  vision?: boolean;
 }
 
 /**
@@ -28,7 +44,9 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // the model. Same weights, so the switcher entry and every call site's token
   // budget are unchanged. See lib/chat/model.ts for why the Gateway beat Groq's
   // own suggested replacement (gpt-oss is a reasoner and returns '' at maxTokens 80).
-  { id: 'meta/llama-3.3-70b',      name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
+  // Text-only: Llama 3.3 has no vision tower (3.2 shipped the multimodal variants,
+  // 3.3 did not). An image on this model is routed to the vision fallback.
+  { id: 'meta/llama-3.3-70b',      name: 'Llama 3.3',        provider: 'Meta',      plans: ['free', 'modus', 'pilot'], vision: false },
   // ⚠️ Llama 4 Scout was added and REMOVED on 2026-07-17, hours apart. It answered
   // a live round-trip perfectly — and Groq's deprecation table lists its shutdown
   // date as 07/17/26, THE SAME DAY. Round-tripping proves a model serves NOW, not
@@ -40,9 +58,11 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // ⚠️ Llama 4 SCOUT is deliberately NOT here and must not be added for count: 3.3
   // BEATS it (MMLU 86.0 vs 79.6, math/code 11.9 vs 8.2). Newer ≠ better — that
   // assumption already shipped Scout once and had to be reverted.
-  // ⚠️ Maverick is multimodal, but DO NOT sell it on images: resolveChatModel sends
-  // any model + an image to gpt-4o-mini before routing, so its vision is unreachable.
-  { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['pilot'] },
+  // ✅ Maverick is natively multimodal and its vision is now REACHABLE. It used to
+  // not be — resolveChatModel sent any model + an image to gpt-4o-mini before
+  // routing, so this line used to read "do not sell it on images". That block is
+  // gone; the `vision` flag below is what routes now.
+  { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['pilot'], vision: true },
   // ⚠️ The non-thinking DeepSeek ON PURPOSE. deepseek-r1 and v3.2-thinking are
   // reasoners: they spend the budget before emitting, so they return '' at small
   // maxTokens — the exact silent failure that killed the gpt-oss plan. v3.1 answers
@@ -53,25 +73,25 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // hosts.) Defensible claim: "US-hosted third parties, not DeepSeek's API" — NOT
   // "no Chinese infrastructure", which is unverified: Novita's GPU locations are not
   // published.
-  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['modus', 'pilot'] },
-  { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
+  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['modus', 'pilot'], vision: false },
+  { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'], vision: true },
   // Sonnet 5 supersedes Sonnet 4.6 at the SAME list price ($3/$15, and $2/$10
   // introductory through 2026-08-31) — a strictly better model for what we already
   // pay. Verified live 2026-07-17 through the real @ai-sdk/anthropic path.
-  { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'] },
-  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
-  { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
-  { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
+  { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'], vision: true },
+  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'], vision: true },
+  { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'], vision: true },
+  { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'], vision: true },
   // Restored 2026-07-17: Google billing is now live on the `modus-pilot` project
   // ($10 prepay), and this answers — verified with a real completion through
   // @ai-sdk/google, finish='stop', 1438 chars at the route's real 2048 cap. It was
   // withheld for exactly one day because a FREE-TIER key 429'd every Pro request.
-  { id: 'gemini-3.1-pro-preview',  name: 'Gemini 3.1 Pro',   provider: 'Google',    plans: ['pilot'] },
+  { id: 'gemini-3.1-pro-preview',  name: 'Gemini 3.1 Pro',   provider: 'Google',    plans: ['pilot'], vision: true },
   // Anthropic's most capable model — a real PILOT flagship, already covered by the
   // Anthropic account we pay for. ⚠️ $10/$50 per 1M, ~2x Opus 4.8: the priciest
   // thing we serve. Anthropic prompt caching (chat/route.ts) drops cached input to
   // ~$1/1M and is what keeps it viable at $59.
-  { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'] },
+  { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'], vision: true },
 
   // ── Withheld until the provider account can actually serve them ──────────────
   // Both were live on PILOT and NEITHER could answer a single request, which the
@@ -137,6 +157,19 @@ export function effectivePlan(plan: string | null | undefined): string {
   return plan === 'group' ? 'pilot' : (plan ?? 'free');
 }
 
+/**
+ * Can this model read an image? Read off the catalog, never re-derived from the id.
+ *
+ * Deriving capability from an id prefix is exactly the mistake resolveChatModel's
+ * tier gate already had to unwind (tiers encoded in two places that disagreed, and
+ * did). An unknown id returns false, which is the safe direction: the caller routes
+ * to a model that definitely sees rather than gambling that a stranger id is
+ * multimodal.
+ */
+export function modelSupportsVision(id: string): boolean {
+  return PLATFORM_MODELS.find(m => m.id === canonicalModelId(id))?.vision === true;
+}
+
 export function isModelUnlocked(id: string, plan: string | null | undefined): boolean {
   const model = PLATFORM_MODELS.find(m => m.id === canonicalModelId(id));
   return !!model && model.plans.includes(effectivePlan(plan));
@@ -156,7 +189,7 @@ export function unlockedModels(plan: string | null | undefined): ModelInfo[] {
  * chain switches we now tell the user who actually answered, and
  * "answered with meta/llama-3.1-8b instead" is not a sentence for a customer.
  */
-const INTERNAL_MODELS: Record<string, { name: string; provider: string }> = {
+export const INTERNAL_MODELS: Record<string, { name: string; provider: string }> = {
   'meta/llama-3.1-8b': { name: 'Llama 3.1', provider: 'Meta' },
   'gpt-4o-mini':          { name: 'GPT-4o mini', provider: 'OpenAI' },
 };
