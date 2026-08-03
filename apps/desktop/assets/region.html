@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<title>Select an area</title>
+<style>
+  /* This window covers the user's ENTIRE screen and is completely transparent —
+     what shows through it is the real, LIVE desktop, not a screenshot of it. The
+     capture happens after the drag, in the main process, once this window is gone.
+     Everything here is written on the assumption that a mistake means they cannot
+     use their computer, so there are three independent ways out (Esc, right-click,
+     losing focus) and the main process destroys the window the instant any fires. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: transparent;   /* the live screen shows through */
+    cursor: crosshair;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Nothing is dimmed until a drag begins, and even then only OUTSIDE the box, so
+     the surrounding context stays legible while you adjust it. macOS's own
+     Cmd-Shift-4 dims nothing at all; this is a light nod to which part is chosen.
+     Four bands rather than one huge inset box-shadow: that shadow is repainted on
+     every mousemove and visibly lags the cursor on a large display. */
+  .veil {
+    position: absolute; background: rgba(6, 6, 10, .32);
+    pointer-events: none; display: none;
+  }
+  body.dragging .veil { display: block; }
+
+  #sel {
+    position: absolute; pointer-events: none; display: none;
+    border: 1px solid rgba(167,139,250,.95);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+  }
+  /* Corner ticks: reads as "this is a selection" rather than "this is a div". */
+  #sel i { position: absolute; width: 7px; height: 7px; border: 1.5px solid #a78bfa; }
+  #sel i:nth-child(1) { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  #sel i:nth-child(2) { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+  #sel i:nth-child(3) { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+  #sel i:nth-child(4) { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  #size {
+    position: absolute; display: none;
+    font-size: 11px; font-variant-numeric: tabular-nums;
+    color: #E8E8F0; background: rgba(10,10,15,.88);
+    border: 1px solid rgba(255,255,255,.14); border-radius: 5px;
+    padding: 2px 6px; white-space: nowrap; pointer-events: none;
+  }
+
+  /* One quiet line that leaves on its own. The earlier version was a large
+     bordered bar pinned to the top of the screen for the entire selection — app
+     chrome sitting on top of the very thing being selected. */
+  #hint {
+    position: absolute; left: 50%; top: 22px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #D4D4E0;
+    background: rgba(10,10,15,.7);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 7px;
+    padding: 5px 10px;
+    transition: opacity 200ms ease;
+    pointer-events: none;
+  }
+  #hint kbd {
+    font: inherit; font-size: 10.5px;
+    border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+    padding: 0 4px; color: #9A9AAE;
+  }
+  #hint.gone { opacity: 0; }
+</style>
+</head>
+<body>
+  <div class="veil" id="vTop"></div>
+  <div class="veil" id="vBottom"></div>
+  <div class="veil" id="vLeft"></div>
+  <div class="veil" id="vRight"></div>
+  <div id="sel"><i></i><i></i><i></i><i></i></div>
+  <div id="size"></div>
+  <div id="hint"><span>Drag to select an area</span><kbd>esc</kbd></div>
+
+<script>
+(function () {
+  var sel = document.getElementById('sel');
+  var sizeTag = document.getElementById('size');
+  var hint = document.getElementById('hint');
+  var veils = {
+    top: document.getElementById('vTop'), bottom: document.getElementById('vBottom'),
+    left: document.getElementById('vLeft'), right: document.getElementById('vRight')
+  };
+
+  var dragging = false, sx = 0, sy = 0, cx = 0, cy = 0, finished = false;
+
+  var VEIL = 'position:absolute;background:rgba(6,6,10,.32);';
+  function paintVeil(x, y, w, h) {
+    var W = window.innerWidth, H = window.innerHeight;
+    veils.top.style.cssText    = VEIL + 'left:0;top:0;width:' + W + 'px;height:' + y + 'px';
+    veils.bottom.style.cssText = VEIL + 'left:0;top:' + (y + h) + 'px;width:' + W + 'px;height:' + Math.max(0, H - y - h) + 'px';
+    veils.left.style.cssText   = VEIL + 'left:0;top:' + y + 'px;width:' + x + 'px;height:' + h + 'px';
+    veils.right.style.cssText  = VEIL + 'left:' + (x + w) + 'px;top:' + y + 'px;width:' + Math.max(0, W - x - w) + 'px;height:' + h + 'px';
+  }
+
+  function rect() {
+    return {
+      x: Math.min(sx, cx), y: Math.min(sy, cy),
+      w: Math.abs(cx - sx), h: Math.abs(cy - sy)
+    };
+  }
+
+  function draw() {
+    var r = rect();
+    sel.style.display = 'block';
+    sel.style.left = r.x + 'px'; sel.style.top = r.y + 'px';
+    sel.style.width = r.w + 'px'; sel.style.height = r.h + 'px';
+    paintVeil(r.x, r.y, r.w, r.h);
+
+    sizeTag.style.display = 'block';
+    sizeTag.textContent = Math.round(r.w) + ' × ' + Math.round(r.h);
+    // Keep the readout on screen when dragging near an edge.
+    var tagY = r.y + r.h + 7;
+    if (tagY > window.innerHeight - 26) tagY = Math.max(2, r.y - 24);
+    var tagX = Math.min(r.x, window.innerWidth - 84);
+    sizeTag.style.left = Math.max(2, tagX) + 'px';
+    sizeTag.style.top = tagY + 'px';
+  }
+
+  function cancel() {
+    if (finished) return;
+    finished = true;
+    window.region.cancel();
+  }
+
+  function finish() {
+    if (finished) return;
+    var r = rect();
+    // A click with no drag means "I changed my mind", not "capture 2 pixels".
+    if (r.w < 6 || r.h < 6) { cancel(); return; }
+    finished = true;
+    // Hide our own decoration IMMEDIATELY. The screenshot is taken by the main
+    // process a moment from now, and until this line runs the selection border
+    // and the dimming are real pixels sitting on the real screen.
+    sel.style.display = 'none';
+    sizeTag.style.display = 'none';
+    hint.classList.add('gone');
+    document.body.classList.remove('dragging');
+    // Fractions of this window; main converts to display and then image pixels, so
+    // every scaleFactor/retina conversion lives in exactly one place.
+    window.region.done({
+      x: r.x / window.innerWidth,
+      y: r.y / window.innerHeight,
+      w: r.w / window.innerWidth,
+      h: r.h / window.innerHeight
+    });
+  }
+
+  document.addEventListener('mousedown', function (e) {
+    // Right-click is a second, discoverable escape hatch.
+    if (e.button !== 0) { cancel(); return; }
+    dragging = true;
+    document.body.classList.add('dragging');
+    sx = cx = e.clientX; sy = cy = e.clientY;
+    hint.classList.add('gone');
+    draw();
+  });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!dragging) return;
+    cx = e.clientX; cy = e.clientY;
+    draw();
+  });
+
+  document.addEventListener('mouseup', function (e) {
+    if (!dragging) return;
+    dragging = false;
+    cx = e.clientX; cy = e.clientY;
+    finish();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+  });
+
+  // If this window somehow loses focus while up, get out of the user's way rather
+  // than leaving an invisible click-swallowing sheet over their whole screen.
+  //
+  // 🪤 ARMED ON A DELAY, ON PURPOSE. The window is created, shown and focused in
+  // quick succession, and macOS routinely delivers a blur in the middle of that
+  // handshake — so an eagerly-armed handler cancelled the selection instantly and
+  // the crosshair appeared to flicker and vanish before the user could drag.
+  var armed = false;
+  setTimeout(function () { armed = true; }, 600);
+  window.addEventListener('blur', function () { if (armed && !dragging) cancel(); });
+
+  // The hint has said its piece by the time you have aimed; it should not sit on
+  // top of the screen you are trying to look at for the whole selection.
+  setTimeout(function () { hint.classList.add('gone'); }, 2200);
+
+  window.focus();
+})();
+</script>
+</body>
+</html>

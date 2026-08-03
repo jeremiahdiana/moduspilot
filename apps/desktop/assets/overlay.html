@@ -1,0 +1,512 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- 'self' is needed for logo.png, which sits next to this file. Still no
+     connect-src: the renderer cannot reach the network at all, every request goes
+     through the main process. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<title>MODUS Screen Assist</title>
+<style>
+  /* Dark, dense, quiet. Same palette as the app shell (#0A0A0F / #111118,
+     brand #7C3AED / #a78bfa). No gradients, no glow, no emoji. */
+  :root {
+    --border: rgba(255,255,255,.09);
+    --text: #E8E8F0;
+    --muted: #7C7C90;
+    --brand: #7C3AED;
+    --brand-light: #a78bfa;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    cursor: default;
+    user-select: none;
+  }
+  #shell {
+    height: 100%;
+    display: flex; flex-direction: column;
+    /* Nearly solid. The vibrancy underneath still separates the panel from the
+       desktop, but the CONTENT sits on a stable surface: at .82 whatever was
+       behind the window bled through the answer text, which is the one thing in
+       here you actually have to read. Translucency is worth a little depth, not
+       legibility. */
+    background: rgba(17, 17, 24, .97);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    overflow: hidden;
+    box-shadow: 0 18px 48px rgba(0,0,0,.5);
+    transform-origin: top center;
+    animation: enter 190ms cubic-bezier(.16,.84,.34,1) both;
+  }
+
+  /* The entrance. Short, and it settles rather than bounces — a panel that
+     springs is a panel you notice, and this one appears many times an hour. */
+  @keyframes enter {
+    from { opacity: 0; transform: translateY(-10px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* Leaving is faster than arriving: waiting on a dismissal feels broken in a
+     way that waiting on an appearance does not. */
+  #shell.leaving { animation: leave 120ms cubic-bezier(.4,0,1,1) both; }
+  @keyframes leave {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(-8px) scale(.98); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #shell, #shell.leaving { animation-duration: .01ms; }
+    #thinking i { animation: none; opacity: .6; }
+    .msg { animation: none !important; }
+  }
+
+  /* The drag handle. -webkit-app-region on the whole shell would make every
+     click drag the window and the textarea unusable, so only the bar drags. */
+  #bar {
+    -webkit-app-region: drag;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px 8px 12px;
+    background: rgba(10, 10, 15, .82);
+    border-bottom: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  /* The real mark, not the word "MODUS" set in a typeface that isn't the brand's. */
+  #logo { height: 17px; width: auto; display: block; opacity: .95; }
+  #bar .spacer { flex: 1; }
+  #bar button, #shot, #logo { -webkit-app-region: no-drag; }
+
+  .chip {
+    font-size: 10.5px; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 2px 7px; white-space: nowrap;
+  }
+  .chip.on { color: var(--brand-light); border-color: rgba(124,58,237,.5); }
+
+  button {
+    font: inherit; font-size: 11.5px;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 3px 9px; cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+  }
+  button:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
+  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  button.primary:hover { background: #6d31d6; }
+  button:disabled { opacity: .45; cursor: default; }
+
+  /* A real close control. "Esc" as a button label told you which KEY to press
+     rather than giving you something to click, which is not the same thing. */
+  #closeBtn {
+    width: 22px; height: 22px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 15px; line-height: 1;
+  }
+  #closeBtn:hover { background: rgba(248,113,113,.16); border-color: rgba(248,113,113,.4); color: #fca5a5; }
+
+  /* contain, NOT cover. The panel tells the user "this is the frame that was
+     sent"; cropping it made that claim false — a cover-fit preview hid the
+     bottom two thirds of their own screen. */
+  #shot {
+    width: 100%; display: block;
+    border-bottom: 1px solid var(--border);
+    height: 104px; object-fit: contain; object-position: center;
+    flex: 0 0 auto; background: rgba(0,0,0,.35);
+  }
+
+  #body { flex: 1 1 auto; overflow-y: auto; padding: 10px 12px; min-height: 0; }
+  #body::-webkit-scrollbar { width: 8px; }
+  #body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+
+  /* ── The transcript ──────────────────────────────────────────────────────
+     Your own messages used to not be rendered AT ALL: the panel showed only the
+     model's reply, and every new question wiped the last one, so there was no
+     way to see what you had asked or what had been said before. */
+  .msg { margin-bottom: 11px; animation: msgIn 160ms ease both; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .msg:last-child { margin-bottom: 2px; }
+
+  .msg .who {
+    font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 3px;
+  }
+  .msg .text { white-space: pre-wrap; line-height: 1.55; user-select: text; cursor: text; }
+
+  /* The user's turn is indented and rule-marked rather than bubbled: at this
+     width a chat bubble wastes ~20% of the line and this panel is mostly text. */
+  .msg.user { padding-left: 9px; border-left: 2px solid rgba(124,58,237,.55); }
+  .msg.user .who { color: var(--brand-light); }
+  .msg.user .text { color: #C9C9DA; }
+  .msg.shot .who { color: var(--muted); }
+  .msg.shot .text { color: var(--muted); font-size: 12px; }
+
+  .hint { color: var(--muted); line-height: 1.5; }
+  .err { color: var(--danger); line-height: 1.5; margin-top: 4px; }
+  .panel { line-height: 1.6; }
+  .panel h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+  .panel p { margin: 0 0 10px; color: var(--muted); }
+  .panel .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Three dots, no bouncing. A spinner that draws attention to itself is the
+     "vibecoded" tell; this just says work is happening. */
+  #thinking { display: none; align-items: center; gap: 5px; padding: 2px 0 8px; }
+  #thinking.show { display: flex; }
+  #thinking i {
+    width: 4px; height: 4px; border-radius: 50%; background: var(--muted);
+    animation: pulse 1.25s ease-in-out infinite;
+  }
+  #thinking i:nth-child(2) { animation-delay: .18s; }
+  #thinking i:nth-child(3) { animation-delay: .36s; }
+  @keyframes pulse { 0%,100% { opacity: .25 } 50% { opacity: .95 } }
+
+  #foot {
+    flex: 0 0 auto; border-top: 1px solid var(--border);
+    background: rgba(10, 10, 15, .82); padding: 8px 10px 8px 12px;
+    display: flex; gap: 8px; align-items: flex-end;
+  }
+  #q {
+    flex: 1; resize: none; font: inherit; line-height: 1.45;
+    background: transparent; color: var(--text);
+    border: none; outline: none; padding: 4px 0; max-height: 96px;
+    user-select: text; cursor: text;
+  }
+  #q::placeholder { color: #55556a; }
+  #meta { padding: 0 12px 8px; color: var(--muted); font-size: 10.5px; min-height: 13px; }
+  .hidden { display: none !important; }
+
+  /* Resize affordance. The window is natively resizable from its edges, but on a
+     frameless transparent window that edge is invisible, so nobody discovers it.
+     This is purely a visual hint sitting over the real (native) grab area. */
+  #grip {
+    position: fixed; right: 2px; bottom: 2px; width: 13px; height: 13px;
+    pointer-events: none; opacity: .3;
+  }
+  #grip i {
+    position: absolute; right: 0; background: var(--text); height: 1px; border-radius: 1px;
+    transform: rotate(-45deg); transform-origin: 100% 50%;
+  }
+  #grip i:nth-child(1) { bottom: 3px; width: 9px; }
+  #grip i:nth-child(2) { bottom: 6px; width: 6px; }
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="bar">
+    <img id="logo" src="logo.png" alt="MODUS">
+    <span class="chip hidden" id="watchChip">Watching</span>
+    <span class="spacer"></span>
+    <button id="watchBtn" title="Let MODUS watch for changes">Watch</button>
+    <button id="clearBtn" title="Start a new thread">New</button>
+    <button id="areaBtn" title="Drag to select part of the screen">Area</button>
+    <button id="againBtn" title="Capture the whole screen again">Recapture</button>
+    <button id="closeBtn" title="Close (Esc)" aria-label="Close">&times;</button>
+  </div>
+
+  <img id="shot" class="hidden" alt="The screen that was captured" title="This is the exact frame sent to the model">
+
+  <div id="body">
+    <div id="permPanel" class="panel hidden">
+      <h2>MODUS needs permission to see your screen</h2>
+      <p id="permText"></p>
+      <div class="actions">
+        <button class="primary" id="permOpen">Open System Settings</button>
+        <button id="permRelaunch">Relaunch MODUS</button>
+      </div>
+    </div>
+
+    <div id="signedOutPanel" class="panel hidden">
+      <h2 id="signedOutTitle">Sign in to use Screen Assist</h2>
+      <p id="signedOutText"></p>
+      <div class="actions"><button class="primary" id="openApp">Open MODUS</button></div>
+    </div>
+
+    <div id="hint" class="hint"></div>
+    <div id="thread"></div>
+    <div id="thinking"><i></i><i></i><i></i></div>
+    <div id="error" class="err"></div>
+  </div>
+
+  <div id="meta"></div>
+
+  <div id="foot">
+    <textarea id="q" rows="1" placeholder="Ask about what's on screen…"></textarea>
+    <button class="primary" id="askBtn">Ask</button>
+  </div>
+</div>
+<div id="grip"><i></i><i></i></div>
+
+<script>
+(function () {
+  var el = function (id) { return document.getElementById(id); };
+  var shell = el('shell'), shot = el('shot'), body = el('body'), thread = el('thread');
+  var hint = el('hint'), error = el('error'), meta = el('meta'), q = el('q'), askBtn = el('askBtn');
+  var thinking = el('thinking'), watchBtn = el('watchBtn'), watchChip = el('watchChip');
+  var permPanel = el('permPanel'), permText = el('permText');
+  var signedOutPanel = el('signedOutPanel'), signedOutTitle = el('signedOutTitle'), signedOutText = el('signedOutText');
+
+  var busy = false, watching = false, servedModel = '';
+  var pinnedToBottom = true;
+  // The assistant element currently being streamed into. Held as a reference so
+  // deltas append to THIS turn instead of replacing the whole transcript, which
+  // is what previously destroyed the history on every new message.
+  var streaming = null;
+
+  function show(node, on) { node.classList.toggle('hidden', !on); }
+
+  /**
+   * Raw ids are not names. The stream reports `claude-sonnet-5`; showing that to a
+   * customer who chose "Claude Sonnet 5" in the switcher looks like a leak of
+   * internals. The web app has modelName() for this, but the desktop bundle cannot
+   * import from apps/web, so this is a deliberately dumb prettifier — it never
+   * INVENTS a name, it only tidies the id it was given.
+   */
+  function prettyModel(id) {
+    var known = {
+      'claude-sonnet-5': 'Claude Sonnet 5',
+      'claude-opus-4-8': 'Claude Opus',
+      'claude-fable-5': 'Claude Fable 5',
+      'gemini-3.5-flash': 'Gemini 3.5 Flash',
+      'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+      'gpt-5.6-terra': 'GPT-5.6 Terra',
+      'gpt-5.6-sol': 'GPT-5.6 Sol',
+      'gpt-4o-mini': 'GPT-4o mini',
+      'meta/llama-3.3-70b': 'Llama 3.3',
+      'meta/llama-4-maverick': 'Llama 4 Maverick',
+      'deepseek/deepseek-v3.1': 'DeepSeek V3.1'
+    };
+    return known[id] || id;
+  }
+
+  // Only autoscroll while the user is already at the bottom. Yanking the view
+  // down mid-token while someone is reading back is the single most irritating
+  // thing a streaming panel can do.
+  body.addEventListener('scroll', function () {
+    pinnedToBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 24;
+  });
+  function autoscroll() { if (pinnedToBottom) body.scrollTop = body.scrollHeight; }
+
+  /**
+   * Ask the main process to grow the window to fit the thread.
+   *
+   * Only ever grows, and main clamps it to the display, so this cannot fight the
+   * user's own resize downward or run off the screen.
+   */
+  var growTimer = null;
+  function maybeGrow() {
+    if (growTimer) return;
+    growTimer = setTimeout(function () {
+      growTimer = null;
+      var overflow = body.scrollHeight - body.clientHeight;
+      if (overflow > 8) window.modus.grow(Math.min(window.innerHeight + overflow + 8, 900));
+    }, 220);
+  }
+
+  function addMessage(role, text, cls) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg ' + (cls || role);
+    var who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = role === 'user' ? 'You' : (role === 'shot' ? '' : 'MODUS');
+    var t = document.createElement('div');
+    t.className = 'text';
+    t.textContent = text;
+    if (who.textContent) wrap.appendChild(who);
+    wrap.appendChild(t);
+    thread.appendChild(wrap);
+    autoscroll();
+    return t;
+  }
+
+  function setBusy(on) {
+    busy = on;
+    askBtn.textContent = on ? 'Stop' : 'Ask';
+    thinking.classList.toggle('show', on && !streaming);
+  }
+
+  function submit() {
+    if (busy) { window.modus.stop(); setBusy(false); return; }
+    error.textContent = '';
+    hint.textContent = '';
+    pinnedToBottom = true;
+    // The question is echoed by MAIN (assist:user), not here, so what you see in
+    // the transcript is exactly the text that was put into the request.
+    window.modus.ask(q.value);
+    q.value = '';
+    q.style.height = 'auto';
+  }
+
+  // Play the exit, THEN close. Calling close() directly would hide the window on
+  // the same frame and the animation would never be seen.
+  var dismissing = false;
+  function dismiss() {
+    if (dismissing) return;
+    dismissing = true;
+    shell.classList.add('leaving');
+    setTimeout(function () { window.modus.close(); }, 120);
+  }
+
+  askBtn.addEventListener('click', submit);
+  el('closeBtn').addEventListener('click', dismiss);
+  el('againBtn').addEventListener('click', function () { window.modus.recapture(); });
+  el('areaBtn').addEventListener('click', function () { window.modus.selectRegion(); });
+  el('clearBtn').addEventListener('click', function () { window.modus.clear(); });
+  el('openApp').addEventListener('click', function () { window.modus.openApp(); });
+  el('permOpen').addEventListener('click', function () { window.modus.openScreenSettings(); });
+  el('permRelaunch').addEventListener('click', function () { window.modus.relaunch(); });
+  watchBtn.addEventListener('click', function () { window.modus.setWatch(!watching); });
+
+  q.addEventListener('keydown', function (e) {
+    // Enter sends, Shift+Enter is a newline — the convention everywhere else.
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+  });
+  q.addEventListener('input', function () {
+    q.style.height = 'auto';
+    q.style.height = Math.min(q.scrollHeight, 96) + 'px';
+  });
+  // Esc still closes from anywhere, including while the textarea has focus — the
+  // key kept working when the button stopped being labelled after it.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); dismiss(); }
+  });
+
+  // Replay the entrance on every show. The window is reused rather than reloaded,
+  // so the CSS animation would otherwise run exactly once in the app's lifetime
+  // and every subsequent open would snap in with no transition at all.
+  window.modus.onShown(function () {
+    dismissing = false;
+    shell.classList.remove('leaving');
+    shell.style.animation = 'none';
+    void shell.offsetWidth;   // force reflow so the animation restarts
+    shell.style.animation = '';
+    q.focus();
+  });
+
+  window.modus.onCapture(function (info) {
+    // Showing the frame is not decoration. This tool sends a picture of the
+    // user's screen to a server; they are entitled to see exactly what went.
+    shot.src = info.preview;
+    show(shot, true);
+    show(permPanel, false);
+    error.textContent = '';
+    // A recapture is a NEW screenshot inside the SAME conversation, so the thread
+    // is annotated rather than wiped — losing the discussion because you took
+    // another look at the screen is exactly the behaviour being fixed here.
+    var what = info.region ? 'Selected area' : 'Screenshot';
+    if (thread.childNodes.length > 0) {
+      addMessage('shot', 'New ' + what.toLowerCase() + ' captured (' + info.width + '×' + info.height + ')', 'shot');
+    } else {
+      hint.textContent = what + ' captured, ' + info.width + '×' + info.height
+        + '. Ask a question, or press Ask for a read of it.';
+    }
+    q.focus();
+  });
+
+  window.modus.onUser(function (text) {
+    hint.textContent = '';
+    addMessage('user', text);
+    streaming = null;
+    maybeGrow();
+  });
+
+  window.modus.onNote(function (text) {
+    hint.textContent = '';
+    addMessage('shot', text, 'shot');
+    streaming = null;
+    maybeGrow();
+  });
+
+  window.modus.onDelta(function (text) {
+    thinking.classList.remove('show');
+    if (!streaming) streaming = addMessage('assistant', '');
+    streaming.textContent += text;
+    autoscroll();
+    maybeGrow();
+  });
+
+  window.modus.onModel(function (id) {
+    servedModel = id;
+    meta.textContent = 'Answered by ' + prettyModel(id);
+  });
+
+  window.modus.onDone(function () {
+    setBusy(false);
+    if (!streaming && !error.textContent) {
+      error.textContent = 'MODUS returned an empty answer. Try asking again.';
+    }
+    streaming = null;
+    if (servedModel) meta.textContent = 'Answered by ' + prettyModel(servedModel);
+    maybeGrow();
+  });
+
+  window.modus.onError(function (err) {
+    setBusy(false);
+    thinking.classList.remove('show');
+    streaming = null;
+    if (err.kind === 'signed-out' || err.kind === 'no-subscription') {
+      signedOutTitle.textContent = err.kind === 'signed-out' ? 'Sign in to use Screen Assist' : 'Your access has ended';
+      signedOutText.textContent = err.message;
+      show(signedOutPanel, true);
+      return;
+    }
+    error.textContent = err.message;
+    autoscroll();
+  });
+
+  window.modus.onCleared(function () {
+    thread.innerHTML = '';
+    error.textContent = '';
+    meta.textContent = '';
+    servedModel = '';
+    streaming = null;
+    setBusy(false);
+    hint.textContent = 'New thread. Ask about the screen above.';
+    q.focus();
+  });
+
+  window.modus.onPermission(function (status) {
+    var needed = status !== 'granted';
+    show(permPanel, needed);
+    show(shot, !needed && !!shot.src);
+    permText.textContent = status === 'denied'
+      ? 'Screen Recording is turned off for MODUS. Turn it on in System Settings, then relaunch — macOS only applies the change to a fresh launch.'
+      : 'macOS needs your approval before MODUS can read the screen. Grant Screen Recording, then relaunch.';
+  });
+
+  function paintWatch(on) {
+    watching = on;
+    watchBtn.textContent = on ? 'Stop watching' : 'Watch';
+    show(watchChip, on);
+    watchChip.classList.toggle('on', on);
+  }
+  window.modus.onWatch(paintWatch);
+  window.modus.onBusy(function (on) { setBusy(on); });
+
+  window.modus.init().then(function (init) {
+    show(permPanel, init.permission !== 'granted');
+    if (init.permission !== 'granted') {
+      permText.textContent = init.permission === 'denied'
+        ? 'Screen Recording is turned off for MODUS. Turn it on in System Settings, then relaunch — macOS only applies the change to a fresh launch.'
+        : 'macOS needs your approval before MODUS can read the screen. Grant Screen Recording, then relaunch.';
+    }
+    paintWatch(init.watchEnabled);
+    // Redraw whatever was already being discussed. The panel is reused across
+    // opens, but a reload (dev, or a crash) would otherwise come back blank while
+    // the main process still held the thread — the UI and the request would then
+    // disagree about what had been said.
+    if (init.transcript && init.transcript.length) {
+      hint.textContent = '';
+      for (var i = 0; i < init.transcript.length; i++) {
+        addMessage(init.transcript[i].role, init.transcript[i].text);
+      }
+    }
+    q.focus();
+  });
+})();
+</script>
+</body>
+</html>

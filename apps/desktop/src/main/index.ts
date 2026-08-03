@@ -1,7 +1,9 @@
-import { app } from 'electron';
+import { app, globalShortcut } from 'electron';
 import log from 'electron-log';
 import { createMainWindow, getMainWindow, showMainWindow } from './windows';
 import { createTray, setSignedIn, runSync } from './tray';
+import { destroyOverlay } from './screen/overlay';
+import { registerScreenAssistHotkeys } from './screen/hotkeys';
 import { startScheduler } from './sync/scheduler';
 import { initLaunchAtLogin } from './settings';
 import { getAuthState } from './sync/ingest';
@@ -40,6 +42,7 @@ if (!app.requestSingleInstanceLock()) {
     // it. A broken window must never be able to disable the thing that repairs it.
     createTray();
     initAutoUpdate();
+    registerScreenAssistHotkeys();
 
     // The window is now the only failure-tolerant step. Its own splash+retry keeps
     // it branded while the network comes up; this catch is the backstop for
@@ -94,6 +97,12 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     (app as unknown as { isQuitting?: boolean }).isQuitting = true;
+    // A global shortcut is registered with the OS, not with the app. Leaving it
+    // behind means the combo stays swallowed system-wide after MODUS is gone.
+    globalShortcut.unregisterAll();
+    // Tears down any in-flight assist request and stops watch mode. Nothing that
+    // reads the screen may survive the app that owns it.
+    destroyOverlay();
   });
 
   // Tray app: closing the window hides it (handled in windows.ts), so this is a
