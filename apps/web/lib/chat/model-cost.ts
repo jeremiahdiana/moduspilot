@@ -53,12 +53,46 @@ const PRICES: Record<string, { in: number; out: number; est?: boolean }> = {
   'meta/llama-4-maverick':  { in: 0.8,  out: 1.6, est: true },
   'meta/llama-3.3-70b':     { in: 0.5,  out: 1.2, est: true },
   'gemini-3.5-flash':       { in: 0.3,  out: 2.5, est: true },
+
+  // ── The INTERNAL models. Not selectable Brains, but requests land on them ──
+  //
+  // 🚨 THESE WERE MISSING, AND IT WAS EXPENSIVE IN THE WRONG DIRECTION. They are
+  // not in PLATFORM_MODELS, so verify-model-cost.ts — which walked the catalog —
+  // never noticed, and costWeight() fell through to UNKNOWN_WEIGHT = 27x.
+  //
+  // gpt-4o-mini is the cheapest thing we serve AND the model that production's
+  // resolveChatModel forces EVERY image request onto. So every screenshot, every
+  // attached photo, was billed against the user's ceiling at 27x — the same weight
+  // as Claude Fable 5, which genuinely costs ~66x more. Measured on a real account:
+  // one Screen Assist question came to ~354,000 units of a 500,000/day allowance.
+  // One and a half questions a day.
+  //
+  // ⚠️ est: no published rate re-verified at this date; set deliberately high per
+  // the note above. Even so they land at weight 1, which is the honest floor for
+  // the two cheapest models in the system.
+  'gpt-4o-mini':            { in: 0.15, out: 0.6, est: true },
+  'meta/llama-3.1-8b':      { in: 0.3,  out: 0.6, est: true },
 };
 
 const blended = (p: { in: number; out: number }) => p.in * BLEND.input + p.out * BLEND.output;
 
-/** The cheapest model's blended price. Its weight is 1 and everything scales off it. */
-const BASELINE = Math.min(...Object.values(PRICES).map(blended));
+/**
+ * The reference price. Weight 1 is defined as "costs this much"; everything scales
+ * off it.
+ *
+ * 🪤 PINNED TO A NAMED MODEL, NOT Math.min(). It used to be the minimum across the
+ * whole table, which meant adding ONE cheaper model silently re-scaled every other
+ * weight upward and tightened every customer's effective allowance overnight, with
+ * no pricing decision and no changelog. Adding gpt-4o-mini below would have done
+ * exactly that: baseline $0.52 → $0.195, multiplying every premium model's weight
+ * by ~2.7x and cutting what a PILOT subscriber could actually use to a third.
+ *
+ * gemini-3.5-flash is the free default and the floor of the catalog, so it is the
+ * natural unit. Models cheaper than it simply clamp to 1 via costWeight's Math.max.
+ * Changing this line changes every customer's budget — that is a pricing decision,
+ * and it should have to be made deliberately rather than fall out of adding a row.
+ */
+const BASELINE = blended(PRICES['gemini-3.5-flash']);
 
 /**
  * The weight applied to an unknown model id.

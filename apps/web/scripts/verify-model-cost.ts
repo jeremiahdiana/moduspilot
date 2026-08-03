@@ -12,7 +12,7 @@
  *
  *   cd apps/web && npx tsx scripts/verify-model-cost.ts
  */
-import { PLATFORM_MODELS } from '../lib/models';
+import { PLATFORM_MODELS, INTERNAL_MODELS } from '../lib/models';
 import { costWeight, weightedTokens, estimatedCostUsd, pricedModelIds, isEstimatedPrice } from '../lib/chat/model-cost';
 import { MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT, MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT } from '../lib/constants';
 
@@ -30,6 +30,30 @@ for (const m of PLATFORM_MODELS) {
   const src = !priced ? '❌ MISSING' : isEstimatedPrice(m.id) ? '⚠️  estimated' : '✅ published';
   if (!priced) failed = true;
   console.log(`${m.id.padEnd(26)} ${String(w).padStart(4)}x   ${('$' + usdPerM.toFixed(2)).padStart(10)}    ${src}`);
+}
+
+/**
+ * 🚨 THE HOLE THIS CLOSES. This file walked PLATFORM_MODELS and reported "every
+ * catalog model is priced" — which was true, and useless. The INTERNAL models (the
+ * failover safety net and gpt-4o-mini) are not in the catalog, so they were never
+ * checked, were never priced, and silently took UNKNOWN_WEIGHT = 27x.
+ *
+ * Not a corner case: production's resolveChatModel forces EVERY image request onto
+ * gpt-4o-mini, so the cheapest model we serve billed at the same weight as the most
+ * expensive one. One Screen Assist question cost ~354,000 of a 500,000/day
+ * allowance — one and a half questions a day, and the user is told they hit their
+ * plan limit.
+ *
+ * A guard that only checks the models a user can PICK misses every model a request
+ * can LAND on.
+ */
+console.log('\n── internal models (not selectable, but requests land here) ──');
+for (const id of Object.keys(INTERNAL_MODELS)) {
+  const w = costWeight(id);
+  const priced = pricedModelIds().includes(id);
+  const src = !priced ? '❌ UNPRICED → billed at the unknown-model weight' : isEstimatedPrice(id) ? '⚠️  estimated' : '✅ published';
+  if (!priced) failed = true;
+  console.log(`${id.padEnd(26)} ${String(w).padStart(4)}x   ${src}`);
 }
 
 // What the weekly ceiling costs if a user spends ALL of it on one model.
