@@ -15,6 +15,40 @@ const ASK_FREQUENCY_RARE =
 
 const OPTIONS_ASK_FREQUENCY = ASK_FREQUENCY_OFTEN;
 
+/**
+ * The system prompt for Desktop Screen Assist.
+ *
+ * 💸 WHY THIS EXISTS, MEASURED. MODUS_SYSTEM_PROMPT below is 5,838 tokens and it
+ * is sent on EVERY message. It teaches a life-OS chief of staff: briefings, goals,
+ * habits, tasks, connectors, approvals — almost none of which applies when the
+ * question is "what does this error on my screen mean?".
+ *
+ * The arithmetic that forced this, on a $24 MODUS account whose Brain is `auto`
+ * and which therefore routes to Claude Sonnet 5 (cost weight 9x):
+ *
+ *   full prompt + life-OS context + screenshot ≈ 13,138 raw → 118,242 units
+ *   the entire daily ceiling is 500,000 units
+ *   ⇒ FOUR screen questions consumed a whole day's allowance
+ *
+ * That is how ~620,000 units disappeared in twenty minutes of testing: it was not
+ * a runaway loop, it was five questions each costing a quarter of a day.
+ *
+ * With screenMode's lean context AND this prompt the same question is ~2,100 raw
+ * → ~18,900 units, about 26 questions a day instead of 4.
+ *
+ * Kept deliberately short. The model is looking at a picture and answering a
+ * question about it; it does not need a personality briefing to do that.
+ */
+export const SCREEN_ASSIST_SYSTEM_PROMPT = `You are MODUS, helping the user with whatever is on their screen right now.
+
+You are looking at a screenshot of their display. Answer the question they ask about it.
+
+- Be specific about what is ACTUALLY visible. Quote exact text, names, numbers and error messages you can read in the image.
+- If the answer is not in the image, say so plainly rather than guessing. Never invent UI, text or values that are not there.
+- Be brief and direct. Lead with the answer, then the reason. No preamble, no restating the question.
+- When they are stuck on a task, give the concrete next action, not general advice.
+- Format with short paragraphs or a tight list. Markdown is fine.`;
+
 export const MODUS_SYSTEM_PROMPT = `You are Modus Pilot — a personal chief of staff and AI operating system, not a chatbot.
 
 You are the central nervous system of the user's life. Every integration, goal, relationship, task, and decision flows through you. You are not a feature. You are the intelligence layer the app is built on.

@@ -1,6 +1,6 @@
 import { streamText, experimental_createMCPClient, StreamData, convertToCoreMessages } from 'ai';
 import type { CoreMessage } from 'ai';
-import { MODUS_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER, PROJECT_CHAT_RULES } from '@/lib/claude';
+import { MODUS_SYSTEM_PROMPT, SCREEN_ASSIST_SYSTEM_PROMPT, looksLikePromptExtraction, PROMPT_EXTRACTION_REMINDER, PROJECT_CHAT_RULES } from '@/lib/claude';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { upsertMemory } from '@/lib/pinecone';
 import { extractDurableMemory } from '@/lib/chat/memory';
@@ -132,6 +132,24 @@ export async function POST(req: Request) {
       // the user attached (PDF text extracted server-side, text files read client-side).
       webSearch?: boolean;
       attachments?: { name: string; text: string }[];
+      /**
+       * Desktop Screen Assist: the question is about a screenshot on the user's
+       * display, not about their life.
+       *
+       * 💸 THIS IS A COST AND LATENCY SWITCH, and it was worth adding the moment it
+       * was measured: a screen question was costing ~5.6k tokens of assembled
+       * context — inbox, calendar, Apple Notes, iMessage, contacts, Pinecone
+       * memory, Notion/Slack/GitHub/Drive — before the model saw a single pixel.
+       * A $24 MODUS account has 500k tokens a day, so "what does this error mean?"
+       * was burning ~1.5% of a day's allowance on the user's unread email.
+       *
+       * Worse, "what's on my screen" trips isVagueQuery(), which is exactly the
+       * branch that pulls in email/calendar/notes/contacts wholesale.
+       *
+       * None of it helps answer a question about a screenshot, and every block is a
+       * network round trip (Firestore, Google, Pinecone) that the user waits on.
+       */
+      screenMode?: boolean;
     };
 
     // req.json() rejects on a malformed body; bodyPromise swallows that into null.
@@ -267,19 +285,23 @@ export async function POST(req: Request) {
       Array.isArray(m.content) && (m.content as any[]).some(p => p?.type === 'image'),
     );
 
-    const wantsEmail    = needsEmailCtx(queryText)    || isVagueQuery(queryText);
-    const wantsCalendar = needsCalendarCtx(queryText) || isVagueQuery(queryText);
-    const wantsNotes    = needsNotesCtx(queryText)    || isVagueQuery(queryText);
+    // Screen Assist: answer about the pixels, not about the user's life. See the
+    // note on body.screenMode.
+    const leanContext = body.screenMode === true;
+
+    const wantsEmail    = !leanContext && (needsEmailCtx(queryText)    || isVagueQuery(queryText));
+    const wantsCalendar = !leanContext && (needsCalendarCtx(queryText) || isVagueQuery(queryText));
+    const wantsNotes    = !leanContext && (needsNotesCtx(queryText)    || isVagueQuery(queryText));
     // No isVagueQuery fallback — this is other people's private correspondence,
     // not just the user's own content, so only surface it on explicit intent.
-    const wantsMessages = needsMessagesCtx(queryText);
+    const wantsMessages = !leanContext && needsMessagesCtx(queryText);
     // Contacts are broadly useful for people/vague queries but were previously
     // injected on EVERY message — gate them so unrelated queries don't pay the cost.
-    const wantsContacts = needsContactsCtx(queryText) || isVagueQuery(queryText);
+    const wantsContacts = !leanContext && (needsContactsCtx(queryText) || isVagueQuery(queryText));
 
     // Start Pinecone early — runs in parallel with the other context fetches below
     const memoryPromise: Promise<string> =
-      (uid && queryText && process.env.PINECONE_API_KEY)
+      (!leanContext && uid && queryText && process.env.PINECONE_API_KEY)
         ? queryMemoryContext(uid, queryText)
         : Promise.resolve('');
 
@@ -566,12 +588,12 @@ export async function POST(req: Request) {
       // Auto classified it as research. Passed as `explicit` so the keyword
       // heuristic can't veto a decision that was already made.
       fetchWebSearchBlock(queryText, searchCapabilities, forceWebSearch),
-      uid ? fetchDriveBlock(uid, queryText) : Promise.resolve(''),
+      (uid && !leanContext) ? fetchDriveBlock(uid, queryText) : Promise.resolve(''),
       // Agent-to-agent: when the user asks about a groupmate's availability, pull
       // the busy windows of members who opted to share their calendar.
-      uid ? fetchGroupAvailabilityBlock(uid, queryText, briefingTimezone) : Promise.resolve(''),
+      (uid && !leanContext) ? fetchGroupAvailabilityBlock(uid, queryText, briefingTimezone) : Promise.resolve(''),
       (body.projectContext && uid) ? fetchProjectResources(uid, body.projectContext) : Promise.resolve(''),
-      uid ? fetchConnectorData(uid, queryText) : Promise.resolve({ connectorBlock: '', notionBlock: '', slackBlock: '', githubBlock: '' }),
+      (uid && !leanContext) ? fetchConnectorData(uid, queryText) : Promise.resolve({ connectorBlock: '', notionBlock: '', slackBlock: '', githubBlock: '' }),
       uid ? fetchContactsBlock(uid, wantsContacts && userData.settings?.deviceAccess?.contacts !== false) : Promise.resolve(''),
       uid ? fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false) : Promise.resolve(''),
       // Opt-in only — defaults to OFF, unlike notesSync, since this surfaces
@@ -595,6 +617,9 @@ export async function POST(req: Request) {
     if (lockedChoice && lockedChoice !== resolved.modelId) {
       resolved.downgraded = true;
       resolved.requestedId = lockedChoice;
+      // Don't overwrite a 'vision' reason with the generic one: if the locked pick
+      // was swapped BECAUSE it cannot see, that is still the true explanation.
+      resolved.downgradeReason ??= 'unavailable';
     }
     const chatModel = resolved.model;
     // The model the USER was promised: their explicit pick, Auto's announced
@@ -608,7 +633,10 @@ export async function POST(req: Request) {
       // Loud + alertable: a premium model was requested but we served Llama
       // (missing provider key or plan gate). Previously silent — a rotated/removed
       // key would drop every paid user to Llama with no signal anywhere.
-      console.error(`[chat] MODEL DOWNGRADE: requested ${resolved.requestedId} → served ${resolved.modelId} (missing provider key or plan gate) uid=${uid ?? 'guest'}`);
+      const why = resolved.downgradeReason === 'vision'
+        ? 'requested model cannot read images'
+        : 'missing provider key or plan gate';
+      console.error(`[chat] MODEL DOWNGRADE: requested ${resolved.requestedId} → served ${resolved.modelId} (${why}) uid=${uid ?? 'guest'}`);
     }
 
     // System prompt blocks
@@ -658,7 +686,13 @@ export async function POST(req: Request) {
     // sitting early would invalidate the whole thing every turn.
     //   stable   = the ~5.2k-token constant + this user's fixed preferences
     //   volatile = live context (inbox, notes, memory, connectors, …)
-    const stableSystem = MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
+    // Screen Assist gets a compact, task-specific prompt instead of the 5.8k-token
+    // life-OS persona. See SCREEN_ASSIST_SYSTEM_PROMPT for the measurement that
+    // forced it: the persona alone was ~45% of a screen question's cost, and on a
+    // 9x-weighted model that made four questions a whole day's allowance.
+    const stableSystem = leanContext
+      ? SCREEN_ASSIST_SYSTEM_PROMPT + userContextBlock + styleBlock
+      : MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
     const volatileSystem = dateBlock + projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
     const fullSystemPrompt = stableSystem + volatileSystem;
 
@@ -679,7 +713,7 @@ export async function POST(req: Request) {
     // is usually already resolved). Must settle before streamText: mcpTools feeds
     // the call, and mcpClients is what onFinish/onError close.
     await mcpSetupPromise;
-    console.log(`[chat] timing: context=${tContext - t0}ms mcp+total=${Date.now() - t0}ms model=${resolved.modelId}`);
+    console.log(`[chat] timing: context=${tContext - t0}ms mcp+total=${Date.now() - t0}ms model=${resolved.modelId}${leanContext ? ' (screen mode: lean context)' : ''}`);
 
     // Layer 2: if the latest message looks like a prompt-extraction / override
     // attempt, reinforce the refusal for this turn (the prompt's confidentiality
@@ -953,7 +987,14 @@ export async function POST(req: Request) {
         // Auto mode picked this model for the task → client shows a routing chip.
         ...(wasAutoRouted ? { 'x-modus-auto': '1' } : {}),
         ...(resolved.downgraded
-          ? { 'x-modus-downgraded': '1', 'x-modus-requested-model': resolved.requestedId ?? '' }
+          ? {
+              'x-modus-downgraded': '1',
+              'x-modus-requested-model': resolved.requestedId ?? '',
+              // WHY, so the notice is true. 'vision' means the picked model works
+              // fine and simply cannot read images — telling that user their model
+              // is "temporarily unavailable" would be a lie about a healthy model.
+              'x-modus-downgrade-reason': resolved.downgradeReason ?? 'unavailable',
+            }
           : {}),
       },
       getErrorMessage: (error) => {
