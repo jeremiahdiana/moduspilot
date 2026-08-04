@@ -118,7 +118,8 @@ async function main() {
   {
     const cases: Array<[string, 'month' | 'year']> = [
       ['STRIPE_PRICE_MODUS', 'month'], ['STRIPE_PRICE_PILOT', 'month'],
-      ['STRIPE_PRICE_GROUP', 'month'],
+      // Group's price is retired; the add-on is the monthly-only one now.
+      ['STRIPE_PRICE_LIMIT_ADDON', 'month'],
       ['STRIPE_PRICE_MODUS_ANNUAL', 'year'], ['STRIPE_PRICE_PILOT_ANNUAL', 'year'],
     ];
     for (const [env, want] of cases) {
