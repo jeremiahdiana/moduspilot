@@ -5,6 +5,7 @@ export default function Footer() {
       { label: 'Download for Mac', href: '/download/mac' },
     ],
     Company: [
+      { label: 'Blog', href: '/blog' },
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms', href: '/terms' },
     ],

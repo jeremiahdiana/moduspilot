@@ -63,7 +63,6 @@ const WORKSPACE: NavItem[] = [
   { key: 'goals',     href: '/goals',     label: 'Goals',     icon: 'goals'     },
   { key: 'reminders', href: '/reminders', label: 'Reminders', icon: 'reminders' },
   { key: 'notes',     href: '/notes',     label: 'Notes',     icon: 'notes'     },
-  { key: 'group',     href: '/group',     label: 'Group',     icon: 'group'     },
 ];
 
 // Bottom group — pinned above Settings.
@@ -188,34 +187,9 @@ function useHasNotes(uid: string | undefined) {
   return hasNotes;
 }
 
-// True when Group is relevant: the user is in a group, on the group plan, or has
-// a pending invite (so an invitee can still reach /group to accept). Reads the
-// user doc directly — useUserSettings.plan drops the 'group' value.
-function useGroupVisible(uid: string | undefined, email: string | null | undefined) {
-  const [inGroup, setInGroup] = useState(false);
-  const [invited, setInvited] = useState(false);
-
-  useEffect(() => {
-    if (!uid) { setInGroup(false); return; }
-    const unsub = onSnapshot(doc(db, 'users', uid), snap => {
-      const d = snap.data();
-      setInGroup(!!d?.groupId || d?.plan === 'group');
-    }, () => setInGroup(false));
-    return unsub;
-  }, [uid]);
-
-  useEffect(() => {
-    if (!email) { setInvited(false); return; }
-    const unsub = onSnapshot(
-      query(collection(db, 'groupInvites'), where('email', '==', email)),
-      snap => setInvited(!snap.empty),
-      () => setInvited(false),
-    );
-    return unsub;
-  }, [email]);
-
-  return inGroup || invited;
-}
+// Group left the sidebar when multi-seat moved to a future Enterprise section.
+// /group and /api/group/* are still reachable by direct URL for any account that
+// already has a groupId — this only stops advertising it.
 
 function SidebarContent({
   pathname,
@@ -226,7 +200,6 @@ function SidebarContent({
   onNavClick,
   hidden,
   hasNotes,
-  groupVisible,
   workspaceCollapsed,
   onToggleWorkspace,
   collapsed = false,
@@ -240,7 +213,6 @@ function SidebarContent({
   onNavClick?: () => void;
   hidden: Set<string>;
   hasNotes: boolean;
-  groupVisible: boolean;
   workspaceCollapsed: boolean;
   onToggleWorkspace: () => void;
   collapsed?: boolean;
@@ -249,7 +221,6 @@ function SidebarContent({
   const visibleWorkspace = WORKSPACE.filter(i =>
     !hidden.has(i.key)
     && (i.key !== 'notes' || hasNotes)     // Notes only when synced notes exist
-    && (i.key !== 'group' || groupVisible)  // Group only when relevant
   );
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -489,7 +460,6 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { hidden, workspaceCollapsed, toggleWorkspace } = useSidebarPrefs(user?.uid);
   const hasNotes = useHasNotes(user?.uid);
-  const groupVisible = useGroupVisible(user?.uid, user?.email);
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -612,7 +582,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <SidebarContent
           pathname={pathname} user={user} open={open} setOpen={setOpen}
           onCmdOpen={() => setCmdOpen(true)}
-          hidden={hidden} hasNotes={hasNotes} groupVisible={groupVisible}
+          hidden={hidden} hasNotes={hasNotes}
           workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
           collapsed={collapsed} onToggleCollapse={toggleCollapse}
         />
@@ -646,7 +616,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 pathname={pathname} user={user} open={open} setOpen={setOpen}
                 onCmdOpen={() => { setCmdOpen(true); setMobileOpen(false); }}
                 onNavClick={() => setMobileOpen(false)}
-                hidden={hidden} hasNotes={hasNotes} groupVisible={groupVisible}
+                hidden={hidden} hasNotes={hasNotes}
                 workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
               />
             </motion.div>

@@ -1,7 +1,7 @@
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { resolvePlanPrice } from '@/lib/pricing';
-import { cadenceOfSubscription, isFoundingSubscription } from '@/lib/billing';
+import { cadenceOfSubscription, isFoundingSubscription, isAddonSubscription } from '@/lib/billing';
 
 // Plan changes for an EXISTING subscriber. Unlike /checkout (which is for brand
 // new customers and always attaches a 3-day trial), this repricing the customer's
@@ -24,6 +24,11 @@ export async function POST(req: Request) {
 
   const { plan: newPlan } = await req.json() as { plan: string };
   if (newPlan === 'free') return Response.json({ error: 'Invalid plan' }, { status: 400 });
+  // The limits add-on is bought and cancelled through Checkout/the portal by
+  // quantity — it is not a plan and must never be a repricing target here.
+  if (newPlan === 'limitAddon') {
+    return Response.json({ error: 'Extra limits are managed separately, not as a plan change.' }, { status: 400 });
+  }
 
   const userRef = adminDb.collection('users').doc(uid);
   const userData = (await userRef.get()).data() ?? {};
@@ -42,6 +47,21 @@ export async function POST(req: Request) {
   }
   const itemId = sub.items.data[0]?.id;
   if (!itemId) return Response.json({ error: 'Subscription has no items.' }, { status: 500 });
+
+  // 🚨 NEVER REPRICE AN ADD-ON.
+  //
+  // users/{uid}.subscriptionId is written by several self-heal paths that each
+  // pick "a live subscription" for this customer. Since the limits add-on exists,
+  // one of those can point here at the $10 add-on instead of the plan — and this
+  // route would then overwrite the add-on's price with $24 or $59, silently
+  // cancelling the customer's extra limits AND leaving their real plan untouched.
+  // Refuse and let the mirror be repaired (scripts/repair-subscription.ts).
+  if (isAddonSubscription(sub)) {
+    return Response.json({
+      error: 'Your subscription record needs repair before a plan change — contact support.',
+      code: 'mirror_points_at_addon',
+    }, { status: 409 });
+  }
 
   // A founding member's discount IS the mismatch between the $24 MODUS price and
   // their 'pilot' plan — there is no coupon holding it. Repricing them to any list

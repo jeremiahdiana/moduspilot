@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
+import { LIMIT_ADDON } from '@/lib/pricing';
 
 const PLANS: Array<{
   key: 'free' | 'modus' | 'pilot' | 'group';
@@ -39,26 +40,21 @@ const PLANS: Array<{
       'Dedicated onboarding',
     ],
   },
-  {
-    key: 'group',
-    label: 'GROUP',
-    price: '$79',
-    period: '/mo',
-    features: [
-      '5 seats — each a full MODUS',
-      'Everything in MODUS, per person',
-      'Shared group space',
-      'Cross-agent availability + scheduling',
-      'Web + iOS + Mac for everyone',
-    ],
-  },
 ];
 
 // Price order — decides whether a target plan is an upgrade or a downgrade.
+//
+// 🪤 'group' STAYS HERE even though the Group card is gone. Multi-seat moved to a
+// future Enterprise section, but accounts created before that still carry
+// plan:'group' in Firestore. Drop the key and RANK['group'] is undefined, which
+// makes `undefined > RANK[p.key]` false for every comparison below — so a group
+// user would see MODUS and PILOT both labelled a downgrade.
 const RANK: Record<'free' | 'modus' | 'pilot' | 'group', number> = { free: 0, modus: 1, pilot: 2, group: 3 };
 
 interface Props {
   plan: 'free' | 'modus' | 'pilot' | 'group';
+  /** Purchased limits add-ons. 0 when they hold none. */
+  limitAddonQty?: number;
 }
 
 async function getToken() {
@@ -67,16 +63,18 @@ async function getToken() {
   return user.getIdToken();
 }
 
-export default function BillingSettings({ plan }: Props) {
+export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
   const searchParams = useSearchParams();
   const upgraded = searchParams.get('upgraded') === '1';
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   // Plan awaiting confirmation (existing subscribers only — new customers get
   // Stripe's own hosted confirm/pay page, so no extra step needed there).
-  const [confirmPlan, setConfirmPlan] = useState<'modus' | 'pilot' | 'group' | null>(null);
+  // Group is no longer a purchasable target — only the two live plans are.
+  // `plan` (the prop) still accepts 'group' because existing accounts carry it.
+  const [confirmPlan, setConfirmPlan] = useState<'modus' | 'pilot' | null>(null);
 
-  const handleChangePlan = async (targetPlan: 'modus' | 'pilot' | 'group') => {
+  const handleChangePlan = async (targetPlan: 'modus' | 'pilot') => {
     setLoading(targetPlan);
     setError('');
     try {
@@ -107,6 +105,32 @@ export default function BillingSettings({ plan }: Props) {
     } catch {
       setConfirmPlan(null);
       setError('Failed to change plan. Try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  // Buying extra limits always goes through Checkout, never change-plan: it is a
+  // SECOND subscription stacked on the plan, not a repricing of it. Quantity is
+  // the stacking mechanism, so buying again means quantity + 1.
+  const handleBuyAddon = async () => {
+    setLoading('addon');
+    setError('');
+    try {
+      const token = await getToken();
+      if (!token) { setError('Please sign in first.'); return; }
+
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: 'limitAddon', quantity: limitAddonQty + 1 }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Something went wrong.'); return; }
+      window.location.href = data.url;
+    } catch {
+      setError('Failed to start checkout. Try again.');
     } finally {
       setLoading(null);
     }
@@ -173,8 +197,9 @@ export default function BillingSettings({ plan }: Props) {
         )}
       </div>
 
-      {/* Plan cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Plan cards — two of them since Group left, so the grid caps at 2.
+          It was lg:grid-cols-4 back when free/MODUS/PILOT/Group all rendered. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {PLANS.map(p => {
           const isCurrent = p.key === plan;
           const isUpgrade = RANK[p.key] > RANK[plan];
@@ -206,8 +231,8 @@ export default function BillingSettings({ plan }: Props) {
               {!isCurrent && (
                 <button
                   onClick={() => plan === 'free'
-                    ? handleChangePlan(p.key as 'modus' | 'pilot' | 'group')
-                    : setConfirmPlan(p.key as 'modus' | 'pilot' | 'group')}
+                    ? handleChangePlan(p.key as 'modus' | 'pilot')
+                    : setConfirmPlan(p.key as 'modus' | 'pilot')}
                   disabled={!!loading}
                   className={`w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                     isUpgrade
@@ -222,6 +247,39 @@ export default function BillingSettings({ plan }: Props) {
           );
         })}
       </div>
+
+      {/* Extra limits — an add-on, never a third plan. Only offered to people who
+          already pay, because the API rejects it otherwise (code: needs_plan). */}
+      {plan !== 'free' && (
+        <div className="bg-panel border border-border rounded-xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-sm font-semibold text-text">Extra limits</h3>
+              {limitAddonQty > 0 && (
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-brand/15 text-brand px-2 py-0.5 rounded-full">
+                  {limitAddonQty}× active
+                </span>
+              )}
+            </div>
+            {/* "Double" is exact for every model. A message count is NOT — one
+                add-on is ~25 more standard-model messages a day but under one
+                more on Claude Fable 5, so any unqualified count would be false
+                for the frontier tier. */}
+            <p className="text-xs text-muted leading-relaxed max-w-md">
+              {limitAddonQty > 0
+                ? `Your daily and weekly ceilings are raised by ${limitAddonQty}×. Add another for $${LIMIT_ADDON.monthlyPrice}/mo, or remove them in the billing portal.`
+                : `Doubles your daily and weekly ceilings for $${LIMIT_ADDON.monthlyPrice}/mo. Stack it as many times as you need, and cancel it without touching your plan.`}
+            </p>
+          </div>
+          <button
+            onClick={handleBuyAddon}
+            disabled={!!loading}
+            className="shrink-0 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50"
+          >
+            {loading === 'addon' ? 'Working…' : limitAddonQty > 0 ? 'Add another' : `Add for $${LIMIT_ADDON.monthlyPrice}/mo`}
+          </button>
+        </div>
+      )}
 
       {/* Payment + invoices — managed via Stripe portal */}
       <div className="bg-panel border border-border rounded-xl p-6 space-y-3">

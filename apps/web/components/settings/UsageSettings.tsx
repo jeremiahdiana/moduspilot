@@ -1,7 +1,6 @@
 'use client';
 
-import { MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT } from '@/lib/constants';
-import { isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
+import { isPaidPlan, planCeilings } from '@/lib/plan';
 
 interface Props {
   plan: 'free' | 'modus' | 'pilot' | 'group';
@@ -9,6 +8,8 @@ interface Props {
     dailyMessages: number; usageDate: string;
     dailyTokens: number;   tokenDate: string;
     weeklyTokens: number;  tokenWeek: string;
+    /** Purchased limit add-ons. Raises the ceilings below — see planCeilings. */
+    limitAddonQty?: number;
   };
 }
 
@@ -41,8 +42,10 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
   const today   = new Date().toISOString().slice(0, 10);
   const weekKey = getWeekKey();
 
-  const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
-  const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+  // 🪤 The SAME function the server gates on (lib/plan.ts). Recomputing the
+  // ceilings here is how the meter and the gate drift apart — an add-on holder
+  // would see a bar pinned at 100% while the server served them fine.
+  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings({ plan, limitAddonQty: usage.limitAddonQty });
 
   const tokenCount   = usage.tokenDate === today    ? usage.dailyTokens    : 0;
   const weeklyCount  = usage.tokenWeek === weekKey  ? usage.weeklyTokens   : 0;

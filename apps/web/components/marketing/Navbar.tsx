@@ -43,10 +43,10 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
 
   const showBg = solid || scrolled || menuOpen;
 
+  // Blog lives in the footer under Company, not up here — see components/marketing/Footer.tsx.
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/pricing', label: 'Pricing' },
-    { href: '/blog', label: 'Blog' },
   ];
 
   return (

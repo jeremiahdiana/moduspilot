@@ -2,13 +2,39 @@ import { stripe } from '@/lib/stripe';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendPushToUser } from '@/lib/fcm-admin';
-import { stripeId, sessionIsPaid, downgradeIfNoLiveSubscription } from '@/lib/billing';
+import { stripeId, sessionIsPaid, downgradeIfNoLiveSubscription, isAddonSubscription } from '@/lib/billing';
 
 const PLAN_PRICE: Record<string, string> = { modus: '$24', pilot: '$59', group: '$79' };
 
 type GrantablePlan = 'modus' | 'pilot' | 'group';
 function isGrantablePlan(p: unknown): p is GrantablePlan {
   return p === 'modus' || p === 'pilot' || p === 'group';
+}
+
+/** Statuses where an add-on is paid for and should actually raise the ceiling. */
+const ADDON_LIVE_STATUSES = ['active', 'trialing'];
+
+/**
+ * Mirror an add-on subscription's QUANTITY onto users/{uid}.limitAddonQty.
+ *
+ * 🪤 THE QUANTITY IS NOT ON THE SESSION. `checkout.session.completed` gives
+ * `session.subscription` as a bare id, so reading `items.data[0].quantity`
+ * requires retrieving the subscription. Skipping that retrieve is how every
+ * purchase silently becomes qty 1 and someone who bought three gets one.
+ *
+ * set+merge, never update(): a user can pay before their users doc exists, and
+ * update() throws 5 NOT_FOUND on a missing doc — the bug that left a real $24
+ * payer with no plan.
+ */
+async function syncAddonQty(
+  uid: string,
+  sub: { id: string; status: string; items?: { data: Array<{ quantity?: number | null }> } },
+  event: { id: string; type: string },
+) {
+  const live = ADDON_LIVE_STATUSES.includes(sub.status);
+  const qty = live ? Math.max(0, Math.floor(sub.items?.data[0]?.quantity ?? 1)) : 0;
+  await adminDb.collection('users').doc(uid).set({ limitAddonQty: qty }, { merge: true });
+  log(event, `limit add-on → qty ${qty}`, { uid, sub: sub.id, status: sub.status });
 }
 
 /**
@@ -87,6 +113,20 @@ export async function POST(req: Request) {
       return Response.json({ received: true });
     }
 
+    // Limits add-on: not a plan grant. Mirror the quantity and stop — falling
+    // through would do nothing (isGrantablePlan is false for it) but returning
+    // here makes it impossible for a future edit to touch `plan` on an add-on.
+    if (uid && session.metadata?.addon === 'limits') {
+      const addonSubId = stripeId(session.subscription);
+      if (addonSubId) {
+        const addonSub = await stripe.subscriptions.retrieve(addonSubId);
+        await syncAddonQty(uid, addonSub, event);
+      } else {
+        log(event, 'add-on session had no subscription', { uid });
+      }
+      return Response.json({ received: true });
+    }
+
     if (uid && isGrantablePlan(plan)) {
       // set+merge, NOT update: a user can pay BEFORE the users doc exists (the
       // founding flow signs in and goes straight to checkout; onboarding is what
@@ -132,6 +172,11 @@ export async function POST(req: Request) {
     const session = event.data.object;
     const uid = session.metadata?.uid;
     const plan = session.metadata?.plan;
+    if (uid && session.metadata?.addon === 'limits') {
+      const addonSubId = stripeId(session.subscription);
+      if (addonSubId) await syncAddonQty(uid, await stripe.subscriptions.retrieve(addonSubId), event);
+      return Response.json({ received: true });
+    }
     if (uid && isGrantablePlan(plan)) {
       await adminDb.collection('users').doc(uid).set({
         plan,
@@ -146,6 +191,18 @@ export async function POST(req: Request) {
   if (event.type === 'customer.subscription.updated') {
     const sub = event.data.object;
     const customerId = stripeId(sub.customer);
+
+    // Add-on first, and it returns. Quantity changes (someone stacking a second
+    // add-on from Stripe's page) arrive as .updated — there is no
+    // customer.subscription.created handler in this file, so this and
+    // checkout.session.completed are the only two places qty can be learned.
+    if (isAddonSubscription(sub)) {
+      const uid = sub.metadata?.uid;
+      if (uid) await syncAddonQty(uid, sub, event);
+      else log(event, 'ignored: add-on with no uid', { sub: sub.id });
+      return Response.json({ received: true });
+    }
+
     const ref = await findUserBySubscription(sub.id, customerId, sub.metadata?.uid);
     const plan = sub.metadata?.plan;
     const status = sub.status; // active, past_due, canceled, unpaid, etc.
@@ -227,6 +284,16 @@ export async function POST(req: Request) {
   if (event.type === 'customer.subscription.deleted') {
     const sub = event.data.object;
     const customerId = stripeId(sub.customer);
+
+    // Cancelling the ADD-ON drops the boost and touches nothing else. It must not
+    // reach downgradeIfNoLiveSubscription, which would re-point subscriptionId.
+    if (isAddonSubscription(sub)) {
+      const uid = sub.metadata?.uid;
+      if (uid) await syncAddonQty(uid, { ...sub, status: 'canceled' }, event);
+      else log(event, 'ignored: add-on with no uid', { sub: sub.id });
+      return Response.json({ received: true });
+    }
+
     const ref = await findUserBySubscription(sub.id, customerId, sub.metadata?.uid);
     if (ref) {
       // THE bug that would have hit Oliver the moment his duplicate was cancelled:
@@ -248,6 +315,18 @@ export async function POST(req: Request) {
     // Only act when it's a subscription invoice and next_payment_attempt is null (retries done)
     if (invoiceSubId && invoice.next_payment_attempt === null) {
       const customerId = stripeId(invoice.customer as string | { id: string } | null);
+
+      // A dead invoice on the ADD-ON drops the boost only. Running the plan
+      // downgrade path here would strip access over a failed $10 top-up while
+      // the $24 plan is still being paid.
+      const failedSub = await stripe.subscriptions.retrieve(invoiceSubId).catch(() => null);
+      if (failedSub && isAddonSubscription(failedSub)) {
+        const uid = failedSub.metadata?.uid;
+        if (uid) await syncAddonQty(uid, { ...failedSub, status: 'unpaid' }, event);
+        else log(event, 'ignored: add-on with no uid', { sub: invoiceSubId });
+        return Response.json({ received: true });
+      }
+
       const ref = await findUserBySubscription(invoiceSubId, customerId, null);
       if (ref) {
         // Same rule as cancellation: a dead invoice on ONE subscription must not

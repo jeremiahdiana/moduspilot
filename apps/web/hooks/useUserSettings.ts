@@ -76,7 +76,7 @@ export function useUserSettings(user: User | null) {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [plan, setPlan] = useState<'free' | 'modus' | 'pilot' | 'group'>('free');
-  const [usage, setUsage] = useState({ dailyMessages: 0, usageDate: '', dailyTokens: 0, tokenDate: '', weeklyTokens: 0, tokenWeek: '' });
+  const [usage, setUsage] = useState({ dailyMessages: 0, usageDate: '', dailyTokens: 0, tokenDate: '', weeklyTokens: 0, tokenWeek: '', limitAddonQty: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -101,7 +101,7 @@ export function useUserSettings(user: User | null) {
             });
           }
           if (data.plan === 'modus' || data.plan === 'pilot' || data.plan === 'group') setPlan(data.plan);
-          setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', dailyTokens: (data.dailyTokens as number) ?? 0, tokenDate: (data.tokenDate as string) ?? '', weeklyTokens: (data.weeklyTokens as number) ?? 0, tokenWeek: (data.tokenWeek as string) ?? '' });
+          setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', dailyTokens: (data.dailyTokens as number) ?? 0, tokenDate: (data.tokenDate as string) ?? '', weeklyTokens: (data.weeklyTokens as number) ?? 0, tokenWeek: (data.tokenWeek as string) ?? '', limitAddonQty: (data.limitAddonQty as number) ?? 0 });
         }
 
         const memSnap = await getDocs(collection(db, 'users', uid, 'memories'));

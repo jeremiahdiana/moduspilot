@@ -173,7 +173,7 @@ function SettingsContent() {
               {activeTab === 'billing' && (
                 <div className="space-y-12">
                   <UsageSettings plan={plan} usage={usage} onUpgrade={() => { /* already on billing */ }} />
-                  <BillingSettings plan={plan} />
+                  <BillingSettings plan={plan} limitAddonQty={usage.limitAddonQty} />
                 </div>
               )}
               {activeTab === 'model' && (

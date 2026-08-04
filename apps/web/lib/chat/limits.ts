@@ -1,15 +1,8 @@
 import { createHash } from 'crypto';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import {
-  GUEST_DAILY_LIMIT,
-  PAYWALL_LAUNCH_MS,
-  MODUS_TOKEN_LIMIT,
-  PILOT_TOKEN_LIMIT,
-  MODUS_WEEKLY_LIMIT,
-  PILOT_WEEKLY_LIMIT,
-} from '@/lib/constants';
-import { hasActiveAccess, isPaidPlan, isPilotLevelPlan } from '@/lib/plan';
+import { GUEST_DAILY_LIMIT, PAYWALL_LAUNCH_MS } from '@/lib/constants';
+import { hasActiveAccess, isPaidPlan, planCeilings } from '@/lib/plan';
 import { weightedTokens } from '@/lib/chat/model-cost';
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
@@ -82,6 +75,9 @@ export async function enforceSubscriptionGate(uid: string, userData: Record<stri
 /**
  * Paid daily + weekly token ceilings. Non-paid plans are a no-op.
  * Returns a 429 Response when over budget, otherwise null.
+ *
+ * Ceilings come from planCeilings() so a purchased add-on raises the gate and the
+ * meter by the same amount — see lib/plan.ts for why that is not computed here.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function enforcePaidTokenLimit(userData: Record<string, any>): Response | null {
@@ -89,8 +85,7 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
   if (!isPaidPlan(plan)) return null;
   const todayStr  = new Date().toISOString().slice(0, 10);
   const weekKey   = getWeekKey();
-  const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
-  const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(userData);
   const tokensToday  = (userData.tokenDate  as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
   const tokensWeek   = (userData.tokenWeek  as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
   if (tokensToday >= dailyLimit || tokensWeek >= weeklyLimit) {
@@ -120,13 +115,23 @@ export function usagePercent(userData: Record<string, any>): number | null {
   if (!isPaidPlan(plan)) return null;
   const todayStr = new Date().toISOString().slice(0, 10);
   const weekKey = getWeekKey();
-  const dailyLimit  = isPilotLevelPlan(plan) ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT;
-  const weeklyLimit = isPilotLevelPlan(plan) ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT;
+  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(userData);
   const tokensToday = (userData.tokenDate as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
   const tokensWeek  = (userData.tokenWeek as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
   const worst = Math.max(tokensToday / dailyLimit, tokensWeek / weeklyLimit);
   if (!Number.isFinite(worst)) return null;
-  return Math.max(0, Math.min(100, Math.round(worst * 100)));
+  // 🪤 100% MEANS BLOCKED, AND ONLY BLOCKED.
+  //
+  // This used to be a plain Math.round, so 499,999 of a 500,000 ceiling rounded
+  // to 100% — the meter told people they were out of usage while
+  // enforcePaidTokenLimit was still happily serving them. Reporting "you have
+  // nothing left" to someone who does is the same failure as the 27x billing bug,
+  // just cheaper: the number shown and the number enforced disagreed.
+  //
+  // Capping at 99 until `worst` actually reaches 1 makes the two agree by
+  // construction, and scripts/verify-limit-addon.ts pins it at every quantity.
+  if (worst >= 1) return 100;
+  return Math.max(0, Math.min(99, Math.round(worst * 100)));
 }
 
 /**

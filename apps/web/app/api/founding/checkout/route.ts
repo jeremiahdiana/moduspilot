@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FOUNDING_COOKIE, verifyGate, toMillis } from '@/lib/founding';
-import { ensureUserDoc, resolveStripeCustomer, findLiveSubscription, stripeId } from '@/lib/billing';
+import { ensureUserDoc, resolveStripeCustomer, findLivePlanSubscription, stripeId } from '@/lib/billing';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
 // Founding members are billed on the $24 MODUS price but granted PILOT tier.
@@ -63,7 +63,9 @@ export async function POST(req: Request) {
   // is only written by the success webhook, so it is precisely blank when the
   // webhook failed — which is exactly when a user is about to buy a SECOND
   // subscription. Checking Firestore here is how one founder ended up at $48/mo.
-  const live = await findLiveSubscription(uid, email);
+  // Plan subscriptions only — a $10 limits add-on is not "they already pay for a
+  // plan", and treating it as one would bounce a legitimate founding redemption.
+  const live = await findLivePlanSubscription(uid, email);
   if (live) {
     // Self-heal: the money is real, so make Firestore agree before sending them in.
     const plan = live.metadata?.plan;

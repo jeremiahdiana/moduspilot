@@ -58,16 +58,22 @@ async function main() {
     process.env.STRIPE_PRICE_MODUS_ANNUAL = 'price_modus_y';
     process.env.STRIPE_PRICE_PILOT = 'price_pilot_m';
     process.env.STRIPE_PRICE_PILOT_ANNUAL = 'price_pilot_y';
-    process.env.STRIPE_PRICE_GROUP = 'price_group_m';
+    process.env.STRIPE_PRICE_LIMIT_ADDON = 'price_addon_m';
 
     const a = resolvePlanPrice('pilot', 'annual');
     check('annual subscriber → ANNUAL price (was: silently monthly)',
       a.priceId === 'price_pilot_y' && a.cadence === 'annual', `${a.priceId} / ${a.cadence}`);
     const m = resolvePlanPrice('pilot', 'monthly');
     check('monthly subscriber → monthly price', m.priceId === 'price_pilot_m' && m.cadence === 'monthly');
-    const g = resolvePlanPrice('group', 'annual');
-    check('group has no annual → reports the monthly fallback HONESTLY',
-      g.priceId === 'price_group_m' && g.cadence === 'monthly', `${g.priceId} / ${g.cadence}`);
+    // The monthly-only tier used to be Group. Group was removed on 2026-08-04
+    // (multi-seat moves to Enterprise), and the limits add-on took over as the
+    // one purchasable thing with no annual price — so the honest-fallback
+    // invariant is now pinned on it.
+    const g = resolvePlanPrice('limitAddon', 'annual');
+    check('the add-on has no annual → reports the monthly fallback HONESTLY',
+      g.priceId === 'price_addon_m' && g.cadence === 'monthly', `${g.priceId} / ${g.cadence}`);
+    check('group is no longer purchasable at all',
+      resolvePlanPrice('group', 'monthly').priceId === undefined);
     check('unknown plan → no price', resolvePlanPrice('bogus', 'monthly').priceId === undefined);
 
     // A missing annual env must degrade to monthly, not 400 someone out of checkout.

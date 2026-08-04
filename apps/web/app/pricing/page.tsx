@@ -13,16 +13,18 @@ import MarketingDecor from '@/components/marketing/MarketingDecor';
  *
  * Deliberately thin: a hero, the SAME two plan cards the homepage renders
  * (imported, not copied, so the offer can never drift), one honest cost line,
- * four questions, one CTA. The old page had a 4-tile comparison grid, a
+ * the questions, one CTA. The old page had a 4-tile comparison grid, a
  * 6-card "what you actually get" grid, a Group card and 7 FAQs on a dark theme.
  *
- * Three factual bugs removed with it:
- *  - "Annual billing available, 2 months free" — no annual price exists in
- *    Stripe, and this page's own FAQ said so two sections earlier.
+ * Two factual bugs removed with it:
+ *  - "Annual billing available, 2 months free" — no annual price existed in
+ *    Stripe at the time, and this page's own FAQ said so two sections earlier.
+ *    Annual is real now and the toggle sells it.
  *  - "See how it works" linked to /features, which now redirects to /.
- *  - The Group card advertised a "7-day full trial, no card required" that
- *    contradicts the 3-day card-required trial, on a tier that still needs a
- *    rules deploy + a Stripe price before it can be sold at all.
+ *
+ * Group is gone entirely (2026-08-04) — multi-seat moves to its own Enterprise
+ * section rather than sitting as a third tier here. Two plans, plus the limits
+ * add-on for anyone who needs headroom without the jump to PILOT.
  */
 
 const FAQS = [
@@ -41,8 +43,16 @@ const FAQS = [
     q: 'Is there annual billing?',
     // True as of 2026-07-21: price_1TvWQu... ($240) and price_1TvWR0... ($588)
     // are live in Stripe and wired through /api/stripe/checkout via `cadence`.
-    // Group has no annual price, which is why it isn't mentioned here.
+    // The limits add-on is monthly-only, which is why it isn't mentioned here.
     a: 'Yes. Switch the toggle above to Annually and you get 2 months free: MODUS is $240 a year, which works out at $20/mo, and PILOT is $588 a year, $49/mo. Same 3-day trial either way, and you can still cancel before it ends.',
+  },
+  {
+    q: 'What if I hit my limits?',
+    // Deliberately does NOT quote a single message count. One add-on is +500k
+    // units/day, which is ~25 more messages on standard models but under one
+    // more on Claude Fable 5 — a bare "25 more messages" would be false for
+    // anyone using the frontier tier. "Double" is exact for every model.
+    a: 'Add extra limits for $10/mo and your daily and weekly ceilings double. You can stack it as many times as you need, and cancel it separately without touching your plan. It works out cheaper than moving to PILOT if all you want is more usage rather than the frontier models.',
   },
   {
     q: "What's the difference between MODUS and PILOT?",

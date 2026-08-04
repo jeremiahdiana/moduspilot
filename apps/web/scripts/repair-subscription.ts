@@ -60,11 +60,21 @@ async function main() {
     const s = await stripe.subscriptions.list({ customer: c.id, status: 'all', limit: 20 });
     subs.push(...s.data);
   }
-  const live = subs.filter(s => (s.status === 'active' || s.status === 'trialing') && s.metadata?.uid === uid);
+  // Add-ons (metadata.addon) are excluded: they grant no access, carry no
+  // metadata.plan, and picking one here would abort the repair with "not a plan
+  // we grant" for a user whose PLAN subscription is sitting right there — i.e.
+  // disarm the tool in exactly the situation it exists for.
+  const liveAll = subs.filter(s => (s.status === 'active' || s.status === 'trialing') && s.metadata?.uid === uid);
+  const addons = liveAll.filter(s => s.metadata?.addon);
+  const live = liveAll.filter(s => !s.metadata?.addon);
 
   console.log(`\nstripe: ${customers.length} customer(s), ${subs.length} subscription(s), ${live.length} active-for-this-uid`);
   for (const s of subs) {
-    console.log(`   ${s.id}  ${s.status}  cust=${s.customer}  plan=${s.metadata?.plan ?? '—'}  founding=${s.metadata?.founding ?? '—'}`);
+    console.log(`   ${s.id}  ${s.status}  cust=${s.customer}  plan=${s.metadata?.plan ?? '—'}  addon=${s.metadata?.addon ?? '—'}  founding=${s.metadata?.founding ?? '—'}`);
+  }
+  if (addons.length) {
+    const qty = addons.reduce((n, s) => n + (s.items?.data[0]?.quantity ?? 1), 0);
+    console.log(`   ↳ ${addons.length} live limits add-on(s), total quantity ${qty} — repaired as limitAddonQty`);
   }
 
   if (live.length === 0) {
@@ -87,6 +97,8 @@ async function main() {
     stripeCustomerId: sub.customer,
     subscriptionId: sub.id,
     trialReminderSent: false,
+    // Stripe is the truth for the boost too — 0 when they hold no add-on.
+    limitAddonQty: addons.reduce((n, s) => n + (s.items?.data[0]?.quantity ?? 1), 0),
     ...(sub.metadata?.founding === 'true' ? { founding: true } : {}),
   };
   const codeId: string | undefined = sub.metadata?.founding === 'true' ? sub.metadata?.foundingCodeId : undefined;

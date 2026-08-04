@@ -24,8 +24,9 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   if (!(m[1] in process.env)) process.env[m[1]] = v;
 }
 
-const MODUS_TOKEN_LIMIT  = 500_000;
-const PILOT_TOKEN_LIMIT  = 1_500_000;
+// Ceilings come from lib/plan.ts (planCeilings), never redeclared here — this
+// script used to hardcode its own copy, so it reported a limit that ignored any
+// purchased add-on and derived weekly as daily*7 instead of the real constant.
 
 function app() {
   if (getApps().length) return getApp();
@@ -50,15 +51,18 @@ async function main() {
   const d = snap.data() ?? {};
 
   const plan = d.plan as string | undefined;
-  const dailyLimit = plan === 'pilot' ? PILOT_TOKEN_LIMIT : MODUS_TOKEN_LIMIT;
+  const { planCeilings } = await import('@/lib/plan');
+  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(d);
+  const addonQty = Number(d.limitAddonQty) || 0;
 
   console.log(`email          : ${email}`);
   console.log(`uid            : ${user.uid}`);
   console.log(`plan           : ${plan ?? '(none)'}`);
+  console.log(`limitAddonQty  : ${addonQty}${addonQty ? ' (ceilings below include it)' : ''}`);
   console.log(`tokenDate      : ${d.tokenDate ?? '(unset)'}`);
   console.log(`dailyTokens    : ${(d.dailyTokens ?? 0).toLocaleString()} / ${dailyLimit.toLocaleString()}`);
   console.log(`tokenWeek      : ${d.tokenWeek ?? '(unset)'}`);
-  console.log(`weeklyTokens   : ${(d.weeklyTokens ?? 0).toLocaleString()} / ${(dailyLimit * 7).toLocaleString()}`);
+  console.log(`weeklyTokens   : ${(d.weeklyTokens ?? 0).toLocaleString()} / ${weeklyLimit.toLocaleString()}`);
 
   if (!reset) {
     console.log('\n(read only — pass --reset to clear)');

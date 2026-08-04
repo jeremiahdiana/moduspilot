@@ -95,23 +95,62 @@ export async function resolveStripeCustomer(uid: string, email?: string | null):
 }
 
 /**
+ * Is this an add-on subscription rather than a plan?
+ *
+ * Add-ons are stamped `metadata.addon` at checkout and deliberately carry NO
+ * `metadata.plan`, so they can never be mistaken for something that grants access.
+ */
+export function isAddonSubscription(sub: Stripe.Subscription | null | undefined): boolean {
+  return typeof sub?.metadata?.addon === 'string' && sub.metadata.addon.length > 0;
+}
+
+/**
  * Ask STRIPE whether this user already pays — never our own Firestore mirror.
  * The mirror is exactly what's stale when the webhook failed, which is precisely
  * when someone is about to accidentally buy a second subscription.
+ *
+ * 🚨 `excludeAddons` IS NOT OPTIONAL THINKING — IT DECIDES WHETHER ACCESS SURVIVES.
+ *
+ * Since the $10 limits add-on shipped, a user can hold TWO live subscriptions: the
+ * plan they pay for and an add-on that grants no access on its own. Any caller
+ * asking "does this user still have a plan?" must pass excludeAddons, or:
+ *
+ *   - downgradeIfNoLiveSubscription finds the surviving add-on and returns 'kept',
+ *     leaving someone on full MODUS for $10/mo after they cancelled the $24 plan;
+ *   - the self-heal writes repoint users/{uid}.subscriptionId at the add-on, and
+ *     change-plan then reprices the ADD-ON to $24 or $59.
+ *
+ * Callers gating "may this user buy a subscription at all" (checkout) want the
+ * opposite — they care about every live sub — so this defaults to false and the
+ * access-deciding callers opt in.
  */
 export async function findLiveSubscription(
   uid: string,
   email?: string | null,
-  opts: { excludeSubId?: string } = {},
+  opts: { excludeSubId?: string; excludeAddons?: boolean } = {},
 ): Promise<Stripe.Subscription | null> {
   for (const customerId of await customerIdsForUser(uid, email)) {
     const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 });
     for (const s of subs.data) {
       if (opts.excludeSubId && s.id === opts.excludeSubId) continue;
+      if (opts.excludeAddons && isAddonSubscription(s)) continue;
       if (LIVE_STATUSES.includes(s.status)) return s;
     }
   }
   return null;
+}
+
+/**
+ * The live subscription that actually represents this user's PLAN, ignoring
+ * add-ons. This is the one to mirror into users/{uid}.subscriptionId and the one
+ * change-plan is allowed to reprice.
+ */
+export async function findLivePlanSubscription(
+  uid: string,
+  email?: string | null,
+  opts: { excludeSubId?: string } = {},
+): Promise<Stripe.Subscription | null> {
+  return findLiveSubscription(uid, email, { ...opts, excludeAddons: true });
 }
 
 /**
@@ -127,7 +166,10 @@ export async function downgradeIfNoLiveSubscription(
   endedSubId: string,
   email?: string | null,
 ): Promise<'downgraded' | 'kept'> {
-  const other = await findLiveSubscription(uid, email, { excludeSubId: endedSubId });
+  // Add-ons are excluded on purpose: a $10 limits add-on is not a plan, and
+  // letting one keep access alive would leave a cancelled subscriber on full
+  // MODUS for $10/mo. See findLiveSubscription.
+  const other = await findLivePlanSubscription(uid, email, { excludeSubId: endedSubId });
   if (other) {
     const plan = other.metadata?.plan;
     // Still paying — keep access, and re-point at the subscription that survives.
@@ -137,7 +179,13 @@ export async function downgradeIfNoLiveSubscription(
     }, { merge: true });
     return 'kept';
   }
-  await adminDb.collection('users').doc(uid).set({ plan: 'free', subscriptionId: null }, { merge: true });
+  // No plan left. Clear the add-on quantity too — a ceiling boost on a free
+  // account is meaningless, and leaving it set would silently re-apply if they
+  // resubscribe later without re-buying the add-on.
+  await adminDb.collection('users').doc(uid).set(
+    { plan: 'free', subscriptionId: null, limitAddonQty: 0 },
+    { merge: true },
+  );
   return 'downgraded';
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PLAN_PRICING, CADENCE_STORAGE_KEY, type Cadence } from '@/lib/pricing';
+import { PLAN_PRICING, LIMIT_ADDON, CADENCE_STORAGE_KEY, type Cadence } from '@/lib/pricing';
 import AnimatedPrice from './AnimatedPrice';
 import CadenceToggle from './CadenceToggle';
 
@@ -196,6 +196,32 @@ export default function HomePricingSection({
             </motion.div>
           ))}
         </div>
+
+        {/* Extra limits — a STRIP, not a third card. Two plans stays two plans;
+            this is a top-up you buy on top of one, so it must not read as a tier.
+
+            🚨 The copy says "double", never a message count. One add-on is ~25
+            more messages a day on standard models but under one more on Claude
+            Fable 5 (weight 27), so any unqualified number would be false for
+            anyone on the frontier tier. "Double" is exact for every model. */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+          className="mt-6 rounded-2xl border border-border/70 bg-panel/50 px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        >
+          <div>
+            <p className="text-sm font-semibold text-text mb-1">
+              Need more headroom? Add extra limits for ${LIMIT_ADDON.monthlyPrice}/mo
+            </p>
+            <p className="text-sm text-muted leading-relaxed max-w-xl">
+              Doubles your daily and weekly limits on either plan. Stack it as many times as you
+              need, cancel it without touching your plan. For the days you are actually deep in it.
+            </p>
+          </div>
+          <span className="shrink-0 text-xs text-muted/70">Available once you&apos;re on a plan</span>
+        </motion.div>
       </div>
     </section>
   );

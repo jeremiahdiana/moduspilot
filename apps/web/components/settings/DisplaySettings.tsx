@@ -41,7 +41,6 @@ const SIDEBAR_GROUPS: { label: string; items: { key: string; label: string; lock
       { key: 'goals', label: 'Goals' },
       { key: 'reminders', label: 'Reminders' },
       { key: 'notes', label: 'Notes', hint: 'Shown when you have synced notes' },
-      { key: 'group', label: 'Group', hint: "Shown when you're in a group" },
     ],
   },
   {
