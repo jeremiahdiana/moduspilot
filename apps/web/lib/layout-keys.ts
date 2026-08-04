@@ -5,12 +5,16 @@
 
 export type LayoutItem = { key: string; label: string; hint?: string };
 
-// Dashboard widgets. `focus` and `stats` are the at-a-glance essentials; the
-// rest are optional surfaces users may not want.
+// Dashboard widgets. `focus` is the at-a-glance essential; the rest are
+// optional surfaces users may not want.
+//
+// The 'stats' (stat pills) and 'quickActions' rows were removed on 2026-08-04,
+// so their toggles are gone too — a Display setting for a section that no longer
+// renders is a control that does nothing. Old Firestore docs may still list
+// those keys in settings.layout.dashboardHidden[]; that is harmless, nothing
+// reads them now, and the keys stay retired rather than being reused.
 export const DASHBOARD_WIDGETS: LayoutItem[] = [
   { key: 'focus', label: 'Focus card', hint: "Today's single most important thing" },
-  { key: 'stats', label: 'Stat pills', hint: 'Goals, tasks due, top streak' },
-  { key: 'quickActions', label: 'Quick actions', hint: 'Add task / goal / habit shortcuts' },
   { key: 'needsYou', label: 'Needs you', hint: 'MODUS proactive approvals feed' },
   { key: 'briefing', label: "Today's briefing", hint: 'Morning briefing at the top of your dashboard' },
   { key: 'inbox', label: 'Inbox', hint: 'Recent Gmail threads' },
