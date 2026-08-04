@@ -38,7 +38,7 @@ export const MONTHS_FREE = 2;
  * The limits add-on: more daily/weekly headroom without jumping to PILOT.
  *
  * 💸 THE PRICE IS SET AGAINST A MEASURED CEILING, NOT A GUESS. A budget unit is
- * pinned to gemini-3.5-flash at $0.52 per 1M (lib/chat/model-cost.ts), and
+ * pinned to gemini-3.5-flash-LITE at $0.52 per 1M (lib/chat/model-cost.ts), and
  * costWeight rounds UP, so $0.52/1M is a ceiling on what a unit can actually cost
  * us. 500k/day x 30 days = $7.80/month worst case — every unit burned on frontier
  * models, every day — against $10 of revenue. 22% margin at the floor, and far
@@ -47,9 +47,12 @@ export const MONTHS_FREE = 2;
  * Cost and price both scale linearly with quantity, so the margin is identical
  * whether someone buys one or five.
  *
- * ⚠️ The margin is eaten by ESTIMATION ERROR, not usage. Flash, both Llamas and
- * DeepSeek carry `est: true` prices, and Flash is the baseline the whole unit is
- * pinned to. Re-verify those rates before increasing dailyUnits.
+ * ⚠️ The margin is eaten by ESTIMATION ERROR, not usage — and that has already
+ * bitten once: gemini-3.5-flash was carrying flash-LITE's rates, 4.3x understated,
+ * while it was the baseline. The unit's dollar value survived that (flash-lite
+ * took over the baseline with the same $0.52), so this margin is intact, but the
+ * lesson stands: an `est: true` price is an undone to-do, not a hedge.
+ * Re-verify the baseline's rate before increasing dailyUnits.
  */
 export const LIMIT_ADDON = { monthlyPrice: 10, dailyUnits: 500_000 } as const;
 

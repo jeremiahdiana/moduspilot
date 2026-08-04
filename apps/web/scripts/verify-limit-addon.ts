@@ -114,7 +114,10 @@ check(
 check('Group is no longer purchasable', PRICE_ENV.group === undefined);
 
 // 💸 The margin floor. costWeight rounds UP and the unit is pinned to
-// gemini-3.5-flash at $0.52/1M, so this is a CEILING on real cost, not a guess.
+// gemini-3.5-flash-LITE at $0.52/1M, so this is a CEILING on real cost, not a
+// guess. (The baseline moved from flash to flash-lite when flash was found to be
+// carrying flash-lite's rates — the dollar value per unit did NOT change, so the
+// margin below is unaffected. Re-check this constant if BASELINE moves again.)
 section('margin floor');
 const USD_PER_MILLION_UNITS = 0.52;
 const worstCaseMonthly = (LIMIT_ADDON_DAILY * 30 / 1_000_000) * USD_PER_MILLION_UNITS;
