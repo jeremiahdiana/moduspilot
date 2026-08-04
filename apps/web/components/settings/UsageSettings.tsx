@@ -1,6 +1,34 @@
 'use client';
 
 import { isPaidPlan, planCeilings } from '@/lib/plan';
+import { unlockedModels } from '@/lib/models';
+import { costWeight } from '@/lib/chat/model-cost';
+
+/**
+ * What each model this plan can pick actually costs against the allowance.
+ *
+ * 🔑 READ FROM costWeight() AT RUNTIME, never hand-maintained. This list exists
+ * precisely because the allowance is denominated in cost units, so a hardcoded
+ * copy that drifted from the real weights would recreate the bug it explains.
+ *
+ * Models sharing a weight collapse into one row — nobody needs three separate
+ * lines all saying 2x.
+ */
+function allowanceCosts(plan: string) {
+  const byWeight = new Map<number, string[]>();
+  for (const m of unlockedModels(plan)) {
+    const w = costWeight(m.id);
+    byWeight.set(w, [...(byWeight.get(w) ?? []), m.name]);
+  }
+  return Array.from(byWeight.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([weight, names]) => ({
+      weight,
+      // Three names still fit on one line at the narrowest supported width;
+      // beyond that it wraps into a wall, so trim with a count.
+      label: names.length <= 3 ? names.join(' / ') : `${names.slice(0, 2).join(' / ')} +${names.length - 2} more`,
+    }));
+}
 
 interface Props {
   plan: 'free' | 'modus' | 'pilot' | 'group';
@@ -46,6 +74,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
   // ceilings here is how the meter and the gate drift apart — an add-on holder
   // would see a bar pinned at 100% while the server served them fine.
   const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings({ plan, limitAddonQty: usage.limitAddonQty });
+  const costs = allowanceCosts(plan);
 
   const tokenCount   = usage.tokenDate === today    ? usage.dailyTokens    : 0;
   const weeklyCount  = usage.tokenWeek === weekKey  ? usage.weeklyTokens   : 0;
@@ -90,8 +119,13 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
                 <p className="text-xs text-muted">used today</p>
               </div>
               <UsageBar value={tokenCount} max={dailyLimit} />
-              <div className="flex justify-between text-xs text-muted">
-                <span>{tokenCount.toLocaleString()} of {dailyLimit.toLocaleString()} tokens</span>
+              {/* 🚨 NO RAW COUNT HERE. The counters store COST UNITS, not tokens
+                  (trackTokenUsage weights by costWeight before incrementing), so
+                  "N of 1,500,000 tokens" was wrong by up to 27x on the frontier
+                  models PILOT exists to sell. ChatWindow already settled on a
+                  percentage for the same reason. The hard figure still appears,
+                  correctly labelled, under Plan Limits below. */}
+              <div className="flex justify-end text-xs text-muted">
                 <span>Resets in {resetTime}</span>
               </div>
             </div>
@@ -106,8 +140,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
                 <p className="text-xs text-muted">used this week</p>
               </div>
               <UsageBar value={weeklyCount} max={weeklyLimit} />
-              <div className="flex justify-between text-xs text-muted">
-                <span>{weeklyCount.toLocaleString()} of {weeklyLimit.toLocaleString()} tokens</span>
+              <div className="flex justify-end text-xs text-muted">
                 <span>Resets {nextMonday}</span>
               </div>
             </div>
@@ -121,13 +154,42 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
         </div>
       )}
 
+      {/* What actually drains the allowance.
+          This card is the honest replacement for the old "Daily AI tokens —
+          1,500,000/day" row. The allowance is denominated in cost units, so the
+          only figure that means anything to a user is the RELATIVE cost of the
+          models they can pick — and that is exact, not an estimate. */}
+      {isPaid && costs.length > 1 && (
+        <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-text mb-1">What uses your allowance</h3>
+            <p className="text-xs text-muted leading-relaxed">
+              Every model draws from the same allowance, but not at the same rate — the more
+              capable ones cost more per message.
+            </p>
+          </div>
+          <div className="space-y-0">
+            {costs.map(c => (
+              <div key={c.weight} className="flex justify-between items-center py-2 border-b border-border/50 last:border-0">
+                <span className="text-sm text-muted">{c.label}</span>
+                <span className="text-sm text-text font-medium tabular-nums">{c.weight}×</span>
+              </div>
+            ))}
+          </div>
+          {/* Derived from the weights actually present, so it can't go stale. */}
+          <p className="text-xs text-muted leading-relaxed">
+            One {costs[costs.length - 1].label.split(' / ')[0]} message uses about{' '}
+            <span className="text-text font-medium">{costs[costs.length - 1].weight}×</span>{' '}
+            the allowance of a {costs[0].label.split(' / ')[0]} one.
+          </p>
+        </div>
+      )}
+
       {/* Plan limits */}
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-semibold text-text">Plan Limits</h3>
         <div className="space-y-3">
           {(isPaid ? [
-            { label: 'Daily AI tokens',   value: `${dailyLimit.toLocaleString()}/day` },
-            { label: 'Weekly AI tokens',  value: `${weeklyLimit.toLocaleString()}/week` },
             { label: 'Goals / Tasks / Habits', value: 'Unlimited' },
             { label: 'Memory storage',    value: 'Unlimited' },
             { label: 'Data retention',    value: '2 years' },
@@ -143,6 +205,17 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
             </div>
           ))}
         </div>
+        {/* The hard figure, kept but de-emphasised. Someone checking our
+            arithmetic can still see it; it is just no longer the headline, and
+            it says credits because that is what it counts. planCeilings()
+            already folds in any purchased add-on. */}
+        {isPaid && (
+          <p className="text-xs text-muted/70 pt-1 leading-relaxed">
+            Usage allowance: {dailyLimit.toLocaleString()} credits/day ·{' '}
+            {weeklyLimit.toLocaleString()}/week
+            {(usage.limitAddonQty ?? 0) > 0 && ` · includes ${usage.limitAddonQty}× extra limits`}
+          </p>
+        )}
       </div>
 
       {!isPaid && (

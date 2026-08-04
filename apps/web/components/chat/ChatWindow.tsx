@@ -392,7 +392,9 @@ export default function ChatWindow({
         // "something went wrong".
         setChatError('That message was empty — type something first.');
       } else if (msg.includes('token_limit_reached')) {
-        setChatError("You've hit your daily AI token limit. Resets at midnight.");
+        // "usage limit", not "token limit" — the ceiling counts cost units, and
+        // the two differ by up to 27x on frontier models.
+        setChatError("You've hit your daily AI usage limit. Resets at midnight.");
       } else if (msg.includes('groq_daily_limit')) {
         setChatError('AI daily limit reached — switch models with the selector below the chat box, or try again tomorrow.');
       } else if (msg.includes('rate_limit_reached') || msg.includes('rate limit') || msg.includes('429') || msg.includes('tpd') || msg.includes('tokens per day') || msg.includes('too many')) {
