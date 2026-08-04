@@ -186,7 +186,11 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
                   href="/login"
                   className="hidden md:block btn-primary px-3 sm:px-4 py-1.5 sm:py-2 bg-brand text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-[1.03] active:scale-100 transition-all shrink-0 whitespace-nowrap"
                 >
-                  Start free trial
+                  {/* "trial" implied a card. The first thing a stranger gets is
+                      FREE_MESSAGE_LIMIT messages without one, and this button is
+                      on every marketing page — it should promise what they
+                      actually meet. The trial is the second rung, not the first. */}
+                  Start free
                 </Link>
                 <button
                   onClick={() => setMenuOpen(o => !o)}

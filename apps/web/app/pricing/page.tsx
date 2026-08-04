@@ -7,6 +7,10 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import HomePricingSection from '@/components/marketing/HomePricingSection';
 import MarketingDecor from '@/components/marketing/MarketingDecor';
+// 🔢 The free-message count is INTERPOLATED, never typed out. This page promises
+// a number the server enforces, and the two living in different files is how a
+// pricing page ends up advertising an allowance the product does not give.
+import { FREE_MESSAGE_LIMIT } from '@/lib/constants';
 
 /**
  * /pricing — rebuilt 2026-07-21 to match the light/serif homepage.
@@ -29,18 +33,24 @@ import MarketingDecor from '@/components/marketing/MarketingDecor';
 
 const FAQS = [
   {
+    // First on purpose. "Do I have to pay to look at it" is the question that
+    // decides whether a stranger signs in at all, and until 2026-08-04 the honest
+    // answer was yes. FREE_MESSAGE_LIMIT in lib/constants.ts is the source of the
+    // number here; change one and change the other.
+    q: 'Do I need a card to try it?',
+    a: `No. Sign in and your first ${FREE_MESSAGE_LIMIT} messages are free, with no card and no trial to cancel. When those run out you can start the 3-day trial, which does need a card, and you can still cancel inside those 3 days at no charge.`,
+  },
+  {
     q: 'What happens after the 3-day trial?',
     a: 'Your card is billed for the plan you chose, $24/mo for MODUS or $59/mo for PILOT, and you keep full access. We tell you before the trial ends, and you can cancel any time in those 3 days at no charge.',
   },
   {
     q: 'Can I cancel anytime?',
-    // ⚠️ COPY IS NOW SLIGHTLY UNDER-STATED, deliberately left for Jeremiah to
-    // decide. This said "there is no free tier", which stopped being true on
-    // 2026-08-04. The webhook still sets plan:'free' and hasActiveAccess() still
-    // rejects it — but enforceSubscriptionGate now lets such an account send any
-    // unspent free messages, so "MODUS stops" is true only for someone who
-    // already used all ten. Nothing being deleted is still the part worth saying.
-    a: 'Yes, no lock-in. Cancel from Settings, Billing and you keep full access until the end of the billing period. After that MODUS stops until you resubscribe. Nothing is deleted, and your goals, notes and history are exactly where you left them.',
+    // The webhook sets plan:'free' and hasActiveAccess() rejects it, so the paid
+    // product does stop. What it drops to is the same free tier a new signup gets,
+    // minus anything they already spent — which is why this no longer says "MODUS
+    // stops" flatly. Nothing being deleted is still the part actually worth saying.
+    a: 'Yes, no lock-in. Cancel from Settings, Billing and you keep full access until the end of the billing period. After that you drop back to the free tier. Nothing is deleted, and your goals, notes and history are exactly where you left them.',
   },
   {
     q: 'Is there annual billing?',
@@ -133,7 +143,7 @@ export default function PricingPage() {
               transition={{ duration: 0.6, delay: 0.12, ease: 'easeOut' }}
               className="text-muted text-lg max-w-xl mx-auto leading-relaxed"
             >
-              3 days free, card required, cancel anytime.
+              Your first {FREE_MESSAGE_LIMIT} messages are free. No card.
             </motion.p>
           </section>
 
@@ -197,10 +207,14 @@ export default function PricingPage() {
                 href="/login"
                 className="btn-primary inline-flex items-center gap-2 px-9 py-4 text-white font-bold rounded-xl text-base transition-all hover:scale-[1.02] active:scale-100"
               >
-                Start your 3-day trial
+                Start free
                 <span>→</span>
               </Link>
-              <p className="text-muted text-xs mt-5">3 days free · card required · cancel anytime</p>
+              {/* The ladder, in the order a stranger meets it: 10 messages with no
+                  card, then the 3-day trial that does need one. Leading with the
+                  trial is what made cold traffic bounce — the first thing they saw
+                  was a payment form. */}
+              <p className="text-muted text-xs mt-5">{FREE_MESSAGE_LIMIT} messages free, no card · then 3 days free with one</p>
             </motion.div>
           </section>
 

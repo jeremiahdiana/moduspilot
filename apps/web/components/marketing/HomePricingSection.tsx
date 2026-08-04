@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PLAN_PRICING, LIMIT_ADDON, CADENCE_STORAGE_KEY, type Cadence } from '@/lib/pricing';
+import { FREE_MESSAGE_LIMIT } from '@/lib/constants';
 import AnimatedPrice from './AnimatedPrice';
 import CadenceToggle from './CadenceToggle';
 
@@ -19,7 +20,12 @@ const PLANS: Plan[] = [
   {
     id: 'modus',
     name: 'MODUS',
-    tagline: 'Card required, cancel anytime.',
+    // ⚠️ NOT "Card required" any more. This card renders directly under a hero
+    // that now reads "Your first N messages are free. No card." — the two sat one
+    // scroll apart contradicting each other, which reads as a bait-and-switch on
+    // the exact page where a stranger decides whether to trust the price.
+    // Caught by screenshotting /pricing; the diff alone looked fine.
+    tagline: 'Cancel anytime.',
     popular: true,
     accent: 'violet',
     features: [
@@ -132,7 +138,7 @@ export default function HomePricingSection({
         >
           <h2 className="text-4xl md:text-5xl text-text tracking-tight mb-4">Simple, honest pricing</h2>
           <p className="text-muted text-base sm:text-lg max-w-2xl mx-auto">
-            One subscription instead of five. 3 days free, cancel anytime.
+            One subscription instead of five. Start free, no card, cancel anytime.
           </p>
         </motion.div>
         )}
@@ -171,9 +177,14 @@ export default function HomePricingSection({
                 <span className="text-muted text-lg">/mo</span>
               </div>
               <p className="text-sm text-muted leading-relaxed mb-6 min-h-[40px]">
+                {/* The ladder in the order a stranger climbs it: free messages
+                    with no card, THEN the 3-day trial that needs one. Leading
+                    with the trial is what put a payment form in front of every
+                    cold visitor. FREE_MESSAGE_LIMIT is interpolated, never typed,
+                    so this can't drift from what the server enforces. */}
                 {annual
                   ? `Billed annually at $${PLAN_PRICING[plan.id].annualTotal}. ${plan.tagline}`
-                  : `3 days free, then $${PLAN_PRICING[plan.id].monthlyPrice}/mo. ${plan.tagline}`}
+                  : `${FREE_MESSAGE_LIMIT} messages free, then 3 days free, then $${PLAN_PRICING[plan.id].monthlyPrice}/mo. ${plan.tagline}`}
               </p>
 
               <a
@@ -181,7 +192,7 @@ export default function HomePricingSection({
                 onClick={() => chooseCadence(cadence)}
                 className={`group flex items-center justify-center gap-2 w-full rounded-xl px-6 py-3.5 text-sm font-bold transition-all ${ACCENT[plan.accent].cta}`}
               >
-                Start 3-day trial
+                Start free
                 <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </a>
 

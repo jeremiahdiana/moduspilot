@@ -1,16 +1,21 @@
 import type { Metadata } from 'next';
+import { FREE_MESSAGE_LIMIT } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Pricing — Modus',
-  description: 'Try MODUS free for 3 days, then $24/mo. Replaces an entire cognitive workflow — goals, tasks, habits, triage, and execution.',
+  description: `Start free, no card. ${FREE_MESSAGE_LIMIT} messages on every frontier model, then $24/mo. Replaces an entire cognitive workflow: goals, tasks, habits, triage, and execution.`,
   alternates: {
     canonical: 'https://moduspilot.com/pricing',
   },
   openGraph: {
     title: 'Modus Pricing',
-    // NOT "Free to start" — a card is required to begin the 3-day trial, and
-    // there is no free tier behind it (chat 402s without a subscription).
-    description: '3 days free, then $24/mo for the full operating system. $59/mo for founders and executives.',
+    // 💡 "Free to start" IS accurate as of 2026-08-04 and it is the whole point of
+    // saying it here. These three descriptions used to argue the opposite, because
+    // a card was required before the first message. That is what cold traffic saw
+    // in the search result and the link preview, and it converted at ~0. A free
+    // tier nobody is told about converts exactly as well as no free tier.
+    // ⚠️ Keep the number in step with FREE_MESSAGE_LIMIT (lib/constants.ts).
+    description: `Start free, no card. ${FREE_MESSAGE_LIMIT} messages on every frontier model, then $24/mo for the full operating system. $59/mo for founders and executives.`,
     url: 'https://moduspilot.com/pricing',
     siteName: 'Modus',
     type: 'website',
@@ -19,9 +24,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Modus Pricing',
-    // NOT "Free to start" — a card is required to begin the 3-day trial, and
-    // there is no free tier behind it (chat 402s without a subscription).
-    description: '3 days free, then $24/mo for the full operating system. $59/mo for founders and executives.',
+    // Same copy as openGraph above, and for the same reason. See that comment.
+    description: `Start free, no card. ${FREE_MESSAGE_LIMIT} messages on every frontier model, then $24/mo for the full operating system. $59/mo for founders and executives.`,
     images: ['/og.png'],
   },
 };
