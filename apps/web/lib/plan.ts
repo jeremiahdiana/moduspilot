@@ -22,10 +22,16 @@ export function isPaidPlan(plan: string | null | undefined): plan is 'modus' | '
 }
 
 /**
- * Whether a user may use MODUS at all. Since MODUS is fully paid, access requires
- * either a paid/trialing subscription (plan set by Stripe webhook) OR being
- * grandfathered (accounts that existed before the paywall launch — see
- * PAYWALL_LAUNCH_MS). New signups without a subscription have no access.
+ * Whether a user has FULL, unmetered access: a paid/trialing subscription (plan
+ * set by the Stripe webhook) or a grandfathered pre-paywall account.
+ *
+ * ⚠️ FALSE NO LONGER MEANS "NO ACCESS", and callers written before 2026-08-04
+ * assume it does. Since the free tier landed, an account this returns false for
+ * may still send FREE_MESSAGE_LIMIT messages — enforceSubscriptionGate owns that
+ * decision, not this function. Use this for "is this person entitled to the paid
+ * product?" (premium models, image generation, scheduled briefings). Do NOT use
+ * it as a blanket "can they use MODUS at all?" — that question now has a third
+ * answer between yes and no.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hasActiveAccess(userData: Record<string, any> | null | undefined): boolean {

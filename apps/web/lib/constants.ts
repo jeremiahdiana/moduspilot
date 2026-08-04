@@ -2,7 +2,10 @@ export const GUEST_DAILY_LIMIT  = 5;
 export const TRIAL_DAYS         = 3;
 export const TRIAL_MS           = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
-// MODUS went fully paid (card-required 3-day trial, no free tier) at this moment.
+// MODUS went fully paid (card-required 3-day trial) at this moment. ⚠️ The "no
+// free tier" part of that ended 2026-08-04 — see FREE_MESSAGE_LIMIT above. This
+// constant still means exactly what it always did (who is grandfathered) and is
+// unaffected; only the sentence describing the era around it changed.
 // Users whose Firebase account was created before this are grandfathered into
 // permanent free access; everyone after must start a paid trial. See
 // enforceSubscriptionGate in lib/chat/limits.ts.

@@ -34,8 +34,19 @@ const kahzatic = {
 };
 
 // A doc written by onboarding AFTER this fix: no dailyBriefing key at all.
+//
+// ⚠️ `plan` added 2026-08-04 and it is NOT a test being bent to pass. This
+// fixture exists to prove ONE thing — that an absent dailyBriefing key still
+// defaults ON. It was written when MODUS was fully paid, so "a new signup"
+// could only ever be a paying one and the plan went unsaid. The free tier makes
+// a plan-less signup a real, common thing, so leaving it unsaid would quietly
+// turn this into an assertion that UNPAID accounts get briefings — which is the
+// money hole the gate was just changed to close. Stating the plan keeps the
+// fixture testing the capability default and nothing else; the plan gate gets
+// its own explicit checks below.
 const newSignup = {
   onboardingComplete: true,
+  plan: 'modus',
   settings: { capabilities: { voiceInput: false, vectorMemory: true } },
 };
 
@@ -53,8 +64,24 @@ check('3. explicit true is NOT delivered at another hour', isBriefingDue(optedIn
 
 console.log('\n--- the default ---');
 check('4. a new signup with no flag IS delivered (default ON)', isBriefingDue(newSignup, 7), true);
-check('   a doc with no settings at all IS delivered', isBriefingDue({ onboardingComplete: true }, 7), true);
+check('   a doc with no settings at all IS delivered', isBriefingDue({ onboardingComplete: true, plan: 'modus' }, 7), true);
 check('   onboarding no longer writes the flag', 'dailyBriefing' in (newSignup.settings.capabilities as object), false);
+
+// 💸 The plan gate, added with the free tier. A briefing calls a model
+// (generateBriefingData → generateText) on a schedule, outside the free tier's
+// ten-message cap and outside every counter that bounds it. Ungated, one free
+// signup that finishes onboarding costs a model call a day forever.
+console.log('\n--- the plan gate: a briefing costs money, so it is paid-only ---');
+const freeSignup = { onboardingComplete: true, settings: { capabilities: {} } };
+check('5. a free-tier signup (no plan at all) is NOT delivered', isBriefingDue(freeSignup, 7), false);
+check('   a cancelled subscriber (plan:free) is NOT delivered', isBriefingDue({ ...freeSignup, plan: 'free' }, 7), false);
+check('   a MODUS subscriber IS delivered', isBriefingDue({ ...freeSignup, plan: 'modus' }, 7), true);
+check('   a PILOT subscriber IS delivered', isBriefingDue({ ...freeSignup, plan: 'pilot' }, 7), true);
+// 🪤 hasActiveAccess, NOT isPaidPlan. Grandfathered accounts carry no plan
+// string, so an isPaidPlan gate would silently cut briefings for every
+// pre-paywall user — a feature removed from the people least likely to forgive it.
+check('   a GRANDFATHERED account IS delivered (no plan string, still entitled)',
+  isBriefingDue({ ...freeSignup, grandfathered: true }, 7), true);
 
 console.log('\n--- the guard: replay the OLD filter on the real doc ---');
 // Verbatim pre-fix logic from app/api/cron/daily-briefing/route.ts.

@@ -34,9 +34,12 @@ const FAQS = [
   },
   {
     q: 'Can I cancel anytime?',
-    // Not "then drop to free" — there is no free tier. The webhook sets
-    // plan:'free' and hasActiveAccess() rejects it, so the account simply stops.
-    // Nothing being deleted is the part actually worth saying.
+    // ⚠️ COPY IS NOW SLIGHTLY UNDER-STATED, deliberately left for Jeremiah to
+    // decide. This said "there is no free tier", which stopped being true on
+    // 2026-08-04. The webhook still sets plan:'free' and hasActiveAccess() still
+    // rejects it — but enforceSubscriptionGate now lets such an account send any
+    // unspent free messages, so "MODUS stops" is true only for someone who
+    // already used all ten. Nothing being deleted is still the part worth saying.
     a: 'Yes, no lock-in. Cancel from Settings, Billing and you keep full access until the end of the billing period. After that MODUS stops until you resubscribe. Nothing is deleted, and your goals, notes and history are exactly where you left them.',
   },
   {

@@ -32,6 +32,8 @@ import { enforceSubscriptionGate, enforcePaidTokenLimit, isFreeTierUser } from '
 import { FREE_MESSAGE_LIMIT, FREE_MAX_MESSAGE_CHARS, FREE_HISTORY_CHAR_BUDGET, MODUS_TOKEN_LIMIT } from '../lib/constants';
 import { FREE_DEFAULT, resolveChatModel } from '../lib/chat/model';
 import { PLATFORM_MODELS, isModelUnlocked } from '../lib/models';
+import { hasActiveAccess } from '../lib/plan';
+import { isBriefingDue } from '../lib/capabilities';
 import { costWeight, estimatedCostUsd } from '../lib/chat/model-cost';
 
 let failures = 0;
@@ -199,8 +201,64 @@ async function main() {
       /txn\.set\([^)]*\{ merge: true \}/.test(gate) && !/txn\.update\(/.test(gate));
   }
 
+  section('9  LIFECYCLE — subscribe, cancel, come back');
+  {
+    // What billing.ts:186 actually writes when the last subscription ends.
+    const CANCELLED = { plan: 'free', subscriptionId: null, limitAddonQty: 0, grandfathered: false };
+
+    check('a cancelled subscriber IS a free-tier user (soft landing, not a lockout)',
+      isFreeTierUser(CANCELLED));
+    check('…and hasActiveAccess correctly rejects them', !hasActiveAccess(CANCELLED));
+
+    // Subscribing must not be reachable through the free branch, and must not
+    // reset the counter — otherwise subscribe/cancel/repeat farms free messages.
+    const sub = await freeUser({ freeMessagesUsed: FREE_MESSAGE_LIMIT });
+    await adminDb.collection('users').doc(sub).set({ plan: 'modus' }, { merge: true });
+    check('subscribing restores access even with the free counter spent',
+      (await enforceSubscriptionGate(sub, await read(sub))) === null);
+    check('subscribing does NOT reset freeMessagesUsed',
+      (await read(sub)).freeMessagesUsed === FREE_MESSAGE_LIMIT);
+    await adminDb.collection('users').doc(sub).set(CANCELLED, { merge: true });
+    check('cancelling again does not hand back a fresh allowance',
+      (await enforceSubscriptionGate(sub, await read(sub))) !== null);
+
+    // 🔑 The counter is MONOTONIC, so the cycle is bounded no matter how it is
+    // played: ten free messages per uid, for life.
+    check('free messages are bounded at FREE_MESSAGE_LIMIT for life',
+      ((await read(sub)).freeMessagesUsed as number) <= FREE_MESSAGE_LIMIT,
+      `freeMessagesUsed=${(await read(sub)).freeMessagesUsed}`);
+
+    // ⚠️ DOCUMENTED INCONSISTENCY, not a bug — asserted so it stays deliberate.
+    // What a returning ex-customer gets depends on what they did BEFORE they ever
+    // paid: someone who subscribed on day one gets a full 10 on cancelling, while
+    // someone who tried the free tier first gets 0. Same customer, same
+    // cancellation, different experience. Bounded and unexploitable, but arbitrary.
+    const straightToPaid = await freeUser({ plan: 'modus' });
+    await adminDb.collection('users').doc(straightToPaid).set(CANCELLED, { merge: true });
+    const gotFree = (await enforceSubscriptionGate(straightToPaid, await read(straightToPaid))) === null;
+    check('KNOWN: an ex-customer who never touched the free tier gets a full allowance on cancelling',
+      gotFree, gotFree ? 'gets 10 — decide if that is the intended off-ramp' : 'gets 0');
+  }
+
+  section('10 💸 nothing else calls a model for a free user');
+  {
+    // The hole this closes: isBriefingDue was onboardingComplete + a capability
+    // that DEFAULTS ON + the hour, with no plan check. Harmless while MODUS was
+    // fully paid (a plan-less account could not finish onboarding); the free tier
+    // removes exactly that barrier. Every free signup would then get a
+    // model-calling briefing daily, forever, outside the ten-message cap.
+    const hour = 7;
+    const onboardedFree = { onboardingComplete: true, settings: { briefingHour: hour }, grandfathered: false };
+    check('a free user is NOT due a daily briefing', !isBriefingDue(onboardedFree, hour));
+    check('a paying user still is', isBriefingDue({ ...onboardedFree, plan: 'modus' }, hour));
+    // 🪤 hasActiveAccess, not isPaidPlan — grandfathered users have no plan string
+    // and must keep the feature.
+    check('a GRANDFATHERED user still is', isBriefingDue({ ...onboardedFree, grandfathered: true }, hour));
+    check('a cancelled subscriber is not', !isBriefingDue({ ...onboardedFree, plan: 'free' }, hour));
+  }
+
   console.log(failures === 0
-    ? '\n✅ FREE TIER HOLDS — capped, raceproof, cheap, and it fails closed.'
+    ? '\n✅ FREE TIER HOLDS — capped, raceproof, cheap, bounded across the billing lifecycle, and it fails closed.'
     : `\n❌ ${failures} FAILURE(S)`);
 }
 
