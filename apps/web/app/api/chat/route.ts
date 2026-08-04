@@ -14,9 +14,11 @@ import { assertPublicUrl } from '@/lib/ssrf';
 import {
   enforceSubscriptionGate,
   enforcePaidTokenLimit,
+  isFreeTierUser,
   trackTokenUsage,
   usagePercent,
 } from '@/lib/chat/limits';
+import { FREE_MAX_MESSAGE_CHARS, FREE_HISTORY_CHAR_BUDGET } from '@/lib/constants';
 import { resolveChatModel, chatFallbackChain, createFallbackModel, isPremiumModel, modelSupportsTools } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
 import { isModelUnlocked } from '@/lib/models';
@@ -106,11 +108,12 @@ export async function POST(req: Request) {
       return Response.json({ error: 'authentication_required' }, { status: 401 });
     }
 
-    // Rate + usage limits (each returns a ready 4xx Response when blocked)
-    const gateBlocked = await enforceSubscriptionGate(uid, userData);
-    if (gateBlocked) return gateBlocked;
-    const paidBlocked = enforcePaidTokenLimit(userData);
-    if (paidBlocked) return paidBlocked;
+    // ⚠️ The access gate used to sit HERE, before the body was parsed. It moved
+    // below the payload validation when the free tier landed, because
+    // enforceSubscriptionGate now CONSUMES one of a free user's messages as a side
+    // effect of allowing it. Charging that against a malformed request, or against
+    // one we are about to reject for carrying an image, spends something the user
+    // never got an answer for. Validate first, then charge. See lib/chat/limits.ts.
 
     const body = await bodyPromise as {
       messages: CoreMessage[];
@@ -190,6 +193,31 @@ export async function POST(req: Request) {
       return Response.json({ error: 'invalid_request' }, { status: 400 });
     }
 
+    // 👁️ Images are a PAID feature, and this check must run BEFORE the access gate
+    // so a rejected image does not silently spend one of the ten free messages.
+    //
+    // 💸 It is here on cost grounds, not product ones. An image request is forced
+    // onto a vision model and carries a whole screenshot of input tokens; the free
+    // tier is costed on ~10k text tokens a message (lib/constants.ts) and a single
+    // screenshot blows through that. Screen Assist stays behind the card until
+    // image usage is metered in its own right — the last time image cost was
+    // assumed rather than measured it was billed at 27x for months.
+    const freeTier = isFreeTierUser(userData);
+    if (freeTier && clientCore.some(m =>
+      Array.isArray(m.content) && (m.content as { type?: string }[]).some(p => p?.type === 'image'),
+    )) {
+      return Response.json({ error: 'image_requires_subscription' }, { status: 402 });
+    }
+
+    // Access + usage limits (each returns a ready 4xx Response when blocked).
+    // ⚠️ ORDER MATTERS: enforceSubscriptionGate increments the free-message counter
+    // when it allows a free user through, so nothing that can reject the request
+    // may run after it.
+    const gateBlocked = await enforceSubscriptionGate(uid, userData);
+    if (gateBlocked) return gateBlocked;
+    const paidBlocked = enforcePaidTokenLimit(userData);
+    if (paidBlocked) return paidBlocked;
+
     // 🚨 TWO INPUTS COULD 400 THE PROVIDER AND LOSE THE ANSWER (verified on prod,
     // scripts/verify-never-blank.ts). Both arrive as a 200 with zero characters,
     // which is indistinguishable from the product being broken:
@@ -237,8 +265,14 @@ export async function POST(req: Request) {
     // messages, it does not shrink them, so a budget below the per-message cap
     // would evict a big paste on the NEXT turn and the model would forget the
     // document it just read.
-    const MAX_MESSAGE_CHARS = 100_000;
-    const HISTORY_CHAR_BUDGET = 120_000;
+    //
+    // 💸 The free tier gets much smaller caps. A free account is costed at ~10k
+    // tokens a message (lib/constants.ts); at the paid 100k-char cap ONE pasted
+    // document is ~25k tokens on its own, which would make the whole per-signup
+    // costing wrong by 3x. The message limit alone does not bound spend unless the
+    // message itself is bounded — that is the entire reason these two exist.
+    const MAX_MESSAGE_CHARS = freeTier ? FREE_MAX_MESSAGE_CHARS : 100_000;
+    const HISTORY_CHAR_BUDGET = freeTier ? FREE_HISTORY_CHAR_BUDGET : 120_000;
     const MAX_HISTORY_MESSAGES = 20;
     const recent = clientCore.slice(-MAX_HISTORY_MESSAGES);
     const kept: CoreMessage[] = [];

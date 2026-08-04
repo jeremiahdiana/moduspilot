@@ -383,6 +383,15 @@ export default function ChatWindow({
       const msg = (err?.message ?? '').toLowerCase();
       if (msg.includes('authentication_required')) {
         setChatError('Your session expired. Please sign in again.');
+      } else if (msg.includes('free_limit_reached')) {
+        // A DISTINCT code from subscription_required on purpose. This person has
+        // been using MODUS for ten messages — telling them to "start your free
+        // trial" reads as the product forgetting who they are. Name what ran out.
+        setChatError("That's your 10 free messages. Subscribe to keep going.");
+        onShowPaywall?.();
+      } else if (msg.includes('image_requires_subscription')) {
+        setChatError('Images are a paid feature — subscribe to attach one.');
+        onShowPaywall?.();
       } else if (msg.includes('subscription_required')) {
         setChatError('Start your 3-day free trial to use MODUS.');
         onShowPaywall?.();

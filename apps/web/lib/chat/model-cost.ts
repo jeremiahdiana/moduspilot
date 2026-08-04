@@ -15,20 +15,44 @@
  * With weighting the same 10.5M budget buys ~437k Fable 5 tokens, which is ~$6/week
  * or ~$26/month — under half of PILOT revenue, which is where inference should sit.
  * The cheap models are effectively unchanged. That is the whole point: the cap now
- * bounds DOLLARS, and a user who sticks to Gemini Flash still gets the full 10.5M.
+ * bounds DOLLARS.
+ *
+ * 🚨 THE SECOND BUG, FOUND 2026-08-04. The sentence above used to end "…and a user
+ * who sticks to Gemini Flash still gets the full 10.5M." That was true and it was
+ * ruinous, because Flash's price here was wrong. It carried Flash-LITE's rates
+ * ($0.30/$2.50) under Flash's id. Flash is $1.50/$9.00 — blended $2.25/1M, not
+ * $0.52, a 4.3x understatement.
+ *
+ * Flash was BOTH the BASELINE every other weight divides by AND the FREE_DEFAULT
+ * every unchosen request lands on, so the error was not confined to one row: the
+ * ceilings bounded 4.3x more dollars than this file claimed, and PILOT's 10.5M
+ * spent on Flash was ~$102/month against a $59 subscription. Same shape as the
+ * gpt-4o-mini 27x bug — a price nobody re-checked — but in the direction that
+ * loses money rather than the direction that shows up as an angry user.
+ *
+ * Fixed by pricing Flash correctly (weight 1 → 5) and re-pinning BASELINE to
+ * Flash-Lite, which blends to the same $0.52 the baseline already was, so no
+ * existing customer's allowance moved. See BASELINE below.
  *
  * ## Prices
- * Verified 2026-07-27 against published per-1M rates, and consistent with the
- * figures already recorded in lib/models.ts and app/api/chat/route.ts:
+ * claude-*, gpt-* and gemini-3.1-pro verified 2026-07-27; the Gemini and Llama
+ * rows re-verified 2026-08-04 against ai.google.dev/gemini-api/docs/pricing and
+ * vercel.com/ai-gateway/models/llama-3.3-70b:
  *
- *   claude-fable-5          $10 / $50     gpt-5.6-sol       $5   / $30
- *   claude-opus-4-8         $5  / $25     gpt-5.6-terra     $2.50/ $15
- *   claude-sonnet-5         $3  / $15     gemini-3.1-pro    $2   / $12
+ *   claude-fable-5          $10  / $50    gpt-5.6-sol            $5   / $30
+ *   claude-opus-4-8         $5   / $25    gpt-5.6-terra          $2.50/ $15
+ *   claude-sonnet-5         $3   / $15    gemini-3.1-pro         $2   / $12
+ *   gemini-3.5-flash        $1.50/ $9     gemini-3.5-flash-lite  $0.30/ $2.50
+ *   meta/llama-3.3-70b      $0.59/ $0.72
  *
- * ⚠️ ESTIMATED, not verified: gemini-3.5-flash, both Llamas and DeepSeek V3.1. No
- * published per-1M rate was found for them at the versions we serve, so they are
+ * ⚠️ STILL ESTIMATED, not verified: llama-4-maverick, llama-3.1-8b, DeepSeek V3.1.
+ * No published per-1M rate was found for them at the versions we serve, so they are
  * set deliberately HIGH rather than low. Under-weighting is the failure that costs
  * money; over-weighting only makes a cheap model's budget slightly stricter.
+ *
+ * 🪤 A model's price is not a fact you look up once. Re-verify a row before you
+ * trust it in an argument about margin — the Flash bug survived a whole audit
+ * because `est: true` looked like a hedge rather than a thing to go check.
  *
  * ## The blend
  * Weights use a 90% input / 10% output mix, which is what chat looks like: a 5.3k
@@ -51,8 +75,20 @@ const PRICES: Record<string, { in: number; out: number; est?: boolean }> = {
   'gemini-3.1-pro-preview': { in: 2,    out: 12 },
   'deepseek/deepseek-v3.1': { in: 0.8,  out: 1.6, est: true },
   'meta/llama-4-maverick':  { in: 0.8,  out: 1.6, est: true },
-  'meta/llama-3.3-70b':     { in: 0.5,  out: 1.2, est: true },
-  'gemini-3.5-flash':       { in: 0.3,  out: 2.5, est: true },
+  'meta/llama-3.3-70b':     { in: 0.59, out: 0.72 },
+  // 🚨 WAS { in: 0.3, out: 2.5, est: true } — which are FLASH-LITE's prices, not
+  // Flash's. Same family, adjacent rows on Google's pricing page, wrong one taken.
+  // Real Flash is 5x the input and 3.6x the output: $0.52 blended → $2.25, a 4.3x
+  // understatement of the model that was BOTH the BASELINE and the FREE_DEFAULT.
+  // Consequences before this line was fixed:
+  //   · the ceilings bounded 4.3x more dollars than this file claimed
+  //   · PILOT's weekly budget on Flash was ~$102/mo against a $59 subscription,
+  //     not the "~$26/month, under half of PILOT revenue" asserted above
+  // ⚠️ Google bills THINKING TOKENS at the output rate, and Flash thinks by
+  // default, so the 90/10 blend understates it further on reasoning-heavy turns.
+  'gemini-3.5-flash':       { in: 1.5,  out: 9.0 },
+  // The baseline, the free default, and the free tier's only model. See BASELINE.
+  'gemini-3.5-flash-lite':  { in: 0.3,  out: 2.5 },
 
   // ── The INTERNAL models. Not selectable Brains, but requests land on them ──
   //
@@ -87,12 +123,22 @@ const blended = (p: { in: number; out: number }) => p.in * BLEND.input + p.out *
  * exactly that: baseline $0.52 → $0.195, multiplying every premium model's weight
  * by ~2.7x and cutting what a PILOT subscriber could actually use to a third.
  *
- * gemini-3.5-flash is the free default and the floor of the catalog, so it is the
- * natural unit. Models cheaper than it simply clamp to 1 via costWeight's Math.max.
- * Changing this line changes every customer's budget — that is a pricing decision,
- * and it should have to be made deliberately rather than fall out of adding a row.
+ * gemini-3.5-flash-lite is the free default and the floor of the catalog, so it is
+ * the natural unit. Models cheaper than it simply clamp to 1 via costWeight's
+ * Math.max. Changing this line changes every customer's budget — that is a pricing
+ * decision, and it should have to be made deliberately rather than fall out of
+ * adding a row.
+ *
+ * 🔑 WHY FLASH-LITE AND NOT CORRECTED FLASH. When Flash's price was fixed above,
+ * re-pinning to Flash would have raised BASELINE 0.52 → 2.25 and DIVIDED every
+ * premium weight by 4.3 — quietly handing every paying customer 4.3x more budget.
+ * A PILOT user could then burn ~$91/mo of Fable 5 on a $59 plan. Flash-Lite blends
+ * to $0.52, which is EXACTLY the number this baseline already was, so correcting
+ * the Flash bug changed no existing customer's allowance by a single unit. That
+ * equality is not a coincidence to rely on forever — it is why the before/after
+ * weight diff in scripts/verify-model-cost.ts is the gate on this change.
  */
-const BASELINE = blended(PRICES['gemini-3.5-flash']);
+const BASELINE = blended(PRICES['gemini-3.5-flash-lite']);
 
 /**
  * The weight applied to an unknown model id.

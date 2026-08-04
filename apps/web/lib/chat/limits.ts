@@ -1,9 +1,23 @@
 import { createHash } from 'crypto';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { GUEST_DAILY_LIMIT, PAYWALL_LAUNCH_MS } from '@/lib/constants';
+import { GUEST_DAILY_LIMIT, PAYWALL_LAUNCH_MS, FREE_MESSAGE_LIMIT } from '@/lib/constants';
 import { hasActiveAccess, isPaidPlan, planCeilings } from '@/lib/plan';
 import { weightedTokens } from '@/lib/chat/model-cost';
+
+/**
+ * Is this a free-tier account — signed in, no subscription, not grandfathered?
+ *
+ * Deliberately "not paid and not grandfathered" rather than plan === 'free': the
+ * Stripe webhook never writes 'free', so a free-tier user's `plan` is simply
+ * absent. Checking for the string would silently match nobody, which is the kind
+ * of gate that looks enforced and is not.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isFreeTierUser(userData: Record<string, any> | null | undefined): boolean {
+  if (!userData) return false;
+  return !isPaidPlan(userData.plan as string | undefined) && userData.grandfathered !== true;
+}
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
 export function getWeekKey(): string {
@@ -37,12 +51,22 @@ export async function enforceGuestRateLimit(req: Request): Promise<Response | nu
 }
 
 /**
- * Subscription gate. MODUS is fully paid: access requires a paid/trialing
- * subscription (plan set by the Stripe webhook, including the 3-day card-required
- * trial) OR being grandfathered. Accounts created before PAYWALL_LAUNCH_MS are
- * grandfathered into permanent free access; the flag is resolved once (from the
- * Firebase account creation time) and cached on the user doc. Everyone else must
- * start a trial — blocked with a 402 so the client can open checkout.
+ * Subscription gate, in the order access is granted:
+ *
+ *   1. paid/trialing subscription (plan set by the Stripe webhook, including the
+ *      3-day card-required trial) — hasActiveAccess
+ *   2. grandfathered: accounts created before PAYWALL_LAUNCH_MS keep permanent
+ *      free access; resolved once from the Firebase creation time, then cached
+ *   3. the free taste tier: FREE_MESSAGE_LIMIT messages, lifetime, per uid
+ *   4. otherwise 402
+ *
+ * ⚠️ MODUS IS NO LONGER "fully paid", which this comment used to assert and a
+ * caller might still assume. Step 3 was added 2026-08-04. `plan` is undefined for
+ * a free-tier user, so anything keying off isPaidPlan() — enforcePaidTokenLimit,
+ * trackTokenUsage, planCeilings — treats them as unlimited unless it says
+ * otherwise. Each has been given an explicit free-tier branch; a NEW caller that
+ * gates on isPaidPlan() has to decide the same thing consciously.
+ *
  * Returns a Response when blocked, otherwise null.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,8 +92,66 @@ export async function enforceSubscriptionGate(uid: string, userData: Record<stri
     if (grandfathered) return null;
   }
 
-  // New user, no subscription — must start a trial.
-  return Response.json({ error: 'subscription_required' }, { status: 402 });
+  // ── The free taste tier ────────────────────────────────────────────────────
+  //
+  // 🧊 WHY THIS EXISTS. Before it, a stranger had to enter a card to send ONE
+  // message, and cold traffic converted at approximately zero — every paying
+  // account to date came from a warm personal invite. Nothing about distribution
+  // works while the first thing a visitor meets is a payment form, so the first
+  // FREE_MESSAGE_LIMIT messages are free. Sign-in is still required (there is an
+  // email to follow up with, and the cap is per-uid rather than per-IP, which a
+  // VPN or an incognito window defeats).
+  //
+  // 🔒 THE INCREMENT MUST BE INSIDE THE TRANSACTION. Read-then-write outside one
+  // lets N concurrent requests all observe the same count and all pass — the exact
+  // bypass enforceGuestRateLimit above is written in this shape to prevent. Free
+  // messages are the one counter a stranger has an incentive to race.
+  //
+  // 💸 Cost is bounded by FREE_MESSAGE_LIMIT × FREE_MAX_MESSAGE_CHARS on the two
+  // cheapest models in the catalog — see the costing in lib/constants.ts.
+  //
+  // Free-reachable means plans:['free', …] in PLATFORM_MODELS, which today is
+  // gemini-3.5-flash-lite ($0.52/1M, the FREE_DEFAULT) and meta/llama-3.3-70b
+  // ($0.60/1M). ⚠️ That second one is NOT only about the free tier: grandfathered
+  // accounts have no `plan` string either, so effectivePlan() resolves them to
+  // 'free' as well. Dropping 'free' from a catalog row to tighten this tier would
+  // silently take that model away from every grandfathered user.
+  // verify-free-tier.ts §5 costs whichever free-reachable model is dearest, so
+  // adding a third one cannot quietly invalidate the arithmetic above.
+  const userRef = adminDb.collection('users').doc(uid);
+  let allowed = false;
+  try {
+    await adminDb.runTransaction(async (txn) => {
+      // 🪤 RESET ON EVERY ATTEMPT. Firestore RETRIES a contended transaction, so
+      // this callback can run more than once — and `allowed` lives outside it.
+      // Without this line an attempt that saw room set allowed=true, then the
+      // retry that hit the cap returned early and left that stale `true` behind:
+      // caught by verify-free-tier.ts §3, where 9 of 12 concurrent requests were
+      // waved through on a counter that correctly said 10. The counter was never
+      // wrong; the ANSWER was. A transaction protects the write, not your closure.
+      allowed = false;
+      const snap = await txn.get(userRef);
+      const used = (snap.data()?.freeMessagesUsed as number) ?? 0;
+      if (used >= FREE_MESSAGE_LIMIT) return;
+      // 🪤 set({merge:true}), NOT update(): a user can reach the chat before
+      // onboarding has created their doc, and update() THROWS on a missing
+      // document. That is not hypothetical — it is how a real $24 payer ended up
+      // with no plan (see repair-subscription.ts).
+      txn.set(userRef, { freeMessagesUsed: used + 1 }, { merge: true });
+      allowed = true;
+    });
+  } catch (e) {
+    // Fail CLOSED. A Firestore outage must not turn the paywall off.
+    console.error('[chat] free-tier counter failed:', e);
+    allowed = false;
+  }
+  if (allowed) return null;
+
+  // Free messages spent, or never eligible — must subscribe. Distinct code from
+  // 'subscription_required' so the client can say "you've used your 10 free
+  // messages" rather than "start your trial", which reads as a broken loop to
+  // someone who has already been using the product.
+  return Response.json({ error: 'free_limit_reached' }, { status: 402 });
 }
 
 /**
@@ -153,7 +235,12 @@ export function usagePercent(userData: Record<string, any>): number | null {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function trackTokenUsage(uid: string, userData: Record<string, any>, rawTokens: number, modelId: string): void {
   const plan = userData.plan as string | undefined;
-  if (!isPaidPlan(plan)) return;
+  // Record for paid plans AND for the free tier. Free users are capped by message
+  // count, not by tokens, so this does not gate anything for them — but without it
+  // free usage was invisible, and "what does a free signup actually cost" could
+  // only ever be answered with the arithmetic in lib/constants.ts rather than with
+  // a real number. Grandfathered accounts stay unmetered, as they always were.
+  if (!isPaidPlan(plan) && !isFreeTierUser(userData)) return;
   const totalTokens = weightedTokens(modelId, rawTokens);
   if (totalTokens <= 0) return;
   const userRef = adminDb.collection('users').doc(uid);

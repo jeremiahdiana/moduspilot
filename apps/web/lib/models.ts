@@ -80,6 +80,20 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // pay. Verified live 2026-07-17 through the real @ai-sdk/anthropic path.
   { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'], vision: true },
   { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'], vision: true },
+  // The FREE_DEFAULT (lib/chat/model.ts) and the BASELINE of the cost table, so it
+  // is the one model the free tier can reach. Added 2026-08-04 with the free tier.
+  //
+  // ⚠️ It is NOT the same model as the row above, and the difference is the whole
+  // reason this row exists: Flash is $1.50/$9.00, Flash-Lite is $0.30/$2.50 — 4.3x
+  // apart. model-cost.ts previously had Flash-Lite's prices filed under Flash's id,
+  // which made the default model look 4.3x cheaper than it is. Keep the two rows
+  // visually distinct; they are one careless copy away from repeating that.
+  //
+  // Id verified 2026-08-04 against the account's own GOOGLE_GENERATIVE_AI_API_KEY
+  // (v1beta/models lists `models/gemini-3.5-flash-lite`). Per this file's header, a
+  // wrong id does not error — it falls through to LLAMA_FALLBACK and the user is
+  // told a model answered that never ran.
+  { id: 'gemini-3.5-flash-lite',   name: 'Gemini 3.5 Flash Lite', provider: 'Google', plans: ['free', 'modus', 'pilot'], vision: true },
   { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'], vision: true },
   { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'], vision: true },
   // Restored 2026-07-17: Google billing is now live on the `modus-pilot` project

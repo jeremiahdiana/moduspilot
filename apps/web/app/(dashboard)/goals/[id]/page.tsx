@@ -380,6 +380,8 @@ export default function GoalDetailPage() {
     onError: (err) => {
       const m = (err?.message ?? '').toLowerCase();
       if (m.includes('authentication_required')) setChatError('Your session expired — refresh and sign in again.');
+      else if (m.includes('free_limit_reached')) setChatError("That's your 10 free messages. Subscribe to keep going.");
+      else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature — subscribe to attach one.');
       else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use MODUS.');
       else if (m.includes('token_limit_reached')) setChatError("You've hit your daily AI limit. Resets at midnight.");
       else if (m.includes('all_models_busy') || m.includes('rate') || m.includes('busy') || m.includes('429')) setChatError('The AI is briefly busy. Try again in a moment.');

@@ -51,8 +51,23 @@ const gateway = createOpenAI({
 /**
  * What a user gets when they have not chosen a model — i.e. every new customer's
  * entire first session. On a DIRECT vendor key on purpose: see freeDefaultModel().
+ *
+ * 💸 MOVED off gemini-3.5-flash 2026-08-04, when Flash's real price turned out to
+ * be $1.50/$9.00 rather than the $0.30/$2.50 model-cost.ts had recorded. As the
+ * default it was the model most requests land on, at 4.3x the assumed cost, and
+ * correcting its weight to 5 would have cut the felt daily allowance ~5x for
+ * everyone who never opened the switcher. Flash-Lite is the same family at the
+ * price the system already believed it was paying, so ceilings did not move and
+ * margin held: worst case ~$7.89/mo of inference on a $24 plan.
+ *
+ * Only accounts with NO saved Brain move — resolveChatModel reads
+ * `opts.modelId ?? ms?.model ?? FREE_DEFAULT`, so anyone who explicitly picked
+ * Flash keeps it, now correctly billed at 5x against their own budget.
+ *
+ * ⚠️ This id is the free tier's ONLY model. Changing it changes what a stranger
+ * meets first AND what that costs per signup — re-run scripts/verify-model-cost.ts.
  */
-export const FREE_DEFAULT = 'gemini-3.5-flash';
+export const FREE_DEFAULT = 'gemini-3.5-flash-lite';
 /** The failover chain's free link. Still Gateway-hosted, still selectable. */
 export const LLAMA_FALLBACK = 'meta/llama-3.3-70b';
 /**
