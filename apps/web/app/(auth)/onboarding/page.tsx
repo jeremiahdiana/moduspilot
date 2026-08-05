@@ -607,14 +607,11 @@ export default function OnboardingPage() {
     router.push('/dashboard');
   }
 
-  async function handleFinish() {
-    if (saving) return;
-    setSaving(true);
-    go('done');
-    try {
+  // The account-seeding write, shared by the paid finish and the free escape.
+  // Idempotent: a trial re-entry (?trial=1) or a second tap is already onboarded,
+  // so it must not duplicate the seeded habit/memories.
+  async function seedAccount() {
       const uid = user!.uid;
-      // Idempotent: a trial re-entry (?trial=1) is already onboarded — don't
-      // duplicate the seeded habit/memories.
       const existing = await getDoc(doc(db, 'users', uid));
       if (existing.data()?.onboardingComplete === true) return;
 
@@ -676,6 +673,31 @@ export default function OnboardingPage() {
           body: JSON.stringify({ text: mem }),
         }).catch(() => {});
       }
+  }
+
+  async function handleFinish() {
+    if (saving) return;
+    setSaving(true);
+    go('done');
+    try {
+      await seedAccount();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Free escape. /pricing promises "10 messages free, no card", but onboarding
+  // otherwise funnels everyone to Stripe — the only way to reach the free tier
+  // was to abandon checkout and hand-type /chat. This seeds the account exactly
+  // like a paid finish (so personalContext, the Daily Review habit and memories
+  // still get created) and drops them straight into the chat. The server meters
+  // the 10 messages and surfaces the paywall when they run out.
+  async function handleContinueFree() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await seedAccount();
+      router.push('/chat');
     } finally {
       setSaving(false);
     }
@@ -782,6 +804,22 @@ export default function OnboardingPage() {
               {!isLast ? 'Continue →' : alreadyPaid ? 'Finish →' : 'Review & start →'}
             </motion.button>
           </div>
+
+          {/* Free escape — only on the plan step, so we still collect name/role
+              and still show the plans as the upsell, but a visitor who isn't
+              ready to add a card can start on the free tier instead of bouncing.
+              Makes the /pricing "10 messages, no card" promise actually true. */}
+          {screen === 'plan' && !alreadyPaid && (
+            <div className="mt-5 text-center">
+              <button
+                onClick={handleContinueFree}
+                disabled={saving}
+                className="text-xs text-muted hover:text-text transition-colors underline underline-offset-4 disabled:opacity-40"
+              >
+                Not ready? Start with 10 free messages, no card →
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
