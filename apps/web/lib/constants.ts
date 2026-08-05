@@ -4,11 +4,18 @@ export const TRIAL_MS           = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
 // MODUS went fully paid (card-required 3-day trial) at this moment. ⚠️ The "no
 // free tier" part of that ended 2026-08-04 — see FREE_MESSAGE_LIMIT above. This
-// constant still means exactly what it always did (who is grandfathered) and is
-// unaffected; only the sentence describing the era around it changed.
-// Users whose Firebase account was created before this are grandfathered into
-// permanent free access; everyone after must start a paid trial. See
-// enforceSubscriptionGate in lib/chat/limits.ts.
+// constant still means exactly what it always did and is unaffected; only the
+// sentence describing the era around it changed.
+//
+// Accounts created BEFORE this keep permanent free access, flagged on the user doc
+// as `preLaunchAccess`. See enforceSubscriptionGate in lib/chat/limits.ts.
+//
+// 🚨 DO NOT CONFUSE THIS WITH "GRANDFATHERING". `moduspilot.com/grandfathering` is
+// the FOUNDING MEMBER offer: those people PAY $24/mo and carry plan:'pilot'. This
+// flag is an unrelated legacy thing about signup date and it grants FREE access.
+// The field was called `grandfathered` until 2026-08-06 and that collision cost
+// real time twice. Measured then: 0 accounts hold it true, 3 pre-paywall accounts
+// would resolve to true on their next message, which is why it still exists.
 export const PAYWALL_LAUNCH_MS  = Date.parse('2026-07-02T00:00:00Z');
 
 // ── The free taste tier ──────────────────────────────────────────────────────
@@ -95,23 +102,34 @@ export const TRANSCRIBE_USD_PER_HOUR = 0.15;
 export const FREE_TRANSCRIBE_SECONDS_LIFETIME = 600;   // 10 min, ~$0.03 once
 export const PAID_TRANSCRIBE_SECONDS_PER_DAY  = 1_200; // 20 min/day, ~$1.50/month
 
-/**
- * gpt-image-1 at MEDIUM quality, verified 2026-08-05 (low $0.011-0.016,
- * medium $0.042-0.063, high $0.167-0.250).
- *
- * 🪤 The route never passed `quality`, so it billed at OpenAI's default — which can
- * be the HIGH tier, 4-6x this. An unspecified quality is not a default, it is an
- * unpriced decision handed to the vendor.
- * ⚠️ gpt-image-1 retires 2026-10-23. The route already falls back to dall-e-3, so
- * it degrades rather than breaks, but plan the move.
- */
-export const IMAGE_USD_EACH = 0.042;
+// 🪤 The route never passed `quality`, so it billed at OpenAI's default, which can
+// be the HIGH tier at 4-6x medium. An unspecified quality is not a default, it is
+// an unpriced decision handed to the vendor. It is pinned below.
+// 🖼️ TWO MODELS, BY PLAN — verified present on our key 2026-08-06 via
+// api.openai.com/v1/models, not assumed. A wrong image id does not error, it
+// returns null and falls through to the fallback, so it degrades silently.
+//
+// gpt-image-1 is GONE from here: it retires 2026-10-23. dall-e-3 is gone too, it
+// is older and dearer than mini.
+//
+// 💸 Why MODUS does not get gpt-image-2: at $0.053 a medium square, 8/day is
+// $12.72/month, which on top of chat, voice-out and voice-in is $25.62 against a
+// $24 plan. It would LOSE money at the ceiling. Mini is the current cheap model
+// and keeps the 8/day he asked for comfortably inside the plan, so the better
+// model becomes a real PILOT differentiator rather than a loss.
+export const IMAGE_MODEL_STANDARD = 'gpt-image-1-mini';
+export const IMAGE_MODEL_PRO      = 'gpt-image-2';
+/** Conservative: mini is published as $0.005-$0.052 across quality and size, and
+ *  over-costing only makes a cap slightly stricter while under-costing loses money. */
+export const IMAGE_USD_EACH_STANDARD = 0.025;
+/** gpt-image-2, medium, 1024x1024. Wide/portrait are cheaper ($0.041). */
+export const IMAGE_USD_EACH_PRO      = 0.053;
 export const IMAGE_QUALITY: 'low' | 'medium' | 'high' = 'medium';
-// His call 2026-08-06: 8/day on MODUS, up from the 4 the first pass proposed.
-// ⚠️ 8 at MEDIUM is ~$10.08/month, which takes a MODUS worst case to ~96% of the
-// $24. It still cannot lose money, which is the hard rule, but the margin at the
-// ceiling is thin. The lever if that ever bites is IMAGE_QUALITY: 'low' is
-// $0.011-0.016 an image, roughly a quarter of medium, and would put 8/day back
-// near $3/month. Cache hits never consume the cap, so real usage sits far below.
-export const MODUS_IMAGES_PER_DAY = 8;    // ~$10.08/month
-export const PILOT_IMAGES_PER_DAY = 12;   // ~$15.12/month
+// His call 2026-08-06: 8/day on MODUS. On gpt-image-1-mini that is ~$6.00/month and
+// leaves MODUS at 79% of revenue worst case. Cache hits never consume the cap, so
+// real usage sits far below this. The lever if it ever bites is IMAGE_QUALITY.
+export const MODUS_IMAGES_PER_DAY = 8;    // gpt-image-1-mini, ~$6.00/month
+// PILOT's edge is the MODEL (gpt-image-2) as much as the count. 12/day on the pro
+// model put PILOT at 88% of revenue at the ceiling, which is too thin for the
+// flagship, so 10 — still more than MODUS, on a better model, at 83%.
+export const PILOT_IMAGES_PER_DAY = 10;   // gpt-image-2, ~$15.90/month

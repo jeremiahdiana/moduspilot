@@ -23,7 +23,7 @@ export function isPaidPlan(plan: string | null | undefined): plan is 'modus' | '
 
 /**
  * Whether a user has FULL, unmetered access: a paid/trialing subscription (plan
- * set by the Stripe webhook) or a grandfathered pre-paywall account.
+ * set by the Stripe webhook) or a legacy pre-paywall account (preLaunchAccess).
  *
  * ⚠️ FALSE NO LONGER MEANS "NO ACCESS", and callers written before 2026-08-04
  * assume it does. Since the free tier landed, an account this returns false for
@@ -36,7 +36,7 @@ export function isPaidPlan(plan: string | null | undefined): plan is 'modus' | '
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hasActiveAccess(userData: Record<string, any> | null | undefined): boolean {
   if (!userData) return false;
-  return isPaidPlan(userData.plan) || userData.grandfathered === true;
+  return isPaidPlan(userData.plan) || userData.preLaunchAccess === true;
 }
 
 /**

@@ -6,9 +6,9 @@ import { hasActiveAccess, isPaidPlan, planCeilings } from '@/lib/plan';
 import { weightedTokens } from '@/lib/chat/model-cost';
 
 /**
- * Is this a free-tier account — signed in, no subscription, not grandfathered?
+ * Is this a free-tier account — signed in, no subscription, not preLaunchAccess?
  *
- * Deliberately "not paid and not grandfathered" rather than plan === 'free': the
+ * Deliberately "not paid and no pre-launch access" rather than plan === 'free': the
  * Stripe webhook never writes 'free', so a free-tier user's `plan` is simply
  * absent. Checking for the string would silently match nobody, which is the kind
  * of gate that looks enforced and is not.
@@ -16,7 +16,7 @@ import { weightedTokens } from '@/lib/chat/model-cost';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isFreeTierUser(userData: Record<string, any> | null | undefined): boolean {
   if (!userData) return false;
-  return !isPaidPlan(userData.plan as string | undefined) && userData.grandfathered !== true;
+  return !isPaidPlan(userData.plan as string | undefined) && userData.preLaunchAccess !== true;
 }
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
@@ -55,7 +55,7 @@ export async function enforceGuestRateLimit(req: Request): Promise<Response | nu
  *
  *   1. paid/trialing subscription (plan set by the Stripe webhook, including the
  *      3-day card-required trial) — hasActiveAccess
- *   2. grandfathered: accounts created before PAYWALL_LAUNCH_MS keep permanent
+ *   2. preLaunchAccess: accounts created before PAYWALL_LAUNCH_MS keep permanent
  *      free access; resolved once from the Firebase creation time, then cached
  *   3. the free taste tier: FREE_MESSAGE_LIMIT messages, lifetime, per uid
  *   4. otherwise 402
@@ -71,12 +71,12 @@ export async function enforceGuestRateLimit(req: Request): Promise<Response | nu
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function enforceSubscriptionGate(uid: string, userData: Record<string, any>): Promise<Response | null> {
-  // Fast path: subscribed/trialing or already-known grandfathered.
+  // Fast path: subscribed/trialing, or already known to have pre-launch access.
   if (hasActiveAccess(userData)) return null;
 
-  // Resolve grandfather status once if unknown, then cache it on the user doc.
-  if (userData.grandfathered === undefined) {
-    let createdMs = PAYWALL_LAUNCH_MS; // if we can't tell, don't grandfather
+  // Resolve pre-launch status once if unknown, then cache it on the user doc.
+  if (userData.preLaunchAccess === undefined) {
+    let createdMs = PAYWALL_LAUNCH_MS; // if we can't tell, grant nothing
     try {
       const rec = await adminAuth.getUser(uid);
       const created = rec.metadata?.creationTime;
@@ -86,10 +86,10 @@ export async function enforceSubscriptionGate(uid: string, userData: Record<stri
       const raw = userData.modusPilotSignupAt;
       if (raw) createdMs = typeof raw.toDate === 'function' ? raw.toDate().getTime() : new Date(raw as string).getTime();
     }
-    const grandfathered = createdMs < PAYWALL_LAUNCH_MS;
-    userData.grandfathered = grandfathered;
-    adminDb.collection('users').doc(uid).set({ grandfathered }, { merge: true }).catch(() => {});
-    if (grandfathered) return null;
+    const preLaunchAccess = createdMs < PAYWALL_LAUNCH_MS;
+    userData.preLaunchAccess = preLaunchAccess;
+    adminDb.collection('users').doc(uid).set({ preLaunchAccess }, { merge: true }).catch(() => {});
+    if (preLaunchAccess) return null;
   }
 
   // ── The free taste tier ────────────────────────────────────────────────────
@@ -112,10 +112,10 @@ export async function enforceSubscriptionGate(uid: string, userData: Record<stri
   //
   // Free-reachable means plans:['free', …] in PLATFORM_MODELS, which today is
   // gemini-3.5-flash-lite ($0.52/1M, the FREE_DEFAULT) and meta/llama-3.3-70b
-  // ($0.60/1M). ⚠️ That second one is NOT only about the free tier: grandfathered
+  // ($0.60/1M). ⚠️ That second one is NOT only about the free tier: pre-launch
   // accounts have no `plan` string either, so effectivePlan() resolves them to
   // 'free' as well. Dropping 'free' from a catalog row to tighten this tier would
-  // silently take that model away from every grandfathered user.
+  // silently take that model away from every pre-launch account too.
   // verify-free-tier.ts §5 costs whichever free-reachable model is dearest, so
   // adding a third one cannot quietly invalidate the arithmetic above.
   const userRef = adminDb.collection('users').doc(uid);
@@ -176,7 +176,7 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
   // be kept — planCeilings() has no pilot plan to read, so it hands them the MODUS
   // allowance, which is far more than a pre-paywall user was ever using. It just
   // means "free forever" cannot mean "unbounded forever".
-  const metered = isPaidPlan(plan) || userData.grandfathered === true;
+  const metered = isPaidPlan(plan) || userData.preLaunchAccess === true;
   if (!metered) return null;
   const todayStr  = new Date().toISOString().slice(0, 10);
   const weekKey   = getWeekKey();
@@ -252,7 +252,7 @@ export function trackTokenUsage(uid: string, userData: Record<string, any>, rawT
   // count, not by tokens, so this does not gate anything for them — but without it
   // free usage was invisible, and "what does a free signup actually cost" could
   // only ever be answered with the arithmetic in lib/constants.ts rather than with
-  // a real number. Grandfathered accounts stay unmetered, as they always were.
+  // a real number. PreLaunchAccess accounts stay unmetered, as they always were.
   if (!isPaidPlan(plan) && !isFreeTierUser(userData)) return;
   const totalTokens = weightedTokens(modelId, rawTokens);
   if (totalTokens <= 0) return;

@@ -77,11 +77,11 @@ check('5. a free-tier signup (no plan at all) is NOT delivered', isBriefingDue(f
 check('   a cancelled subscriber (plan:free) is NOT delivered', isBriefingDue({ ...freeSignup, plan: 'free' }, 7), false);
 check('   a MODUS subscriber IS delivered', isBriefingDue({ ...freeSignup, plan: 'modus' }, 7), true);
 check('   a PILOT subscriber IS delivered', isBriefingDue({ ...freeSignup, plan: 'pilot' }, 7), true);
-// 🪤 hasActiveAccess, NOT isPaidPlan. Grandfathered accounts carry no plan
+// 🪤 hasActiveAccess, NOT isPaidPlan. PreLaunchAccess accounts carry no plan
 // string, so an isPaidPlan gate would silently cut briefings for every
 // pre-paywall user — a feature removed from the people least likely to forgive it.
 check('   a GRANDFATHERED account IS delivered (no plan string, still entitled)',
-  isBriefingDue({ ...freeSignup, grandfathered: true }, 7), true);
+  isBriefingDue({ ...freeSignup, preLaunchAccess: true }, 7), true);
 
 console.log('\n--- the guard: replay the OLD filter on the real doc ---');
 // Verbatim pre-fix logic from app/api/cron/daily-briefing/route.ts.

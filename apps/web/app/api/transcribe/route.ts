@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const userRef = adminDb.collection('users').doc(uid);
   const snap = await userRef.get();
   const data = snap.data() ?? {};
-  const paid = isPaidPlan(data.plan as string | undefined) || data.grandfathered === true;
+  const paid = isPaidPlan(data.plan as string | undefined) || data.preLaunchAccess === true;
   const budget = paid ? PAID_TRANSCRIBE_SECONDS_PER_DAY : FREE_TRANSCRIBE_SECONDS_LIFETIME;
   const spent = paid
     ? (data.sttSecondsDate === today ? (data.sttSecondsToday ?? 0) : 0)

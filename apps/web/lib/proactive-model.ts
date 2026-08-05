@@ -10,7 +10,7 @@ const groq = createOpenAI({ apiKey: process.env.AI_GATEWAY_API_KEY ?? '', baseUR
  * etc.). Paid users lead with a frontier model (Claude Sonnet 4.6); everyone
  * falls back to Groq Llama (fast + free). Callers try each in order until one
  * succeeds. Now that MODUS is fully paid, "paid" is effectively every active
- * user — free/grandfathered accounts stay on Llama.
+ * user — free and pre-launch accounts stay on Llama.
  *
  * ⚠️ DELIBERATELY still Sonnet 4.6, even though the chat catalog moved to Sonnet 5
  * on 2026-07-17. 4.6 is not retired and serves fine. Swapping this line ALONE would

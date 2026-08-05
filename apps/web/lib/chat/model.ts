@@ -369,7 +369,7 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // PILOT model. The prefix chain below now ONLY picks the provider SDK; it makes
   // no access decisions, so the catalog is the source of truth its header claims.
   // FREE_DEFAULT is exempt: it is what an unchosen request resolves to, so gating
-  // it on the catalog would make a grandfathered/plan-less account "downgrade"
+  // it on the catalog would make a pre-launch or plan-less account "downgrade"
   // from a model it never asked for — and show them a notice naming it.
   if (selectedModel !== FREE_DEFAULT && !isModelUnlocked(selectedModel, plan)) {
     return downgradedToFree(selectedModel, hasImage);

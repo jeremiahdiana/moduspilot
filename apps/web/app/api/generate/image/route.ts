@@ -1,6 +1,4 @@
 import { createHash } from 'crypto';
-import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
 import { requireAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -10,7 +8,7 @@ import { uploadGeneratedImage } from '@/lib/storage';
 // 💸 Image models bill PER IMAGE, and the price swings 15x on a parameter this
 // route never sent. gpt-image-1 is $0.011-0.016 low, $0.042-0.063 medium and
 // $0.167-0.250 high (verified 2026-08-05). With no `quality` the vendor picks, so
-// 20/day could bill up to ~$100/month against a $24 plan — and grandfathered
+// 20/day could bill up to ~$100/month against a $24 plan — and preLaunchAccess
 // accounts, which pay nothing, had the same 20.
 //
 // An unspecified quality is not a default, it is an unpriced decision handed to
@@ -21,6 +19,7 @@ import { uploadGeneratedImage } from '@/lib/storage';
 // degrades rather than breaks, but it needs a real successor before then.
 import {
   IMAGE_QUALITY, MODUS_IMAGES_PER_DAY, PILOT_IMAGES_PER_DAY,
+  IMAGE_MODEL_STANDARD, IMAGE_MODEL_PRO,
 } from '@/lib/constants';
 import { isPilotLevelPlan } from '@/lib/plan';
 
@@ -67,7 +66,7 @@ export async function POST(req: Request) {
       const doc = await txn.get(userRef);
       const d = doc.data() ?? {};
       const count = d.imageGenDate === today ? (d.imageGenCount ?? 0) : 0;
-      // Per plan, not one number for everyone. A grandfathered account pays $0 and
+      // Per plan, not one number for everyone. A preLaunchAccess account pays $0 and
       // was getting PILOT's allowance; it now sits on the MODUS line.
       const limit = isPilotLevelPlan(d.plan as string | undefined)
         ? PILOT_IMAGES_PER_DAY
@@ -82,27 +81,54 @@ export async function POST(req: Request) {
     // Non-cap transaction failure — let generation proceed rather than block.
   }
 
-  const openai = createOpenAI({ apiKey: openAIKey });
-
+  // 🪤 CALLED DIRECTLY, NOT THROUGH THE AI SDK. `experimental_generateImage` in
+  // ai@4.3.19 always sends `response_format`, and the current image models reject
+  // it outright: "Unknown parameter: 'response_format'". Because tryGenerate
+  // swallows failures and returns null, that surfaced as a plain 502 with no clue,
+  // and would have surfaced as a SILENT fallback to the other model if only one of
+  // the two had been broken. Caught only by actually generating an image.
+  //
+  // The gpt-image family always returns b64_json, so nothing is lost by dropping
+  // the parameter, and calling the endpoint directly is what /api/tts already does.
   async function tryGenerate(model: string, genSize: string): Promise<string | null> {
     try {
-      const { image } = await generateImage({
-        model: openai.image(model),
-        prompt: cleanPrompt,
-        size: genSize as `${number}x${number}`,
-        // Pinned, never left to the vendor's default — that default is what made
-        // this route's cost per image a 15x unknown. dall-e-3 uses the same key.
-        providerOptions: { openai: { quality: IMAGE_QUALITY } },
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${openAIKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          prompt: cleanPrompt,
+          size: genSize,
+          // Pinned, never left to the vendor's default — that default is what made
+          // this route's cost per image a 15x unknown.
+          quality: IMAGE_QUALITY,
+          n: 1,
+        }),
       });
-      return image.base64;
+      if (!res.ok) {
+        console.error(`[generate/image] ${model} HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+        return null;
+      }
+      const json = await res.json() as { data?: { b64_json?: string }[] };
+      return json.data?.[0]?.b64_json ?? null;
     } catch (e) {
       console.error(`[generate/image] ${model} failed:`, String(e));
       return null;
     }
   }
 
-  // gpt-image-1 needs OpenAI org verification; fall back to DALL·E 3.
-  const base64 = (await tryGenerate('gpt-image-1', allowedSize)) ?? (await tryGenerate('dall-e-3', '1024x1024'));
+  // PILOT pays for the better model; everyone else gets the current cheap one.
+  // Falls back to mini if the pro model is unavailable on the key — never to
+  // gpt-image-1, which retires 2026-10-23, and never to dall-e-3.
+  //
+  // 🪤 A wrong image id does NOT throw here, tryGenerate returns null and the
+  // fallback quietly serves instead. So these ids were checked against the live
+  // /v1/models list rather than assumed. Same failure shape as a wrong chat id
+  // silently becoming LLAMA_FALLBACK.
+  const pro = isPilotLevelPlan(userData.plan as string | undefined);
+  const primary = pro ? IMAGE_MODEL_PRO : IMAGE_MODEL_STANDARD;
+  const base64 = (await tryGenerate(primary, allowedSize))
+    ?? (await tryGenerate(IMAGE_MODEL_STANDARD, '1024x1024'));
   if (!base64) return Response.json({ error: 'generation_failed' }, { status: 502 });
 
   // Persist to Storage for a durable URL; cache it so reloads are free. If

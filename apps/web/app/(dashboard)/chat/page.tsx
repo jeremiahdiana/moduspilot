@@ -50,7 +50,7 @@ export default function ChatPage() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [plan, setPlan] = useState<Plan>('free');
-  const [grandfathered, setGrandfathered] = useState(false);
+  const [preLaunchAccess, setPreLaunchAccess] = useState(false);
   // Whether the plan read has come back at all. 'free' above is a placeholder, not
   // an answer, and treating it as one is what showed the paywall to paying users.
   const [planLoaded, setPlanLoaded] = useState(false);
@@ -89,7 +89,7 @@ export default function ChatPage() {
     }
   }, [conversations]);
 
-  // Load user plan + access status (subscription or grandfathered)
+  // Load user plan + access status (subscription or preLaunchAccess)
   useEffect(() => {
     if (!uid || initDone.current) return;
     initDone.current = true;
@@ -99,8 +99,8 @@ export default function ChatPage() {
       const userPlan = data.plan as Plan | undefined;
       // isPaidPlan covers modus/pilot/group; anything else (incl. undefined) → free.
       setPlan(isPaidPlan(userPlan) ? userPlan : 'free');
-      // Grandfathered = account predates the paywall launch (permanent free access).
-      setGrandfathered(data.grandfathered === true);
+      // PreLaunchAccess = account predates the paywall launch (permanent free access).
+      setPreLaunchAccess(data.preLaunchAccess === true);
     }).catch(() => {
       // 🚨 FAIL OPEN. This used to leave the defaults in place and call that
       // "fine". It is not: the SERVER gate is what actually enforces payment
@@ -113,11 +113,11 @@ export default function ChatPage() {
   }, [uid, user]);
 
   // Trialing subscriptions set plan='modus' via the Stripe webhook, so paid
-  // covers the 3-day trial too. Grandfathered accounts keep permanent access.
+  // covers the 3-day trial too. PreLaunchAccess accounts keep permanent access.
   // Use the shared plan helper so this stays in sync with the server gate
   // (isPaidPlan covers modus/pilot/group — don't inline the list here).
   const isPaid = isPaidPlan(plan);
-  const hasAccess = isPaid || grandfathered;
+  const hasAccess = isPaid || preLaunchAccess;
   // Used for upsell surfaces (the conversation rail), NOT to gate the composer.
   const needsSubscription = planLoaded && !hasAccess && !isGuest;
 
@@ -132,7 +132,7 @@ export default function ChatPage() {
   //     rendered as the worst one.
   //  2. Since the free tier shipped 2026-08-04, "not paid" no longer means "no
   //     access" — lib/plan.ts says so in as many words. A brand-new free signup is
-  //     neither paid nor grandfathered, so they got the wall INSTEAD of a composer
+  //     neither paid nor preLaunchAccess, so they got the wall INSTEAD of a composer
   //     and could never spend the 10 free messages the server was happy to serve.
   //     The free tier existed to remove exactly that wall and never worked in the UI.
   //

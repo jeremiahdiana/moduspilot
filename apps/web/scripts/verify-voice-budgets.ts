@@ -82,7 +82,7 @@ async function mk(plan: string | null) {
   const email = `voice-${plan ?? 'free'}-${Date.now()}@example.com`;
   const u = await auth.createUser({ email, password: `Pw!${Math.random().toString(36).slice(2)}A9` });
   await db.collection('users').doc(u.uid).set({
-    email, name: 'Voice Test', onboardingComplete: true, createdAt: new Date(), grandfathered: false,
+    email, name: 'Voice Test', onboardingComplete: true, createdAt: new Date(), preLaunchAccess: false,
     ...(plan ? { plan } : {}),
   }, { merge: true });
   return u.uid;

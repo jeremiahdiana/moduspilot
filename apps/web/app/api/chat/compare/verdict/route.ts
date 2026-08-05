@@ -1,6 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { requireAuth } from '@/lib/api-auth';
+import { enforceAuxHourlyLimit } from '@/lib/chat/aux-limit';
 import { modelName } from '@/lib/models';
 
 // The one-line verdict under a comparison. Runs on gpt-4o-mini once all three
@@ -23,6 +24,10 @@ const MAX_ANSWER_CHARS = 64000;
 export async function POST(req: Request) {
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  // Bounded per user per hour. This route calls a model and had no cap at all.
+  const limited = await enforceAuxHourlyLimit(auth.uid, 'verdict', 60);
+  if (limited) return limited;
 
   const key = process.env.OPENAI_API_KEY;
   if (!key) return Response.json({ verdict: null });

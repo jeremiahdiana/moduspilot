@@ -1,6 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { requireAuth } from '@/lib/api-auth';
+import { enforceAuxHourlyLimit } from '@/lib/chat/aux-limit';
 import { CLARIFY_SYSTEM, classifyClarifyReply } from '@/lib/chat/clarify-prompt';
 
 // The clarify gate for multi-model mode.
@@ -23,6 +24,10 @@ const MAX_PROMPT_CHARS = 4000;
 export async function POST(req: Request) {
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  // Bounded per user per hour. This route calls a model and had no cap at all.
+  const limited = await enforceAuxHourlyLimit(auth.uid, 'clarify', 60);
+  if (limited) return limited;
 
   const key = process.env.OPENAI_API_KEY;
   // No key: skip clarifying rather than block the comparison.

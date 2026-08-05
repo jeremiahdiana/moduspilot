@@ -1,12 +1,19 @@
 import { generateText } from 'ai';
 import { adminAuth } from '@/lib/firebase-admin';
+import { enforceAuxHourlyLimit } from '@/lib/chat/aux-limit';
 import { backgroundModel } from '@/lib/chat/model';
 
 export async function POST(req: Request) {
   try {
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     if (!token) return Response.json({ milestones: [] }, { status: 401 });
-    try { await adminAuth.verifyIdToken(token); } catch { return Response.json({ milestones: [] }, { status: 401 }); }
+    let uid: string;
+    try { uid = (await adminAuth.verifyIdToken(token)).uid; }
+    catch { return Response.json({ milestones: [] }, { status: 401 }); }
+
+    // This route calls a model and had no cap of any kind.
+    const limited = await enforceAuxHourlyLimit(uid, 'goalPlan', 30);
+    if (limited) return limited;
 
     const { title, description, timeframe } = await req.json() as {
       title: string;

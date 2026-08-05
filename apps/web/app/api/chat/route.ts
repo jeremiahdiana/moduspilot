@@ -505,7 +505,7 @@ export async function POST(req: Request) {
     // Model selection for this message. 'auto' → MODUS classifies the task and
     // picks the best unlocked model (and turns web search on for research);
     // a specific id → use it (gated by plan in resolveChatModel); else the saved
-    // Brain setting. Only paid/grandfathered users reach here past the gate, but
+    // Brain setting. Only paid and pre-launch users reach here past the gate, but
     // resolveChatModel still falls back to Llama if a model isn't unlocked.
     const modelChoice = body.modelChoice;
     let forcedModelId: string | undefined;

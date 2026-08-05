@@ -1,13 +1,23 @@
 import { generateText } from 'ai';
 import { adminAuth } from '@/lib/firebase-admin';
+import { enforceAuxHourlyLimit } from '@/lib/chat/aux-limit';
 import { backgroundModel } from '@/lib/chat/model';
 
 export async function POST(req: Request) {
   try {
+    // 🚨 THIS ROUTE USED TO RUN A MODEL FOR ANYONE. The token was optional and a
+    // failed verify fell through with "allow anyway", so an unauthenticated caller
+    // could spend inference on our key, unbounded, forever. Its only caller is the
+    // authenticated goals page, so requiring a token costs nothing and closes an
+    // open door.
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-    if (token) {
-      try { await adminAuth.verifyIdToken(token); } catch { /* allow anyway */ }
-    }
+    if (!token) return Response.json({ suggestions: [] }, { status: 401 });
+    let uid: string;
+    try { uid = (await adminAuth.verifyIdToken(token)).uid; }
+    catch { return Response.json({ suggestions: [] }, { status: 401 }); }
+
+    const limited = await enforceAuxHourlyLimit(uid, 'goalSuggest', 30);
+    if (limited) return limited;
 
     const { title, description, timeframe } = await req.json() as {
       title: string;
