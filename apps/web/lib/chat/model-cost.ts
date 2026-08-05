@@ -141,6 +141,19 @@ const blended = (p: { in: number; out: number }) => p.in * BLEND.input + p.out *
 const BASELINE = blended(PRICES['gemini-3.5-flash-lite']);
 
 /**
+ * What ONE budget unit costs in dollars, exported so anything converting the
+ * ceilings back into money uses this number rather than a copy of it.
+ *
+ * A unit is one token at the baseline model's blended rate, so
+ * `units / 1e6 * BASELINE_USD_PER_1M` is the spend a ceiling authorises.
+ * scripts/verify-surface-costs.ts is the caller: it turns MODUS_TOKEN_LIMIT and
+ * PILOT_TOKEN_LIMIT into monthly dollars and checks them against the subscription.
+ * Hardcoding 0.52 there is exactly how the Flash mispricing survived — a number
+ * copied out of a comment cannot go stale loudly.
+ */
+export const BASELINE_USD_PER_1M = BASELINE;
+
+/**
  * The weight applied to an unknown model id.
  *
  * 🔑 Deliberately the MAXIMUM weight in the table, not the average and not 1.

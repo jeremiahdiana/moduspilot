@@ -162,11 +162,24 @@ export function createFrameParser(events: AssistEvents): { push(chunk: string): 
  * Gemini Flash's 1x. Watch was therefore spending nine times what the job costs,
  * unattended, on a loop, while the user was not even looking at the screen.
  *
- * Gemini 3.5 Flash is weight 1 — the cheapest thing in the catalog — and is
- * verified vision-capable (scripts/verify-vision-routing.ts). It is available on
- * every paid plan, so this never trips the tier gate.
+ * 🪤💸 THIS ROW ONCE SAID "Gemini 3.5 Flash is weight 1, the cheapest thing in the
+ * catalog". That was FALSE and it cost real budget. Flash was carrying Flash-LITE's
+ * prices in model-cost.ts; when that was corrected Flash went to weight 5 and watch
+ * silently got 5x dearer overnight. Nobody re-ran verify-watch-budget, so the guard
+ * that exists precisely to catch this sat red: 30 looks went from ~7.8% of a MODUS
+ * day to 39.2%, against a 15% design ceiling.
+ *
+ * Flash-LITE is the model that is actually weight 1 (the BASELINE of the cost
+ * table), is verified vision-capable on the catalog and by
+ * scripts/verify-vision-routing.ts, and is reachable on EVERY plan including free —
+ * so this never trips the tier gate. An unattended "did anything here need me?"
+ * glance at an 800px frame does not need more than this.
+ *
+ * ⚠️ If you change this id, re-run `npx tsx scripts/verify-watch-budget.ts` in
+ * apps/web. The budget guard mirrors this constant and is the only thing that
+ * notices when a reprice moves the cost of a loop that runs unattended.
  */
-export const WATCH_MODEL = 'gemini-3.5-flash';
+export const WATCH_MODEL = 'gemini-3.5-flash-lite';
 
 export interface AskOptions {
   /** Skip the life-OS context assembly server-side. See body.screenMode. */

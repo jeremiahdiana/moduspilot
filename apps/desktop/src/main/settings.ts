@@ -83,8 +83,15 @@ export const DEFAULT_SCREEN_ASSIST: ScreenAssistSettings = {
  * consumed an entire day, and a 12/hour cap emptied it in twenty minutes.
  *
  * Watch now runs on a fixed cheap vision model (1x weight instead of 9x) with
- * smaller frames, which puts a look near ~1,500 units. 30 looks is then ~9% of a
+ * smaller frames, which puts a look near ~1,300 units. 30 looks is then ~7.8% of a
  * MODUS day — a background feature's fair share, rather than all of it.
+ *
+ * 🪤💸 THESE NUMBERS ARE ONLY TRUE WHILE WATCH_MODEL IS WEIGHT 1. They were briefly
+ * false: watch was pinned to `gemini-3.5-flash`, which the flash/flash-lite reprice
+ * moved from weight 1 to weight 5, and a look really cost 6,540 units (39.2% of a
+ * day) while this comment still claimed ~1,500 and ~9%. A cost written in a comment
+ * is not a guard. `scripts/verify-watch-budget.ts` in apps/web is the guard —
+ * re-run it whenever WATCH_MODEL, this cap, the frame size or any price changes.
  */
 export const MAX_WATCH_LOOKS_PER_DAY = 30;
 

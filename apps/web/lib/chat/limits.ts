@@ -164,7 +164,20 @@ export async function enforceSubscriptionGate(uid: string, userData: Record<stri
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function enforcePaidTokenLimit(userData: Record<string, any>): Response | null {
   const plan = userData.plan as string | undefined;
-  if (!isPaidPlan(plan)) return null;
+  // 💸 GRANDFATHERED ACCOUNTS ARE METERED TOO, and until 2026-08-05 they were not.
+  //
+  // They carry NO `plan` string, so `isPaidPlan` alone returned null here and they
+  // had no daily ceiling and no weekly ceiling — unlimited chat, free, forever.
+  // The free tier's 10-message cap does not catch them either, because
+  // enforceSubscriptionGate lets them through on hasActiveAccess long before it.
+  // So the one class of user paying nothing was the only class with no ceiling.
+  //
+  // This does NOT remove their access, which is a promise that was made and should
+  // be kept — planCeilings() has no pilot plan to read, so it hands them the MODUS
+  // allowance, which is far more than a pre-paywall user was ever using. It just
+  // means "free forever" cannot mean "unbounded forever".
+  const metered = isPaidPlan(plan) || userData.grandfathered === true;
+  if (!metered) return null;
   const todayStr  = new Date().toISOString().slice(0, 10);
   const weekKey   = getWeekKey();
   const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(userData);

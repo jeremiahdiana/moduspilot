@@ -25,8 +25,14 @@ const PILOT_CEILING = 1_500_000;
 
 /** Must match apps/desktop/src/main/settings.ts */
 const MAX_WATCH_LOOKS_PER_DAY = 30;
-/** Must match apps/desktop/src/main/screen/assist.ts */
-const WATCH_MODEL = 'gemini-3.5-flash';
+/** Must match apps/desktop/src/main/screen/assist.ts.
+ *
+ * 🪤 This said `gemini-3.5-flash` and that is how a reprice broke the feature this
+ * file guards. Flash was mispriced as Flash-Lite; correcting it moved Flash from
+ * weight 1 to weight 5, and watch's real cost went 1,308 → 6,540 units a look
+ * without one line of watch code changing. All four checks below failed for a day
+ * because nobody re-ran this. Watch is now pinned to the model that IS weight 1. */
+const WATCH_MODEL = 'gemini-3.5-flash-lite';
 /** Must match apps/desktop/src/main/screen/overlay.ts (WATCH_FRAME_EDGE = 800) */
 const WATCH_FRAME_TOKENS = 420;   // ~800px JPEG
 const FULL_FRAME_TOKENS = 1_200;  // ~1400px JPEG
@@ -74,15 +80,20 @@ for (const m of ['gemini-3.5-flash', 'meta/llama-3.3-70b', 'gpt-5.6-terra', 'cla
   check(`saved Brain ${m} does not change watch's cost`, cost === after, `${cost.toLocaleString()} units`);
 }
 
-console.log('\nWorst case: the lean context is NOT deployed yet\n');
-// Until the web change ships, prod still assembles the full context. The pinned
-// cheap model has to hold the line on its own.
-const undeployed = lookCost(WATCH_MODEL, tok(MODUS_SYSTEM_PROMPT), LIFE_OS_CTX, WATCH_FRAME_TOKENS)
+console.log('\nBelt and braces: the lean context is deployed, but assume it regressed\n');
+// ✅ The lean context IS live — app/api/chat/route.ts builds stableSystem from
+// SCREEN_ASSIST_SYSTEM_PROMPT when body.screenMode is set, and leanContext also
+// suppresses the email/calendar/notes/memory/drive/connector fetches upstream.
+// This check used to be framed as "not deployed yet" and asserted a condition that
+// had already shipped. Keep it, but as what it actually protects: if someone routes
+// screen mode back through the full life-OS prompt, the cheap model must STILL hold
+// the line on its own.
+const fullCtx = lookCost(WATCH_MODEL, tok(MODUS_SYSTEM_PROMPT), LIFE_OS_CTX, WATCH_FRAME_TOKENS)
   * MAX_WATCH_LOOKS_PER_DAY;
-console.log(`  ${MAX_WATCH_LOOKS_PER_DAY} looks against TODAY's production = ${undeployed.toLocaleString()} units`
-  + ` (${((undeployed / MODUS_CEILING) * 100).toFixed(0)}% of a MODUS day)`);
-check('even undeployed, watch cannot empty a day on its own',
-  undeployed < MODUS_CEILING, `${((undeployed / MODUS_CEILING) * 100).toFixed(0)}%`);
+console.log(`  ${MAX_WATCH_LOOKS_PER_DAY} looks WITHOUT the lean context = ${fullCtx.toLocaleString()} units`
+  + ` (${((fullCtx / MODUS_CEILING) * 100).toFixed(0)}% of a MODUS day)`);
+check('even on the full context, watch cannot empty a day on its own',
+  fullCtx < MODUS_CEILING, `${((fullCtx / MODUS_CEILING) * 100).toFixed(0)}%`);
 
 console.log(`\n${failures === 0 ? '✅ PASS' : `❌ ${failures} FAILED`}\n`);
 process.exit(failures === 0 ? 0 : 1);

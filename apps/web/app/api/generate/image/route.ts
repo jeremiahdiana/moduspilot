@@ -7,10 +7,23 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { hasActiveAccess } from '@/lib/plan';
 import { uploadGeneratedImage } from '@/lib/storage';
 
-// Daily image-generation cap per user. Image models cost real money per call,
-// so gate to paid/grandfathered users and cap generously but finitely. Cache
-// hits (identical prompt) do not consume the cap.
-const DAILY_IMAGE_LIMIT = 20;
+// 💸 Image models bill PER IMAGE, and the price swings 15x on a parameter this
+// route never sent. gpt-image-1 is $0.011-0.016 low, $0.042-0.063 medium and
+// $0.167-0.250 high (verified 2026-08-05). With no `quality` the vendor picks, so
+// 20/day could bill up to ~$100/month against a $24 plan — and grandfathered
+// accounts, which pay nothing, had the same 20.
+//
+// An unspecified quality is not a default, it is an unpriced decision handed to
+// the vendor. Now pinned, and the cap is per-plan and derived from revenue in
+// lib/constants.ts. Cache hits (identical prompt) still cost nothing and are free.
+//
+// ⚠️ gpt-image-1 retires 2026-10-23. The dall-e-3 fallback below means this
+// degrades rather than breaks, but it needs a real successor before then.
+import {
+  IMAGE_QUALITY, MODUS_IMAGES_PER_DAY, PILOT_IMAGES_PER_DAY,
+} from '@/lib/constants';
+import { isPilotLevelPlan } from '@/lib/plan';
+
 const ALLOWED_SIZES = ['1024x1024', '1024x1536', '1536x1024'];
 
 export async function POST(req: Request) {
@@ -54,7 +67,12 @@ export async function POST(req: Request) {
       const doc = await txn.get(userRef);
       const d = doc.data() ?? {};
       const count = d.imageGenDate === today ? (d.imageGenCount ?? 0) : 0;
-      if (count >= DAILY_IMAGE_LIMIT) throw new Error('image_limit_reached');
+      // Per plan, not one number for everyone. A grandfathered account pays $0 and
+      // was getting PILOT's allowance; it now sits on the MODUS line.
+      const limit = isPilotLevelPlan(d.plan as string | undefined)
+        ? PILOT_IMAGES_PER_DAY
+        : MODUS_IMAGES_PER_DAY;
+      if (count >= limit) throw new Error('image_limit_reached');
       txn.set(userRef, { imageGenDate: today, imageGenCount: count + 1, imageGenAt: FieldValue.serverTimestamp() }, { merge: true });
     });
   } catch (e) {
@@ -72,6 +90,9 @@ export async function POST(req: Request) {
         model: openai.image(model),
         prompt: cleanPrompt,
         size: genSize as `${number}x${number}`,
+        // Pinned, never left to the vendor's default — that default is what made
+        // this route's cost per image a 15x unknown. dall-e-3 uses the same key.
+        providerOptions: { openai: { quality: IMAGE_QUALITY } },
       });
       return image.base64;
     } catch (e) {
