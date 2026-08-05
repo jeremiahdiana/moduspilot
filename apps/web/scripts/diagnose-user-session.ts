@@ -81,7 +81,7 @@ async function main() {
     const snap = await db.collection('users').doc(uid).get();
     if (!snap.exists) { console.log('  (no user doc)'); continue; }
     const d = snap.data()!;
-    const billing = ['plan', 'preLaunchAccess', 'stripeCustomerId', 'stripeSubscriptionId',
+    const billing = ['plan', 'stripeCustomerId', 'stripeSubscriptionId',
       'subscriptionStatus', 'cadence', 'foundingMember', 'foundingCode', 'trialEndsAt',
       'onboardingComplete', 'modusPilotSignupAt', 'createdAt', 'updatedAt',
       'dailyMessages', 'usageDate', 'dailyTokens', 'tokenDate', 'weeklyTokens', 'tokenWeek'];

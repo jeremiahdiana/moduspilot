@@ -22,8 +22,16 @@ export function isPaidPlan(plan: string | null | undefined): plan is 'modus' | '
 }
 
 /**
- * Whether a user has FULL, unmetered access: a paid/trialing subscription (plan
- * set by the Stripe webhook) or a legacy pre-paywall account (preLaunchAccess).
+ * Whether a user has FULL, unmetered access. That means ONE thing: a paid or
+ * trialing subscription, `plan` written by the Stripe webhook.
+ *
+ * 🗑️ REMOVED 2026-08-06: a second branch used to grant this to any account created
+ * before PAYWALL_LAUNCH_MS, flagged `preLaunchAccess` (originally `grandfathered`).
+ * **Jeremiah never made that rule.** It was invented by an earlier session and
+ * inherited by everything downstream, and its name kept being mistaken for
+ * moduspilot.com/grandfathering, which is the opposite thing: founding members who
+ * PAY $24/mo and carry plan:'pilot'. There is no free tier keyed on signup date.
+ * Pre-paywall accounts get the ordinary free tier like everyone else.
  *
  * ⚠️ FALSE NO LONGER MEANS "NO ACCESS", and callers written before 2026-08-04
  * assume it does. Since the free tier landed, an account this returns false for
@@ -36,7 +44,7 @@ export function isPaidPlan(plan: string | null | undefined): plan is 'modus' | '
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hasActiveAccess(userData: Record<string, any> | null | undefined): boolean {
   if (!userData) return false;
-  return isPaidPlan(userData.plan) || userData.preLaunchAccess === true;
+  return isPaidPlan(userData.plan);
 }
 
 /**

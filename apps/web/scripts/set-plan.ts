@@ -48,7 +48,6 @@ async function main() {
 
   console.log(`uid            : ${UID}`);
   console.log(`plan           : ${data.plan ?? '(none)'}`);
-  console.log(`preLaunchAccess  : ${data.preLaunchAccess ?? '(unset)'}`);
   console.log(`saved model    : ${JSON.stringify(data.settings?.modelSettings ?? null)}`);
   if (data.planBeforeManualOverride !== undefined) {
     console.log(`⚠️  previously overridden from: ${data.planBeforeManualOverride}`);

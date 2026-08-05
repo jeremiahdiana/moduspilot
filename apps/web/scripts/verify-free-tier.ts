@@ -46,9 +46,8 @@ function section(s: string) { console.log(`\n── ${s} ──`); }
 const temp: string[] = [];
 async function freeUser(overrides: Record<string, unknown> = {}): Promise<string> {
   const uid = `_verify_free_${Math.random().toString(36).slice(2, 12)}`;
-  // preLaunchAccess:false pinned explicitly so the gate does not go and resolve it
   // from a Firebase auth record that does not exist for a synthetic uid.
-  await adminDb.collection('users').doc(uid).set({ preLaunchAccess: false, ...overrides });
+  await adminDb.collection('users').doc(uid).set({ ...overrides });
   temp.push(uid);
   return uid;
 }
@@ -102,7 +101,7 @@ async function main() {
       `freeMessagesUsed=${(await read(uid)).freeMessagesUsed}`);
   }
 
-  section('4  paid + preLaunchAccess accounts are untouched by any of this');
+  section('4  paid accounts are untouched by any of this');
   {
     const paid = await freeUser({ plan: 'modus' });
     check('a paying user is never charged a free message',
@@ -110,14 +109,14 @@ async function main() {
       `freeMessagesUsed=${(await read(paid)).freeMessagesUsed}`);
     check('isFreeTierUser is false for a paid plan', !isFreeTierUser({ plan: 'modus' }));
 
-    const gf = await freeUser({ preLaunchAccess: true });
-    check('a preLaunchAccess user is never charged a free message',
+    const gf = await freeUser({ plan: 'modus' });
+    check('a paid user is never charged a free message',
       (await enforceSubscriptionGate(gf, await read(gf))) === null && (await read(gf)).freeMessagesUsed === undefined);
-    check('isFreeTierUser is false for preLaunchAccess', !isFreeTierUser({ preLaunchAccess: true }));
+    check('isFreeTierUser is false for a paid plan', !isFreeTierUser({ plan: 'modus' }));
 
     // The one that would silently match nobody: the Stripe webhook never writes
     // plan:'free', so a free user's plan is ABSENT, not the string 'free'.
-    check('isFreeTierUser is true when plan is simply absent', isFreeTierUser({ preLaunchAccess: false }));
+    check('isFreeTierUser is true when plan is simply absent', isFreeTierUser({}));
   }
 
   section('5  a free user cannot reach a model that costs more than the costing');
@@ -183,7 +182,7 @@ async function main() {
     check('enforcePaidTokenLimit does not gate a free user (the message cap does)',
       enforcePaidTokenLimit(await read(uid)) === null);
     check('…and the message cap still stops them', (await enforceSubscriptionGate(
-      await freeUser({ freeMessagesUsed: FREE_MESSAGE_LIMIT }), { preLaunchAccess: false, freeMessagesUsed: FREE_MESSAGE_LIMIT },
+      await freeUser({ freeMessagesUsed: FREE_MESSAGE_LIMIT }), { freeMessagesUsed: FREE_MESSAGE_LIMIT },
     )) !== null);
   }
 
@@ -204,7 +203,7 @@ async function main() {
   section('9  LIFECYCLE — subscribe, cancel, come back');
   {
     // What billing.ts:186 actually writes when the last subscription ends.
-    const CANCELLED = { plan: 'free', subscriptionId: null, limitAddonQty: 0, preLaunchAccess: false };
+    const CANCELLED = { plan: 'free', subscriptionId: null, limitAddonQty: 0 };
 
     check('a cancelled subscriber IS a free-tier user (soft landing, not a lockout)',
       isFreeTierUser(CANCELLED));
@@ -248,12 +247,12 @@ async function main() {
     // removes exactly that barrier. Every free signup would then get a
     // model-calling briefing daily, forever, outside the ten-message cap.
     const hour = 7;
-    const onboardedFree = { onboardingComplete: true, settings: { briefingHour: hour }, preLaunchAccess: false };
+    const onboardedFree = { onboardingComplete: true, settings: { briefingHour: hour } };
     check('a free user is NOT due a daily briefing', !isBriefingDue(onboardedFree, hour));
     check('a paying user still is', isBriefingDue({ ...onboardedFree, plan: 'modus' }, hour));
-    // 🪤 hasActiveAccess, not isPaidPlan — preLaunchAccess users have no plan string
+    // Briefings are a PAID feature and cost a model call a day.
     // and must keep the feature.
-    check('a GRANDFATHERED user still is', isBriefingDue({ ...onboardedFree, preLaunchAccess: true }, hour));
+    check('a PAID user still is', isBriefingDue({ ...onboardedFree, plan: 'modus' }, hour));
     check('a cancelled subscriber is not', !isBriefingDue({ ...onboardedFree, plan: 'free' }, hour));
   }
 

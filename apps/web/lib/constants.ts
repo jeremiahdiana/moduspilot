@@ -2,22 +2,6 @@ export const GUEST_DAILY_LIMIT  = 5;
 export const TRIAL_DAYS         = 3;
 export const TRIAL_MS           = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
-// MODUS went fully paid (card-required 3-day trial) at this moment. ⚠️ The "no
-// free tier" part of that ended 2026-08-04 — see FREE_MESSAGE_LIMIT above. This
-// constant still means exactly what it always did and is unaffected; only the
-// sentence describing the era around it changed.
-//
-// Accounts created BEFORE this keep permanent free access, flagged on the user doc
-// as `preLaunchAccess`. See enforceSubscriptionGate in lib/chat/limits.ts.
-//
-// 🚨 DO NOT CONFUSE THIS WITH "GRANDFATHERING". `moduspilot.com/grandfathering` is
-// the FOUNDING MEMBER offer: those people PAY $24/mo and carry plan:'pilot'. This
-// flag is an unrelated legacy thing about signup date and it grants FREE access.
-// The field was called `grandfathered` until 2026-08-06 and that collision cost
-// real time twice. Measured then: 0 accounts hold it true, 3 pre-paywall accounts
-// would resolve to true on their next message, which is why it still exists.
-export const PAYWALL_LAUNCH_MS  = Date.parse('2026-07-02T00:00:00Z');
-
 // ── The free taste tier ──────────────────────────────────────────────────────
 //
 // How many messages a signed-in account with no subscription gets before the card

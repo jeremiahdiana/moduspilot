@@ -8,8 +8,7 @@ import { uploadGeneratedImage } from '@/lib/storage';
 // 💸 Image models bill PER IMAGE, and the price swings 15x on a parameter this
 // route never sent. gpt-image-1 is $0.011-0.016 low, $0.042-0.063 medium and
 // $0.167-0.250 high (verified 2026-08-05). With no `quality` the vendor picks, so
-// 20/day could bill up to ~$100/month against a $24 plan — and preLaunchAccess
-// accounts, which pay nothing, had the same 20.
+// 20/day could bill up to ~$100/month against a $24 plan.
 //
 // An unspecified quality is not a default, it is an unpriced decision handed to
 // the vendor. Now pinned, and the cap is per-plan and derived from revenue in
@@ -66,8 +65,7 @@ export async function POST(req: Request) {
       const doc = await txn.get(userRef);
       const d = doc.data() ?? {};
       const count = d.imageGenDate === today ? (d.imageGenCount ?? 0) : 0;
-      // Per plan, not one number for everyone. A preLaunchAccess account pays $0 and
-      // was getting PILOT's allowance; it now sits on the MODUS line.
+      // Per plan, not one number for everyone.
       const limit = isPilotLevelPlan(d.plan as string | undefined)
         ? PILOT_IMAGES_PER_DAY
         : MODUS_IMAGES_PER_DAY;

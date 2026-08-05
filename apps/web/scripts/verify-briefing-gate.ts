@@ -81,7 +81,7 @@ check('   a PILOT subscriber IS delivered', isBriefingDue({ ...freeSignup, plan:
 // string, so an isPaidPlan gate would silently cut briefings for every
 // pre-paywall user — a feature removed from the people least likely to forgive it.
 check('   a GRANDFATHERED account IS delivered (no plan string, still entitled)',
-  isBriefingDue({ ...freeSignup, preLaunchAccess: true }, 7), true);
+  isBriefingDue({ ...freeSignup, plan: 'modus' }, 7), true);
 
 console.log('\n--- the guard: replay the OLD filter on the real doc ---');
 // Verbatim pre-fix logic from app/api/cron/daily-briefing/route.ts.
