@@ -208,6 +208,28 @@ export async function POST(req: Request) {
   const env = body.sync && typeof body.sync === 'object' ? body.sync : undefined;
   const deviceId = env && typeof env.deviceId === 'string' ? env.deviceId.slice(0, 128) : null;
 
+  // The capability toggles now gate INGESTION, not just whether chat may read
+  // the result. Previously "Apple Notes: off" left every synced body sitting in
+  // Firestore and the /notes page rendering all of them, which is not what off
+  // means to anyone. It is also what makes /api/desktop/clear durable: without
+  // this, a purge is undone by the next sync 5 minutes later.
+  //
+  // Enforced server-side on purpose — it takes effect the moment the user flips
+  // the toggle, with no desktop release and no version skew.
+  const userSnap = await adminDb.collection('users').doc(uid).get();
+  const userData = (userSnap.data() ?? {}) as {
+    capabilities?: Record<string, boolean>;
+    settings?: { capabilities?: Record<string, boolean> };
+  };
+  const caps: Record<string, boolean> = {
+    ...(userData.capabilities ?? {}),
+    ...(userData.settings?.capabilities ?? {}),
+  };
+  // Matches the defaults the chat route reads: notesSync defaults ON,
+  // messagesSync defaults OFF (it carries other people's messages).
+  const notesAllowed = caps.notesSync !== false;
+  const messagesAllowed = caps.messagesSync === true;
+
   // A source runs when it has records to write, or when a complete envelope
   // says something should be deleted. The second half is what lets "the user
   // deleted their last few notes" reconcile; the first half preserves the old
@@ -233,14 +255,15 @@ export async function POST(req: Request) {
   let notesSkipped = 0;
   let messagesSkipped = 0;
   let remindersSkipped = 0;
+  const capOff: ReconcileOutcome = { skipped: 'capability-off' };
   const reconcile: { notes: ReconcileOutcome; messages: ReconcileOutcome; reminders: ReconcileOutcome } = {
-    notes: idleOutcome(env?.notes),
-    messages: idleOutcome(env?.messages),
+    notes: notesAllowed ? idleOutcome(env?.notes) : capOff,
+    messages: messagesAllowed ? idleOutcome(env?.messages) : capOff,
     reminders: idleOutcome(env?.reminders),
   };
 
   try {
-    if (active(notes, env?.notes)) {
+    if (notesAllowed && active(notes, env?.notes)) {
       const r = await syncDocCollection({
         col: adminDb.collection('users').doc(uid).collection('notes'),
         records: notes,
@@ -254,7 +277,7 @@ export async function POST(req: Request) {
       reconcile.notes = r.reconcile;
     }
 
-    if (active(messages, env?.messages)) {
+    if (messagesAllowed && active(messages, env?.messages)) {
       const r = await syncDocCollection({
         col: adminDb.collection('users').doc(uid).collection('messages'),
         records: messages,

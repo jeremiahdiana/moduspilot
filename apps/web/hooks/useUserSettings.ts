@@ -188,5 +188,24 @@ export function useUserSettings(user: User | null) {
     setMemories([]);
   }, [user]);
 
-  return { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory, clearMemories };
+  /**
+   * Delete everything MODUS Desktop has synced for a source.
+   *
+   * Only durable because the ingest route refuses a source whose capability is
+   * off — otherwise the Mac app repopulates it on the next 5-minute tick. Turn
+   * the toggle off first, then clear.
+   */
+  const clearSyncedData = useCallback(async (sources: ('notes' | 'messages')[]) => {
+    if (!user || sources.length === 0) return 0;
+    const token = await user.getIdToken();
+    const res = await fetch(`/api/desktop/clear?sources=${sources.join(',')}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Failed to clear synced data');
+    const json = (await res.json()) as { cleared?: Record<string, number> };
+    return Object.values(json.cleared ?? {}).reduce((a, b) => a + b, 0);
+  }, [user]);
+
+  return { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory, clearMemories, clearSyncedData };
 }

@@ -27,7 +27,11 @@ export type SkipReason =
   | 'empty-ids'           // refuse to interpret "nothing" as "delete everything"
   | 'too-many-ids'        // over ceiling — refuse rather than truncate (see below)
   | 'records-not-subset'  // client contradicted itself
-  | 'mass-delete-guard';  // disproportionate delete; needs a human to look
+  | 'mass-delete-guard'   // disproportionate delete; needs a human to look
+  // Never returned by planReconcile — the route reports it when the user has
+  // switched the source off, so nothing is ingested and nothing is deleted.
+  // It lives in this union because the union is the wire contract.
+  | 'capability-off';
 
 export type ReconcileOutcome = { deleted: number } | { skipped: SkipReason };
 

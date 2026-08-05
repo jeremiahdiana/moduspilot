@@ -5,6 +5,7 @@ import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestor
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { SkeletonList, SkeletonRow } from '@/components/ui/Skeleton';
 
 interface Note {
@@ -27,10 +28,35 @@ function relativeDate(d?: Date | null): string {
 
 export default function NotesPage() {
   const { user } = useAuth();
+  const { settings, clearSyncedData } = useUserSettings(user);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+
+  const syncOn = settings.capabilities.notesSync;
+
+  /**
+   * ⚠️ Deliberately clear-all, with no per-note delete.
+   *
+   * A per-note delete button would be a lie: the note is still in Apple Notes,
+   * so it is still in the Mac app's id list, so the next sync (5 minutes)
+   * re-creates it. A button that silently undoes itself is worse than no
+   * button. Delete the note in Apple Notes and it leaves here on its own; this
+   * is for pulling the whole copy out of MODUS.
+   */
+  const handleClear = async () => {
+    if (!confirm(`Delete all ${notes.length} synced notes from MODUS? They stay on your Mac, only MODUS's copy is removed.${syncOn ? '\n\nApple Notes syncing is still ON, so the Mac app will re-sync them within about 5 minutes. Turn it off in Settings first if you want them gone for good.' : ''}`)) return;
+    setClearing(true);
+    try {
+      await clearSyncedData(['notes']);
+    } catch {
+      alert('Failed to clear synced notes. Try again.');
+    } finally {
+      setClearing(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -76,8 +102,24 @@ export default function NotesPage() {
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="mb-6 max-w-2xl"
       >
-        <h1 className="text-2xl font-bold text-text">Notes</h1>
-        <p className="text-muted text-sm mt-0.5">Your Apple Notes, synced from the MODUS Desktop app.</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-text">Notes</h1>
+            <p className="text-muted text-sm mt-0.5">
+              Your Apple Notes, synced from the MODUS Desktop app.
+              {!syncOn && ' Syncing is off, so nothing new is being stored.'}
+            </p>
+          </div>
+          {notes.length > 0 && (
+            <button
+              onClick={handleClear}
+              disabled={clearing}
+              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 shrink-0 mt-1 transition-colors"
+            >
+              {clearing ? 'Deleting…' : 'Delete all'}
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {loading ? (

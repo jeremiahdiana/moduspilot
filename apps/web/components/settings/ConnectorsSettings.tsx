@@ -117,10 +117,31 @@ function fmtDate(iso: string | null) {
 export default function ConnectorsSettings({ user }: Props) {
   // This page merges connections + capabilities. Capability toggles (AI
   // features + desktop syncs) all live in settings.capabilities.
-  const { settings, plan, saving: settingsSaving, saveSettings } = useUserSettings(user);
+  const { settings, plan, saving: settingsSaving, saveSettings, clearSyncedData } = useUserSettings(user);
+  const [clearingSource, setClearingSource] = useState<'notes' | 'messages' | null>(null);
   const isPaid = isPaidPlan(plan);
   const setCapability = (key: keyof typeof settings.capabilities, val: boolean) =>
     saveSettings({ capabilities: { ...settings.capabilities, [key]: val } });
+
+  /**
+   * Deleting what was already synced is a SEPARATE, explicit action from
+   * switching the source off. Turning the toggle off stops the Mac app's data
+   * being accepted from that moment (the ingest route enforces it), but
+   * everything already uploaded stays until this runs — and silently deleting
+   * a user's data because they flipped a toggle is not a thing to do quietly.
+   */
+  const handleClearSynced = async (source: 'notes' | 'messages', label: string) => {
+    if (!confirm(`Delete every ${label} MODUS has synced from your Mac? This cannot be undone. They stay on your Mac, only MODUS's copy is removed.`)) return;
+    setClearingSource(source);
+    try {
+      const n = await clearSyncedData([source]);
+      alert(`Deleted ${n} synced ${label}.`);
+    } catch {
+      alert(`Failed to delete synced ${label}. Try again.`);
+    } finally {
+      setClearingSource(null);
+    }
+  };
 
   const [googleAccounts, setGoogleAccounts] = useState<GoogleAccount[]>([]);
   const [notionAccounts, setNotionAccounts] = useState<NotionAccount[]>([]);
@@ -685,7 +706,14 @@ export default function ConnectorsSettings({ user }: Props) {
                 <p className="text-sm font-medium text-text">Apple Notes</p>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>
               </div>
-              <p className="text-xs text-muted leading-relaxed mt-0.5">Let MODUS read notes synced from the MODUS Desktop app (Mac) when you ask in chat — e.g. &quot;what&apos;s on my grocery list?&quot;</p>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Sync notes from the MODUS Desktop app (Mac) so you can ask about them in chat — e.g. &quot;what&apos;s on my grocery list?&quot; Turning this off stops new notes being stored.</p>
+              <button
+                onClick={() => handleClearSynced('notes', 'notes')}
+                disabled={clearingSource !== null}
+                className="text-[11px] text-red-400 hover:text-red-300 disabled:opacity-50 mt-1.5 transition-colors"
+              >
+                {clearingSource === 'notes' ? 'Deleting…' : 'Delete synced notes'}
+              </button>
             </div>
             <Toggle checked={settings.capabilities.notesSync} onChange={v => setCapability('notesSync', v)} disabled={settingsSaving} />
           </div>
@@ -697,7 +725,14 @@ export default function ConnectorsSettings({ user }: Props) {
                 <p className="text-sm font-medium text-text">iMessage</p>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>
               </div>
-              <p className="text-xs text-muted leading-relaxed mt-0.5">Let MODUS read recent iMessage conversations synced from the Mac app. Off by default — this includes other people&apos;s messages, not just your own notes.</p>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Sync recent iMessage conversations from the Mac app. Off by default — this includes other people&apos;s messages, not just your own notes. While off, nothing is stored.</p>
+              <button
+                onClick={() => handleClearSynced('messages', 'conversations')}
+                disabled={clearingSource !== null}
+                className="text-[11px] text-red-400 hover:text-red-300 disabled:opacity-50 mt-1.5 transition-colors"
+              >
+                {clearingSource === 'messages' ? 'Deleting…' : 'Delete synced conversations'}
+              </button>
             </div>
             <Toggle checked={settings.capabilities.messagesSync} onChange={v => setCapability('messagesSync', v)} disabled={settingsSaving} />
           </div>

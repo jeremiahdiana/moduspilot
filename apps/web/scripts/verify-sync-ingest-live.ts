@@ -37,10 +37,12 @@ interface Envelope {
   v: 2;
   deviceId: string;
   notes?: { allIds: string[]; complete: boolean };
+  messages?: { allIds: string[]; complete: boolean };
   reminders?: { allIds: string[]; complete: boolean; completedIds: string[] };
 }
 interface IngestBody {
   notes?: unknown[];
+  messages?: unknown[];
   reminders?: unknown[];
   sync?: Envelope;
 }
@@ -322,6 +324,79 @@ async function main() {
       (await taskState())['apple-r2']?.done === true,
       'completed reminders sort last and are the first thing the cap drops',
     );
+
+    // ── 8. Capability off means off, and the purge sticks ────────────────
+    console.log('\n── capability gate + clear ──');
+    await post({
+      notes: [note('keep1'), note('keep2')],
+      sync: { v: 2, deviceId: dev, notes: { allIds: ['keep1', 'keep2'], complete: true } },
+    });
+
+    await adminDb.collection('users').doc(UID).set(
+      { settings: { capabilities: { notesSync: false } } },
+      { merge: true }
+    );
+
+    r = await post({
+      notes: [note('keep1'), note('keep2'), note('new1')],
+      sync: { v: 2, deviceId: dev, notes: { allIds: ['keep1', 'keep2', 'new1'], complete: true } },
+    });
+    check(
+      'notesSync off refuses ingestion',
+      r.reconcile?.notes?.skipped === 'capability-off' &&
+        r.notesWritten === 0 &&
+        !(await noteIds()).includes('new1'),
+      'the toggle used to gate only chat reads while the bodies kept piling up',
+    );
+
+    const clearRes = await fetch(`${BASE}/api/desktop/clear?sources=notes`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    const cleared = (await clearRes.json()) as { cleared?: { notes?: number } };
+    check(
+      'clear removes every synced note',
+      (await noteIds()).length === 0 && (cleared.cleared?.notes ?? 0) > 0,
+      `deleted ${cleared.cleared?.notes} docs`,
+    );
+
+    r = await post({
+      notes: [note('keep1'), note('keep2')],
+      sync: { v: 2, deviceId: dev, notes: { allIds: ['keep1', 'keep2'], complete: true } },
+    });
+    check(
+      'the purge is durable while the toggle is off',
+      (await noteIds()).length === 0,
+      'without the ingest gate the Mac app repopulates within 5 minutes and clear is a no-op',
+    );
+
+    await adminDb.collection('users').doc(UID).set(
+      { settings: { capabilities: { notesSync: true } } },
+      { merge: true }
+    );
+    r = await post({
+      notes: [note('keep1')],
+      sync: { v: 2, deviceId: dev, notes: { allIds: ['keep1'], complete: true } },
+    });
+    check(
+      'turning the toggle back on resumes syncing',
+      r.notesWritten === 1 && (await noteIds()).length === 1,
+      'off must be reversible, not a one-way door',
+    );
+
+    // messagesSync defaults OFF, so ingestion must refuse without any opt-out.
+    r = await post({
+      messages: [{ id: 'm1', title: 'chat', body: 'hi', source: 'desktop-imessage', modifiedAt: 1_700_000_000_000 }],
+      sync: { v: 2, deviceId: dev },
+    } as IngestBody);
+    {
+      const snap = await adminDb.collection('users').doc(UID).collection('messages').get();
+      check(
+        'messagesSync defaults off so nothing is stored',
+        r.reconcile?.messages?.skipped === 'capability-off' && snap.empty,
+        "other people's messages must not accumulate under an opt-in that was never opted into",
+      );
+    }
   } finally {
     await adminDb.recursiveDelete(`users/${UID}`);
     await adminAuth.deleteUser(UID).catch(() => {});
