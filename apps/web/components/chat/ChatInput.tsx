@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { auth } from '@/lib/firebase';
+import { extForAudioType } from '@/lib/audio-format';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
 import FilePreviewModal from '@/components/chat/FilePreviewModal';
 import ModelPicker, { MIN_PICKED } from '@/components/chat/ModelPicker';
@@ -106,9 +107,19 @@ export default function ChatInput({
     recorder.ondataavailable = e => chunksRef.current.push(e.data);
     recorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
-      const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+      // 🪤 THE FILENAME IS LOAD-BEARING. Whisper detects the audio format from the
+      // extension, and FormData names an unnamed Blob "blob" — no extension — so
+      // every web/desktop transcription was rejected before it ever reached the
+      // model. The server's `|| 'audio.webm'` fallback could not save it either,
+      // because "blob" is truthy. Send a real name.
+      //
+      // Take the type from the RECORDER, not a hardcoded 'audio/webm': Safari's
+      // MediaRecorder emits audio/mp4, and labelling that as webm mislabels it
+      // just as badly as sending no name at all.
+      const type = recorder.mimeType?.split(';')[0] || 'audio/webm';
+      const blob = new Blob(chunksRef.current, { type });
       const form = new FormData();
-      form.append('audio', blob);
+      form.append('audio', blob, `audio.${extForAudioType(type)}`);
       const idToken = await auth.currentUser?.getIdToken();
       try {
         const res = await fetch('/api/transcribe', {

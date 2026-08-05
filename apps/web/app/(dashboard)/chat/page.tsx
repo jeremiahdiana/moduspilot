@@ -51,6 +51,9 @@ export default function ChatPage() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [plan, setPlan] = useState<Plan>('free');
   const [grandfathered, setGrandfathered] = useState(false);
+  // Whether the plan read has come back at all. 'free' above is a placeholder, not
+  // an answer, and treating it as one is what showed the paywall to paying users.
+  const [planLoaded, setPlanLoaded] = useState(false);
   const [connectedToast, setConnectedToast] = useState('');
   // Mobile-only: the conversation list is a slide-in drawer on narrow screens
   // (on desktop it's the always-visible left column).
@@ -99,7 +102,13 @@ export default function ChatPage() {
       // Grandfathered = account predates the paywall launch (permanent free access).
       setGrandfathered(data.grandfathered === true);
     }).catch(() => {
-      // Network unavailable on load — defaults (free plan, no access) are fine
+      // 🚨 FAIL OPEN. This used to leave the defaults in place and call that
+      // "fine". It is not: the SERVER gate is what actually enforces payment
+      // (enforceSubscriptionGate), so a client that walls up on a failed read
+      // protects no revenue and locks out only real, paying customers who
+      // happened to load on a bad connection.
+    }).finally(() => {
+      setPlanLoaded(true);
     });
   }, [uid, user]);
 
@@ -109,8 +118,31 @@ export default function ChatPage() {
   // (isPaidPlan covers modus/pilot/group — don't inline the list here).
   const isPaid = isPaidPlan(plan);
   const hasAccess = isPaid || grandfathered;
-  // No subscription and not grandfathered → must start a trial before chatting.
-  const needsSubscription = !hasAccess && !isGuest;
+  // Used for upsell surfaces (the conversation rail), NOT to gate the composer.
+  const needsSubscription = planLoaded && !hasAccess && !isGuest;
+
+  // 🚨 WHAT IS ALLOWED TO SILENCE THE COMPOSER, and why it is not `needsSubscription`.
+  //
+  // Two separate bugs lived on that expression, both reported by Jeremiah:
+  //
+  //  1. `plan` initialises to 'free', so before the Firestore read resolved,
+  //     hasAccess was false and a PAYING customer was shown "You've used your free
+  //     messages" with no composer, on every single mount. Three states (loading /
+  //     entitled / not entitled) were collapsed into two, and the unknown one
+  //     rendered as the worst one.
+  //  2. Since the free tier shipped 2026-08-04, "not paid" no longer means "no
+  //     access" — lib/plan.ts says so in as many words. A brand-new free signup is
+  //     neither paid nor grandfathered, so they got the wall INSTEAD of a composer
+  //     and could never spend the 10 free messages the server was happy to serve.
+  //     The free tier existed to remove exactly that wall and never worked in the UI.
+  //
+  // So the client no longer PREDICTS exhaustion. The server owns that decision and
+  // already reports it precisely (`free_limit_reached`, `subscription_required`);
+  // the composer only locks once we have actually been told. Guests are the one
+  // case we can still decide locally, since they have no account to spend from.
+  const [outOfMessages, setOutOfMessages] = useState(false);
+  // Paying (or resubscribing) clears the wall without a reload.
+  useEffect(() => { if (hasAccess) setOutOfMessages(false); }, [hasAccess]);
 
   const activeConversation = conversations.find(c => c.id === activeId) ?? null;
 
@@ -400,8 +432,9 @@ export default function ChatPage() {
             onMessagesChange={isGuest ? undefined : handleMessagesChange}
             onUserMessage={handleUserMessage}
             isGuest={isGuest}
-            isAtLimit={needsSubscription}
+            isAtLimit={outOfMessages}
             onShowPaywall={() => setShowPaywall(true)}
+            onExhausted={() => setOutOfMessages(true)}
             personalContext={settings.personalContext}
             responseStyle={settings.responseStyle}
             customStyle={settings.customStyle}

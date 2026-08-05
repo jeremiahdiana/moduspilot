@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { whisperFilename } from '@/lib/audio-format';
 
 const MAX_PER_HOUR = 120;          // generous: voice is one call per message
 const MAX_BYTES = 25 * 1024 * 1024; // Groq Whisper hard limit is 25MB
@@ -30,9 +31,17 @@ export async function POST(req: Request) {
   if (!audio) return Response.json({ error: 'No audio' }, { status: 400 });
   if (audio.size > MAX_BYTES) return Response.json({ error: 'Audio too large' }, { status: 413 });
 
-  // Forward with the uploaded file's real name so Whisper detects the format
-  // correctly (web sends .webm, iOS sends .m4a). Falls back to .webm.
-  const filename = (audio as File).name || 'audio.webm';
+  // Forward a name Whisper can decode from. It detects the format from the
+  // EXTENSION, so this is not cosmetic.
+  //
+  // 🪤 This used to be `(audio as File).name || 'audio.webm'`, and that fallback
+  // NEVER FIRED. A raw Blob appended to FormData arrives named "blob" — truthy,
+  // no extension — so Whisper rejected every web and desktop upload as an
+  // unsupported format, and line 47 below turned that into a bare 500. Voice
+  // input was dead on every browser while mobile worked, because mobile uploads a
+  // real .m4a file URI. Never trust a client-supplied filename to have a usable
+  // extension; derive it from the container type.
+  const filename = whisperFilename((audio as File).name, audio.type);
   const groqForm = new FormData();
   groqForm.append('file', audio, filename);
   groqForm.append('model', 'whisper-large-v3');
@@ -44,7 +53,15 @@ export async function POST(req: Request) {
     body: groqForm,
   });
 
-  if (!res.ok) return Response.json({ error: 'Transcription failed' }, { status: 500 });
+  // LOG WHAT GROQ ACTUALLY SAID. Collapsing every upstream failure into a bare
+  // 500 is why a dead filename went unnoticed for as long as it did: Whisper was
+  // returning a precise "unsupported format" every single time and nobody could
+  // see it. The user still gets a generic message; the server keeps the detail.
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    console.error(`[transcribe] groq ${res.status} name="${filename}" type="${audio.type}" — ${detail.slice(0, 500)}`);
+    return Response.json({ error: 'Transcription failed' }, { status: 500 });
+  }
   const data2 = await res.json() as { text: string };
   return Response.json({ text: data2.text });
 }

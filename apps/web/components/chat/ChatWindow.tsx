@@ -161,6 +161,9 @@ interface Props {
   isGuest?: boolean;
   isAtLimit?: boolean;
   onShowPaywall?: () => void;
+  /** The SERVER told us this account has nothing left to spend. Only this locks
+   *  the composer — the client must never predict exhaustion, see chat/page.tsx. */
+  onExhausted?: () => void;
   personalContext?: string;
   responseStyle?: string;
   customStyle?: string;
@@ -182,6 +185,7 @@ export default function ChatWindow({
   isGuest,
   isAtLimit,
   onShowPaywall,
+  onExhausted,
   personalContext,
   responseStyle,
   customStyle,
@@ -388,12 +392,14 @@ export default function ChatWindow({
         // been using MODUS for ten messages — telling them to "start your free
         // trial" reads as the product forgetting who they are. Name what ran out.
         setChatError("That's your 10 free messages. Subscribe to keep going.");
+        onExhausted?.();
         onShowPaywall?.();
       } else if (msg.includes('image_requires_subscription')) {
         setChatError('Images are a paid feature — subscribe to attach one.');
         onShowPaywall?.();
       } else if (msg.includes('subscription_required')) {
         setChatError('Start your 3-day free trial to use MODUS.');
+        onExhausted?.();
         onShowPaywall?.();
       } else if (msg.includes('empty_message')) {
         // The composer already blocks this, so it only reaches here from another
@@ -733,7 +739,19 @@ export default function ChatWindow({
         ref={scrollContainerRef}
         className={isEmpty ? 'shrink-0 overflow-y-auto' : 'flex-1 min-h-0 overflow-y-auto'}
       >
-        {messages.length === 0 ? (
+        {/* 🪤 THIS MUST BE `isEmpty`, NOT `messages.length === 0`.
+            A comparison lives in `compare` state and appends NO message, so on a
+            fresh chat messages.length stays 0 while a comparison is running. When
+            this ternary tested the raw length it kept rendering the greeting, and
+            the `{compare && <CompareCard/>}` block below lives in the OTHER branch
+            — so the card never mounted, /api/chat/compare was never called, and
+            the user's prompt silently disappeared. Reported as "after texting on
+            multi model i cant text the ai again, it just blanks it off", and it
+            only bit on an EMPTY chat, which is why it looked intermittent.
+            `isEmpty` is `messages.length === 0 && !compare` and is already what
+            the layout classes above use. Two expressions for one rule is what
+            broke it; there is now one. */}
+        {isEmpty ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -948,7 +966,11 @@ export default function ChatWindow({
 
       {isAtLimit ? (
         <div className="px-4 md:px-8 py-4 border-t border-border text-center">
-          <p className="text-muted text-sm mb-2">You&apos;ve used your free messages for today.</p>
+          {/* NOT "for today" — the free allowance is a LIFETIME cap per account
+              (FREE_MESSAGE_LIMIT), so promising a reset at midnight is a promise
+              the product does not keep. This only renders once the SERVER has
+              said they are out. */}
+          <p className="text-muted text-sm mb-2">You&apos;ve used all your free messages.</p>
           <button
             onClick={onShowPaywall}
             className="bg-brand text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-brand/90 transition-colors"
