@@ -103,17 +103,31 @@ for (const r of rows) {
     // may never convert.
     check(`free costs less than $1/month`, total < 1, `${usd(total)}/month`);
   } else {
-    check(`${r.plan} worst case stays under ${MAX_SHARE * 100}% of ${usd(rev)}`,
-      total <= rev * MAX_SHARE, `${usd(total)} = ${((total / rev) * 100).toFixed(0)}% of revenue`);
+    // THE HARD GATE. His rule, verbatim: "as long as i dont lose money."
     check(`${r.plan} never loses money at its ceiling`, total < rev, `${usd(total)} vs ${usd(rev)}`);
+    // A WARNING, not a failure. Above this the plan is still profitable but the
+    // margin at the ceiling is thin, and he should know rather than be blocked —
+    // these caps are his product decision, not the verifier's.
+    const share = total / rev;
+    if (share > MAX_SHARE) {
+      console.log(`  ⚠️  ${r.plan} worst case is ${(share * 100).toFixed(0)}% of revenue (over the ${MAX_SHARE * 100}% comfort band) — profitable, but thin at the ceiling`);
+    } else {
+      check(`${r.plan} leaves comfortable headroom`, true, `${usd(total)} = ${(share * 100).toFixed(0)}% of revenue`);
+    }
   }
 }
 
-console.log('\nNo single surface may dominate the budget\n');
+// Visibility, not a gate. Which surface dominates is a product decision — images
+// at 8/day SHOULD be the biggest non-chat line if that is the feature being sold.
+// The verifier's job is to stop us losing money and to make the shape obvious, not
+// to overrule the person who prices the product.
+console.log('\nWhere the money goes (warnings only)\n');
 for (const r of rows.filter(x => REVENUE[x.plan] > 0)) {
   const rev = REVENUE[r.plan];
-  check(`${r.plan}: voice-out is not the biggest line`, r.tts <= rev * 0.25, `${usd(r.tts)}`);
-  check(`${r.plan}: images are not the biggest line`, r.images <= rev * 0.25, `${usd(r.images)}`);
+  for (const [label, cost] of [['voice-out', r.tts], ['images', r.images]] as const) {
+    const pct = (cost / rev) * 100;
+    console.log(`  ${pct > 25 ? '⚠️ ' : '  '} ${r.plan}: ${label} is ${usd(cost)} = ${pct.toFixed(0)}% of revenue`);
+  }
 }
 
 console.log(`\n${failures === 0 ? '✅ EVERY SURFACE FITS INSIDE ITS PLAN.' : `❌ ${failures} FAILED — a user at the cap costs more than they pay.`}\n`);

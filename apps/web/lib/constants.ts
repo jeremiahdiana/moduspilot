@@ -107,5 +107,11 @@ export const PAID_TRANSCRIBE_SECONDS_PER_DAY  = 1_200; // 20 min/day, ~$1.50/mon
  */
 export const IMAGE_USD_EACH = 0.042;
 export const IMAGE_QUALITY: 'low' | 'medium' | 'high' = 'medium';
-export const MODUS_IMAGES_PER_DAY = 4;   // ~$5.04/month
-export const PILOT_IMAGES_PER_DAY = 8;   // ~$10.08/month
+// His call 2026-08-06: 8/day on MODUS, up from the 4 the first pass proposed.
+// ⚠️ 8 at MEDIUM is ~$10.08/month, which takes a MODUS worst case to ~96% of the
+// $24. It still cannot lose money, which is the hard rule, but the margin at the
+// ceiling is thin. The lever if that ever bites is IMAGE_QUALITY: 'low' is
+// $0.011-0.016 an image, roughly a quarter of medium, and would put 8/day back
+// near $3/month. Cache hits never consume the cap, so real usage sits far below.
+export const MODUS_IMAGES_PER_DAY = 8;    // ~$10.08/month
+export const PILOT_IMAGES_PER_DAY = 12;   // ~$15.12/month
