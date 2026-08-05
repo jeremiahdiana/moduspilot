@@ -14,6 +14,7 @@ import {
   getDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { isPaidPlan } from '@/lib/plan';
 import { CADENCE_STORAGE_KEY, PLAN_PRICING, isCadence, type Cadence } from '@/lib/pricing';
 
 // ── types ──────────────────────────────────────────────────────────────────────
@@ -23,7 +24,13 @@ import { CADENCE_STORAGE_KEY, PLAN_PRICING, isCadence, type Cadence } from '@/li
 // the Google/Apple profile we already have — asking for a name the auth provider
 // just handed us was a whole step that bought nothing.
 type Screen = 'welcome' | 'you' | 'plan' | 'done';
-const QUESTION_SCREENS: Screen[] = ['you', 'plan'];
+// 🪤 The plan step is CONDITIONAL — someone who already pays must never be asked
+// to pick a plan (see questionScreens() and alreadyPaid below). Anything that
+// counts steps has to count the same list the flow actually walks, so this is a
+// function of the account rather than a module constant.
+function questionScreens(alreadyPaid: boolean): Screen[] {
+  return alreadyPaid ? ['you'] : ['you', 'plan'];
+}
 type PlanId = 'modus' | 'pilot';
 
 // ── data ───────────────────────────────────────────────────────────────────────
@@ -83,10 +90,10 @@ function ThemeButton({ dark, onToggle }: { dark: boolean; onToggle: () => void }
 }
 
 // ── DotProgress ────────────────────────────────────────────────────────────────
-function DotProgress({ step }: { step: number }) {
+function DotProgress({ step, total }: { step: number; total: number }) {
   return (
     <div className="flex items-center gap-2">
-      {QUESTION_SCREENS.map((_, i) => (
+      {Array.from({ length: total }, (_, i) => (
         <motion.div
           key={i}
           animate={{
@@ -355,8 +362,8 @@ function PlanStep({ selected, setSelected, cadence, setCadence }: {
 }
 
 // ── CompletionScreen ───────────────────────────────────────────────────────────
-function CompletionScreen({ name, planName, onEnter }: {
-  name: string; planName: string; onEnter: () => void;
+function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
+  name: string; planName: string; alreadyPaid: boolean; onEnter: () => void;
 }) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -470,9 +477,13 @@ function CompletionScreen({ name, planName, onEnter }: {
           onClick={onEnter}
           className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
         >
-          Start my 3-day {planName} trial →
+          {alreadyPaid ? 'Enter MODUS →' : `Start my 3-day ${planName} trial →`}
         </motion.button>
-        <p className="text-xs text-muted text-center">You won&apos;t be charged today · Cancel anytime</p>
+        <p className="text-xs text-muted text-center">
+          {alreadyPaid
+            ? `Your ${planName} subscription is active`
+            : <>You won&apos;t be charged today · Cancel anytime</>}
+        </p>
       </motion.div>
     </motion.div>
   );
@@ -488,6 +499,16 @@ export default function OnboardingPage() {
   const [trialMode] = useState<boolean>(() =>
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('trial') === '1'
   );
+
+  // Whether this account ALREADY has a paid subscription when it reaches
+  // onboarding. Normally nobody does — you onboard, then you pay. But the
+  // founding path (/grandfathering) charges $24 straight from a password gate and
+  // never touches onboardingComplete, so a founding member whose Firebase account
+  // predates their purchase lands here already paying. Showing that person a plan
+  // picker reads as "you have to pay again", and it trapped founding member #27:
+  // she abandoned at the plan step every time, the flag never got written, and
+  // /login sent her back to /onboarding on EVERY sign-in.
+  const [alreadyPaid, setAlreadyPaid] = useState<boolean>(false);
 
   const [screen,    setScreen]    = useState<Screen>(trialMode ? 'plan' : 'welcome');
   const [direction, setDirection] = useState(1);
@@ -538,10 +559,19 @@ export default function OnboardingPage() {
       return;
     }
     // Returning already-onboarded user (not in trial re-entry) → straight to app.
-    if (user && !trialMode) {
+    // The same read resolves alreadyPaid, so the flow can drop the plan step for
+    // someone who is already subscribed — one read, not two.
+    if (user) {
       getDoc(doc(db, 'users', user.uid)).then(snap => {
-        if (snap.data()?.onboardingComplete) router.push('/dashboard');
-      });
+        const data = snap.data();
+        if (isPaidPlan(data?.plan)) {
+          setAlreadyPaid(true);
+          // So the completion screen names the plan they actually bought rather
+          // than the 'modus' default. 'group' has no card here; leave it alone.
+          if (data!.plan === 'pilot' || data!.plan === 'modus') setSelectedPlan(data!.plan);
+        }
+        if (!trialMode && data?.onboardingComplete) router.push('/dashboard');
+      }).catch(() => { /* offline: fall through to the full flow */ });
     }
   }, [user, loading, router, trialMode]);
 
@@ -556,6 +586,11 @@ export default function OnboardingPage() {
   // plan they picked. If checkout can't be created, fall through to the app — the
   // chat gate surfaces the paywall. Abandoning checkout returns to /onboarding?trial=1.
   async function startTrial() {
+    // Already subscribed → there is no trial to start. /api/stripe/checkout would
+    // 409 this (that 409 is what stops double-billing) and we'd fall through to
+    // the dashboard anyway, but going near checkout with a live card on file is
+    // not something to leave to an error path.
+    if (alreadyPaid) { router.push('/dashboard'); return; }
     try {
       const token = await user!.getIdToken();
       // `cadence` is the same state the plan step rendered, so the price shown is
@@ -646,8 +681,8 @@ export default function OnboardingPage() {
     }
   }
 
-  // Navigation maps
-  const NEXT: Partial<Record<Screen, Screen>> = { you: 'plan' };
+  // Navigation maps. A paying account has no plan step, so `you` is the last one.
+  const NEXT: Partial<Record<Screen, Screen>> = alreadyPaid ? {} : { you: 'plan' };
   const PREV: Partial<Record<Screen, Screen>> = { plan: 'you' };
   const isValid: Record<Screen, boolean> = {
     welcome: true,
@@ -660,7 +695,8 @@ export default function OnboardingPage() {
     done:    true,
   };
 
-  const stepIndex = QUESTION_SCREENS.indexOf(screen) + 1;
+  const screens = questionScreens(alreadyPaid);
+  const stepIndex = screens.indexOf(screen) + 1;
   const selectedPlanName = PLAN_OPTIONS.find(p => p.id === selectedPlan)?.name ?? 'MODUS';
 
   // ── welcome ────────────────────────────────────────────────────────────────
@@ -683,6 +719,7 @@ export default function OnboardingPage() {
           <CompletionScreen
             name={name}
             planName={selectedPlanName}
+            alreadyPaid={alreadyPaid}
             onEnter={startTrial}
           />
         </div>
@@ -692,7 +729,7 @@ export default function OnboardingPage() {
 
   // ── you / plan — one centered column ────────────────────────────────────────
   // Back/Continue sit in the same place at the bottom on every step.
-  const isLast = screen === 'plan';
+  const isLast = screen === screens[screens.length - 1];
   const handleNext = () => {
     if (isLast) { handleFinish(); return; }
     const next = NEXT[screen];
@@ -708,7 +745,7 @@ export default function OnboardingPage() {
         <div className="w-full mx-auto max-w-lg">
           {/* Progress */}
           <div className="mb-8 flex justify-center">
-            <DotProgress step={stepIndex} />
+            <DotProgress step={stepIndex} total={screens.length} />
           </div>
 
           {/* Step content */}
@@ -742,7 +779,7 @@ export default function OnboardingPage() {
               disabled={!isValid[screen] || saving}
               className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
             >
-              {isLast ? 'Review & start →' : 'Continue →'}
+              {!isLast ? 'Continue →' : alreadyPaid ? 'Finish →' : 'Review & start →'}
             </motion.button>
           </div>
         </div>
