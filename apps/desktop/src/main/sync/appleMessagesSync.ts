@@ -5,13 +5,17 @@ import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import log from 'electron-log';
 import { buildContactLookup } from './appleContacts';
-import type { ConversationRecord } from '../../shared/types';
+import type { ConversationRecord, SourceRead } from '../../shared/types';
 
 const CHAT_DB_PATH = path.join(os.homedir(), 'Library/Messages/chat.db');
 const CORE_DATA_EPOCH_OFFSET_SECONDS = 978307200; // 2001-01-01 vs Unix epoch
+// Cap on how many full transcripts we ship, NOT on the id list — see the note
+// on MAX_NOTES in appleNotesSync.ts.
 const MAX_CHATS = 30;
 const MESSAGES_PER_CHAT = 12;
 const MAX_BODY_CHARS = 8000;
+/** Mirrors ALL_IDS_CEILING in apps/web/lib/desktop/reconcile.ts. */
+const ALL_IDS_CEILING = 5000;
 
 export class FullDiskAccessError extends Error {
   constructor() {
@@ -119,7 +123,7 @@ interface RawMessageRow {
   date: number;
 }
 
-export function readRecentMessages(): ConversationRecord[] {
+export function readRecentMessages(): SourceRead<ConversationRecord> {
   if (!isFullDiskAccessGranted()) throw new FullDiskAccessError();
 
   let snapshotDir: string;
@@ -160,6 +164,25 @@ export function readRecentMessages(): ConversationRecord[] {
          LIMIT ?`
       )
       .all(MAX_CHATS) as RawChatRow[];
+
+    // Lossless id list, same snapshot, no LIMIT. Deduped through a Set because
+    // Messages keeps SEPARATE chat rows for the same chat_identifier across
+    // iMessage and SMS, and idForChat collapses them onto one doc id.
+    const allIds = Array.from(
+      new Set(
+        (
+          db
+            .prepare(
+              `SELECT DISTINCT c.chat_identifier as chatIdentifier
+               FROM chat c
+               JOIN chat_message_join cmj ON cmj.chat_id = c.ROWID
+               JOIN message m ON m.ROWID = cmj.message_id
+               WHERE m.item_type = 0 AND c.chat_identifier IS NOT NULL`
+            )
+            .all() as { chatIdentifier: string }[]
+        ).map((r) => idForChat(r.chatIdentifier))
+      )
+    );
 
     const messageStmt = db.prepare(
       `SELECT m.text as text, m.attributedBody as attributedBody, m.is_from_me as isFromMe, h.id as handleId, m.date as date
@@ -220,8 +243,12 @@ export function readRecentMessages(): ConversationRecord[] {
         modifiedAt: (chat.lastDate / 1e9 + CORE_DATA_EPOCH_OFFSET_SECONDS) * 1000,
       });
     }
-    log.info(`[appleMessages] decoded ${records.length} conversation(s) from chat.db`);
-    return records;
+    const complete = allIds.length <= ALL_IDS_CEILING;
+    if (!complete) {
+      log.error(`[appleMessages] ${allIds.length} threads exceeds the ${ALL_IDS_CEILING} id ceiling — no deletions will be reconciled`);
+    }
+    log.info(`[appleMessages] decoded ${records.length} conversation(s) of ${allIds.length} threads`);
+    return { records, allIds, complete };
   } finally {
     db.close();
     fs.rmSync(snapshotDir, { recursive: true, force: true });

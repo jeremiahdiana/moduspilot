@@ -1,6 +1,6 @@
 import log from 'electron-log';
 import { getMainWindow } from '../windows';
-import type { NoteRecord, ConversationRecord, ReminderRecord } from '../../shared/types';
+import type { IngestPayload } from '../../shared/types';
 
 const INGEST_URL = 'https://moduspilot.com/api/desktop/ingest';
 
@@ -37,16 +37,31 @@ export async function getAuthState(): Promise<{ signedIn: boolean; email: string
   return { signedIn: true, email: decodeEmail(token) };
 }
 
-export interface IngestResult { notesWritten: number; messagesWritten: number; remindersWritten?: number }
+export type SkipReason =
+  | 'no-envelope' | 'incomplete' | 'empty-ids'
+  | 'too-many-ids' | 'records-not-subset' | 'mass-delete-guard';
+
+export type ReconcileOutcome = { deleted: number } | { skipped: SkipReason };
+
+export interface IngestResult {
+  notesWritten: number;
+  messagesWritten: number;
+  remindersWritten?: number;
+  /** Writes avoided because content was unchanged. */
+  notesSkipped?: number;
+  messagesSkipped?: number;
+  remindersSkipped?: number;
+  /**
+   * Absent when talking to a server that predates reconciliation, which makes
+   * this key a free capability probe during rollout.
+   */
+  reconcile?: { notes: ReconcileOutcome; messages: ReconcileOutcome; reminders: ReconcileOutcome };
+}
 
 // Uploads local notes/messages/reminders to the web backend, authenticated with
 // the signed-in window's ID token. Returns null if not signed in or the request
 // fails (sync stays a no-op until the user signs in via the MODUS window).
-export async function ingest(payload: {
-  notes?: NoteRecord[];
-  messages?: ConversationRecord[];
-  reminders?: ReminderRecord[];
-}): Promise<IngestResult | null> {
+export async function ingest(payload: IngestPayload): Promise<IngestResult | null> {
   const token = await getIdToken();
   if (!token) {
     log.info('[ingest] no auth token yet — open MODUS and sign in');

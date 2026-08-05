@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "verify:sync": "npx tsx scripts/verify-sync-reconcile.ts",
+    "verify:sync-live": "npx tsx scripts/verify-sync-ingest-live.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",

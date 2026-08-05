@@ -1,11 +1,13 @@
 import { Tray, Menu, app, shell, type MenuItem } from 'electron';
+import crypto from 'crypto';
 import path from 'path';
 import log from 'electron-log';
 import { showMainWindow } from './windows';
 import { openOverlay, openRegionOverlay, setStealth } from './screen/overlay';
 import { screenPermission, openScreenRecordingSettings } from './screen/capture';
-import { getScreenAssist, getOpenAppOnTrayClick, setOpenAppOnTrayClick } from './settings';
-import { ingest } from './sync/ingest';
+import { getScreenAssist, getOpenAppOnTrayClick, setOpenAppOnTrayClick, getDeviceId } from './settings';
+import { ingest, type IngestResult } from './sync/ingest';
+import type { IngestPayload, SourceRead } from '../shared/types';
 import { readAppleNotes, isFullDiskAccessGranted as notesFdaGranted } from './sync/appleNotesSync';
 import { readRecentMessages, isFullDiskAccessGranted as messagesFdaGranted } from './sync/appleMessagesSync';
 import { readAppleReminders, isFullDiskAccessGranted as remindersFdaGranted } from './sync/appleReminders';
@@ -15,6 +17,7 @@ let syncing = false;
 let lastSyncAt: Date | null = null;
 let lastNotesCount = 0;
 let lastMessagesCount = 0;
+let lastReconcile: IngestResult['reconcile'] | null = null;
 let signedIn = false;
 let signedInEmail: string | null = null;
 /** The accelerator that actually registered, or null when the combo was taken. */
@@ -59,39 +62,142 @@ export function setSignedIn(state: boolean, email: string | null): void {
   rebuildMenu();
 }
 
-const fullDiskAccess = (): boolean => notesFdaGranted() && messagesFdaGranted();
+// Reminders was missing here, so a Mac with Notes+Messages granted but
+// Reminders denied showed a healthy "Sync now" while reminders silently never
+// synced at all.
+const fullDiskAccess = (): boolean =>
+  notesFdaGranted() && messagesFdaGranted() && remindersFdaGranted();
 
-// Reads local Apple Notes + iMessage and uploads them via the web ingest
-// endpoint (authenticated with the signed-in window's token). Safe to call on
-// a schedule — no-ops cleanly when not signed in or Full Disk Access is off.
+/**
+ * Run one source's reader without letting it take the others down with it.
+ *
+ * 🪤 These used to be three sequential statements in one try, so a transient
+ * FullDiskAccessError from the notes snapshot (a ~100MB+ file, copied every 5
+ * minutes) silently disabled messages AND reminders for as long as it kept
+ * failing.
+ *
+ * Every failure path returns complete:false, which the server treats as "write
+ * what arrived, delete nothing" — staleness instead of data loss.
+ */
+function readSource<R extends SourceRead<{ id: string }>>(
+  name: string,
+  granted: boolean,
+  read: () => R,
+  empty: R,
+): R {
+  if (!granted) return empty;
+  try {
+    const r = read();
+    const ids = new Set(r.allIds);
+    if (!r.records.every((x) => ids.has(x.id))) {
+      // Our own two queries disagree. Never hand the server a delete mandate
+      // we cannot back with an id list containing what we just sent.
+      log.error(`[sync] ${name}: records not a subset of allIds, forcing incomplete`);
+      return { ...r, complete: false };
+    }
+    return r;
+  } catch (err) {
+    log.error(`[sync] ${name} read failed, other sources continue`, err);
+    return empty;
+  }
+}
+
+/**
+ * Skip the POST when nothing changed.
+ *
+ * Never persisted to disk — an app restart should always force one full sync —
+ * and overridden hourly so any server-side drift (a failed chunk, a manual
+ * Firestore edit) self-heals instead of becoming permanent and invisible.
+ */
+let lastPayloadHash: string | null = null;
+let syncTicks = 0;
+const FORCE_FULL_EVERY = 12; // 12 x 5min
+
+// Reads local Apple Notes + iMessage + Reminders and uploads them via the web
+// ingest endpoint (authenticated with the signed-in window's token). Safe to
+// call on a schedule — no-ops cleanly when not signed in or FDA is off.
 export async function runSync(): Promise<void> {
   if (syncing) return;
   syncing = true;
   rebuildMenu();
   try {
-    const notes = notesFdaGranted() ? readAppleNotes() : [];
-    const messages = messagesFdaGranted() ? readRecentMessages() : [];
-    const reminders = remindersFdaGranted() ? readAppleReminders() : [];
-    if (notes.length === 0 && messages.length === 0 && reminders.length === 0) {
+    const emptyRead = { records: [], allIds: [], complete: false };
+    const notes = readSource('notes', notesFdaGranted(), readAppleNotes, emptyRead);
+    const messages = readSource('messages', messagesFdaGranted(), readRecentMessages, emptyRead);
+    const reminders = readSource('reminders', remindersFdaGranted(), readAppleReminders, {
+      ...emptyRead,
+      completedIds: [],
+    });
+
+    const nothing =
+      notes.records.length === 0 && messages.records.length === 0 && reminders.records.length === 0 &&
+      notes.allIds.length === 0 && messages.allIds.length === 0 && reminders.allIds.length === 0;
+    if (nothing) {
       log.info('[sync] nothing to sync (Full Disk Access off or no local data)');
       return;
     }
-    const result = await ingest({ notes, messages, reminders });
+
+    const payload: IngestPayload = {
+      notes: notes.records,
+      messages: messages.records,
+      reminders: reminders.records,
+      sync: {
+        v: 2,
+        deviceId: getDeviceId(),
+        notes: { allIds: notes.allIds, complete: notes.complete },
+        messages: { allIds: messages.allIds, complete: messages.complete },
+        reminders: {
+          allIds: reminders.allIds,
+          complete: reminders.complete,
+          completedIds: reminders.completedIds,
+        },
+      },
+    };
+
+    const hash = crypto.createHash('sha1').update(JSON.stringify(payload)).digest('hex');
+    const forced = syncTicks++ % FORCE_FULL_EVERY === 0;
+    if (!forced && hash === lastPayloadHash) {
+      log.info('[sync] nothing changed since last sync, skipping upload');
+      lastSyncAt = new Date();
+      return;
+    }
+
+    const result = await ingest(payload);
     if (result) {
+      // Only remember the hash once the server confirmed the write. A failed
+      // or partial write must force a full retry on the next tick.
+      lastPayloadHash = hash;
       lastSyncAt = new Date();
       lastNotesCount = result.notesWritten;
       lastMessagesCount = result.messagesWritten;
+      lastReconcile = result.reconcile ?? null;
       signedIn = true;
-      log.info(`[sync] uploaded ${result.notesWritten} note(s), ${result.messagesWritten} conversation(s), ${result.remindersWritten ?? 0} reminder(s)`);
+      log.info(
+        `[sync] wrote ${result.notesWritten} note(s), ${result.messagesWritten} conversation(s), ` +
+        `${result.remindersWritten ?? 0} reminder(s); skipped unchanged ` +
+        `${result.notesSkipped ?? 0}/${result.messagesSkipped ?? 0}/${result.remindersSkipped ?? 0}`
+      );
+      log.info(`[sync] reconcile: ${JSON.stringify(result.reconcile ?? 'server predates reconciliation')}`);
     } else {
+      lastPayloadHash = null;
       log.info('[sync] skipped — open MODUS and sign in first');
     }
   } catch (err) {
+    lastPayloadHash = null;
     log.error('[sync] failed', err);
   } finally {
     syncing = false;
     rebuildMenu();
   }
+}
+
+/** A guard you cannot see fire is indistinguishable from a bug. */
+function reconcileLine(): string | null {
+  if (!lastReconcile) return null;
+  const held = (Object.keys(lastReconcile) as (keyof typeof lastReconcile)[])
+    .filter((k) => 'skipped' in lastReconcile![k] && (lastReconcile![k] as { skipped: string }).skipped !== 'incomplete');
+  if (held.length === 0) return null;
+  return `Deletions held: ${held.map((k) => `${k} (${(lastReconcile![k] as { skipped: string }).skipped})`).join(', ')}`;
 }
 
 function rebuildMenu(): void {
@@ -113,8 +219,9 @@ function rebuildMenu(): void {
     syncClick = () => { runSync(); };
   }
 
+  const held = reconcileLine();
   const lastLine = lastSyncAt
-    ? `Last synced ${lastSyncAt.toLocaleTimeString()} (${lastNotesCount} notes, ${lastMessagesCount} chats)`
+    ? (held ?? `Last synced ${lastSyncAt.toLocaleTimeString()} (${lastNotesCount} notes, ${lastMessagesCount} chats)`)
     : 'Not synced yet';
 
   tray.setContextMenu(

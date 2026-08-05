@@ -1,4 +1,5 @@
 import { app } from 'electron';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import log from 'electron-log';
@@ -120,6 +121,18 @@ interface DesktopSettings {
    * the icon is there so you DON'T have to open the app.
    */
   openAppOnTrayClick?: boolean;
+  /**
+   * Stable id for THIS Mac, generated once on first sync.
+   *
+   * Sync deletes docs that no longer exist locally, and "locally" is per
+   * machine. Two Macs signed into one MODUS account with different iCloud
+   * accounts each see the other's notes missing from their own id list — so
+   * without this stamp, A deletes B's notes, then B deletes A's, every five
+   * minutes, forever. Two Macs sharing one iCloud account produce identical id
+   * sets and no conflict at all, which is exactly why this would never show up
+   * in testing.
+   */
+  deviceId?: string;
 }
 
 function settingsFile(): string {
@@ -189,6 +202,16 @@ export function setScreenAssist(patch: Partial<ScreenAssistSettings>): ScreenAss
   const stored: Partial<ScreenAssistSettings> = { ...(s.screenAssist ?? {}), ...patch };
   write({ ...s, screenAssist: stored });
   return { ...DEFAULT_SCREEN_ASSIST, ...stored };
+}
+
+/** Lazily generated and persisted. Only ever compared for equality. */
+export function getDeviceId(): string {
+  const s = read();
+  if (s.deviceId) return s.deviceId;
+  const id = crypto.randomUUID();
+  write({ ...s, deviceId: id });
+  log.info(`[settings] generated device id ${id}`);
+  return id;
 }
 
 export function initLaunchAtLogin(): void {

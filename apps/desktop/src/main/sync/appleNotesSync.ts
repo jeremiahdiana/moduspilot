@@ -4,7 +4,7 @@ import path from 'path';
 import zlib from 'zlib';
 import Database from 'better-sqlite3';
 import log from 'electron-log';
-import type { NoteRecord } from '../../shared/types';
+import type { NoteRecord, SourceRead } from '../../shared/types';
 
 const NOTE_STORE_PATH = path.join(
   os.homedir(),
@@ -12,9 +12,13 @@ const NOTE_STORE_PATH = path.join(
 );
 
 const MAX_BODY_CHARS = 20000;
-// Firestore writeBatch caps at 500 operations — cap the read at the same
-// number so every sync fits in one batch (mirrors the bridge's write path).
+// Cap on how many full note BODIES we ship per sync. Deliberately NOT a cap on
+// the id list below: the server reconciles deletions against allIds, so a
+// capped id list would delete every note past the cutoff on every sync.
 const MAX_NOTES = 500;
+// Refuse rather than truncate past this. Mirrors ALL_IDS_CEILING in
+// apps/web/lib/desktop/reconcile.ts.
+const ALL_IDS_CEILING = 5000;
 
 export class FullDiskAccessError extends Error {
   constructor() {
@@ -153,7 +157,7 @@ function snapshotNoteStore(): string {
   return dest;
 }
 
-export function readAppleNotes(): NoteRecord[] {
+export function readAppleNotes(): SourceRead<NoteRecord> {
   if (!isFullDiskAccessGranted()) throw new FullDiskAccessError();
 
   let snapshotDir: string;
@@ -194,6 +198,31 @@ export function readAppleNotes(): NoteRecord[] {
       )
       .all(MAX_NOTES) as RawNoteRow[];
 
+    // The lossless id list, on the SAME snapshot (a second snapshotNoteStore()
+    // would re-copy a file that runs to hundreds of MB).
+    //
+    // ELIGIBILITY PREDICATES ONLY — deliberately nothing that can fail per row.
+    // A note whose protobuf fails to decode, or whose walk exhausts
+    // MAX_WALK_CALLS, is skipped from `records` but MUST stay in this list, or
+    // the server would hard-delete it on a heuristic and it would flap back in
+    // next sync. Conversely a password-locked note (crypto IV present) and a
+    // Recently Deleted note are BOTH correctly absent here, which is what makes
+    // locking a note retract the plaintext already sitting in Firestore.
+    const allIds = (
+      db
+        .prepare(
+          `SELECT n.ZIDENTIFIER AS identifier
+           FROM ZICCLOUDSYNCINGOBJECT n
+           LEFT JOIN ZICCLOUDSYNCINGOBJECT f ON f.Z_PK = n.ZFOLDER
+           LEFT JOIN ZICNOTEDATA d          ON d.Z_PK = n.ZNOTEDATA
+           WHERE n.ZNOTEDATA IS NOT NULL
+             AND n.ZIDENTIFIER IS NOT NULL
+             AND (f.ZFOLDERTYPE IS NULL OR f.ZFOLDERTYPE != 1)
+             AND d.ZCRYPTOINITIALIZATIONVECTOR IS NULL`
+        )
+        .all() as { identifier: string }[]
+    ).map((r) => r.identifier);
+
     const dataStmt = db.prepare(
       'SELECT ZDATA, ZCRYPTOINITIALIZATIONVECTOR FROM ZICNOTEDATA WHERE Z_PK = ?'
     );
@@ -226,8 +255,12 @@ export function readAppleNotes(): NoteRecord[] {
         modifiedAt: row.modified != null ? (row.modified + CORE_DATA_EPOCH_OFFSET_SECONDS) * 1000 : undefined,
       });
     }
-    log.info(`[appleNotes] decoded ${records.length} note(s) from NoteStore.sqlite`);
-    return records;
+    const complete = allIds.length <= ALL_IDS_CEILING;
+    if (!complete) {
+      log.error(`[appleNotes] ${allIds.length} notes exceeds the ${ALL_IDS_CEILING} id ceiling — no deletions will be reconciled`);
+    }
+    log.info(`[appleNotes] decoded ${records.length} note(s) of ${allIds.length} eligible`);
+    return { records, allIds, complete };
   } finally {
     db.close();
     fs.rmSync(snapshotDir, { recursive: true, force: true });

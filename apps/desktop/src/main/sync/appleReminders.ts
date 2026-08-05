@@ -5,6 +5,13 @@ import Database from 'better-sqlite3';
 import log from 'electron-log';
 import type { ReminderRecord } from '../../shared/types';
 
+export interface RemindersRead {
+  records: ReminderRecord[];
+  allIds: string[];
+  completedIds: string[];
+  complete: boolean;
+}
+
 // Apple Reminders are Core Data SQLite stores, one per account, under the
 // Reminders group container. Unlike Notes, the schema is plain columns
 // (ZTITLE/ZNOTES/ZDUEDATE/ZCOMPLETED/ZPRIORITY) — no protobuf decoding needed.
@@ -14,7 +21,18 @@ const STORES_DIR = path.join(
 );
 
 const CORE_DATA_EPOCH_OFFSET_SECONDS = 978307200; // 2001-01-01 vs Unix epoch
+// PER STORE, and there is one store per Apple account. This caps how many full
+// reminder BODIES ship, nothing else.
+//
+// 🪤 This used to also decide deletions, because the server reconciled against
+// whatever arrived in `records`. Ordering is `ZCOMPLETED ASC, ZDUEDATE ASC`, so
+// every reminder past #300 in an account — the completed ones and the furthest
+// -future dated ones — was soft-deleted in MODUS on every single sync, and
+// never came back, because the server only resets `deleted:false` on first
+// insert. allIds below is uncapped for exactly this reason.
 const MAX_REMINDERS = 300;
+/** Mirrors ALL_IDS_CEILING in apps/web/lib/desktop/reconcile.ts. */
+const ALL_IDS_CEILING = 5000;
 
 export class FullDiskAccessError extends Error {
   constructor() {
@@ -77,7 +95,7 @@ function snapshot(dbPath: string, tmpDir: string, index: number): string {
   return dest;
 }
 
-export function readAppleReminders(): ReminderRecord[] {
+export function readAppleReminders(): RemindersRead {
   if (!isFullDiskAccessGranted()) throw new FullDiskAccessError();
 
   let storePaths: string[];
@@ -93,6 +111,15 @@ export function readAppleReminders(): ReminderRecord[] {
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modus-reminders-'));
   const records: ReminderRecord[] = [];
+  const allIds: string[] = [];
+  const completedIds: string[] = [];
+  // 🚨 Starts true and is cleared by ANY swallowed per-store failure below.
+  // This flag is the entire fix for the worst bug in the sync: one store per
+  // Apple account, a catch INSIDE the loop, and a server that treated the
+  // resulting partial list as the truth — so an iCloud store that failed to
+  // snapshot while an Exchange store succeeded soft-deleted every task from
+  // the iCloud account, permanently.
+  let complete = true;
 
   try {
     storePaths.forEach((storePath, i) => {
@@ -102,10 +129,27 @@ export function readAppleReminders(): ReminderRecord[] {
         db = new Database(snap, { readonly: true, fileMustExist: true });
 
         // Skip stores without the reminder table (e.g. the empty local store).
+        // ⚠️ Deliberately does NOT clear `complete`: an empty local store is
+        // the expected state on most Macs, not a read failure. Clearing it here
+        // would disable reconciliation for nearly everyone.
         const hasTable = db
           .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ZREMCDREMINDER'")
           .get();
         if (!hasTable) return;
+
+        // Uncapped id pass, identical predicate to the record query below.
+        for (const row of db
+          .prepare(
+            `SELECT r.ZIDENTIFIER as identifier, r.ZCOMPLETED as completed
+             FROM ZREMCDREMINDER r
+             WHERE r.ZTITLE IS NOT NULL`
+          )
+          .all() as { identifier: Buffer | string | null; completed: number | null }[]) {
+          const id = toIdString(row.identifier);
+          if (!id) continue;
+          allIds.push(id);
+          if (row.completed === 1) completedIds.push(id);
+        }
 
         const rows = db
           .prepare(
@@ -141,7 +185,11 @@ export function readAppleReminders(): ReminderRecord[] {
           });
         }
       } catch (err) {
-        log.error('[appleReminders] failed to read a store', storePath, err);
+        // Logging this and carrying on is correct — one broken account should
+        // not block the others. Marking the read incomplete is what stops the
+        // server from reading the survivors as "everything else was deleted".
+        complete = false;
+        log.error('[appleReminders] failed to read a store, reconciliation disabled this sync', storePath, err);
       } finally {
         db?.close();
       }
@@ -150,6 +198,11 @@ export function readAppleReminders(): ReminderRecord[] {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 
-  log.info(`[appleReminders] read ${records.length} reminder(s)`);
-  return records;
+  if (allIds.length > ALL_IDS_CEILING) {
+    log.error(`[appleReminders] ${allIds.length} reminders exceeds the ${ALL_IDS_CEILING} id ceiling — no deletions will be reconciled`);
+    complete = false;
+  }
+
+  log.info(`[appleReminders] read ${records.length} reminder(s) of ${allIds.length} (${completedIds.length} completed), complete=${complete}`);
+  return { records, allIds, completedIds, complete };
 }
