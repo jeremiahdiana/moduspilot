@@ -2,6 +2,14 @@
 const nextConfig = {
   transpilePackages: ['@modus/shared'],
 
+  // Bake the deploying commit into the client bundle so Settings > About can
+  // show which web build a user is on (the web package version is a static
+  // 0.1.0 and tells you nothing). Vercel sets VERCEL_GIT_COMMIT_SHA at build;
+  // local `next dev`/`next build` leaves it unset, so About falls back to "dev".
+  env: {
+    NEXT_PUBLIC_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA || '',
+  },
+
   async redirects() {
     return [
       // Redirect www → non-www (permanent)

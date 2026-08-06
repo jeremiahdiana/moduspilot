@@ -82,7 +82,10 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   // Tell the web app it's running inside the desktop shell so it exposes
   // window.__modusGetToken__. setUserAgent (vs a loadURL option) persists the
   // marker across in-app SPA navigations and all subsequent requests.
-  const ua = `${win.webContents.getUserAgent()} MODUSDesktop/0.2`;
+  // The version suffix is the real packaged app version (app.getVersion()) so
+  // the web Settings > About tab can display the installed desktop build; the
+  // web only substring-matches "MODUSDesktop", so the number is free to change.
+  const ua = `${win.webContents.getUserAgent()} MODUSDesktop/${app.getVersion()}`;
   win.webContents.setUserAgent(ua);
 
   // Firebase signInWithPopup (Google/Apple) opens an OAuth window via

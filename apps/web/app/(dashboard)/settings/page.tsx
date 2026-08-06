@@ -15,6 +15,7 @@ import UsageSettings from '@/components/settings/UsageSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
 import ModelSettings from '@/components/settings/ModelSettings';
 import DisplaySettings from '@/components/settings/DisplaySettings';
+import AboutSettings from '@/components/settings/AboutSettings';
 
 function TabIcon({ d, d2 }: { d: string; d2?: string }) {
   return (
@@ -31,6 +32,7 @@ const TABS = [
   { key: 'account',      label: 'Account',      icon: <TabIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" d2="M12 3a4 4 0 110 8 4 4 0 010-8z" /> },
   { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
   { key: 'model',        label: 'Brain',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
+  { key: 'about',        label: 'About',        icon: <TabIcon d="M12 22a10 10 0 100-20 10 10 0 000 20z" d2="M12 16v-4M12 8h.01" /> },
 ] as const;
 
 type Tab = typeof TABS[number]['key'];
@@ -189,6 +191,9 @@ function SettingsContent() {
                     onClearAll={clearMemories}
                   />
                 </div>
+              )}
+              {activeTab === 'about' && (
+                <AboutSettings />
               )}
             </motion.div>
           </AnimatePresence>
