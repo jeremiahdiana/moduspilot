@@ -386,7 +386,12 @@ export default function ChatWindow({
     onError: (err) => {
       const msg = (err?.message ?? '').toLowerCase();
       if (msg.includes('authentication_required')) {
-        setChatError('Your session expired. Please sign in again.');
+        // With per-send fresh tokens (F1) a signed-in user should effectively
+        // never reach here. If a token is momentarily rejected, the NEXT send
+        // mints a new one and succeeds — so guide to retry rather than telling a
+        // signed-in person they are logged out (the old copy was the visible half
+        // of the auth-token race).
+        setChatError('We had trouble verifying your session. Please try again.');
       } else if (msg.includes('free_limit_reached')) {
         // A DISTINCT code from subscription_required on purpose. This person has
         // been using MODUS for ten messages — telling them to "start your free
@@ -509,26 +514,49 @@ export default function ChatWindow({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
-  // Watchdog: guarantee the loading state always resolves. The server caps a
-  // request at 60s (maxDuration); if a connection instead stalls open with no
-  // finish/error, isLoading would stick true forever and the composer would stay
-  // disabled. After 75s of continuous loading, force-stop and surface an error.
+  // Watchdog: guarantee the loading state always resolves AND recover a stalled
+  // stream quickly. The old version was a flat 65s ceiling counted from send, so
+  // when a stream committed HTTP 200 and then died without a finish event (a
+  // transform throw, a dropped connection), isLoading stuck true and the send
+  // button — gated on !isLoading — sat dead for a FULL 65 seconds with no answer.
+  // Reported as "I can't chat after finishing one" and "sometimes it doesn't chat
+  // at all"; many people give up long before 65s.
+  //
+  // Now it watches for INACTIVITY. `messages` is in the deps and gets a new
+  // identity on every token, so each token tears this effect down and re-arms it —
+  // the timeout only elapses when nothing has arrived for STALL_MS straight. That
+  // recovers a mid-stream stall ~STALL_MS after the LAST sign of life instead of
+  // 65s after the first, while still leaving a slow reasoning model time to reach
+  // its first token.
   // ⚠️ The watchdog's own message must survive. stop() flips isLoading, which runs
   // the just-finished effect below — and that effect sees an assistant message
-  // with no text and overwrites "timed out" with "the model returned an empty
-  // response". The user was told the wrong thing about the one failure we
-  // actually understood. This flag lets the empty-answer check stand down when it
-  // was the watchdog that ended the turn.
+  // with no text and would overwrite "stalled" with "the model returned an empty
+  // response". This flag lets the empty-answer check stand down when it was the
+  // watchdog that ended the turn.
   const timedOutRef = useRef(false);
+  // Inactivity, not total elapsed: reset on every token (see deps), so a model
+  // that streams keeps it alive indefinitely and this only trips when nothing has
+  // arrived for this long. Kept above a slow reasoning model's worst-case
+  // time-to-first-token so we never kill a healthy-but-slow start.
+  const STALL_MS = 45000;
   useEffect(() => {
     if (!isLoading) return;
     const t = setTimeout(() => {
       timedOutRef.current = true;
       stop();
-      setChatError('That response timed out. Please try again.');
-    }, 65000);
+      setChatError('The response stalled. Please try again, or switch models below.');
+    }, STALL_MS);
     return () => clearTimeout(t);
-  }, [isLoading, stop]);
+  }, [isLoading, messages, stop]);
+
+  // Abort any in-flight stream when this window unmounts — the key={activeId}
+  // remount (draft → real conversation id) unmounts the whole component, and
+  // without this the old instance's fetch keeps running and its tokens race the
+  // fresh mount. stop is read through a ref so a change in its identity can never
+  // fire this teardown early (empty deps = true unmount only).
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
+  useEffect(() => () => stopRef.current(), []);
 
   // The server's record of which model REALLY answered each message. This outranks
   // routedByMsgId and modusRoutedModel: both of those come from the x-modus-model
@@ -676,10 +704,34 @@ export default function ChatWindow({
     setInput(text);
   }
 
+  // F1 — mint a fresh ID token at the MOMENT of sending, and attach it per
+  // request. The Authorization header used to be gated on an `authToken` STATE
+  // var that starts null and is filled asynchronously by the onIdTokenChanged
+  // effect above, so any send before that resolved — a fast first message, or the
+  // very next message after the draft→id remount re-nulled the state — went out
+  // with NO Authorization header. The server returns 401 authentication_required,
+  // which we showed as "your session expired": a signed-in person told to log in.
+  // getIdToken() returns the cached token (refreshing only if actually expired),
+  // so this is cheap and, unlike the state var, never stale or missing at send.
+  async function authedHeaders(): Promise<Record<string, string> | undefined> {
+    const token = auth.currentUser
+      ? await auth.currentUser.getIdToken().catch(() => null)
+      : null;
+    return token ? { Authorization: `Bearer ${token}` } : undefined;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!input.trim() && !attachedImage && attachedFiles.length === 0) return;
     if (isAtLimit) { onShowPaywall?.(); return; }
+
+    // A genuine signed-out state is a DIFFERENT thing from the token-not-ready
+    // race F1 fixes: if there is truly no user, say so plainly instead of firing a
+    // request that will 401 and read as a session that mysteriously "expired".
+    if (!isGuest && !auth.currentUser) {
+      setChatError('You’re signed out — please sign in again.');
+      return;
+    }
 
     // Compare mode short-circuits the normal send: the prompt goes to three
     // models side by side instead of into the conversation.
@@ -716,9 +768,10 @@ export default function ChatWindow({
     setChatError(null);
     setModelNotice(null);
     onUserMessage?.();
+    const headers = await authedHeaders();
     await append(
       { role: 'user', content } as Parameters<typeof append>[0],
-      { body: { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend, lastRoutedModel: lastAutoRoutedModel() } },
+      { headers, body: { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend, lastRoutedModel: lastAutoRoutedModel() } },
     );
   }
 
@@ -806,10 +859,11 @@ export default function ChatWindow({
             followingUserText={
               messages[idx + 1]?.role === 'user' ? messageText(messages[idx + 1]) : undefined
             }
-            onAppend={(text) => {
+            onAppend={async (text) => {
               setChatError(null);
               onUserMessage?.();
-              append({ role: 'user', content: text }, { body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } });
+              const headers = await authedHeaders();
+              append({ role: 'user', content: text }, { headers, body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } });
             }}
             onApproved={(text) => {
               // The approval already did the work and handed back its own
@@ -835,7 +889,7 @@ export default function ChatWindow({
               prompt={compare.prompt}
               models={compareModels}
               onClose={() => setCompare(null)}
-              onRunNormally={(p) => {
+              onRunNormally={async (p) => {
                 // Drop out of compare and send it as an ordinary turn. `append`
                 // (not appendLocal) is deliberate and is the one place it's
                 // right: we WANT the request, so the model emits its ```image /
@@ -843,9 +897,10 @@ export default function ChatWindow({
                 setCompare(null);
                 setChatError(null);
                 onUserMessage?.();
+                const headers = await authedHeaders();
                 append(
                   { role: 'user', content: p },
-                  { body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } },
+                  { headers, body: { modelChoice: modelChoiceRef.current, lastRoutedModel: lastAutoRoutedModel() } },
                 );
               }}
               onUse={(text) => {
@@ -950,7 +1005,7 @@ export default function ChatWindow({
               three children stranded Regenerate in the middle of the bar. */}
           <div className="flex items-center gap-3 shrink-0">
             <button
-              onClick={() => { setChatError(null); reload(); }}
+              onClick={async () => { setChatError(null); reload({ headers: await authedHeaders() }); }}
               className="text-red-400 hover:text-red-300 text-sm font-medium"
             >
               Regenerate
