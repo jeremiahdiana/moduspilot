@@ -263,9 +263,19 @@ export default function CompareCard({
         await fanOut(prompt);
       }
     })();
-    const controllers = abortRef.current;
-    return () => { controllers.forEach(c => c.abort()); };
   }, [prompt, fanOut]);
+
+  // Abort in-flight streams ONLY on a true unmount (card close, or the
+  // key={compare.id} remount for a new comparison) — never on a mid-stream
+  // re-render. This used to live in the clarify effect's cleanup, whose deps
+  // include `fanOut`, so it fired whenever `fanOut`'s identity changed — e.g. the
+  // user edits the compare model selection while columns are still streaming and
+  // ChatWindow hands down a new `models` array. That aborted all three fetches;
+  // runColumn swallows the AbortError without setting a status, and startedRef
+  // blocks any restart, so the columns froze on skeletons forever with no error
+  // and no verdict. Same unmount-only ref pattern as ChatWindow's stopRef.
+  const abortAllRef = useRef(() => abortRef.current.forEach(c => c.abort()));
+  useEffect(() => () => abortAllRef.current(), []);
 
   // Verdict once every column has settled and at least two actually answered.
   const allSettled = columns.every(c => c.status !== 'streaming');

@@ -85,6 +85,19 @@ export default function ChatInput({
     return () => document.removeEventListener('mousedown', onDown);
   }, [menuOpen]);
 
+  // Auto-grow the composer. The textarea is rows={1} and never grew, so typing
+  // past one line scrolled the earlier lines out of view with no scrollbar — the
+  // top of what you typed just vanished. Keyed on `input` (not an onInput handler)
+  // so it also resizes for programmatic sets: voice transcripts and seeded
+  // prompts. Reset to 'auto' first so it shrinks back to one row after send.
+  // 144px === max-h-36; past that the textarea scrolls internally (overflow-y-auto).
+  useEffect(() => {
+    const el = textareaRef?.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 144)}px`;
+  }, [input, textareaRef]);
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -426,7 +439,7 @@ export default function ChatInput({
                   : 'Talk to MODUS...'
             }
             rows={1}
-            className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36"
+            className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36 overflow-y-auto"
           />
 
           <AnimatePresence>
