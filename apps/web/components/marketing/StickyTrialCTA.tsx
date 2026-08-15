@@ -43,9 +43,9 @@ export default function StickyTrialCTA() {
             href="/login"
             className="btn-primary group flex items-center justify-center gap-3 rounded-full w-full sm:w-auto pl-5 pr-4 py-3 text-white shadow-[0_10px_40px_-8px_rgba(124,58,237,0.6)]"
           >
-            <span className="text-sm font-bold whitespace-nowrap">Start your 3-day free trial</span>
+            <span className="text-sm font-bold whitespace-nowrap">Start free, no card</span>
             <span className="hidden sm:inline text-[11px] font-medium text-white/70 whitespace-nowrap border-l border-white/25 pl-3">
-              Card required · cancel anytime
+              10 messages free · no card
             </span>
             <span className="grid place-items-center w-6 h-6 rounded-full bg-white/20 group-hover:translate-x-0.5 transition-transform">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>

@@ -31,7 +31,8 @@ import { adminDb } from '../lib/firebase-admin';
 import { enforceSubscriptionGate, enforcePaidTokenLimit, isFreeTierUser } from '../lib/chat/limits';
 import { FREE_MESSAGE_LIMIT, FREE_MAX_MESSAGE_CHARS, FREE_HISTORY_CHAR_BUDGET, MODUS_TOKEN_LIMIT } from '../lib/constants';
 import { FREE_DEFAULT, resolveChatModel } from '../lib/chat/model';
-import { PLATFORM_MODELS, isModelUnlocked } from '../lib/models';
+import { PLATFORM_MODELS, isModelUnlocked, canUseModel } from '../lib/models';
+import { maxTokensFor } from '../lib/chat/model-params';
 import { hasActiveAccess } from '../lib/plan';
 import { isBriefingDue } from '../lib/capabilities';
 import { costWeight, estimatedCostUsd } from '../lib/chat/model-cost';
@@ -119,58 +120,76 @@ async function main() {
     check('isFreeTierUser is true when plan is simply absent', isFreeTierUser({}));
   }
 
-  section('5  a free user cannot reach a model that costs more than the costing');
+  section('5  free tier TASTES any model; paid tiers stay in their lane');
   {
-    const freeModels = PLATFORM_MODELS.filter(m => m.plans.includes('free'));
     check('FREE_DEFAULT is unlocked for the free plan', isModelUnlocked(FREE_DEFAULT, 'free'), FREE_DEFAULT);
-    // ⚠️ 'free' also covers GRANDFATHERED accounts (no plan string → effectivePlan
-    // 'free'), which is why this asserts a price ceiling rather than demanding the
-    // list contain only FREE_DEFAULT. The bound is what the costing in §6 can
-    // absorb, so a cheap addition passes and an expensive one fails loudly.
-    for (const m of freeModels) {
-      const usd = estimatedCostUsd(m.id, 1_000_000);
-      check(`free-reachable model stays under $0.65/1M: ${m.id}`, usd <= 0.65,
-        `weight=${costWeight(m.id)} $${usd.toFixed(2)}/1M`);
-    }
-    // The expensive twin. These two ids differ by one word and 4.3x in price, and
-    // having Flash-Lite's rates filed under Flash's id is the bug that made this
-    // whole change necessary.
-    check('gemini-3.5-flash is NOT reachable on free', !isModelUnlocked('gemini-3.5-flash', 'free'));
-    check('gemini-3.5-flash is priced above flash-lite',
-      estimatedCostUsd('gemini-3.5-flash', 1_000_000) > estimatedCostUsd('gemini-3.5-flash-lite', 1_000_000) * 4,
-      `$${estimatedCostUsd('gemini-3.5-flash', 1_000_000).toFixed(2)} vs $${estimatedCostUsd('gemini-3.5-flash-lite', 1_000_000).toFixed(2)} per 1M`);
 
-    // A free user who picks a locked model must land on FREE_DEFAULT, not be served
-    // the model they picked and not be dropped to a raw dead id.
-    const picked = resolveChatModel({ plan: undefined, settings: { modelSettings: { provider: 'platform', model: 'claude-fable-5' } } }, {});
-    check('free user picking Fable 5 is downgraded to FREE_DEFAULT', picked.modelId === FREE_DEFAULT, `served=${picked.modelId}`);
+    // 🧊 THE CHANGE. A signed-in free account may RUN any catalog model for its 10
+    // lifetime messages. The side-by-side of frontier models is the product, and
+    // gating it behind the card is why cold traffic converted at ~0. canUseModel is
+    // the ONE accessor both chat gates (model.ts, route.ts) and compare read — this
+    // section is what stops it drifting back to a per-tier lock.
+    check('a free user CAN reach frontier models (metered by count, not tier)',
+      canUseModel('claude-sonnet-5', undefined) && canUseModel('claude-fable-5', undefined) && canUseModel('gpt-5.6-terra', undefined));
+    const pickFrontier = resolveChatModel({ plan: undefined, settings: { modelSettings: { provider: 'platform', model: 'claude-sonnet-5' } } }, {});
+    check('free user picking Sonnet 5 is SERVED Sonnet 5, not downgraded', pickFrontier.modelId === 'claude-sonnet-5', `served=${pickFrontier.modelId}`);
+
+    // 🚨 THE PAID GATE MUST STAY INTACT, or the tiers collapse and $59 buys what $24
+    // does. A modus user still cannot reach a pilot model.
+    check('a MODUS user still CANNOT reach a PILOT model', !canUseModel('claude-opus-4-8', 'modus'));
+    const modusPicksPilot = resolveChatModel({ plan: 'modus', settings: { modelSettings: { provider: 'platform', model: 'claude-opus-4-8' } } }, { modelId: 'claude-opus-4-8' });
+    check('MODUS user picking a PILOT model is downgraded off it', modusPicksPilot.modelId !== 'claude-opus-4-8', `served=${modusPicksPilot.modelId}`);
+
     const unchosen = resolveChatModel({ plan: undefined }, {});
     check('free user with no saved Brain gets FREE_DEFAULT', unchosen.modelId === FREE_DEFAULT, `served=${unchosen.modelId}`);
   }
 
-  section('6  💸 what a free signup can actually cost');
+  section('5b compare is REACHABLE and METERED for a free user (per column)');
   {
-    // The number that makes this tier safe to ship. A message limit alone bounds
-    // nothing unless the message itself is bounded — at the PAID 100k-char cap the
-    // same 10 messages would be ~3x this.
+    // The compare route lets a free user run any model, but spends ONE free message
+    // per column via enforceSubscriptionGate. This asserts the same composition the
+    // route performs: access is open, budget is the 10-message counter, and a
+    // 3-model compare therefore costs 3.
+    check('free user is allowed a frontier compare column', canUseModel('claude-sonnet-5', undefined));
+    const uid = await freeUser({ freeMessagesUsed: FREE_MESSAGE_LIMIT - 3 });
+    for (let i = 0; i < 3; i++) await enforceSubscriptionGate(uid, await read(uid)); // 3 columns
+    check('a 3-model compare spent 3 free messages', (await read(uid)).freeMessagesUsed === FREE_MESSAGE_LIMIT,
+      `freeMessagesUsed=${(await read(uid)).freeMessagesUsed}`);
+    check('the next column is walled', (await enforceSubscriptionGate(uid, await read(uid))) !== null);
+  }
+
+  section('6  💸 what a free signup can actually cost — NOW WITH FRONTIER ACCESS');
+  {
     check('history budget exceeds the per-message cap (or a paste is evicted next turn)',
       FREE_HISTORY_CHAR_BUDGET > FREE_MAX_MESSAGE_CHARS, `${FREE_HISTORY_CHAR_BUDGET} > ${FREE_MAX_MESSAGE_CHARS}`);
 
-    // 🔑 Costed against the DEAREST model a free user can reach, not FREE_DEFAULT.
-    // Costing the default would be optimistic by construction — the user picks.
-    const dearest = PLATFORM_MODELS
-      .filter(m => m.plans.includes('free'))
-      .reduce((a, b) => estimatedCostUsd(b.id, 1e6) > estimatedCostUsd(a.id, 1e6) ? b : a);
-    const SYSTEM_PROMPT_TOKENS = 5_300;   // measured, see chat/route.ts
-    const perMessageTokens = SYSTEM_PROMPT_TOKENS + (FREE_MAX_MESSAGE_CHARS + FREE_HISTORY_CHAR_BUDGET) / 4;
+    // 🔑 Re-costed against the DEAREST model in the WHOLE catalog now, because a free
+    // user can reach any of them, and at that model's FULL output cap (reasoning
+    // models spend up to maxTokensFor on hidden thinking + answer). The 10-message
+    // counter is the only bound — whether spent as chat turns or compare columns.
+    const dearest = PLATFORM_MODELS.reduce((a, b) => estimatedCostUsd(b.id, 1e6) > estimatedCostUsd(a.id, 1e6) ? b : a);
+    const SYSTEM_PROMPT_TOKENS = 5_300;   // measured, see chat/route.ts (compare's system is far smaller)
+    const inputTokens = SYSTEM_PROMPT_TOKENS + (FREE_MAX_MESSAGE_CHARS + FREE_HISTORY_CHAR_BUDGET) / 4;
+    const outputTokens = maxTokensFor(dearest.id); // the cap a reasoning model can actually spend
+    const perMessageTokens = inputTokens + outputTokens;
     const worstTokens = perMessageTokens * FREE_MESSAGE_LIMIT;
     const worstUsd = estimatedCostUsd(dearest.id, worstTokens);
-    console.log(`   dearest free-reachable model: ${dearest.id} ($${estimatedCostUsd(dearest.id, 1e6).toFixed(2)}/1M)`);
-    console.log(`   worst case: ${FREE_MESSAGE_LIMIT} msgs × ~${Math.round(perMessageTokens).toLocaleString()} tok = ${Math.round(worstTokens).toLocaleString()} tok → $${worstUsd.toFixed(3)} per signup`);
-    console.log(`   1,000 signups → $${(worstUsd * 1000).toFixed(0)}   ·   10,000 signups → $${(worstUsd * 10000).toFixed(0)}`);
-    check('a free signup costs under $0.25 at its absolute worst', worstUsd < 0.25, `$${worstUsd.toFixed(3)}`);
-    check('10,000 free signups cost less than one month of MODUS revenue at 100 users',
-      worstUsd * 10_000 < 2_400, `$${(worstUsd * 10_000).toFixed(0)}`);
+    console.log(`   dearest catalog model: ${dearest.id} ($${estimatedCostUsd(dearest.id, 1e6).toFixed(2)}/1M)`);
+    console.log(`   worst case: ${FREE_MESSAGE_LIMIT} calls × ~${Math.round(perMessageTokens).toLocaleString()} tok (incl. ${outputTokens.toLocaleString()} output) = ${Math.round(worstTokens).toLocaleString()} tok → $${worstUsd.toFixed(2)} per signup`);
+    console.log(`   ⚠️ AGGREGATE at scale: 1,000 signups → $${(worstUsd * 1000).toFixed(0)}   ·   10,000 signups → $${(worstUsd * 10000).toFixed(0)}`);
+    console.log(`   (this is the ABSOLUTE worst — every free call maxes a frontier reasoning model. Typical cold signup sends 1-3 short messages, ~100x cheaper.)`);
+    // Per-signup bound: metered frontier access, honestly costed. This is the ceiling
+    // Jeremiah accepted when he chose "full frontier, make the promise true". If a
+    // cheaper model is ever added that raises the dearest, this still holds; if the
+    // ceiling is unacceptable at scale, the lever is an AGGREGATE free-inference cap,
+    // not lowering maxTokens (reasoning models blank at low caps — model-params.ts).
+    // ~$4 is the ACCEPTED per-signup ceiling for the metered-frontier free tier
+    // (Jeremiah's "make the promise true" call). It is bounded and lifetime-capped
+    // per uid — one account can never exceed it. Headroom to $5 so a slightly dearer
+    // model or a costing tweak fails LOUDLY here rather than drifting. The aggregate
+    // exposure (see the projection printed above) is a separate lever: cap it with a
+    // GLOBAL monthly free-inference budget, never by lowering maxTokens.
+    check('a free signup stays under $5 at its absolute worst', worstUsd < 5, `$${worstUsd.toFixed(2)}`);
   }
 
   section('7  the free tier has no token ceiling — and must not need one');

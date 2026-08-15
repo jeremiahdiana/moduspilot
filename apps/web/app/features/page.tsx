@@ -617,14 +617,14 @@ export default function FeaturesPage() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                 <Link href="/login"
                   className="btn-primary inline-block px-10 py-4 text-white font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-100 text-base">
-                  Start your 3-day free trial
+                  Start free, no card
                 </Link>
                 <Link href="/pricing"
                   className="inline-block px-10 py-4 bg-text/[0.06] text-muted hover:bg-text/10 hover:text-text rounded-xl transition-colors text-base">
                   See pricing
                 </Link>
               </div>
-              <p className="text-xs text-muted/50">Card required · Cancel anytime</p>
+              <p className="text-xs text-muted/50">10 messages on every frontier model, no card · then a 3-day trial</p>
             </div>
           </RevealOnScroll>
         </section>

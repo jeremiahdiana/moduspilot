@@ -21,7 +21,7 @@ import {
 import { FREE_MAX_MESSAGE_CHARS, FREE_HISTORY_CHAR_BUDGET } from '@/lib/constants';
 import { resolveChatModel, chatFallbackChain, createFallbackModel, isPremiumModel, modelSupportsTools } from '@/lib/chat/model';
 import { routeTask } from '@/lib/chat/auto-route';
-import { isModelUnlocked } from '@/lib/models';
+import { canUseModel } from '@/lib/models';
 import {
   needsEmailCtx,
   needsCalendarCtx,
@@ -545,13 +545,15 @@ export async function POST(req: Request) {
           routed.category === 'general' &&
           isShortFollowUp &&
           cappedMessages.length > 1 &&
-          last && last !== forcedModelId && isModelUnlocked(last, userData.plan)
+          last && last !== forcedModelId && canUseModel(last, userData.plan)
         ) {
           console.log(`[route] sticky: follow-up stays on ${last} (router said general)`);
           forcedModelId = last;
         }
       } else if (modelChoice && modelChoice !== 'default') {
-        if (isModelUnlocked(modelChoice, userData.plan)) {
+        // canUseModel: a free-tier account may pick any frontier model (metered by
+        // the free-message counter). Paid tiers still can't reach above their plan.
+        if (canUseModel(modelChoice, userData.plan)) {
           forcedModelId = modelChoice;
         } else {
           // 🚨 A LOCKED PICK MUST NOT PASS SILENTLY. This branch used to be part

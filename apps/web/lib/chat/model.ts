@@ -3,7 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
-import { canonicalModelId, isModelUnlocked, modelSupportsVision, PLATFORM_MODELS } from '@/lib/models';
+import { canonicalModelId, isModelUnlocked, canUseModel, modelSupportsVision, PLATFORM_MODELS } from '@/lib/models';
 import { repairReasoningStream } from '@/lib/chat/stream-repair';
 
 // Vision for a user's OWN OpenAI key (BYOK). BYOK models are NOT in the catalog —
@@ -371,7 +371,10 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // FREE_DEFAULT is exempt: it is what an unchosen request resolves to, so gating
   // it on the catalog would make a pre-launch or plan-less account "downgrade"
   // from a model it never asked for — and show them a notice naming it.
-  if (selectedModel !== FREE_DEFAULT && !isModelUnlocked(selectedModel, plan)) {
+  // canUseModel, not isModelUnlocked: a signed-in free-tier account may run any
+  // catalog model, metered by the FREE_MESSAGE_LIMIT counter (enforceSubscriptionGate)
+  // rather than the plan tier. Paid tiers are still held to their own plan's models.
+  if (selectedModel !== FREE_DEFAULT && !canUseModel(selectedModel, plan)) {
     return downgradedToFree(selectedModel, hasImage);
   }
 

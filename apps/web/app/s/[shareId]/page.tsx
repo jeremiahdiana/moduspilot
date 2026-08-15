@@ -140,9 +140,9 @@ export default async function SharedConversationPage({ params }: { params: { sha
             href="https://moduspilot.com"
             className="btn-primary inline-flex items-center gap-2 mt-7 px-6 py-3 rounded-xl text-white text-sm font-semibold"
           >
-            <span className="relative z-10">Start your 3-day free trial</span>
+            <span className="relative z-10">Start free, no card</span>
           </Link>
-          <p className="text-[11px] text-muted mt-3">No commitment. Cancel anytime before it renews.</p>
+          <p className="text-[11px] text-muted mt-3">10 messages on every frontier model, no card. Then a 3-day trial.</p>
         </div>
       </footer>
     </div>

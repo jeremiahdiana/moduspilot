@@ -814,10 +814,11 @@ export default function OnboardingPage() {
               <button
                 onClick={handleContinueFree}
                 disabled={saving}
-                className="text-xs text-muted hover:text-text transition-colors underline underline-offset-4 disabled:opacity-40"
+                className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl bg-text/[0.06] text-text hover:bg-text/10 transition-colors text-sm font-semibold disabled:opacity-40"
               >
-                Not ready? Start with 10 free messages, no card →
+                Start free with 10 messages, no card →
               </button>
+              <p className="text-[11px] text-muted/70 mt-2">Every frontier model, side by side. No card. Upgrade anytime.</p>
             </div>
           )}
         </div>

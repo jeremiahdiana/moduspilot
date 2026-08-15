@@ -77,13 +77,17 @@ export default function HeroSection() {
             href="/login"
             className="btn-primary group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-brand text-white text-sm sm:text-base font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-100 text-center"
           >
-            <span className="relative z-10">Start your 3-day free trial</span>
+            <span className="relative z-10">Start free, no card</span>
           </a>
           <a href="/features" className="flex items-center gap-1.5 text-sm text-muted hover:text-text transition-colors">
             See how it works
             <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}>→</motion.span>
           </a>
         </motion.div>
+
+        <p className="text-xs text-muted/70 -mt-4 mb-10 px-4">
+          10 messages on every frontier model, no card. Then a 3-day trial.
+        </p>
 
         {/* Trust bar */}
         <motion.div

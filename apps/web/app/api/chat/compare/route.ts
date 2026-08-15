@@ -4,8 +4,8 @@ import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { resolveChatModel } from '@/lib/chat/model';
 import { needsExplicitTemperature, maxTokensFor } from '@/lib/chat/model-params';
-import { isModelUnlocked, effectivePlan } from '@/lib/models';
-import { enforcePaidTokenLimit, trackTokenUsage } from '@/lib/chat/limits';
+import { canUseModel } from '@/lib/models';
+import { enforcePaidTokenLimit, enforceSubscriptionGate, isFreeTierUser, trackTokenUsage } from '@/lib/chat/limits';
 
 // Compare mode: the same prompt answered by up to 3 models side by side.
 //
@@ -44,19 +44,28 @@ export async function POST(req: Request) {
   const userData = userSnap.data() ?? {};
   const plan = userData.plan as string | undefined;
 
-  // Plan gate is server-side: the client picking a locked model in the UI must
-  // never be what decides whether a paid model runs.
-  if (!isModelUnlocked(modelId, effectivePlan(plan))) {
+  const freeTier = isFreeTierUser(userData);
+
+  // Access gate is server-side: the client picking a model in the UI must never be
+  // what decides whether it runs. canUseModel holds paid tiers to their plan, but
+  // lets a signed-in FREE account compare ANY frontier model — that side-by-side is
+  // the product, and gating it behind the paywall is why cold traffic converted at
+  // ~0. Cost is bounded by the free-message counter, metered per column below.
+  if (!canUseModel(modelId, plan)) {
     return Response.json({ error: 'Model not available on your plan', code: 'model_locked' }, { status: 402 });
   }
 
-  // 🚨 Compare mode counted NOTHING against the token ceiling and never checked
-  // it. The per-hour counter below caps REQUESTS, not spend: 40 calls/hour of
-  // Claude Fable 5 at a 16k cap is far past a day's budget, invisibly, and the
-  // client fires three of these per comparison. The most expensive surface in the
-  // product was the one surface with no cost accounting at all.
-  const overBudget = enforcePaidTokenLimit(userData);
-  if (overBudget) return overBudget;
+  // 🚨 Compare mode counted NOTHING against spend. The per-hour counter below caps
+  // REQUESTS, not spend, and the client fires three of these per comparison.
+  // Meter PER COLUMN, since that is what a request is:
+  //  - free tier spends ONE of its FREE_MESSAGE_LIMIT lifetime messages per column
+  //    (a 3-model compare costs 3), then hits the same free_limit_reached paywall.
+  //    Without this a stranger could farm unlimited frontier compares for free.
+  //  - paid tiers hit their token ceilings (enforcePaidTokenLimit).
+  const budgetBlock = freeTier
+    ? await enforceSubscriptionGate(uid, userData)
+    : enforcePaidTokenLimit(userData);
+  if (budgetBlock) return budgetBlock;
 
   const nowHour = new Date().toISOString().slice(0, 13);
   if (userData.compareHour === nowHour && (userData.compareCount ?? 0) >= MAX_PER_HOUR) {

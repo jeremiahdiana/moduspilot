@@ -3,6 +3,7 @@
 // and the Auto router (lib/chat/auto-route.ts). Keep the ids in sync with
 // resolveChatModel() in lib/chat/model.ts — that function does the actual
 // provider routing + env-key gating.
+import { isPaidPlan } from '@/lib/plan';
 
 export interface ModelInfo {
   id: string;
@@ -187,6 +188,28 @@ export function modelSupportsVision(id: string): boolean {
 export function isModelUnlocked(id: string, plan: string | null | undefined): boolean {
   const model = PLATFORM_MODELS.find(m => m.id === canonicalModelId(id));
   return !!model && model.plans.includes(effectivePlan(plan));
+}
+
+/**
+ * May this account RUN this model? Superset of isModelUnlocked.
+ *
+ * 🧊 The free taste tier is metered by MESSAGE COUNT, not by tier: a signed-in,
+ * unpaid account may run ANY catalog model for its FREE_MESSAGE_LIMIT lifetime
+ * messages (the actual product is comparing frontier models, and gating that
+ * behind the paywall is why cold traffic converted at ~0). Cost is bounded by the
+ * counter in lib/chat/limits.ts (enforceSubscriptionGate / the compare route),
+ * NOT here. Paid tiers still get exactly their plan's models — a modus user does
+ * not reach pilot models through this.
+ *
+ * 🚨 GATE ONLY AUTHENTICATED REQUESTS with this. `!isPaidPlan` is also true of a
+ * guest, and /api/chat + /api/chat/compare are accounts-only (they 401 without a
+ * uid), so "not paid" there means "signed-in free user". Do not use this to gate
+ * an unauthenticated surface.
+ */
+export function canUseModel(id: string, plan: string | null | undefined): boolean {
+  if (isModelUnlocked(id, plan)) return true;
+  if (!isPaidPlan(plan)) return !!PLATFORM_MODELS.find(m => m.id === canonicalModelId(id));
+  return false;
 }
 
 /** The models a given plan can use, in catalog order. */

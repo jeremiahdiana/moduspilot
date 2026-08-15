@@ -22,16 +22,16 @@ export default function FinalCTA() {
             Stop juggling<br />AI apps
           </h2>
           <p className="text-muted text-lg mb-10 max-w-xl mx-auto">
-            Every model, your whole life connected, one subscription. Try it free for 3 days.
+            Every model, your whole life connected, one subscription. Start free, no card.
           </p>
           <a
             href="/login"
             className="btn-primary inline-flex items-center gap-2 px-10 py-4 text-white text-base font-bold rounded-xl transition-transform hover:scale-[1.02] active:scale-100"
           >
-            Start your 3-day free trial
+            Start free, no card
             <span>→</span>
           </a>
-          <p className="text-xs text-muted/70 mt-6">3-day free trial · card required · cancel anytime</p>
+          <p className="text-xs text-muted/70 mt-6">10 messages on every frontier model, no card · then a 3-day trial</p>
         </motion.div>
       </div>
     </section>
