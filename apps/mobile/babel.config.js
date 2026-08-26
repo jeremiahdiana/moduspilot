@@ -4,6 +4,8 @@ module.exports = function (api) {
     presets: [
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
     ],
-    plugins: ['react-native-reanimated/plugin'],
+    // Reanimated 4 / Worklets Babel plugin is applied automatically by
+    // babel-preset-expo (SDK 54+); the manual 'react-native-reanimated/plugin'
+    // is deprecated and was removed.
   };
 };

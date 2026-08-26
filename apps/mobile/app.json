@@ -8,6 +8,14 @@
     "platforms": [
       "ios"
     ],
+    "autolinking": {
+      "ios": {
+        "buildFromSource": [
+          "react-native-reanimated",
+          "react-native-worklets"
+        ]
+      }
+    },
     "ios": {
       "bundleIdentifier": "com.moduspilot.app",
       "supportsTablet": false,
