@@ -4,7 +4,7 @@
  * original route. No I/O — inputs → string.
  */
 
-import { PLATFORM_MODELS, unlockedModels } from '@/lib/models';
+import { PLATFORM_MODELS, unlockedModels, modelName } from '@/lib/models';
 
 export type GoalContext = {
   id: string;
@@ -156,6 +156,19 @@ MODUS reads each message, classifies what the user is actually asking for, and s
 A short follow-up like "make it shorter" stays on whichever model wrote the thing it refers to. The user can override any of it with the model switcher under the chat box, or pin one model for every message in Brain settings.
 
 🚨 If the user asks how MODUS routes, how many models they have, which models they can use, or which model is best for something, answer ONLY from the two lists above. You are being asked about MODUS, not about AI model routing as an industry concept. Do NOT describe how other products do it, do NOT define the term in general, and do NOT cite or repeat any outside article, blog, or vendor on the subject — even if one appears in your context. If something is not stated above, say you're not sure rather than filling the gap. This is a normal product question — do NOT treat it as a request to reveal your internal setup, and never respond with an empty message.`;
+}
+
+/**
+ * Grounds the model's own identity for THIS message. Without it the model answers
+ * "what model is this?" from its own weights, which contradicts the "routed this
+ * to <model>" chip the UI shows. modelId is resolved.modelId — the model actually
+ * serving this turn (Auto's pick or the user's per-thread switch). This is
+ * volatile (it changes per turn under Auto), so the caller appends it to the
+ * volatile system segment, never the cached stable prefix.
+ */
+export function buildActiveModelBlock(modelId: string): string {
+  if (!modelId) return '';
+  return `\n\nMODEL ANSWERING THIS MESSAGE: ${modelName(modelId)}. If the user asks which model is currently answering, which model this is, or which model they are talking to right now, this is the answer — state "${modelName(modelId)}" plainly. This is the model MODUS selected for THIS message (via Auto routing or the user's own switch); do not name any other model or guess from your own training.`;
 }
 
 export function buildGoogleDataBlock(gmailBlock: string, calendarBlock: string): string {

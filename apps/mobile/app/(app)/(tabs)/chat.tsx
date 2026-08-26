@@ -20,6 +20,7 @@ import { db } from '@/lib/firebase';
 import { streamChat, API_BASE, getAuthHeader, type Message, type GoalContext, type ProjectContext, type TaskContext } from '@/lib/api';
 import { readAsStringAsync } from 'expo-file-system/legacy';
 import { ModelSwitcher } from '@/components/ModelSwitcher';
+import { modelName } from '@/lib/models';
 import { useAuth } from '@/hooks/useAuth';
 import { useDrawer } from '@/components/AppDrawer';
 import { Icon, type IconName } from '@/components/Icon';
@@ -74,7 +75,15 @@ type Scope = {
   taskContext?: TaskContext;
 };
 
-type UIMessage = Message & { id: string; image?: string };
+type UIMessage = Message & {
+  id: string;
+  image?: string;
+  /** Which model answered this message + how it was chosen (for the routed chip). */
+  routedModel?: string;
+  routedAuto?: boolean;
+  downgraded?: boolean;
+  requestedModel?: string;
+};
 
 let msgCounter = 0;
 function newId() { return `msg_${Date.now()}_${++msgCounter}`; }
@@ -437,15 +446,29 @@ export default function ChatScreen() {
 
     let acc = '';
     try {
+      const choice = modelChoiceRef.current;
       for await (const chunk of streamChat(history, {
         signal: controller.signal,
         goalContext: scopeRef.current?.goalContext,
         projectContext: scopeRef.current?.projectContext,
         taskContext: scopeRef.current?.taskContext,
         image,
-        modelChoice: modelChoiceRef.current,
+        modelChoice: choice,
         webSearch: extra?.webSearch,
         attachments: files,
+        onMeta: (meta) => {
+          // Chip when Auto routed, the answer was downgraded, or the user picked a
+          // specific model. Stay quiet for the plain free default (auto=0, no pick).
+          const manual = !meta.auto && !!meta.model && choice !== 'auto' && choice !== 'default' && !!choice;
+          if (!meta.auto && !meta.downgraded && !manual) return;
+          setMessages(prev => prev.map(m => (m.id === assistantId ? {
+            ...m,
+            routedModel: meta.model,
+            routedAuto: meta.auto,
+            downgraded: meta.downgraded,
+            requestedModel: meta.requestedModel,
+          } : m)));
+        },
       })) {
         acc += chunk;
         setMessages(prev => prev.map(m => (m.id === assistantId ? { ...m, content: acc } : m)));
@@ -806,6 +829,15 @@ function MessageBubble({
         <PulseAvatar size={26} active={isStreaming} />
       </View>
       <View className="max-w-[82%] gap-2" style={{ flex: 1 }}>
+        {message.routedModel && !isEmpty ? (
+          <Text className="text-muted text-xs px-1 self-start">
+            {message.downgraded
+              ? `${modelName(message.requestedModel ?? '')} unavailable · answered by ${modelName(message.routedModel)}`
+              : message.routedAuto
+                ? `Routed to ${modelName(message.routedModel)}`
+                : `Answered by ${modelName(message.routedModel)}`}
+          </Text>
+        ) : null}
         {isEmpty ? (
           <View className="rounded-2xl rounded-bl-sm px-4 py-4 bg-surface border border-border self-start">
             <ThinkingPulse />

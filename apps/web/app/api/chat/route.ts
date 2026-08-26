@@ -53,6 +53,7 @@ import {
   buildTaskContextBlock,
   buildGoogleDataBlock,
   buildModelCatalogBlock,
+  buildActiveModelBlock,
   type GoalContext,
   type ProjectContext,
   type TaskContext,
@@ -729,7 +730,13 @@ export async function POST(req: Request) {
     const stableSystem = leanContext
       ? SCREEN_ASSIST_SYSTEM_PROMPT + userContextBlock + styleBlock
       : MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
-    const volatileSystem = dateBlock + projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
+    // Identity of the model serving THIS turn. Volatile (changes per turn under
+    // Auto), so it goes here, never in the cached stable prefix. Grounds
+    // "what model is this?" instead of letting the model answer from its weights.
+    // Skipped in Screen Assist's lean prompt, where every token is budgeted and
+    // "which model is this" is not a question a screen answer needs to field.
+    const activeModelBlock = leanContext ? '' : buildActiveModelBlock(resolved.modelId);
+    const volatileSystem = dateBlock + activeModelBlock + projectRules + connectorBlock + contactsBlock + notesBlock + messagesBlock + memoryContext + goalContextBlock + projectContextBlock + taskContextBlock + projectResourcesBlock + googleDataBlock + notionBlock + slackBlock + githubBlock + webSearchBlock + driveBlock + groupBlock + attachmentsBlock;
     const fullSystemPrompt = stableSystem + volatileSystem;
 
     // The Llama size guard lived here. It existed for ONE reason: Groq's free tier

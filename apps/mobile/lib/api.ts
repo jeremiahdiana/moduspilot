@@ -45,6 +45,24 @@ export type ChatOpts = {
   webSearch?: boolean;
   /** Files attached via the "+" menu — extracted text injected as chat context. */
   attachments?: { name: string; text: string }[];
+  /**
+   * Fires once when the response headers arrive, before any text streams, with
+   * which model MODUS chose for this answer. Lets the chat surface a "routed to /
+   * answered by" chip (mirrors the web x-modus-* headers).
+   */
+  onMeta?: (meta: ChatMeta) => void;
+};
+
+/** Which model served a message + how it was chosen, read from x-modus-* headers. */
+export type ChatMeta = {
+  /** The model that answered (x-modus-model). */
+  model: string;
+  /** Auto routing chose it (x-modus-auto). */
+  auto: boolean;
+  /** The picked model couldn't answer and a fallback did (x-modus-downgraded). */
+  downgraded: boolean;
+  /** The model the user asked for, when downgraded (x-modus-requested-model). */
+  requestedModel?: string;
 };
 
 // ── Google: today's inbox + calendar (same endpoints the web dashboard uses) ──
@@ -211,6 +229,17 @@ export async function* streamChat(
   if (!response.ok || !response.body) {
     const err = await response.text().catch(() => 'Unknown error');
     throw new Error(err);
+  }
+
+  // Report which model answered before the text streams, so the UI can chip it.
+  const routedModel = response.headers.get('x-modus-model') || '';
+  if (routedModel) {
+    opts.onMeta?.({
+      model: routedModel,
+      auto: response.headers.get('x-modus-auto') === '1',
+      downgraded: response.headers.get('x-modus-downgraded') === '1',
+      requestedModel: response.headers.get('x-modus-requested-model') || undefined,
+    });
   }
 
   const reader = response.body.getReader();

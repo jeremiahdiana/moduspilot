@@ -67,7 +67,12 @@ function ModusAvatar() {
 // it reads "<pick> was unavailable · answered by <model>". The live notice in
 // ChatWindow is cleared on the next message, so this chip is what carries that
 // fact in history — it is the thing that used to persist the false claim.
-function RoutedChip({ modelId, replacedModel }: { modelId: string; replacedModel?: string }) {
+function RoutedChip({ modelId, replacedModel, manualPick }: { modelId: string; replacedModel?: string; manualPick?: boolean }) {
+  const prefix = replacedModel
+    ? `${modelName(replacedModel)} was unavailable · answered by`
+    : manualPick
+      ? 'Answered by'
+      : 'MODUS routed this to';
   return (
     <motion.div
       initial={{ opacity: 0, y: -4 }}
@@ -75,7 +80,7 @@ function RoutedChip({ modelId, replacedModel }: { modelId: string; replacedModel
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       className="flex items-center gap-1.5 text-xs text-muted"
     >
-      <span>{replacedModel ? `${modelName(replacedModel)} was unavailable · answered by` : 'MODUS routed this to'}</span>
+      <span>{prefix}</span>
       <motion.span
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
@@ -119,6 +124,7 @@ export default function MessageBubble({
   showAvatar = true,
   routedModel,
   replacedModel,
+  manualPick = false,
   webSearchCount = 0,
   followingUserText,
   isLatest = true,
@@ -131,6 +137,8 @@ export default function MessageBubble({
   routedModel?: string;
   /** The model the user picked, when it couldn't answer and routedModel replaced it. */
   replacedModel?: string;
+  /** True when routedModel names a model the user manually switched this thread to. */
+  manualPick?: boolean;
   /** How many web results the server injected into this answer. 0 = none. */
   webSearchCount?: number;
   /** The user turn right after this one, if any — how a card knows it was answered. */
@@ -198,7 +206,7 @@ export default function MessageBubble({
       {showAvatar ? <ModusAvatar /> : <div className="w-7 shrink-0" aria-hidden />}
       <div className="max-w-[85%] min-w-0 space-y-3">
         {webSearchCount > 0 && <WebSearchChip count={webSearchCount} />}
-        {routedModel && <RoutedChip modelId={routedModel} replacedModel={replacedModel} />}
+        {routedModel && <RoutedChip modelId={routedModel} replacedModel={replacedModel} manualPick={manualPick} />}
         {parts.map((part, i) =>
           part.type === 'approval' ? (
             // messageId:blockIndex — stable across reloads and tabs because the

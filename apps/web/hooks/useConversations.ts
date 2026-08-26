@@ -22,6 +22,12 @@ export interface Conversation {
   system?: boolean;
   /** Pinned chats sort into their own group above Today, newest first. */
   pinned?: boolean;
+  /**
+   * The model this thread is set to ('auto' | a platform model id | 'default').
+   * A per-thread switch belongs to the conversation, so it persists here and
+   * survives reload. Absent means the thread was never switched off its default.
+   */
+  modelChoice?: string;
 }
 
 export function useConversations(uid: string | null) {
@@ -51,6 +57,7 @@ export function useConversations(uid: string | null) {
             goalId: d.data().goalId as string | undefined,
             system: !!(d.data().system || d.data().briefing || d.data().checkin),
             pinned: d.data().pinned ?? false,
+            modelChoice: d.data().modelChoice as string | undefined,
           }))
           // Hide empty chats: a conversation is only created lazily on the first
           // message now, so any non-system chat with 0 messages is a stale ghost
@@ -66,7 +73,7 @@ export function useConversations(uid: string | null) {
     return unsub;
   }, [uid]);
 
-  const createConversation = useCallback(async (): Promise<string> => {
+  const createConversation = useCallback(async (modelChoice?: string): Promise<string> => {
     if (!uid) return '';
     const ref = await addDoc(collection(db, 'users', uid, 'conversations'), {
       title: 'New chat',
@@ -74,8 +81,16 @@ export function useConversations(uid: string | null) {
       updatedAt: serverTimestamp(),
       deleted: false,
       messages: [],
+      // Carry a model the user picked while the chat was still a draft (no doc
+      // yet), so the pick is not lost when the draft becomes a real conversation.
+      ...(modelChoice && modelChoice !== 'auto' ? { modelChoice } : {}),
     });
     return ref.id;
+  }, [uid]);
+
+  const setConversationModel = useCallback(async (convId: string, modelChoice: string) => {
+    if (!uid || !convId) return;
+    await updateDoc(doc(db, 'users', uid, 'conversations', convId), { modelChoice });
   }, [uid]);
 
   const saveMessages = useCallback(async (convId: string, messages: Message[], title?: string) => {
@@ -116,5 +131,5 @@ export function useConversations(uid: string | null) {
     await updateDoc(doc(db, 'users', uid, 'conversations', convId), { deleted: false });
   }, [uid]);
 
-  return { conversations, loading, createConversation, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation };
+  return { conversations, loading, createConversation, setConversationModel, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation };
 }

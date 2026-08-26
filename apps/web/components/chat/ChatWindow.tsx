@@ -170,10 +170,14 @@ interface Props {
   briefingHour?: number;
   briefingTimezone?: string;
   plan?: string;
-  /** The saved default Brain ('auto' | model id | 'default' for BYOK). */
-  defaultModelChoice?: string;
-  /** Persist a composer model change as the account default (synced to the Brain page). */
-  onModelChoiceChange?: (value: string) => void;
+  /**
+   * The model this thread opens on: its persisted per-thread pick, else the
+   * account default. Seeds the composer on mount (the component is remounted per
+   * conversation via key=, so this is read fresh for each thread).
+   */
+  initialModelChoice?: string;
+  /** Persist a per-thread model switch onto this conversation. */
+  onThreadModelChange?: (value: string) => void;
 }
 
 export default function ChatWindow({
@@ -192,8 +196,8 @@ export default function ChatWindow({
   briefingHour,
   briefingTimezone,
   plan,
-  defaultModelChoice = 'auto',
-  onModelChoiceChange,
+  initialModelChoice = 'auto',
+  onThreadModelChange,
 }: Props) {
   const { user } = useAuth();
   const firstName = user?.displayName?.trim().split(/\s+/)[0] ?? '';
@@ -248,26 +252,25 @@ export default function ChatWindow({
     });
   };
   const [connectedServices, setConnectedServices] = useState<ConnectedServices | null>(null);
-  // In-chat model selection ('auto' | model id | 'default'). Initialized from the
-  // saved Brain (defaultModelChoice) and written back to it on change, so the
-  // composer and the Brain settings page are one synced setting. The ref keeps the
-  // value stable for the useChat request body (avoids stale closures).
-  // 🧭 A MODEL PICK BELONGS TO THE CONVERSATION, NOT TO THE ACCOUNT.
-  // The picker used to be bound to the saved Brain setting and wrote every
-  // change back, so choosing Claude Sonnet once made it the default for every
-  // future chat on every device. Auto is the product's own recommendation and
-  // is what a new conversation should start from, so picking a model now
-  // applies to THIS conversation only and is not persisted.
-  const [modelChoice, setModelChoice] = useState('auto');
-  const modelChoiceRef = useRef('auto');
-  // Every new/switched conversation starts at Auto.
-  useEffect(() => {
-    setModelChoice('auto');
-    modelChoiceRef.current = 'auto';
-  }, [conversationId]);
+  // In-chat model selection ('auto' | model id | 'default').
+  // 🧭 A MODEL PICK BELONGS TO THE CONVERSATION, NOT THE ACCOUNT.
+  //   • It seeds from initialModelChoice: the thread's own persisted pick if it
+  //     has one, otherwise the account default (Auto for most). This component is
+  //     remounted per conversation via key={activeId}, so the seed is read fresh
+  //     for each thread and there is no stale value to reset.
+  //   • On change it persists to THIS conversation (onThreadModelChange), so it
+  //     survives reload and reopening, but never becomes the account-wide default.
+  // The ref keeps the value stable for the useChat request body (avoids stale
+  // closures). There is deliberately NO reset-on-conversationId effect: the old
+  // one wiped the pick back to Auto the moment a draft became a real conversation
+  // (the id changed mid-thread), so every turn after the first silently reverted
+  // to Auto and got re-routed. The remount owns re-seeding now.
+  const [modelChoice, setModelChoice] = useState(initialModelChoice);
+  const modelChoiceRef = useRef(initialModelChoice);
   function handleModelChange(v: string) {
     setModelChoice(v);
     modelChoiceRef.current = v;
+    onThreadModelChange?.(v);
   }
   const inputAreaRef = useRef<HTMLTextAreaElement>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -277,8 +280,12 @@ export default function ChatWindow({
   // the x-modus-model + x-modus-auto response headers. routedRef holds the pick
   // for the in-flight response; routedByMsgId maps it onto the assistant message
   // once it appears, driving the "MODUS routed this to <model>" chip.
-  const routedRef = useRef<{ modelId: string; auto: boolean } | null>(null);
+  const routedRef = useRef<{ modelId: string; auto: boolean; manual: boolean } | null>(null);
   const [routedByMsgId, setRoutedByMsgId] = useState<Record<string, string>>({});
+  // Manual-pick confirmation chips ("Answered by <model>"), keyed by message id.
+  // Session-only: on reload the composer already shows the thread's saved model,
+  // so this just confirms the switch live as answers stream in.
+  const [manualByMsgId, setManualByMsgId] = useState<Record<string, string>>({});
 
   // The model Auto picked for the previous turn, sent with the next message so a
   // short follow-up ("make it shorter") isn't re-classified as generic chat and
@@ -347,7 +354,13 @@ export default function ChatWindow({
       // Capture the model that will answer this message + whether Auto chose it.
       const routedModelId = response.headers.get('x-modus-model') || '';
       const auto = response.headers.get('x-modus-auto') === '1';
-      routedRef.current = routedModelId ? { modelId: routedModelId, auto } : null;
+      // A manual pick: the user switched this thread to a specific model (not Auto,
+      // not a BYOK 'default'). The server confirms it via x-modus-model with auto=0.
+      // We surface a chip for it so a switch is visibly confirmed — the free
+      // default (also auto=0) stays quiet, hence the choice check.
+      const choice = modelChoiceRef.current;
+      const manual = !auto && !!routedModelId && choice !== 'auto' && choice !== 'default';
+      routedRef.current = routedModelId ? { modelId: routedModelId, auto, manual } : null;
 
       // Plan usage. Absent header = no ceiling on this plan; show nothing.
       const rawUsage = response.headers.get('x-modus-usage');
@@ -588,18 +601,30 @@ export default function ChatWindow({
     if (served?.downgraded) return served.served;
     const announced = routedByMsgId[m.id] ?? readRoutedAnnotation(m);
     if (announced) return served?.served ?? announced;
+    const manual = manualByMsgId[m.id];
+    if (manual) return served?.served ?? manual;
     return undefined;
   };
 
-  // Tag the current assistant message with the Auto-routed model as soon as it
-  // appears, so the "routed this to <model>" chip shows while the answer streams.
-  // Only for Auto — a manual model pick doesn't need a routing chip.
+  // True when this message's chip is a manual-switch confirmation (drives the
+  // "Answered by <model>" wording) rather than an Auto route or a downgrade.
+  const isManualChip = (m: Message): boolean =>
+    !!manualByMsgId[m.id]
+    && !servedByMsgId[m.id]?.downgraded
+    && !(routedByMsgId[m.id] ?? readRoutedAnnotation(m));
+
+  // Tag the current assistant message as soon as it appears so its chip shows
+  // while the answer streams: the Auto-routed model, OR a manual switch (so the
+  // user sees the thread is now on the model they picked).
   useEffect(() => {
     const r = routedRef.current;
-    if (!r?.auto || !r.modelId) return;
+    if (!r?.modelId) return;
     const last = messages[messages.length - 1];
-    if (last?.role === 'assistant') {
+    if (last?.role !== 'assistant') return;
+    if (r.auto) {
       setRoutedByMsgId(prev => (prev[last.id] === r.modelId ? prev : { ...prev, [last.id]: r.modelId }));
+    } else if (r.manual) {
+      setManualByMsgId(prev => (prev[last.id] === r.modelId ? prev : { ...prev, [last.id]: r.modelId }));
     }
   }, [messages]);
 
@@ -854,6 +879,7 @@ export default function ChatWindow({
             isStreaming={isLoading && idx === messages.length - 1 && m.role === 'assistant'}
             routedModel={chipModel(m)}
             replacedModel={servedByMsgId[m.id]?.downgraded ? servedByMsgId[m.id]?.requested : undefined}
+            manualPick={isManualChip(m)}
             webSearchCount={readWebSearchAnnotation(m)}
             isLatest={idx === messages.length - 1}
             followingUserText={

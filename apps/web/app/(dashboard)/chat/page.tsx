@@ -25,8 +25,8 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') ?? undefined;
 
-  const { conversations, loading, createConversation, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation } = useConversations(uid);
-  const { settings, loading: settingsLoading, saveSettings } = useUserSettings(user);
+  const { conversations, loading, createConversation, setConversationModel, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation } = useConversations(uid);
+  const { settings, loading: settingsLoading } = useUserSettings(user);
   // Conversation rail: same drag/collapse behaviour as the app sidebar. A chat
   // list has no icons to shrink to, so collapsed hides it behind a reopen tab.
   const convRail = useResizableSidebar({
@@ -60,6 +60,10 @@ export default function ChatPage() {
   const initDone = useRef(false);
   const pendingConvIdRef = useRef<string | null>(null);
   const [inFlightMessages, setInFlightMessages] = useState<Message[]>([]);
+  // A model the user switched to before the chat had a Firestore doc (still a
+  // draft). It rides here across the draft→real remount so createConversation
+  // can persist it onto the new doc; cleared once the doc exists.
+  const draftModelRef = useRef<string | null>(null);
 
   // Show toast when returning from OAuth with ?connected= param
   useEffect(() => {
@@ -156,6 +160,7 @@ export default function ChatPage() {
     // Prevents the pile of empty "New chat" ghosts.
     setInFlightMessages([]); // never inherit a previous chat's in-flight messages
     pendingConvIdRef.current = null;
+    draftModelRef.current = null; // a new draft starts from the account default
     setActiveId(null);
     setIsDraft(true);
     setConvDrawerOpen(false);
@@ -163,6 +168,7 @@ export default function ChatPage() {
 
   const handleSelect = useCallback((id: string) => {
     setInFlightMessages([]);
+    draftModelRef.current = null; // opening an existing thread: use its own saved model
     setIsDraft(false);
     setActiveId(id);
     setConvDrawerOpen(false);
@@ -214,7 +220,11 @@ export default function ChatPage() {
     if (isGuest || !uid) return;
     let convId = activeId ?? pendingConvIdRef.current;
     if (!convId) {
-      convId = await createConversation();
+      // Persist any model the user switched to while this was still a draft, so
+      // the pick lands on the new doc. draftModelRef is NOT cleared here: the
+      // key={activeId} remount that follows reads it as the seed fallback until
+      // the Firestore snapshot catches up with the persisted modelChoice.
+      convId = await createConversation(draftModelRef.current ?? undefined);
       pendingConvIdRef.current = convId;
       setIsDraft(false);        // draft is now a real conversation
       setActiveId(convId); // set immediately so spinner never shows when Firestore confirms
@@ -233,17 +243,24 @@ export default function ChatPage() {
   // and the composer opens the paywall via onShowPaywall. Nothing to track here.
   const handleUserMessage = useCallback(() => {}, []);
 
-  // The composer's model picker and the Brain settings page are one synced setting.
-  // Derive the composer's default from the saved Brain ('auto' | model id, or
-  // 'default' when a BYOK key is configured), and persist composer changes back.
+  // Two scopes, not one:
+  //  • The Brain setting (settings.modelSettings) is the account-wide DEFAULT a
+  //    NEW chat opens on. Edited from the Brain settings page.
+  //  • A model switch inside a thread overrides that for THAT conversation only
+  //    and persists on the conversation doc (see onThreadModelChange), so it
+  //    survives reload and never changes the account default.
   const ms = settings.modelSettings;
   const defaultModelChoice = ms?.provider === 'openai' || ms?.provider === 'anthropic'
     ? 'default'
     : (ms?.model ?? 'auto');
-  const handleModelChoiceChange = useCallback((v: string) => {
-    // Spread preserves any saved BYOK keys; provider→platform since v is auto/a model id.
-    saveSettings({ modelSettings: { ...settings.modelSettings, provider: 'platform', model: v } });
-  }, [saveSettings, settings.modelSettings]);
+  // A per-thread switch: persist onto the conversation doc, or stash on the draft
+  // ref if the doc does not exist yet (it lands via createConversation). The
+  // account default (Brain settings) is edited on its own page, not from here.
+  const handleThreadModelChange = useCallback((v: string) => {
+    const convId = activeId ?? pendingConvIdRef.current;
+    if (convId) setConversationModel(convId, v);
+    else draftModelRef.current = v;
+  }, [activeId, setConversationModel]);
 
   return (
     <div className="flex h-full overflow-hidden relative">
@@ -439,8 +456,8 @@ export default function ChatPage() {
             briefingHour={settings.briefingHour}
             briefingTimezone={settings.briefingTimezone}
             plan={plan}
-            defaultModelChoice={defaultModelChoice}
-            onModelChoiceChange={handleModelChoiceChange}
+            initialModelChoice={activeConversation?.modelChoice ?? draftModelRef.current ?? defaultModelChoice}
+            onThreadModelChange={handleThreadModelChange}
           />
           )}
         </div>

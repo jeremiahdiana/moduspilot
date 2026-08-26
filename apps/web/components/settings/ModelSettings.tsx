@@ -26,12 +26,32 @@ const BRAINS = [
   {
     id: 'meta/llama-3.3-70b',
     name: 'Llama 3.3',
-    provider: 'Meta · Groq',
+    provider: 'Meta',
     tagline: 'Fast & always available',
     description: 'Great for everyday tasks, brainstorming, and writing. Zero latency.',
     badge: 'Free',
     badgeColor: 'bg-emerald-500/10 text-emerald-400',
     plans: ['free', 'modus', 'pilot'] as string[],
+  },
+  {
+    id: 'gemini-3.5-flash-lite',
+    name: 'Gemini 3.5 Flash Lite',
+    provider: 'Google',
+    tagline: 'Fast, multimodal, free',
+    description: "Google's lightweight model. Quick, vision-capable, and available on every plan.",
+    badge: 'Free',
+    badgeColor: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'] as string[],
+  },
+  {
+    id: 'deepseek/deepseek-v3.1',
+    name: 'DeepSeek V3.1',
+    provider: 'DeepSeek',
+    tagline: 'Strong open reasoning',
+    description: "DeepSeek's V3.1, a capable open model for reasoning, code, and analysis.",
+    badge: 'MODUS+',
+    badgeColor: 'bg-violet-500/10 text-violet-400',
+    plans: ['modus', 'pilot'] as string[],
   },
   {
     id: 'gpt-5.6-terra',
@@ -105,11 +125,21 @@ const BRAINS = [
     badgeColor: 'bg-brand/10 text-brand',
     plans: ['pilot'] as string[],
   },
+  {
+    id: 'meta/llama-4-maverick',
+    name: 'Llama 4 Maverick',
+    provider: 'Meta',
+    tagline: 'Fast multimodal open model',
+    description: "Meta's Llama 4 Maverick. Multimodal and quick, for everyday work on PILOT.",
+    badge: 'PILOT',
+    badgeColor: 'bg-brand/10 text-brand',
+    plans: ['pilot'] as string[],
+  },
   // Grok 4.5 is withheld until xAI has credits (Gemini 3.1 Pro was restored
   // 2026-07-17 when Google billing went live) — see the note in lib/models.ts.
-  // Keep this list matching that
-  // catalog: a Brain offered here that PLATFORM_MODELS doesn't unlock is a lock
-  // badge the user can never earn.
+  // Keep this list matching that catalog (PLATFORM_MODELS): a Brain offered here
+  // that PLATFORM_MODELS doesn't unlock is a lock badge the user can never earn,
+  // and a catalog model missing here can't be set as a default Brain.
 ];
 
 const BYOK_PROVIDERS = [
