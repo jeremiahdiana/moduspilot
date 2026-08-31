@@ -15,6 +15,7 @@ type Filter = 'primary' | 'all';
 interface GoogleAccount {
   email: string;
   connectedAt: string | null;
+  needsReconnect?: boolean;
 }
 
 function avatarColor(name: string): string {
@@ -49,6 +50,8 @@ export default function GmailWidget() {
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [notConnected, setNotConnected] = useState(false);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<'all' | string>('all');
   const [filter, setFilter] = useState<Filter>('primary');
@@ -84,6 +87,7 @@ export default function GmailWidget() {
       });
       if (!res.ok) { setFetchError(true); return; }
       const data = await res.json();
+      setNeedsReconnect(!!data.needsReconnect);
       if (data.notConnected) {
         setNotConnected(true);
         setThreads([]);
@@ -100,6 +104,35 @@ export default function GmailWidget() {
       setLoading(false);
     }
   }, [user]);
+
+  // Reconnect uses the same OAuth start flow as first connect. Because the consent
+  // URL forces `prompt: consent`, re-granting the same account issues a fresh
+  // refresh token and clears the needsReconnect flag server-side.
+  const handleReconnect = useCallback(async () => {
+    if (!user) return;
+    setReconnecting(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/auth/google/connect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+    } catch { /* fall through to re-enable the button */ }
+    setReconnecting(false);
+  }, [user]);
+
+  const reconnectBanner = (
+    <button
+      onClick={handleReconnect}
+      disabled={reconnecting}
+      className="w-full flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-left transition-colors hover:bg-yellow-500/15 disabled:opacity-60"
+    >
+      <span className="text-[11px] text-yellow-500">Gmail access expired.</span>
+      <span className="text-[11px] font-medium text-yellow-500 shrink-0">{reconnecting ? 'Reconnecting…' : 'Reconnect'}</span>
+    </button>
+  );
 
   useEffect(() => {
     if (!filterLoaded) return;
@@ -227,6 +260,22 @@ export default function GmailWidget() {
     );
   }
 
+  if (needsReconnect && threads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-32 gap-2 text-center">
+        <p className="text-xs text-yellow-500 font-medium">Gmail access expired.</p>
+        <p className="text-xs text-muted">Reconnect Google to keep seeing your inbox.</p>
+        <button
+          onClick={handleReconnect}
+          disabled={reconnecting}
+          className="text-[11px] font-medium text-brand hover:underline disabled:opacity-50"
+        >
+          {reconnecting ? 'Reconnecting…' : 'Reconnect Google'}
+        </button>
+      </div>
+    );
+  }
+
   if (threads.length === 0) {
     return (
       <>
@@ -247,6 +296,7 @@ export default function GmailWidget() {
 
   return (
     <>
+      {needsReconnect && reconnectBanner}
       {controls}
       <div className="divide-y divide-border/50 -mx-5">
         {threads.map(t => (

@@ -47,6 +47,18 @@ export async function exchangeCode(code: string): Promise<{
   return res.json();
 }
 
+// A refresh failure that is permanent (the refresh token is expired or revoked)
+// means the account must reconnect. Transient failures (5xx / network / rate
+// limit) should NOT force a reconnect — they resolve on their own.
+class TokenRefreshError extends Error {
+  permanent: boolean;
+  constructor(message: string, permanent: boolean) {
+    super(message);
+    this.name = 'TokenRefreshError';
+    this.permanent = permanent;
+  }
+}
+
 async function refreshAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -58,7 +70,13 @@ async function refreshAccessToken(refreshToken: string): Promise<{ access_token:
       grant_type: 'refresh_token',
     }),
   });
-  if (!res.ok) throw new Error(`Token refresh failed: ${await res.text()}`);
+  if (!res.ok) {
+    const body = await res.text();
+    // invalid_grant = refresh token expired or revoked (e.g. Testing-mode 7-day
+    // expiry, or the user revoked access) → permanent, account must reconnect.
+    const permanent = /invalid_grant/.test(body);
+    throw new TokenRefreshError(`Token refresh failed: ${body}`, permanent);
+  }
   return res.json();
 }
 
@@ -80,6 +98,7 @@ export async function storeGoogleAccountTokens(uid: string, tokens: {
     accessToken: tokens.access_token,
     expiresAt: Date.now() + tokens.expires_in * 1000,
     connectedAt: FieldValue.serverTimestamp(),
+    needsReconnect: false, // a fresh (re)connect clears any prior reconnect flag
   };
   if (tokens.refresh_token) update.refreshToken = tokens.refresh_token;
   await accountsCol(uid).doc(docId).set(update, { merge: true });
@@ -88,12 +107,14 @@ export async function storeGoogleAccountTokens(uid: string, tokens: {
 export async function getAllGoogleAccounts(uid: string): Promise<{
   email: string;
   connectedAt: string | null;
+  needsReconnect: boolean;
 }[]> {
   await migrateLegacyToken(uid);
   const snap = await accountsCol(uid).orderBy('connectedAt', 'asc').get();
   return snap.docs.map(d => ({
     email: d.data().email as string,
     connectedAt: d.data().connectedAt?.toDate?.()?.toISOString() ?? null,
+    needsReconnect: d.data().needsReconnect === true,
   }));
 }
 
@@ -110,19 +131,29 @@ export async function getAllValidAccessTokens(uid: string): Promise<{
   const results = await Promise.all(
     snap.docs.map(async docSnap => {
       const data = docSnap.data();
+      const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : 0;
+      if (expiresAt > Date.now() + buffer) {
+        return { email: data.email as string, token: data.accessToken as string };
+      }
+      if (!data.refreshToken) {
+        // No refresh token stored — this account can never refresh, must reconnect.
+        await docSnap.ref.update({ needsReconnect: true }).catch(() => {});
+        return null;
+      }
       try {
-        const expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : 0;
-        if (expiresAt > Date.now() + buffer) {
-          return { email: data.email as string, token: data.accessToken as string };
-        }
-        if (!data.refreshToken) return null; // no refresh token — account needs reconnect
         const refreshed = await refreshAccessToken(data.refreshToken as string);
         await docSnap.ref.update({
           accessToken: refreshed.access_token,
           expiresAt: Date.now() + refreshed.expires_in * 1000,
+          needsReconnect: false, // refresh succeeded — clear any stale flag
         });
         return { email: data.email as string, token: refreshed.access_token };
-      } catch {
+      } catch (err) {
+        // Flag for reconnect ONLY on a permanent failure (expired/revoked token).
+        // A transient failure (5xx/network) must not nag the user to reconnect.
+        if (err instanceof TokenRefreshError && err.permanent) {
+          await docSnap.ref.update({ needsReconnect: true }).catch(() => {});
+        }
         return null;
       }
     }),

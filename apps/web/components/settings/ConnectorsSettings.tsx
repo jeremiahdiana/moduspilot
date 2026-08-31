@@ -7,7 +7,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { isPaidPlan } from '@/lib/plan';
 import { PLUGIN_DIRECTORY, PLUGIN_DIRECTORY_MORE_URL, type PluginTemplate } from '@/lib/plugin-directory';
 
-interface GoogleAccount { email: string; connectedAt: string | null; }
+interface GoogleAccount { email: string; connectedAt: string | null; needsReconnect?: boolean; }
 interface NotionAccount { workspaceId: string; workspaceName: string; workspaceIcon: string | null; ownerEmail: string; connectedAt: string | null; }
 interface SlackAccount { teamId: string; teamName: string; connectedAt: string | null; }
 interface GitHubAccount { login: string; name: string | null; avatarUrl: string; connectedAt: string | null; }
@@ -452,6 +452,8 @@ export default function ConnectorsSettings({ user }: Props) {
                   avatar={<InitialAvatar seed={a.email} />}
                   title={a.email}
                   subtitle={fmtDate(a.connectedAt)}
+                  needsReconnect={a.needsReconnect}
+                  onReconnect={connectGoogle}
                   removing={disconnecting === a.email}
                   onRemove={() => disconnectGoogle(a.email)}
                 />
@@ -994,8 +996,9 @@ function CloudRow({ icon, name, caption, loading, connectedCount, connectLabel, 
   );
 }
 
-function AccountSubRow({ avatar, title, subtitle, removing, onRemove }: {
+function AccountSubRow({ avatar, title, subtitle, removing, onRemove, needsReconnect, onReconnect }: {
   avatar: React.ReactNode; title: string; subtitle: string; removing: boolean; onRemove: () => void;
+  needsReconnect?: boolean; onReconnect?: () => void;
 }) {
   return (
     <motion.div
@@ -1009,8 +1012,18 @@ function AccountSubRow({ avatar, title, subtitle, removing, onRemove }: {
         <div className="shrink-0">{avatar}</div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-text truncate">{title}</p>
-          <p className="text-[11px] text-muted">{subtitle}</p>
+          {needsReconnect
+            ? <p className="text-[11px] text-yellow-500">Access expired — reconnect to restore</p>
+            : <p className="text-[11px] text-muted">{subtitle}</p>}
         </div>
+        {needsReconnect && onReconnect && (
+          <button
+            onClick={onReconnect}
+            className="text-[11px] font-medium text-yellow-500 hover:text-yellow-400 transition-colors shrink-0"
+          >
+            Reconnect
+          </button>
+        )}
         <button
           onClick={onRemove}
           disabled={removing}

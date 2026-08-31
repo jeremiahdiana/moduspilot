@@ -8,7 +8,11 @@ export async function GET(req: Request) {
   try {
     const { uid } = await adminAuth.verifyIdToken(token);
     const accounts = await getAllGoogleAccounts(uid);
-    return Response.json({ accounts, connected: accounts.length > 0 });
+    return Response.json({
+      accounts,
+      connected: accounts.length > 0,
+      needsReconnect: accounts.some(a => a.needsReconnect),
+    });
   } catch {
     return Response.json({ accounts: [], connected: false });
   }

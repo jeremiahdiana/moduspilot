@@ -15,9 +15,19 @@ export async function GET(req: Request) {
     const { uid } = await adminAuth.verifyIdToken(token);
     const allAccounts = await getAllValidAccessTokens(uid);
     const accountMeta = await getAllGoogleAccounts(uid);
+    const needsReconnect = accountMeta.some(a => a.needsReconnect);
 
     if (allAccounts.length === 0) {
-      return Response.json({ threads: [], notConnected: true, accounts: [], accountCount: 0 });
+      // No usable tokens. Distinguish a genuinely disconnected user (no accounts)
+      // from one whose token expired and just needs to reconnect — otherwise the
+      // widget shows a silent empty inbox with no way to recover.
+      return Response.json({
+        threads: [],
+        notConnected: accountMeta.length === 0,
+        needsReconnect,
+        accounts: accountMeta,
+        accountCount: accountMeta.length,
+      });
     }
 
     const targets = accountFilter
@@ -50,6 +60,7 @@ export async function GET(req: Request) {
       accounts: accountMeta,
       accountCount: accountMeta.length,
       connected: true,
+      needsReconnect,
     });
   } catch (e) {
     console.error('[api/google/inbox]', e);

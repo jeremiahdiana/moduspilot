@@ -645,18 +645,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-            className="flex-1 min-h-0 flex flex-col overflow-hidden overflow-x-hidden"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden overflow-x-hidden">
+          {children}
+        </div>
       </main>
 
       <CommandBar open={cmdOpen} onClose={() => setCmdOpen(false)} user={user} />
