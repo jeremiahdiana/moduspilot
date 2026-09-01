@@ -243,16 +243,37 @@ export async function POST(req: Request) {
 
     // An "empty" turn is only empty if it also carries no image/file part — an
     // image with no caption is a perfectly good message and must still go through.
+    // The same is true of documents: extracted file text rides out-of-band in
+    // `body.attachments` (NOT in `content`), so a PDF-only send has empty `content`
+    // but is a real message. Counting only the image `content` parts here rejected
+    // every attachment-only send with `empty_message` — the composer allowed it,
+    // the server refused it. Treat a non-empty `body.attachments` as content too.
     const newest = clientCore[clientCore.length - 1];
     if (newest?.role === 'user') {
-      const hasAttachment = Array.isArray(newest.content)
+      const hasImagePart = Array.isArray(newest.content)
         && (newest.content as { type: string }[]).some(p => p?.type !== 'text');
+      const hasFileAttachment = Array.isArray(body.attachments) && body.attachments.length > 0;
       const text = typeof newest.content === 'string'
         ? newest.content
         : (newest.content as { type: string; text?: string }[])
             .filter(p => p?.type === 'text').map(p => p.text ?? '').join('');
-      if (!hasAttachment && text.trim() === '') {
+      if (!hasImagePart && !hasFileAttachment && text.trim() === '') {
         return Response.json({ error: 'empty_message' }, { status: 400 });
+      }
+      // 🚨 A file-only send arrives here with EMPTY message content — the extracted
+      // file text rides in body.attachments (→ the system prompt), never in the
+      // message. An empty user message is invalid for several providers: measured
+      // on prod, meta/llama-3.3-70b rejects it with
+      //   AI_APICallError: user message must have content
+      // which surfaced to the user as "Something went wrong. Please try again."
+      // (the whole reason attachment-only sends failed). Give the message a minimal
+      // instruction so it is a valid message AND points the model at the files.
+      if (!hasImagePart && hasFileAttachment && text.trim() === '') {
+        const names = body.attachments!.map(a => a?.name).filter(Boolean).join(', ');
+        const plural = body.attachments!.length > 1 ? 's' : '';
+        newest.content = names
+          ? `Please read the attached file${plural} (${names}) and help me with ${body.attachments!.length > 1 ? 'them' : 'it'}.`
+          : `Please read the attached file${plural} and help me with ${body.attachments!.length > 1 ? 'them' : 'it'}.`;
       }
     }
 
@@ -288,6 +309,17 @@ export async function POST(req: Request) {
       kept.unshift(trimmed);
     }
     const cappedMessages = kept;
+
+    // Safety net: never hand the provider an empty-content user message. Several
+    // providers reject it ("user message must have content"), and a single empty
+    // message ANYWHERE in the history 500s the whole turn — not just the newest.
+    // The newest file-only message is synthesized above; this catches empty
+    // strings already saved in history (older messages, or a non-web client).
+    for (const m of cappedMessages) {
+      if (m.role === 'user' && typeof m.content === 'string' && m.content.trim() === '') {
+        m.content = '(no additional text)';
+      }
+    }
 
     let personalContext = (body.personalContext ?? '').slice(0, 2000);
     let responseStyle = body.responseStyle ?? '';

@@ -276,6 +276,12 @@ export default function ChatWindow({
   const [authToken, setAuthToken] = useState<string | null>(null);
   const prevLoadingRef = useRef(false);
   const savedLengthRef = useRef(initialMessages.length);
+  // Guards the one automatic retry on an empty reply — keyed on the user-message
+  // count so it fires at most once per turn and can never loop.
+  const emptyRetriedForRef = useRef(-1);
+  // The per-send body (attachments, model choice, …) of the last turn, so an
+  // auto-retry re-sends the SAME request rather than a bare regenerate.
+  const lastSendBodyRef = useRef<Record<string, unknown> | null>(null);
   // When the composer is on "Auto", the server reports which model it picked via
   // the x-modus-model + x-modus-auto response headers. routedRef holds the pick
   // for the in-flight response; routedByMsgId maps it onto the assistant message
@@ -682,6 +688,21 @@ export default function ChatWindow({
       const watchdogSpoke = timedOutRef.current;
       timedOutRef.current = false;
       if (!watchdogSpoke && !hasBlock && text.trim() === '') {
+        // An empty reply is usually a reasoning model that spent its whole token
+        // budget on hidden reasoning, or a transient provider hiccup — a plain
+        // resend of the same turn almost always comes back with text. Auto-retry
+        // ONCE before bothering the user (keyed on the user-turn count so it fires
+        // at most once per turn and can never loop). Skip persisting this empty
+        // turn so the retry's real answer saves in its place.
+        const turnKey = messages.filter(m => m.role === 'user').length;
+        if (emptyRetriedForRef.current !== turnKey) {
+          emptyRetriedForRef.current = turnKey;
+          setChatError(null);
+          void (async () => {
+            reload({ headers: await authedHeaders(), body: lastSendBodyRef.current ?? undefined });
+          })();
+          return;
+        }
         setChatError('The model returned an empty response. Try again, or switch models below.');
       }
     }
@@ -775,16 +796,26 @@ export default function ChatWindow({
       return;
     }
 
+    // A file-only send (attachment, no typed text) must NOT go out with empty
+    // message content: the extracted file text travels out-of-band in `attachments`
+    // (→ system prompt), so the message itself is empty, and several providers
+    // (e.g. Llama via Groq) reject an empty user message with "user message must
+    // have content" — the send just fails. Synthesize a short instruction so the
+    // saved/rendered message reads naturally AND the outgoing request is valid.
+    const trimmedInput = input.trim();
+    const fileOnlyText = attachedFiles.length
+      ? `Please read the attached file${attachedFiles.length > 1 ? 's' : ''} (${attachedFiles.map(f => f.name).join(', ')}) and help me with ${attachedFiles.length > 1 ? 'them' : 'it'}.`
+      : '';
     const content = attachedImage
       ? [
-          ...(input.trim() ? [{ type: 'text' as const, text: input.trim() }] : []),
+          ...(trimmedInput ? [{ type: 'text' as const, text: trimmedInput }] : []),
           {
             type: 'image' as const,
             image: attachedImage.base64,
             mimeType: attachedImage.mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
           },
         ]
-      : input.trim();
+      : (trimmedInput || fileOnlyText);
 
     const filesToSend = attachedFiles;
     setAttachedImage(null);
@@ -794,9 +825,11 @@ export default function ChatWindow({
     setModelNotice(null);
     onUserMessage?.();
     const headers = await authedHeaders();
+    const sendBody = { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend, lastRoutedModel: lastAutoRoutedModel() };
+    lastSendBodyRef.current = sendBody;
     await append(
       { role: 'user', content } as Parameters<typeof append>[0],
-      { headers, body: { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend, lastRoutedModel: lastAutoRoutedModel() } },
+      { headers, body: sendBody },
     );
   }
 
