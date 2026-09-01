@@ -18,6 +18,9 @@ export default function AccountSettings({ user }: Props) {
   const [deleteInput, setDeleteInput] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [showClearChats, setShowClearChats] = useState(false);
+  const [clearingChats, setClearingChats] = useState(false);
+  const [clearedChats, setClearedChats] = useState(false);
   const [error, setError] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
@@ -62,6 +65,26 @@ export default function AccountSettings({ user }: Props) {
     } catch {
       setError('Failed to delete account. Please try again.');
       setDeleting(false);
+    }
+  };
+
+  const handleClearChats = async () => {
+    setClearingChats(true);
+    setError('');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/conversations/clear', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('clear_failed');
+      setClearedChats(true);
+      setShowClearChats(false);
+      timerRef.current = setTimeout(() => setClearedChats(false), 4000);
+    } catch {
+      setError('Failed to delete chats. Please try again.');
+    } finally {
+      setClearingChats(false);
     }
   };
 
@@ -153,6 +176,49 @@ export default function AccountSettings({ user }: Props) {
       {/* Danger zone */}
       <div className="bg-panel border border-red-900/40 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-semibold text-red-400">Danger Zone</h3>
+
+        {/* Delete all chats */}
+        {!showClearChats ? (
+          <>
+            <p className="text-xs text-muted">Permanently delete every conversation, including anything in Trash. Your account, goals, habits, tasks, and memories are kept. This cannot be undone.</p>
+            <button
+              onClick={() => setShowClearChats(true)}
+              className="px-4 py-2 border border-red-800/60 text-red-400 text-sm rounded-lg hover:bg-red-900/20 transition-colors"
+            >
+              Delete all chats
+            </button>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-muted">Delete <span className="text-red-400 font-semibold">every</span> conversation for good? This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearChats(false)}
+                className="px-4 py-2 bg-panel border border-border text-muted text-sm rounded-lg hover:text-text transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearChats}
+                disabled={clearingChats}
+                className="px-4 py-2 bg-red-900/40 border border-red-800/60 text-red-400 text-sm rounded-lg disabled:opacity-40 hover:bg-red-900/60 transition-colors"
+              >
+                {clearingChats ? 'Deleting…' : 'Delete all chats'}
+              </button>
+            </div>
+          </div>
+        )}
+        {clearedChats && (
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-emerald-400 shrink-0">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <p className="text-sm text-emerald-400 font-medium">All chats deleted.</p>
+          </div>
+        )}
+
+        <div className="border-t border-red-900/40" />
+
         {!showDeleteConfirm ? (
           <>
             <p className="text-xs text-muted">Permanently delete your account, all conversations, goals, habits, tasks, and memories. This cannot be undone.</p>
