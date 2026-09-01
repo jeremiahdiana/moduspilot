@@ -673,16 +673,21 @@ export default function ChatWindow({
   useEffect(() => {
     const pend = pendingAttachmentsRef.current;
     if (!pend) return;
-    const msg = messages.find(m => m.id === pend.id && m.role === 'user');
-    if (!msg) return;
+    // Target the most recent USER message (the one just sent). Matching by a
+    // client-generated id is unreliable — the AI SDK assigns its own id to the
+    // appended message — so locate it by position instead.
+    let target: (typeof messages)[number] | undefined;
+    for (let i = messages.length - 1; i >= 0; i--) { if (messages[i].role === 'user') { target = messages[i]; break; } }
+    if (!target) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anns = ((msg as any).annotations as any[] | undefined) ?? [];
+    const anns = ((target as any).annotations as any[] | undefined) ?? [];
     if (anns.some(a => a && typeof a === 'object' && Array.isArray(a.modusAttachments))) {
       pendingAttachmentsRef.current = null; // already applied
       return;
     }
+    const targetId = target.id;
     setMessages(prev => prev.map(m =>
-      m.id === pend.id
+      m.id === targetId
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? { ...m, annotations: [...(((m as any).annotations as any[]) ?? []), { modusAttachments: pend.files }] }
         : m,
