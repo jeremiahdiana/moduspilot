@@ -11,6 +11,7 @@ import MarkdownMessage from './MarkdownMessage';
 import { blockProgress } from '@/lib/chat/block-progress';
 import { modelName, modelProvider } from '@/lib/models';
 import { ProviderLogo } from '@/components/marketing/BrandLogos';
+import { readAttachmentsAnnotation } from '@/lib/chat/annotations';
 
 type BlockType = 'approval' | 'draft_options' | 'options' | 'image' | 'document' | 'chart';
 type Part =
@@ -153,6 +154,7 @@ export default function MessageBubble({
   if (isUser) {
     const text = extractTextContent(message.content);
     const hasImage = Array.isArray(message.content) && message.content.some(p => p.type === 'image');
+    const files = readAttachmentsAnnotation(message);
     return (
       <motion.div
         initial={{ opacity: 0, y: 4 }}
@@ -164,6 +166,18 @@ export default function MessageBubble({
           {hasImage && (
             <div className="bg-brand/10 border border-brand/20 rounded-xl px-3 py-2 text-xs text-brand text-right">
               Image attached
+            </div>
+          )}
+          {files.length > 0 && (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              {files.map((f, i) => (
+                <div key={i} className="bg-brand/10 border border-brand/20 rounded-lg px-2.5 py-1.5 text-xs text-brand flex items-center gap-1.5 max-w-full">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                  </svg>
+                  <span className="truncate">{f.name}</span>
+                </div>
+              ))}
             </div>
           )}
           {text && (

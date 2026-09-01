@@ -11,7 +11,7 @@ import { auth } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { modelName, unlockedModels } from '@/lib/models';
 import { isAwaitingAssistantText } from '@/lib/chat/pending';
-import { readWebSearchAnnotation } from '@/lib/chat/annotations';
+import { readWebSearchAnnotation, readAttachmentsAnnotation } from '@/lib/chat/annotations';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ConnectedServices {
@@ -818,6 +818,21 @@ export default function ChatWindow({
       : (trimmedInput || fileOnlyText);
 
     const filesToSend = attachedFiles;
+    // Keep documents in context across turns: re-send attachments introduced
+    // earlier in THIS conversation (read back from message annotations) alongside
+    // any newly attached files, deduped by name. Without this a follow-up question
+    // could not see the file — its extracted text lived only in the previous
+    // request's system prompt and was gone the moment that turn ended. The server's
+    // 48k-char / 10-file budget bounds the total that actually gets injected.
+    const carriedDocs: { name: string; text: string }[] = [];
+    const seenDocs = new Set<string>();
+    for (const d of [...filesToSend, ...messages.flatMap(readAttachmentsAnnotation)]) {
+      if (!d.name || seenDocs.has(d.name)) continue;
+      seenDocs.add(d.name);
+      carriedDocs.push({ name: d.name, text: d.text });
+    }
+
+    const userMsgId = crypto.randomUUID();
     setAttachedImage(null);
     setAttachedFiles([]);
     setInput('');
@@ -825,12 +840,28 @@ export default function ChatWindow({
     setModelNotice(null);
     onUserMessage?.();
     const headers = await authedHeaders();
-    const sendBody = { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: filesToSend, lastRoutedModel: lastAutoRoutedModel() };
+    const sendBody = { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: carriedDocs, lastRoutedModel: lastAutoRoutedModel() };
     lastSendBodyRef.current = sendBody;
-    await append(
-      { role: 'user', content } as Parameters<typeof append>[0],
+    const appendPromise = append(
+      { id: userMsgId, role: 'user', content } as Parameters<typeof append>[0],
       { headers, body: sendBody },
     );
+    // Record the files THIS message introduced as an annotation on the just-added
+    // user message, so they persist with the thread (saveMessages passes
+    // annotations through to Firestore) and render a chip on the bubble. Done via
+    // setMessages — the proven path (same as the routed-model annotation below) —
+    // rather than passing annotations to append, which the SDK may not preserve.
+    // The server never reads annotations, so the text is not double-injected into
+    // the model prompt; only body.attachments reaches the model.
+    if (filesToSend.length) {
+      setMessages(prev => prev.map(m =>
+        m.id === userMsgId
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? { ...m, annotations: [...(((m as any).annotations as any[]) ?? []), { modusAttachments: filesToSend }] }
+          : m,
+      ));
+    }
+    await appendPromise;
   }
 
   // 🎬 THE OPENING SCREEN AND THE CONVERSATION ARE ONE LAYOUT, NOT TWO.
