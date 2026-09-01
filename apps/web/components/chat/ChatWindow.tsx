@@ -282,6 +282,11 @@ export default function ChatWindow({
   // The per-send body (attachments, model choice, …) of the last turn, so an
   // auto-retry re-sends the SAME request rather than a bare regenerate.
   const lastSendBodyRef = useRef<Record<string, unknown> | null>(null);
+  // Files a just-sent message introduced, waiting to be stamped onto that message
+  // as a modusAttachments annotation once it appears in `messages`. Applied by an
+  // effect (not synchronously at send) because the SDK rebuilds `messages` while
+  // the response streams and would clobber a synchronous write.
+  const pendingAttachmentsRef = useRef<{ id: string; files: { name: string; text: string }[] } | null>(null);
   // When the composer is on "Auto", the server reports which model it picked via
   // the x-modus-model + x-modus-auto response headers. routedRef holds the pick
   // for the in-flight response; routedByMsgId maps it onto the assistant message
@@ -661,6 +666,29 @@ export default function ChatWindow({
     );
   }, [messages, isLoading]);
 
+  // Stamp a just-sent message with its attachments annotation once it appears in
+  // `messages`. Keyed on `messages` (like the routed-model annotation) so it lands
+  // after the SDK's own streaming updates settle and re-applies if they clobber it.
+  // The annotation persists via saveMessages and drives the file chip.
+  useEffect(() => {
+    const pend = pendingAttachmentsRef.current;
+    if (!pend) return;
+    const msg = messages.find(m => m.id === pend.id && m.role === 'user');
+    if (!msg) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anns = ((msg as any).annotations as any[] | undefined) ?? [];
+    if (anns.some(a => a && typeof a === 'object' && Array.isArray(a.modusAttachments))) {
+      pendingAttachmentsRef.current = null; // already applied
+      return;
+    }
+    setMessages(prev => prev.map(m =>
+      m.id === pend.id
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? { ...m, annotations: [...(((m as any).annotations as any[]) ?? []), { modusAttachments: pend.files }] }
+        : m,
+    ));
+  }, [messages, setMessages]);
+
   // Save to Firestore when AI finishes responding
   useEffect(() => {
     const justFinished = prevLoadingRef.current && !isLoading;
@@ -842,26 +870,16 @@ export default function ChatWindow({
     const headers = await authedHeaders();
     const sendBody = { modelChoice: modelChoiceRef.current, webSearch: webSearchOn, attachments: carriedDocs, lastRoutedModel: lastAutoRoutedModel() };
     lastSendBodyRef.current = sendBody;
-    const appendPromise = append(
+    // Stash the files this message introduced; an effect stamps them onto the
+    // message as a modusAttachments annotation once it exists in `messages` (and
+    // re-applies if the streaming SDK clobbers it). That annotation persists via
+    // saveMessages and renders the file chip. The server never reads annotations,
+    // so the text is not double-injected — only body.attachments reaches the model.
+    if (filesToSend.length) pendingAttachmentsRef.current = { id: userMsgId, files: filesToSend };
+    await append(
       { id: userMsgId, role: 'user', content } as Parameters<typeof append>[0],
       { headers, body: sendBody },
     );
-    // Record the files THIS message introduced as an annotation on the just-added
-    // user message, so they persist with the thread (saveMessages passes
-    // annotations through to Firestore) and render a chip on the bubble. Done via
-    // setMessages — the proven path (same as the routed-model annotation below) —
-    // rather than passing annotations to append, which the SDK may not preserve.
-    // The server never reads annotations, so the text is not double-injected into
-    // the model prompt; only body.attachments reaches the model.
-    if (filesToSend.length) {
-      setMessages(prev => prev.map(m =>
-        m.id === userMsgId
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? { ...m, annotations: [...(((m as any).annotations as any[]) ?? []), { modusAttachments: filesToSend }] }
-          : m,
-      ));
-    }
-    await appendPromise;
   }
 
   // 🎬 THE OPENING SCREEN AND THE CONVERSATION ARE ONE LAYOUT, NOT TWO.
