@@ -127,6 +127,7 @@ export default function MessageBubble({
   replacedModel,
   manualPick = false,
   webSearchCount = 0,
+  attachments,
   followingUserText,
   isLatest = true,
   onAppend,
@@ -142,6 +143,8 @@ export default function MessageBubble({
   manualPick?: boolean;
   /** How many web results the server injected into this answer. 0 = none. */
   webSearchCount?: number;
+  /** Files this message carried (live session). Falls back to the saved annotation. */
+  attachments?: { name: string; text: string }[];
   /** The user turn right after this one, if any — how a card knows it was answered. */
   followingUserText?: string;
   /** False once a later message exists, which closes any question this one asked. */
@@ -154,7 +157,7 @@ export default function MessageBubble({
   if (isUser) {
     const text = extractTextContent(message.content);
     const hasImage = Array.isArray(message.content) && message.content.some(p => p.type === 'image');
-    const files = readAttachmentsAnnotation(message);
+    const files = attachments && attachments.length ? attachments : readAttachmentsAnnotation(message);
     return (
       <motion.div
         initial={{ opacity: 0, y: 4 }}

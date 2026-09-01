@@ -293,6 +293,11 @@ export default function ChatWindow({
   // once it appears, driving the "MODUS routed this to <model>" chip.
   const routedRef = useRef<{ modelId: string; auto: boolean; manual: boolean } | null>(null);
   const [routedByMsgId, setRoutedByMsgId] = useState<Record<string, string>>({});
+  // Attachments a user message carried, keyed by the SDK message id. Kept in a
+  // side map (NOT on the SDK-owned `messages`, which it rebuilds mid-stream and
+  // would wipe) and injected into the saved copy at save time — the exact pattern
+  // routedByMsgId uses for the routing chip.
+  const [attachmentsByMsgId, setAttachmentsByMsgId] = useState<Record<string, { name: string; text: string }[]>>({});
   // Manual-pick confirmation chips ("Answered by <model>"), keyed by message id.
   // Session-only: on reload the composer already shows the thread's saved model,
   // so this just confirms the switch live as answers stream in.
@@ -673,26 +678,16 @@ export default function ChatWindow({
   useEffect(() => {
     const pend = pendingAttachmentsRef.current;
     if (!pend) return;
-    // Target the most recent USER message (the one just sent). Matching by a
-    // client-generated id is unreliable — the AI SDK assigns its own id to the
-    // appended message — so locate it by position instead.
+    // Key the pending files onto the most recent USER message (the one just sent).
+    // Match by position, not a client id — the AI SDK assigns the appended message
+    // its own id. Stored in the side map; injected into the save at save time.
     let target: (typeof messages)[number] | undefined;
     for (let i = messages.length - 1; i >= 0; i--) { if (messages[i].role === 'user') { target = messages[i]; break; } }
     if (!target) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anns = ((target as any).annotations as any[] | undefined) ?? [];
-    if (anns.some(a => a && typeof a === 'object' && Array.isArray(a.modusAttachments))) {
-      pendingAttachmentsRef.current = null; // already applied
-      return;
-    }
-    const targetId = target.id;
-    setMessages(prev => prev.map(m =>
-      m.id === targetId
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? { ...m, annotations: [...(((m as any).annotations as any[]) ?? []), { modusAttachments: pend.files }] }
-        : m,
-    ));
-  }, [messages, setMessages]);
+    const id = target.id;
+    setAttachmentsByMsgId(prev => (prev[id] ? prev : { ...prev, [id]: pend.files }));
+    pendingAttachmentsRef.current = null;
+  }, [messages]);
 
   // Save to Firestore when AI finishes responding
   useEffect(() => {
@@ -760,24 +755,27 @@ export default function ChatWindow({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const existing = ((m as any).annotations as any[] | undefined) ?? [];
       const has = (key: string) =>
-        existing.some(a => a && typeof a === 'object' && typeof a[key] === 'string');
-      // The server's switch record is the truth and must survive the save. This
-      // used to REPLACE annotations wholesale, which would have overwritten
-      // modusServedModel with the header's intended model — persisting "answered
-      // by Gemini" onto a reply Llama wrote, forever.
-      if (has('modusServedModel')) return m;
-      // Already tagged (e.g. reloaded from Firestore) — appending again would
-      // duplicate the annotation on every subsequent save.
-      if (has('modusRoutedModel')) return m;
-      const routed = routedByMsgId[m.id]
-        ?? (m.id === last?.id && routedRef.current?.auto ? routedRef.current.modelId : undefined);
-      return routed
-        ? { ...m, annotations: [...existing, { modusRoutedModel: routed }] }
-        : m;
+        existing.some(a => a && typeof a === 'object' && (typeof a[key] === 'string' || Array.isArray(a[key])));
+      const additions: Record<string, unknown>[] = [];
+      // Routing chip. The server's switch record (modusServedModel) is the truth
+      // and must survive the save, so don't add a routed tag when one is already
+      // present (either the served record or a modusRoutedModel from a reload).
+      if (!has('modusServedModel') && !has('modusRoutedModel')) {
+        const routed = routedByMsgId[m.id]
+          ?? (m.id === last?.id && routedRef.current?.auto ? routedRef.current.modelId : undefined);
+        if (routed) additions.push({ modusRoutedModel: routed });
+      }
+      // Attachments the user message carried (from the side map). Skip if already
+      // tagged (reloaded from Firestore) so repeated saves don't duplicate it.
+      if (!has('modusAttachments')) {
+        const files = attachmentsByMsgId[m.id];
+        if (files && files.length) additions.push({ modusAttachments: files });
+      }
+      return additions.length ? { ...m, annotations: [...existing, ...additions] } : m;
     });
 
     onMessagesChange(messagesToSave, title);
-  }, [isLoading, messages, onMessagesChange, routedByMsgId]);
+  }, [isLoading, messages, onMessagesChange, routedByMsgId, attachmentsByMsgId]);
 
   function handleVoiceTranscript(text: string) {
     setInput(text);
@@ -859,7 +857,10 @@ export default function ChatWindow({
     // 48k-char / 10-file budget bounds the total that actually gets injected.
     const carriedDocs: { name: string; text: string }[] = [];
     const seenDocs = new Set<string>();
-    for (const d of [...filesToSend, ...messages.flatMap(readAttachmentsAnnotation)]) {
+    // Prior docs come from the side map (this session) or the message annotation
+    // (a reloaded conversation) — whichever holds them for that message.
+    const priorDocs = messages.flatMap(m => attachmentsByMsgId[m.id] ?? readAttachmentsAnnotation(m));
+    for (const d of [...filesToSend, ...priorDocs]) {
       if (!d.name || seenDocs.has(d.name)) continue;
       seenDocs.add(d.name);
       carriedDocs.push({ name: d.name, text: d.text });
@@ -968,6 +969,7 @@ export default function ChatWindow({
             replacedModel={servedByMsgId[m.id]?.downgraded ? servedByMsgId[m.id]?.requested : undefined}
             manualPick={isManualChip(m)}
             webSearchCount={readWebSearchAnnotation(m)}
+            attachments={attachmentsByMsgId[m.id]}
             isLatest={idx === messages.length - 1}
             followingUserText={
               messages[idx + 1]?.role === 'user' ? messageText(messages[idx + 1]) : undefined
