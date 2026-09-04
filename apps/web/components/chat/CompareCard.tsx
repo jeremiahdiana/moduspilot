@@ -24,18 +24,18 @@ import OptionsCard from '@/components/chat/OptionsCard';
  */
 const UNSUPPORTED_COPY = {
   image: {
-    title: 'Multi-model compares written answers.',
-    body: 'MODUS makes images with one image model, so there are no three answers to put side by side. It can still make it — that just runs the normal way.',
+    title: 'This reads like an image request.',
+    body: 'MODUS makes images with one image model, so there are no three answers to put side by side. Make it the normal way, or compare how the models answer it in words.',
     cta: 'Make the image',
   },
   document: {
-    title: 'Multi-model compares written answers.',
-    body: 'A PDF is built by MODUS itself rather than by the model you picked, so there is nothing to compare. It can still make it — that just runs the normal way.',
+    title: 'This reads like a PDF request.',
+    body: 'A PDF is built by MODUS itself rather than by the model you picked. Make it the normal way, or compare how the models answer it in words.',
     cta: 'Make the PDF',
   },
   chart: {
-    title: 'Multi-model compares written answers.',
-    body: 'Charts are drawn by MODUS from your data, not written by the model, so three columns would draw the same one. It can still make it — that just runs the normal way.',
+    title: 'This reads like a chart request.',
+    body: 'Charts are drawn by MODUS from your data, not written by the model. Make it the normal way, or compare how the models answer it in words.',
     cta: 'Make the chart',
   },
 } as const;
@@ -376,23 +376,33 @@ export default function CompareCard({
             </div>
           </div>
           {/* 26px = the w-4 icon (16) + gap-2.5 (10), so the actions line up
-              under the text. pl-6.5 is NOT a Tailwind class — it does nothing. */}
-          {onRunNormally && (
-            <div className="flex items-center gap-2 pl-[26px]">
+              under the text. pl-6.5 is NOT a Tailwind class — it does nothing.
+              The gate that lands here is a drift-prone gpt-4o-mini guess, so
+              "Compare anyway" is the PRIMARY action and is always offered — it
+              runs fanOut on the raw prompt, the same path a READY prompt takes,
+              and is the one click that recovers a false positive. */}
+          <div className="flex flex-wrap items-center gap-2 pl-[26px]">
+            <button
+              onClick={() => fanOut(prompt)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white btn-primary"
+            >
+              Compare the models anyway
+            </button>
+            {onRunNormally && (
               <button
                 onClick={() => onRunNormally(prompt)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white btn-primary"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-text border border-border hover:border-brand/40 transition-colors"
               >
                 {UNSUPPORTED_COPY[unsupported].cta}
               </button>
-              <button
-                onClick={onClose}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-text transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-text transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

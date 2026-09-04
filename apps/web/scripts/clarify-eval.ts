@@ -25,7 +25,13 @@ const RUNS = Number(process.env.RUNS ?? 3);
 /** What the gate should decide. Mirrors ClarifyReply minus the error kinds. */
 type Want = 'ask' | 'ready' | 'image' | 'document' | 'chart';
 
-const CASES: { prompt: string; want: Want; why: string }[] = [
+// `want` is usually one verdict, but some cases only care about an INVARIANT
+// rather than the exact branch: an ordinary writing prompt is fine as either
+// `ask` (clarify card) or `ready` (fan out) — both send it to the models — and
+// only an artifact verdict is a real failure. Listing both keeps that case from
+// being brittle about a difference the user never sees, while still catching the
+// drift that matters. The first entry is used for the display label.
+const CASES: { prompt: string; want: Want | Want[]; why: string }[] = [
   { prompt: 'write me an essay',                                          want: 'ask',   why: "his example — topic/length/tone all unknown" },
   // 2026-07-16: his multi-model run on this fanned out WITHOUT a card and the
   // three models wrote about three different subjects. The gate measures 3/3 on
@@ -60,6 +66,12 @@ const CASES: { prompt: string; want: Want; why: string }[] = [
   { prompt: 'write an essay about photography',                           want: 'ask',   why: 'wants prose, mentions images' },
   { prompt: 'explain how charts work',                                    want: 'ready', why: 'wants an explanation, mentions charts' },
   { prompt: 'what makes a good logo',                                     want: 'ready', why: 'wants an opinion, mentions logos' },
+  // 2026-09-03: a plain writing prompt with NO artifact wording came back
+  // UNSUPPORTED: document in production, dead-ending multi-model. It must never
+  // be an artifact verdict — a document/image/chart here is the drift this suite
+  // exists to catch. (The card now offers "Compare anyway", but the gate should
+  // not have fired at all.)
+  { prompt: 'write a short reflection on why people procrastinate',       want: ['ask', 'ready'], why: 'ordinary writing, must NOT be document/image/chart' },
 ];
 
 async function main() {
@@ -89,12 +101,14 @@ async function main() {
         qCounts.push(Array.isArray(p.questions) ? p.questions.length : 1);
       }
     }
-    const hits = got[c.want] ?? 0;
+    const wants = Array.isArray(c.want) ? c.want : [c.want];
+    const hits = wants.reduce((n, w) => n + (got[w] ?? 0), 0);
     const ok = hits === RUNS;
     if (!ok) wrong++;
     const breakdown = Object.entries(got).map(([k, n]) => `${k}×${n}`).join(' ');
+    const wantLabel = wants.map(w => w.toUpperCase()).join('/');
     console.log(
-      `${ok ? 'PASS' : 'FAIL'}  ${hits}/${RUNS} want ${c.want.toUpperCase().padEnd(8)}` +
+      `${ok ? 'PASS' : 'FAIL'}  ${hits}/${RUNS} want ${wantLabel.padEnd(8)}` +
       `${qCounts.length ? `(${qCounts.join(',')} questions) ` : ''}— ${c.prompt.slice(0, 44)}`,
     );
     if (!ok) console.log(`        got: ${breakdown}   (${c.why})`);
