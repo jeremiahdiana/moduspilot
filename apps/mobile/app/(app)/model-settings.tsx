@@ -34,6 +34,16 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'],
   },
   {
+    id: 'auto-saver',
+    name: 'Auto Saver',
+    provider: 'MODUS routing',
+    tagline: 'Same routing, lighter models',
+    desc: 'MODUS still routes each message per task, but picks the cheapest model that can do it well, so your usage allowance lasts far longer. Best for coursework and long sessions. It can trail on the hardest reasoning or code, where plain Auto is better.',
+    badge: 'Saver',
+    badgeClass: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'],
+  },
+  {
     id: 'meta/llama-3.3-70b',
     name: 'Llama 3.3',
     provider: 'Meta',
@@ -286,6 +296,8 @@ export default function BrainScreen() {
                     <View className="w-9 h-9 rounded-lg bg-surface-2 border border-border items-center justify-center">
                       {brain.id === 'auto'
                         ? <Icon name="auto-awesome" size={17} color={c.brand} />
+                        : brain.id === 'auto-saver'
+                        ? <Icon name="eco" size={17} color="#10b981" />
                         : <ProviderLogo provider={brain.provider} size={18} />}
                     </View>
                     <View className="flex-1">

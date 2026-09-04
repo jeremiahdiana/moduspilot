@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { GUEST_DAILY_LIMIT, FREE_MESSAGE_LIMIT } from '@/lib/constants';
+import { GUEST_DAILY_LIMIT, FREE_MESSAGE_LIMIT, WINDOW_MS } from '@/lib/constants';
 import { hasActiveAccess, isPaidPlan, planCeilings } from '@/lib/plan';
 import { weightedTokens } from '@/lib/chat/model-cost';
 
@@ -140,11 +140,16 @@ export async function enforceSubscriptionGate(uid: string, userData: Record<stri
 }
 
 /**
- * Paid daily + weekly token ceilings. Non-paid plans are a no-op.
+ * Paid per-window + weekly token ceilings. Non-paid plans are a no-op.
  * Returns a 429 Response when over budget, otherwise null.
  *
  * Ceilings come from planCeilings() so a purchased add-on raises the gate and the
  * meter by the same amount — see lib/plan.ts for why that is not computed here.
+ *
+ * 🕔 The short window is ROLLING: a windowStart older than WINDOW_MS reads as
+ * expired, so its tokens count as 0 (a fresh window begins on the next message in
+ * trackTokenUsage). An old doc with no windowStart is treated as expired too,
+ * which self-heals the migration off the former calendar-day counter.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function enforcePaidTokenLimit(userData: Record<string, any>): Response | null {
@@ -153,12 +158,13 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
   // the MESSAGE cap in enforceSubscriptionGate instead, which is the thing that
   // actually stops them, and they can only reach the two cheapest models anyway.
   if (!isPaidPlan(plan)) return null;
-  const todayStr  = new Date().toISOString().slice(0, 10);
+  const now       = Date.now();
   const weekKey   = getWeekKey();
-  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(userData);
-  const tokensToday  = (userData.tokenDate  as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
-  const tokensWeek   = (userData.tokenWeek  as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
-  if (tokensToday >= dailyLimit || tokensWeek >= weeklyLimit) {
+  const { window: windowLimit, weekly: weeklyLimit } = planCeilings(userData);
+  const windowStart  = (userData.windowStart as number) ?? 0;
+  const tokensWindow = now < windowStart + WINDOW_MS ? ((userData.windowTokens as number) ?? 0) : 0;
+  const tokensWeek   = (userData.tokenWeek as string) === weekKey ? ((userData.weeklyTokens as number) ?? 0) : 0;
+  if (tokensWindow >= windowLimit || tokensWeek >= weeklyLimit) {
     return Response.json({ error: 'token_limit_reached' }, { status: 429 });
   }
   return null;
@@ -167,9 +173,9 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
 /**
  * How much of the plan's ceiling this account has consumed, 0–100.
  *
- * Takes the HIGHER of the daily and weekly figures, because whichever will stop
+ * Takes the HIGHER of the window and weekly figures, because whichever will stop
  * the user first is the only one worth showing them — reporting 20% of the week
- * while the day is at 95% would be true and useless.
+ * while the window is at 95% would be true and useless.
  *
  * Returns null where no ceiling applies (guests, free, unpaid): a percentage of
  * a limit that does not exist is worse than showing nothing.
@@ -183,12 +189,13 @@ export function enforcePaidTokenLimit(userData: Record<string, any>): Response |
 export function usagePercent(userData: Record<string, any>): number | null {
   const plan = userData.plan as string | undefined;
   if (!isPaidPlan(plan)) return null;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = Date.now();
   const weekKey = getWeekKey();
-  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(userData);
-  const tokensToday = (userData.tokenDate as string) === todayStr ? ((userData.dailyTokens  as number) ?? 0) : 0;
-  const tokensWeek  = (userData.tokenWeek as string) === weekKey  ? ((userData.weeklyTokens as number) ?? 0) : 0;
-  const worst = Math.max(tokensToday / dailyLimit, tokensWeek / weeklyLimit);
+  const { window: windowLimit, weekly: weeklyLimit } = planCeilings(userData);
+  const windowStart  = (userData.windowStart as number) ?? 0;
+  const tokensWindow = now < windowStart + WINDOW_MS ? ((userData.windowTokens as number) ?? 0) : 0;
+  const tokensWeek   = (userData.tokenWeek as string) === weekKey ? ((userData.weeklyTokens as number) ?? 0) : 0;
+  const worst = Math.max(tokensWindow / windowLimit, tokensWeek / weeklyLimit);
   if (!Number.isFinite(worst)) return null;
   // 🪤 100% MEANS BLOCKED, AND ONLY BLOCKED.
   //
@@ -235,13 +242,17 @@ export function trackTokenUsage(uid: string, userData: Record<string, any>, rawT
   adminDb.runTransaction(async (txn) => {
     const snap = await txn.get(userRef);
     const data = snap.data() ?? {};
-    const todayStr   = new Date().toISOString().slice(0, 10);
-    const weekKey    = getWeekKey();
-    const isToday    = (data.tokenDate  as string) === todayStr;
-    const isThisWeek = (data.tokenWeek  as string) === weekKey;
+    const now         = Date.now();
+    const weekKey     = getWeekKey();
+    // 🕔 Re-anchor the window when the previous one has expired (or never existed).
+    // While it is live, keep windowStart fixed so the 5h clock does not slide
+    // forward on every message — a window is WINDOW_HOURS from its FIRST message.
+    const windowStart = (data.windowStart as number) ?? 0;
+    const inWindow    = now < windowStart + WINDOW_MS;
+    const isThisWeek  = (data.tokenWeek as string) === weekKey;
     txn.set(userRef, {
-      dailyTokens:  isToday    ? FieldValue.increment(totalTokens) : totalTokens,
-      tokenDate:    todayStr,
+      windowTokens: inWindow ? FieldValue.increment(totalTokens) : totalTokens,
+      windowStart:  inWindow ? windowStart : now,
       weeklyTokens: isThisWeek ? FieldValue.increment(totalTokens) : totalTokens,
       tokenWeek:    weekKey,
     }, { merge: true });

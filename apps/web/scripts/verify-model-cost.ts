@@ -14,7 +14,7 @@
  */
 import { PLATFORM_MODELS, INTERNAL_MODELS } from '../lib/models';
 import { costWeight, weightedTokens, estimatedCostUsd, pricedModelIds, isEstimatedPrice } from '../lib/chat/model-cost';
-import { MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT, MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT } from '../lib/constants';
+import { MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT, MODUS_WINDOW_LIMIT, PILOT_WINDOW_LIMIT } from '../lib/constants';
 
 const MODUS_PRICE = 24;   // $/mo, app/pricing/page.tsx
 const PILOT_PRICE = 59;   // $/mo, app/pricing/page.tsx
@@ -95,6 +95,6 @@ if (unknown < Math.max(...PLATFORM_MODELS.map(m => costWeight(m.id)))) {
   failed = true;
 }
 
-console.log(`\ndaily ceilings:  modus ${MODUS_TOKEN_LIMIT.toLocaleString()}  ·  pilot ${PILOT_TOKEN_LIMIT.toLocaleString()} cost units`);
+console.log(`\n5h window ceilings:  modus ${MODUS_WINDOW_LIMIT.toLocaleString()}  ·  pilot ${PILOT_WINDOW_LIMIT.toLocaleString()} cost units`);
 console.log(failed ? '\n❌ FAILED\n' : '\n✅ every catalog model is priced and no plan loses money at its ceiling\n');
 process.exit(failed ? 1 : 0);

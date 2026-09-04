@@ -6,11 +6,11 @@
 // and MUST compute ceilings from the same function the server gates on — see
 // planCeilings below.
 import {
-  MODUS_TOKEN_LIMIT,
-  PILOT_TOKEN_LIMIT,
+  MODUS_WINDOW_LIMIT,
+  PILOT_WINDOW_LIMIT,
   MODUS_WEEKLY_LIMIT,
   PILOT_WEEKLY_LIMIT,
-  LIMIT_ADDON_DAILY,
+  LIMIT_ADDON_WINDOW,
   LIMIT_ADDON_WEEKLY,
 } from '@/lib/constants';
 
@@ -70,7 +70,11 @@ export function limitAddonQty(userData: Record<string, any> | null | undefined):
 }
 
 /**
- * The daily + weekly ceilings this account actually gets, add-on included.
+ * The per-window + weekly ceilings this account actually gets, add-on included.
+ *
+ * `window` is the ceiling for one rolling WINDOW_HOURS session; `weekly` is the
+ * Monday-anchored UTC week. See lib/constants.ts for why the two are decoupled
+ * (the window allows a burst, the week bounds the dollars).
  *
  * 🪤 THE WHOLE POINT IS THAT THERE IS EXACTLY ONE OF THESE. The ceilings used to
  * be recomputed in THREE places — enforcePaidTokenLimit and usagePercent in
@@ -82,11 +86,11 @@ export function limitAddonQty(userData: Record<string, any> | null | undefined):
  * Everything that needs a ceiling calls this. Nothing recomputes it.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function planCeilings(userData: Record<string, any> | null | undefined): { daily: number; weekly: number } {
+export function planCeilings(userData: Record<string, any> | null | undefined): { window: number; weekly: number } {
   const pilot = isPilotLevelPlan(userData?.plan);
   const qty = limitAddonQty(userData);
   return {
-    daily:  (pilot ? PILOT_TOKEN_LIMIT  : MODUS_TOKEN_LIMIT)  + qty * LIMIT_ADDON_DAILY,
+    window: (pilot ? PILOT_WINDOW_LIMIT : MODUS_WINDOW_LIMIT) + qty * LIMIT_ADDON_WINDOW,
     weekly: (pilot ? PILOT_WEEKLY_LIMIT : MODUS_WEEKLY_LIMIT) + qty * LIMIT_ADDON_WEEKLY,
   };
 }

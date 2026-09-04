@@ -14,15 +14,19 @@ interface Props {
 
 function label(value: string): string {
   if (value === 'auto' || !value) return 'Auto';
+  if (value === 'auto-saver') return 'Auto Saver';
   if (value === 'default') return 'Default';
   return modelName(value);
 }
+
+const SAVER_GREEN = '#10b981';
 
 export function ModelSwitcher({ value, onChange, plan }: Props) {
   const c = useThemeColors();
   const [open, setOpen] = useState(false);
   const ep = effectivePlan(plan);
   const isAuto = value === 'auto' || !value;
+  const isSaver = value === 'auto-saver';
 
   function select(v: string) {
     onChange(v);
@@ -37,7 +41,8 @@ export function ModelSwitcher({ value, onChange, plan }: Props) {
         className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-full border border-border bg-surface"
       >
         {isAuto && <Icon name="auto-awesome" size={13} color={c.brand} />}
-        <Text className={`text-xs font-medium ${isAuto ? 'text-brand' : 'text-text'}`} numberOfLines={1} style={{ maxWidth: 120 }}>
+        {isSaver && <Icon name="eco" size={13} color={SAVER_GREEN} />}
+        <Text className={`text-xs font-medium ${isAuto || isSaver ? 'text-brand' : 'text-text'}`} numberOfLines={1} style={{ maxWidth: 120 }}>
           {label(value)}
         </Text>
         <Icon name="expand-more" size={15} color={c.muted} />
@@ -64,6 +69,20 @@ export function ModelSwitcher({ value, onChange, plan }: Props) {
                   <Text className="text-muted text-xs">MODUS picks the best model for each task</Text>
                 </View>
                 {isAuto && <Icon name="check" size={18} color={c.brand} />}
+              </TouchableOpacity>
+
+              {/* Auto Saver */}
+              <TouchableOpacity
+                onPress={() => select('auto-saver')}
+                activeOpacity={0.7}
+                className={`flex-row items-center gap-3 px-4 py-3 rounded-2xl border ${isSaver ? 'bg-brand/10 border-brand/30' : 'bg-surface border-border'}`}
+              >
+                <Icon name="eco" size={18} color={SAVER_GREEN} />
+                <View className="flex-1">
+                  <Text className={`text-sm font-semibold ${isSaver ? 'text-brand' : 'text-text'}`}>Auto Saver</Text>
+                  <Text className="text-muted text-xs">Lighter, faster models that stretch your usage. May trail on hard reasoning or code.</Text>
+                </View>
+                {isSaver && <Icon name="check" size={18} color={c.brand} />}
               </TouchableOpacity>
 
               {PLATFORM_MODELS.map(m => {

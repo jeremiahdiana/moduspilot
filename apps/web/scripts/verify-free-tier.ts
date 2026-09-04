@@ -29,7 +29,7 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
 
 import { adminDb } from '../lib/firebase-admin';
 import { enforceSubscriptionGate, enforcePaidTokenLimit, isFreeTierUser } from '../lib/chat/limits';
-import { FREE_MESSAGE_LIMIT, FREE_MAX_MESSAGE_CHARS, FREE_HISTORY_CHAR_BUDGET, MODUS_TOKEN_LIMIT } from '../lib/constants';
+import { FREE_MESSAGE_LIMIT, FREE_MAX_MESSAGE_CHARS, FREE_HISTORY_CHAR_BUDGET, MODUS_WINDOW_LIMIT } from '../lib/constants';
 import { FREE_DEFAULT, resolveChatModel } from '../lib/chat/model';
 import { PLATFORM_MODELS, isModelUnlocked, canUseModel } from '../lib/models';
 import { maxTokensFor } from '../lib/chat/model-params';
@@ -197,7 +197,7 @@ async function main() {
     // enforcePaidTokenLimit no-ops for non-paid plans. That is CORRECT here only
     // because the message counter is the ceiling. If free ever gains a plan string
     // that isPaidPlan() accepts, this becomes an unbounded account.
-    const uid = await freeUser({ dailyTokens: MODUS_TOKEN_LIMIT * 100, tokenDate: new Date().toISOString().slice(0, 10) });
+    const uid = await freeUser({ windowTokens: MODUS_WINDOW_LIMIT * 100, windowStart: Date.now() });
     check('enforcePaidTokenLimit does not gate a free user (the message cap does)',
       enforcePaidTokenLimit(await read(uid)) === null);
     check('…and the message cap still stops them', (await enforceSubscriptionGate(

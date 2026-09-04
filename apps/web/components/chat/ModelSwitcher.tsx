@@ -20,6 +20,7 @@ interface Props {
 
 function currentLabel(value: string): string {
   if (value === 'auto' || !value) return 'Auto';
+  if (value === 'auto-saver') return 'Auto Saver';
   if (value === 'default') return 'Default';
   return modelName(value);
 }
@@ -28,6 +29,17 @@ function CompareIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M8 3v18M16 3v18M3 8h18M3 16h18" />
+    </svg>
+  );
+}
+
+// A leaf — Auto Saver keeps the sparkle's "MODUS chooses" meaning but signals the
+// cheaper, lighter routing.
+function SaverIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+      <path d="M2 21c0-3 1.85-5.36 5.08-6" />
     </svg>
   );
 }
@@ -89,6 +101,8 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-3.5 h-3.5 text-brand shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
           </svg>
+        ) : value === 'auto-saver' ? (
+          <SaverIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
         ) : value === 'default' ? (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-3.5 h-3.5 text-muted shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
@@ -130,6 +144,23 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
             <div className="min-w-0">
               <p className={`text-sm font-medium ${!compareOn && (value === 'auto' || !value) ? 'text-brand' : 'text-text'}`}>Auto</p>
               <p className="text-xs text-muted leading-snug">MODUS picks the best model for each task</p>
+            </div>
+          </button>
+
+          {/* Auto Saver: same per-task routing, biased to the cheapest capable
+              model so the usage allowance lasts far longer. Opt-in and honest — it
+              can trail the frontier on the hardest work. */}
+          <button
+            type="button"
+            onClick={() => select('auto-saver')}
+            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${!compareOn && value === 'auto-saver' ? 'bg-brand/5' : ''}`}
+          >
+            <span className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+              <SaverIcon className="w-4 h-4 text-emerald-500" />
+            </span>
+            <div className="min-w-0">
+              <p className={`text-sm font-medium ${!compareOn && value === 'auto-saver' ? 'text-brand' : 'text-text'}`}>Auto Saver</p>
+              <p className="text-xs text-muted leading-snug">Lighter, faster models that stretch your usage. Best for everyday questions; may trail on hard reasoning or code.</p>
             </div>
           </button>
 

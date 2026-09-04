@@ -126,8 +126,9 @@ export async function POST(req: Request) {
       goalContext?: GoalContext;
       projectContext?: ProjectContext;
       taskContext?: TaskContext;
-      // In-chat model switcher: 'auto' (MODUS picks per task), a specific model
-      // id, or undefined/'default' (use the saved Brain setting).
+      // In-chat model switcher: 'auto' (MODUS picks per task), 'auto-saver' (same,
+      // but biased to the cheapest capable model), a specific model id, or
+      // undefined/'default' (use the saved Brain setting).
       modelChoice?: string;
       // The model Auto picked for the PREVIOUS turn. Lets a short follow-up
       // ("make it shorter") stay on the model that wrote the thing it refers to.
@@ -379,12 +380,21 @@ export async function POST(req: Request) {
     // (Same trick as memoryPromise above.)
     const savedModelSetting = userData.settings?.modelSettings as { provider?: string; model?: string } | undefined;
     const savedIsPlatformModel = !savedModelSetting?.provider || savedModelSetting.provider === 'platform';
-    const wantsAutoRoute = !!uid && !!queryText && (
-      body.modelChoice === 'auto'
-      || ((!body.modelChoice || body.modelChoice === 'default') && savedIsPlatformModel && savedModelSetting?.model === 'auto')
-    );
+    // Both 'auto' and 'auto-saver' route per-task; saver just biases pickModel to
+    // the cheapest capable model (lib/chat/auto-route.ts). A per-message choice
+    // wins; otherwise the saved Brain decides. autoChoice is the resolved sentinel
+    // (or null), and saverMode is whether it is the cost-saving variant.
+    const usingSavedAuto = (!body.modelChoice || body.modelChoice === 'default') && savedIsPlatformModel;
+    const autoChoice =
+      body.modelChoice === 'auto' || body.modelChoice === 'auto-saver'
+        ? body.modelChoice
+        : usingSavedAuto && (savedModelSetting?.model === 'auto' || savedModelSetting?.model === 'auto-saver')
+          ? savedModelSetting!.model
+          : null;
+    const wantsAutoRoute = !!uid && !!queryText && !!autoChoice;
+    const saverMode = autoChoice === 'auto-saver';
     const routePromise = wantsAutoRoute
-      ? routeTask(queryText, userData.plan)
+      ? routeTask(queryText, userData.plan, { saver: saverMode })
       : null;
 
     // MCP tool discovery, started HERE rather than just before streamText.

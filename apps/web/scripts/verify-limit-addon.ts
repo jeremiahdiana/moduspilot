@@ -12,11 +12,11 @@
 import { planCeilings, limitAddonQty, isPaidPlan } from '../lib/plan';
 import { isAddonSubscription } from '../lib/billing';
 import {
-  MODUS_TOKEN_LIMIT,
-  PILOT_TOKEN_LIMIT,
+  MODUS_WINDOW_LIMIT,
+  PILOT_WINDOW_LIMIT,
   MODUS_WEEKLY_LIMIT,
   PILOT_WEEKLY_LIMIT,
-  LIMIT_ADDON_DAILY,
+  LIMIT_ADDON_WINDOW,
   LIMIT_ADDON_WEEKLY,
 } from '../lib/constants';
 import { LIMIT_ADDON, PRICE_ENV, resolvePlanPrice } from '../lib/pricing';
@@ -33,25 +33,25 @@ function section(title: string) {
   console.log(`\n── ${title} ${'─'.repeat(Math.max(0, 58 - title.length))}`);
 }
 
-const today = new Date().toISOString().slice(0, 10);
+const now = Date.now();
 /** A user doc at a given plan + add-on quantity, with usage already on the clock. */
-function user(plan: string, qty: number, dailyTokens = 0) {
-  return { plan, limitAddonQty: qty, dailyTokens, tokenDate: today, weeklyTokens: 0, tokenWeek: '' };
+function user(plan: string, qty: number, windowTokens = 0) {
+  return { plan, limitAddonQty: qty, windowTokens, windowStart: now, weeklyTokens: 0, tokenWeek: '' };
 }
 
-// ── 1. Ceilings scale, on BOTH plans, daily AND weekly ──────────────────────
+// ── 1. Ceilings scale, on BOTH plans, per-window AND weekly ──────────────────
 section('ceilings');
 
-for (const [plan, baseDaily, baseWeekly] of [
-  ['modus', MODUS_TOKEN_LIMIT, MODUS_WEEKLY_LIMIT],
-  ['pilot', PILOT_TOKEN_LIMIT, PILOT_WEEKLY_LIMIT],
+for (const [plan, baseWindow, baseWeekly] of [
+  ['modus', MODUS_WINDOW_LIMIT, MODUS_WEEKLY_LIMIT],
+  ['pilot', PILOT_WINDOW_LIMIT, PILOT_WEEKLY_LIMIT],
 ] as const) {
   for (const qty of [0, 1, 2, 5]) {
     const c = planCeilings(user(plan, qty));
     check(
       `${plan} x${qty}`,
-      c.daily === baseDaily + qty * LIMIT_ADDON_DAILY && c.weekly === baseWeekly + qty * LIMIT_ADDON_WEEKLY,
-      `daily ${c.daily.toLocaleString()} weekly ${c.weekly.toLocaleString()}`,
+      c.window === baseWindow + qty * LIMIT_ADDON_WINDOW && c.weekly === baseWeekly + qty * LIMIT_ADDON_WEEKLY,
+      `window ${c.window.toLocaleString()} weekly ${c.weekly.toLocaleString()}`,
     );
   }
 }
@@ -74,7 +74,7 @@ check('free plan still reads qty', limitAddonQty({ plan: 'free', limitAddonQty: 
 section('gate and meter agree at the boundary');
 
 for (const qty of [0, 1, 3]) {
-  const ceiling = planCeilings(user('modus', qty)).daily;
+  const ceiling = planCeilings(user('modus', qty)).window;
 
   const justUnder = user('modus', qty, ceiling - 1);
   check(
@@ -100,11 +100,11 @@ check('free + add-on reports no usage percentage', usagePercent(freeWithAddon) =
 section('pricing');
 check('LIMIT_ADDON has a monthly price', LIMIT_ADDON.monthlyPrice > 0, `$${LIMIT_ADDON.monthlyPrice}/mo`);
 check(
-  'LIMIT_ADDON.dailyUnits matches the enforced constant',
-  LIMIT_ADDON.dailyUnits === LIMIT_ADDON_DAILY,
-  `${LIMIT_ADDON.dailyUnits.toLocaleString()} vs ${LIMIT_ADDON_DAILY.toLocaleString()}`,
+  'LIMIT_ADDON.windowUnits matches the enforced constant',
+  LIMIT_ADDON.windowUnits === LIMIT_ADDON_WINDOW,
+  `${LIMIT_ADDON.windowUnits.toLocaleString()} vs ${LIMIT_ADDON_WINDOW.toLocaleString()}`,
 );
-check('weekly add-on is exactly 7 daily', LIMIT_ADDON_WEEKLY === LIMIT_ADDON_DAILY * 7);
+check('weekly add-on is exactly 7 window', LIMIT_ADDON_WEEKLY === LIMIT_ADDON_WINDOW * 7);
 check('limitAddon is registered in PRICE_ENV', !!PRICE_ENV.limitAddon);
 check('limitAddon has no annual price', PRICE_ENV.limitAddon?.annual === undefined);
 check(
@@ -120,7 +120,9 @@ check('Group is no longer purchasable', PRICE_ENV.group === undefined);
 // margin below is unaffected. Re-check this constant if BASELINE moves again.)
 section('margin floor');
 const USD_PER_MILLION_UNITS = 0.52;
-const worstCaseMonthly = (LIMIT_ADDON_DAILY * 30 / 1_000_000) * USD_PER_MILLION_UNITS;
+// Bounded by the WEEKLY contribution, not window*30: the week is the monthly
+// governor (the window is a rolling burst allowance). 3.5M/wk x (30/7) months.
+const worstCaseMonthly = (LIMIT_ADDON_WEEKLY * (30 / 7) / 1_000_000) * USD_PER_MILLION_UNITS;
 const margin = (LIMIT_ADDON.monthlyPrice - worstCaseMonthly) / LIMIT_ADDON.monthlyPrice;
 console.log(`   worst-case cost  $${worstCaseMonthly.toFixed(2)}/mo`);
 console.log(`   price            $${LIMIT_ADDON.monthlyPrice.toFixed(2)}/mo`);

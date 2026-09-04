@@ -162,8 +162,8 @@ async function main() {
 
   const { planCeilings } = await import('../lib/plan');
   const c = planCeilings(d);
-  check('ceilings reflect it', c.daily === 500_000 + 3 * 500_000,
-    `daily ${c.daily.toLocaleString()} weekly ${c.weekly.toLocaleString()}`);
+  check('ceilings reflect it', c.window === 750_000 + 3 * 500_000,
+    `window ${c.window.toLocaleString()} weekly ${c.weekly.toLocaleString()}`);
 
   // ── 3. 🚨 THE MONEY BUG: cancel the BASE plan, add-on survives ───────────
   section('3 cancelling the BASE plan while the add-on lives');
@@ -179,8 +179,8 @@ async function main() {
   const c2 = planCeilings(d);
   const { enforcePaidTokenLimit } = await import('../lib/chat/limits');
   check('free account is gated by enforceSubscriptionGate territory, not a ceiling',
-    enforcePaidTokenLimit({ ...d, dailyTokens: 999_999_999 }) === null,
-    `daily ceiling would be ${c2.daily.toLocaleString()}`);
+    enforcePaidTokenLimit({ ...d, windowTokens: 999_999_999, windowStart: Date.now() }) === null,
+    `window ceiling would be ${c2.window.toLocaleString()}`);
 
   // ── 4. cancelling only the add-on leaves a paying plan alone ─────────────
   section('4 cancelling ONLY the add-on');

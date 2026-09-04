@@ -1,10 +1,10 @@
 /**
- * Read or clear a user's daily/weekly token counters (owner/admin use).
+ * Read or clear a user's usage counters (owner/admin use).
  *
- * The ceilings are enforced from four fields on the user doc — tokenDate +
- * dailyTokens and tokenWeek + weeklyTokens (lib/chat/limits.ts). A day of
- * automated testing can exhaust a real account's quota, and there is no way to
- * undo that from the product, so this exists to put it back. Prints the
+ * The ceilings are enforced from the rolling window (windowStart + windowTokens)
+ * and the weekly cap (tokenWeek + weeklyTokens) on the user doc
+ * (lib/chat/limits.ts). A heavy session can exhaust a real account, and there is
+ * no way to undo that from the product, so this exists to put it back. Prints the
  * previous values before writing.
  *
  *   cd apps/web && npx tsx scripts/reset-token-usage.ts <email>            # read
@@ -52,15 +52,24 @@ async function main() {
 
   const plan = d.plan as string | undefined;
   const { planCeilings } = await import('@/lib/plan');
-  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings(d);
+  const { WINDOW_MS } = await import('@/lib/constants');
+  const { window: windowLimit, weekly: weeklyLimit } = planCeilings(d);
   const addonQty = Number(d.limitAddonQty) || 0;
+
+  const windowStart = Number(d.windowStart) || 0;
+  const msLeft = windowStart + WINDOW_MS - Date.now();
+  const windowState = windowStart === 0
+    ? '(unset)'
+    : msLeft > 0
+      ? `resets in ${Math.floor(msLeft / 3600000)}h ${Math.floor((msLeft % 3600000) / 60000)}m`
+      : 'expired (a new window starts on the next message)';
 
   console.log(`email          : ${email}`);
   console.log(`uid            : ${user.uid}`);
   console.log(`plan           : ${plan ?? '(none)'}`);
   console.log(`limitAddonQty  : ${addonQty}${addonQty ? ' (ceilings below include it)' : ''}`);
-  console.log(`tokenDate      : ${d.tokenDate ?? '(unset)'}`);
-  console.log(`dailyTokens    : ${(d.dailyTokens ?? 0).toLocaleString()} / ${dailyLimit.toLocaleString()}`);
+  console.log(`windowStart    : ${windowStart === 0 ? '(unset)' : new Date(windowStart).toISOString()}  ${windowState}`);
+  console.log(`windowTokens   : ${(d.windowTokens ?? 0).toLocaleString()} / ${windowLimit.toLocaleString()}`);
   console.log(`tokenWeek      : ${d.tokenWeek ?? '(unset)'}`);
   console.log(`weeklyTokens   : ${(d.weeklyTokens ?? 0).toLocaleString()} / ${weeklyLimit.toLocaleString()}`);
 
@@ -69,8 +78,9 @@ async function main() {
     return;
   }
 
-  await ref.set({ dailyTokens: 0, weeklyTokens: 0 }, { merge: true });
-  console.log('\n✅ dailyTokens and weeklyTokens set to 0');
+  // windowStart:0 reads as expired everywhere, so this fully clears the window.
+  await ref.set({ windowTokens: 0, windowStart: 0, weeklyTokens: 0 }, { merge: true });
+  console.log('\n✅ windowTokens, windowStart and weeklyTokens cleared');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

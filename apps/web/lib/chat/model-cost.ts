@@ -146,8 +146,8 @@ const BASELINE = blended(PRICES['gemini-3.5-flash-lite']);
  *
  * A unit is one token at the baseline model's blended rate, so
  * `units / 1e6 * BASELINE_USD_PER_1M` is the spend a ceiling authorises.
- * scripts/verify-surface-costs.ts is the caller: it turns MODUS_TOKEN_LIMIT and
- * PILOT_TOKEN_LIMIT into monthly dollars and checks them against the subscription.
+ * scripts/verify-surface-costs.ts is the caller: it turns MODUS_WEEKLY_LIMIT and
+ * PILOT_WEEKLY_LIMIT into monthly dollars and checks them against the subscription.
  * Hardcoding 0.52 there is exactly how the Flash mispricing survived — a number
  * copied out of a comment cannot go stale loudly.
  */

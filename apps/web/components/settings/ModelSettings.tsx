@@ -24,6 +24,16 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
+    id: 'auto-saver',
+    name: 'Auto Saver',
+    provider: 'MODUS routing',
+    tagline: 'Same routing, lighter models',
+    description: 'MODUS still routes each message per task, but chooses the cheapest model that can do it well, so your usage allowance lasts far longer. Best for coursework, everyday questions, and long sessions. It can trail the frontier on the hardest reasoning or code, where plain Auto is the better pick.',
+    badge: 'Saver',
+    badgeColor: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'] as string[],
+  },
+  {
     id: 'meta/llama-3.3-70b',
     name: 'Llama 3.3',
     provider: 'Meta',

@@ -53,6 +53,23 @@ const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
 
 const LLAMA = 'meta/llama-3.3-70b';
 
+// 💸 SAVER routing. When the user picks "Auto (Saver)" the same task categories
+// resolve to the cheapest capable model instead of the best one, so the account's
+// cost-weighted allowance stretches ~5-7x (a saver code turn on DeepSeek V3.1 is
+// weight 2 vs GPT-5.6 Sol's 15). Every id here is weight <=2 and modus-reachable,
+// pinned as a build gate by scripts/verify-auto-saver.ts — editing an entry
+// upward fails that verifier. Research still keeps its web-search flag; it just
+// runs on the cheapest model rather than Flash. It is an OPT-IN, never the
+// default: plain Auto stays quality-first (CATEGORY_PREFERENCE above).
+export const SAVER_PREFERENCE: Record<TaskCategory, string[]> = {
+  writing:   [LLAMA],
+  research:  ['gemini-3.5-flash-lite'],
+  code:      ['deepseek/deepseek-v3.1', LLAMA],
+  reasoning: ['deepseek/deepseek-v3.1', LLAMA],
+  general:   [LLAMA],
+  product:   [LLAMA],
+};
+
 const CLASSIFIER_SYSTEM =
   `You are a task router. Read the user's most recent request and classify it into EXACTLY ONE category:\n` +
   `- writing: essays, emails, posts, copy, letters, stories, rewriting/editing prose\n` +
@@ -63,9 +80,10 @@ const CLASSIFIER_SYSTEM =
   `- general: casual conversation, quick questions, task/calendar/personal-assistant actions\n` +
   `Reply with ONLY the single category word, lowercase, nothing else.`;
 
-function pickModel(category: TaskCategory, plan: string | null | undefined): string {
+export function pickModel(category: TaskCategory, plan: string | null | undefined, saver = false): string {
   const ep = effectivePlan(plan);
-  for (const id of CATEGORY_PREFERENCE[category]) {
+  const prefs = saver ? SAVER_PREFERENCE[category] : CATEGORY_PREFERENCE[category];
+  for (const id of prefs) {
     const model = PLATFORM_MODELS.find(m => m.id === id);
     if (model && model.plans.includes(ep)) return id;
   }
@@ -120,8 +138,10 @@ function heuristicCategory(q: string): TaskCategory | null {
 export async function routeTask(
   queryText: string,
   plan: string | null | undefined,
+  opts: { saver?: boolean } = {},
 ): Promise<RouteResult> {
-  const fallback: RouteResult = { category: 'general', modelId: LLAMA, webSearch: false };
+  const saver = opts.saver ?? false;
+  const fallback: RouteResult = { category: 'general', modelId: pickModel('general', plan, saver), webSearch: false };
   if (!queryText.trim()) return fallback;
 
   // ── Heuristic fast-path ────────────────────────────────────────────────────
@@ -131,8 +151,8 @@ export async function routeTask(
   // Anything ambiguous still falls through to the LLM classifier.
   const heuristic = heuristicCategory(queryText);
   if (heuristic) {
-    console.log(`[route] heuristic=${heuristic}`);
-    return { category: heuristic, modelId: pickModel(heuristic, plan), webSearch: heuristic === 'research' };
+    console.log(`[route] heuristic=${heuristic}${saver ? ' (saver)' : ''}`);
+    return { category: heuristic, modelId: pickModel(heuristic, plan, saver), webSearch: heuristic === 'research' };
   }
 
   // Only the LLM classifier below needs the Gateway key — the heuristic above
@@ -179,8 +199,8 @@ export async function routeTask(
       (['writing', 'research', 'code', 'reasoning', 'general', 'product'] as const).includes(word as TaskCategory)
         ? (word as TaskCategory)
         : 'general';
-    console.log(`[route] llm=${category}`);
-    return { category, modelId: pickModel(category, plan), webSearch: category === 'research' };
+    console.log(`[route] llm=${category}${saver ? ' (saver)' : ''}`);
+    return { category, modelId: pickModel(category, plan, saver), webSearch: category === 'research' };
   } catch {
     return fallback;
   }

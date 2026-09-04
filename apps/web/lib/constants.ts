@@ -28,23 +28,47 @@ export const FREE_MESSAGE_LIMIT = 10;
 export const FREE_MAX_MESSAGE_CHARS   = 12_000;
 export const FREE_HISTORY_CHAR_BUDGET = 16_000;
 
-export const MODUS_TOKEN_LIMIT  = 500_000;
-export const PILOT_TOKEN_LIMIT  = 1_500_000;
-export const MODUS_WEEKLY_LIMIT = MODUS_TOKEN_LIMIT * 7;
-export const PILOT_WEEKLY_LIMIT = PILOT_TOKEN_LIMIT * 7;
+// ── The two chat ceilings: a short rolling window + a weekly cap ─────────────
+//
+// 🕔 THE SHORT WINDOW IS ROLLING, NOT A CALENDAR DAY. It used to be a fixed UTC
+// day (a `tokenDate` YYYY-MM-DD string): hit it at night and relief came at an
+// arbitrary mid-day hour in the user's timezone, and there was no burst headroom.
+// It is now a Claude-style window that starts on the first message and lasts
+// WINDOW_HOURS, then re-anchors on the next message. Enforced from windowStart +
+// windowTokens on the user doc (lib/chat/limits.ts), the same rolling shape the
+// founding-code limiter already uses (app/api/founding/enter/route.ts).
+export const WINDOW_HOURS = 5;
+export const WINDOW_MS    = WINDOW_HOURS * 60 * 60 * 1000;
+
+// Per-window cost-unit ceiling. This is a per-session / anti-abuse number, NOT a
+// margin number — the WEEKLY cap below is what bounds a user's monthly spend, so
+// this can be generous without moving the margin (see verify-surface-costs.ts,
+// which costs chat off the weekly limit).
+export const MODUS_WINDOW_LIMIT = 750_000;
+export const PILOT_WINDOW_LIMIT = 2_250_000;
+
+// 💵 THE WEEKLY CAP IS THE REAL COST GOVERNOR, and it is DELIBERATELY NOT
+// window*7. Decoupling it is the whole point: the window can allow a heavy burst
+// while the week still bounds the dollars. These literals equal the old
+// (500k/1.5M)*7 values, so the approved per-plan margin did not move when the
+// window was introduced — verify-surface-costs.ts turns exactly these into the
+// monthly worst case. Changing either is a pricing decision, not a tuning knob.
+export const MODUS_WEEKLY_LIMIT = 3_500_000;
+export const PILOT_WEEKLY_LIMIT = 10_500_000;
 
 // What ONE purchased limits add-on adds, on top of whatever the plan already
 // gives. Stackable — the users doc stores a quantity and the ceiling is
 // base + qty * this. See planCeilings() in lib/plan.ts, which is the only place
 // these are combined, and LIMIT_ADDON in lib/pricing.ts for why it costs $10.
-export const LIMIT_ADDON_DAILY  = 500_000;
-export const LIMIT_ADDON_WEEKLY = LIMIT_ADDON_DAILY * 7;
+// The add-on raises BOTH the per-window and the weekly ceiling.
+export const LIMIT_ADDON_WINDOW = 500_000;
+export const LIMIT_ADDON_WEEKLY = LIMIT_ADDON_WINDOW * 7;
 
 // ── The surfaces that spend money OUTSIDE the token ceiling ──────────────────
 //
 // 🚨 EVERYTHING ABOVE BOUNDS CHAT. Nothing above bounds voice or images. Voice-out,
 // voice-in and image generation each call a paid API on their own counter, none of
-// which is weighted, tracked or subject to MODUS_TOKEN_LIMIT — so the careful work
+// which is weighted, tracked or subject to MODUS_WINDOW_LIMIT — so the careful work
 // that turned the chat ceiling into a DOLLAR ceiling stopped at the edge of chat.
 //
 // 💸 WHAT THE OLD CAPS ACTUALLY AUTHORISED, once multiplied by a price (they were

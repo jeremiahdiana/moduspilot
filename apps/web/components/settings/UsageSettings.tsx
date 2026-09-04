@@ -3,6 +3,7 @@
 import { isPaidPlan, planCeilings } from '@/lib/plan';
 import { unlockedModels } from '@/lib/models';
 import { costWeight } from '@/lib/chat/model-cost';
+import { WINDOW_MS, WINDOW_HOURS } from '@/lib/constants';
 
 /**
  * What each model this plan can pick actually costs against the allowance.
@@ -34,7 +35,7 @@ interface Props {
   plan: 'free' | 'modus' | 'pilot' | 'group';
   usage: {
     dailyMessages: number; usageDate: string;
-    dailyTokens: number;   tokenDate: string;
+    windowTokens: number;  windowStart: number;
     weeklyTokens: number;  tokenWeek: string;
     /** Purchased limit add-ons. Raises the ceilings below — see planCeilings. */
     limitAddonQty?: number;
@@ -67,26 +68,27 @@ function getWeekKey() {
 
 export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUpgrade?: () => void }) {
   const isPaid = isPaidPlan(plan);
-  const today   = new Date().toISOString().slice(0, 10);
+  const now     = Date.now();
   const weekKey = getWeekKey();
 
   // 🪤 The SAME function the server gates on (lib/plan.ts). Recomputing the
   // ceilings here is how the meter and the gate drift apart — an add-on holder
   // would see a bar pinned at 100% while the server served them fine.
-  const { daily: dailyLimit, weekly: weeklyLimit } = planCeilings({ plan, limitAddonQty: usage.limitAddonQty });
+  const { window: windowLimit, weekly: weeklyLimit } = planCeilings({ plan, limitAddonQty: usage.limitAddonQty });
   const costs = allowanceCosts(plan);
 
-  const tokenCount   = usage.tokenDate === today    ? usage.dailyTokens    : 0;
-  const weeklyCount  = usage.tokenWeek === weekKey  ? usage.weeklyTokens   : 0;
+  // 🕔 The short window is rolling: an expired (or never-started) window reads as
+  // 0, matching enforcePaidTokenLimit in lib/chat/limits.ts exactly.
+  const windowLive   = usage.windowStart > 0 && now < usage.windowStart + WINDOW_MS;
+  const windowCount  = windowLive ? usage.windowTokens : 0;
+  const weeklyCount  = usage.tokenWeek === weekKey ? usage.weeklyTokens : 0;
 
-  const dailyPct   = Math.min(100, (tokenCount  / dailyLimit)  * 100);
+  const windowPct  = Math.min(100, (windowCount / windowLimit) * 100);
   const weeklyPct  = Math.min(100, (weeklyCount / weeklyLimit) * 100);
 
   const resetTime = (() => {
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0);
-    const diff = midnight.getTime() - now.getTime();
+    if (!windowLive) return null;
+    const diff = usage.windowStart + WINDOW_MS - now;
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     return `${h}h ${m}m`;
@@ -110,15 +112,15 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
 
       {isPaid ? (
         <>
-          {/* Daily usage */}
+          {/* Current rolling window */}
           <div className="bg-panel border border-border rounded-xl p-6 space-y-5">
-            <h3 className="text-sm font-semibold text-text">Today</h3>
+            <h3 className="text-sm font-semibold text-text">Current session</h3>
             <div className="space-y-3">
               <div className="flex items-baseline justify-between">
-                <p className="text-3xl font-bold text-brand">{dailyPct.toFixed(1)}%</p>
-                <p className="text-xs text-muted">used today</p>
+                <p className="text-3xl font-bold text-brand">{windowPct.toFixed(1)}%</p>
+                <p className="text-xs text-muted">used this {WINDOW_HOURS}h window</p>
               </div>
-              <UsageBar value={tokenCount} max={dailyLimit} />
+              <UsageBar value={windowCount} max={windowLimit} />
               {/* 🚨 NO RAW COUNT HERE. The counters store COST UNITS, not tokens
                   (trackTokenUsage weights by costWeight before incrementing), so
                   "N of 1,500,000 tokens" was wrong by up to 27x on the frontier
@@ -126,7 +128,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
                   percentage for the same reason. The hard figure still appears,
                   correctly labelled, under Plan Limits below. */}
               <div className="flex justify-end text-xs text-muted">
-                <span>Resets in {resetTime}</span>
+                <span>{resetTime ? `Resets in ${resetTime}` : `A fresh ${WINDOW_HOURS}h window starts on your next message`}</span>
               </div>
             </div>
           </div>
@@ -211,7 +213,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
             already folds in any purchased add-on. */}
         {isPaid && (
           <p className="text-xs text-muted/70 pt-1 leading-relaxed">
-            Usage allowance: {dailyLimit.toLocaleString()} credits/day ·{' '}
+            Usage allowance: {windowLimit.toLocaleString()} credits per {WINDOW_HOURS}h ·{' '}
             {weeklyLimit.toLocaleString()}/week
             {(usage.limitAddonQty ?? 0) > 0 && ` · includes ${usage.limitAddonQty}× extra limits`}
           </p>

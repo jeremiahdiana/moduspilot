@@ -29,7 +29,7 @@ import {
   FREE_TTS_CHARS_LIFETIME, MODUS_TTS_CHARS_PER_DAY, PILOT_TTS_CHARS_PER_DAY,
   TTS_USD_PER_1M_CHARS, MODUS_IMAGES_PER_DAY, PILOT_IMAGES_PER_DAY,
   PAID_TRANSCRIBE_SECONDS_PER_DAY, FREE_TRANSCRIBE_SECONDS_LIFETIME, TRANSCRIBE_USD_PER_HOUR,
-  MODUS_TOKEN_LIMIT, PILOT_TOKEN_LIMIT,
+  MODUS_WEEKLY_LIMIT, PILOT_WEEKLY_LIMIT,
   IMAGE_USD_EACH_STANDARD, IMAGE_USD_EACH_PRO,
 } from '@/lib/constants';
 import { BASELINE_USD_PER_1M } from '@/lib/chat/model-cost';
@@ -58,7 +58,13 @@ const usd = (n: number) => `$${n.toFixed(2)}`;
 
 // Chat is the one surface that was already bounded. A unit is one token at the
 // BASELINE model's blended rate, so units → dollars is a straight multiply.
-const chatMonthly = (dailyUnits: number) => (dailyUnits / 1_000_000) * BASELINE_USD_PER_1M * DAYS;
+//
+// 🕔 COSTED OFF THE WEEKLY CEILING, not the per-window one. The window is a
+// rolling burst allowance and NOT the monthly bound — a user cannot exceed the
+// weekly cap however they spread their windows, so the week is what sets the
+// worst-case month. (While the weekly was defined as window*7 this equalled the
+// old daily*30; decoupling them is exactly why the source of truth had to move.)
+const chatMonthly = (weeklyUnits: number) => (weeklyUnits / 1_000_000) * BASELINE_USD_PER_1M * (DAYS / 7);
 
 console.log('\nWhat each surface can cost ONE user in a month, at its own cap\n');
 
@@ -72,13 +78,13 @@ const rows = [
   },
   {
     plan: 'modus' as const,
-    chat: chatMonthly(MODUS_TOKEN_LIMIT),
+    chat: chatMonthly(MODUS_WEEKLY_LIMIT),
     tts: (MODUS_TTS_CHARS_PER_DAY / 1_000_000) * TTS_USD_PER_1M_CHARS * DAYS,
     images: MODUS_IMAGES_PER_DAY * IMAGE_USD_EACH_STANDARD * DAYS,
   },
   {
     plan: 'pilot' as const,
-    chat: chatMonthly(PILOT_TOKEN_LIMIT),
+    chat: chatMonthly(PILOT_WEEKLY_LIMIT),
     tts: (PILOT_TTS_CHARS_PER_DAY / 1_000_000) * TTS_USD_PER_1M_CHARS * DAYS,
     images: PILOT_IMAGES_PER_DAY * IMAGE_USD_EACH_PRO * DAYS,
   },
