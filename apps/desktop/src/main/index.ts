@@ -1,4 +1,4 @@
-import { app, globalShortcut } from 'electron';
+import { app, globalShortcut, session } from 'electron';
 import log from 'electron-log';
 import { createMainWindow, getMainWindow, showMainWindow } from './windows';
 import { createTray, setSignedIn, runSync } from './tray';
@@ -9,6 +9,11 @@ import { initLaunchAtLogin } from './settings';
 import { getAuthState } from './sync/ingest';
 import { pollNotifications } from './notifications';
 import { initAutoUpdate } from './updater';
+
+// Keychain access group for the Touch ID WebAuthn authenticator. MUST stay byte-
+// for-byte identical to the keychain-access-groups entry in
+// build/entitlements.mac.plist, or macOS rejects the keychain item at runtime.
+const WEBAUTHN_KEYCHAIN_GROUP = '8KF5J7X9BU.com.moduspilot.desktop.webauthn';
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;    // background sync cadence
 const AUTH_POLL_MS = 60 * 1000;            // how often we re-check sign-in state
@@ -29,6 +34,25 @@ if (!app.requestSingleInstanceLock()) {
   // it is why a laptop that woke with no network sat on a white window for days.
   app.whenReady().then(async () => {
     initLaunchAtLogin();
+
+    // Sign-in is Google/Apple OAuth in the login window, and their pages use
+    // WebAuthn (navigator.credentials.get) for passkeys/fingerprint. Electron
+    // does NOT service the macOS Touch ID platform authenticator until this is
+    // called — until then isUserVerifyingPlatformAuthenticatorAvailable() is
+    // false and no Touch ID sheet ever appears (the reported bug). The OAuth
+    // popup opens with no partition (windows.ts setWindowOpenHandler), so it
+    // inherits the default session this configures. Note: these credentials are
+    // device-bound (not iCloud-synced), so the user enrolls a passkey once on
+    // this Mac. darwin-only API — guard so a future non-mac build won't throw.
+    if (process.platform === 'darwin') {
+      app.configureWebAuthn({ touchID: { keychainAccessGroup: WEBAUTHN_KEYCHAIN_GROUP } });
+      // Without a handler, a request that resolves multiple discoverable
+      // passkeys pends forever. Single-account is the common case here, so pick
+      // the first; a real picker UI can come later.
+      session.defaultSession.on('select-webauthn-account', (_event, details, callback) => {
+        callback(details.accounts[0]?.credentialId);
+      });
+    }
 
     // ORDER IS LOAD-BEARING: the tray and the updater come FIRST, and neither is
     // allowed to sit behind the window.
