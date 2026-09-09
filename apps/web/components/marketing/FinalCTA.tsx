@@ -4,16 +4,10 @@ import { motion } from 'framer-motion';
 
 export default function FinalCTA() {
   return (
-    <section className="relative py-36 px-6 overflow-hidden">
-      {/* Soft violet bloom behind the closing statement */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_60%_at_50%_45%,rgba(124,58,237,0.12),transparent_70%)]"
-      />
-
+    <section className="relative py-32 sm:py-40 px-6 border-t border-border">
       <div className="relative max-w-3xl mx-auto text-center">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
@@ -22,16 +16,17 @@ export default function FinalCTA() {
             Stop juggling<br />AI apps
           </h2>
           <p className="text-muted text-lg mb-10 max-w-xl mx-auto">
-            Every model, your whole life connected, one subscription. Start free, no card.
+            Every model, and your whole life connected. One subscription.
           </p>
-          <a
-            href="/login"
-            className="btn-primary inline-flex items-center gap-2 px-10 py-4 text-white text-base font-bold rounded-xl transition-transform hover:scale-[1.02] active:scale-100"
-          >
-            Start free, no card
-            <span>→</span>
-          </a>
-          <p className="text-xs text-muted/70 mt-6">10 messages on every frontier model, no card · then a 3-day trial</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a href="/login" className="btn-ink px-7 py-3.5 text-base">
+              Start free
+            </a>
+            <a href="/pricing" className="btn-outline px-7 py-3.5 text-base">
+              See pricing
+            </a>
+          </div>
+          <p className="text-xs text-muted mt-6">Free on the open models, no card. Upgrade any time.</p>
         </motion.div>
       </div>
     </section>

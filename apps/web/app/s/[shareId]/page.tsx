@@ -142,7 +142,7 @@ export default async function SharedConversationPage({ params }: { params: { sha
           >
             <span className="relative z-10">Start free, no card</span>
           </Link>
-          <p className="text-[11px] text-muted mt-3">10 messages on every frontier model, no card. Then a 3-day trial.</p>
+          <p className="text-[11px] text-muted mt-3">Free on the open models, no card. Upgrade any time.</p>
         </div>
       </footer>
     </div>

@@ -816,9 +816,9 @@ export default function OnboardingPage() {
                 disabled={saving}
                 className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl bg-text/[0.06] text-text hover:bg-text/10 transition-colors text-sm font-semibold disabled:opacity-40"
               >
-                Start free with 10 messages, no card →
+                Start free on the open models, no card →
               </button>
-              <p className="text-[11px] text-muted/70 mt-2">Every frontier model, side by side. No card. Upgrade anytime.</p>
+              <p className="text-[11px] text-muted/70 mt-2">The open models, on a window that refreshes through the day. No card. Upgrade anytime.</p>
             </div>
           )}
         </div>

@@ -30,14 +30,14 @@ export default function CadenceToggle({
               aria-checked={active}
               onClick={() => onChange(c)}
               className={`relative z-10 rounded-full px-5 py-2 text-sm font-semibold transition-colors ${
-                active ? 'text-white' : 'text-muted hover:text-text'
+                active ? 'text-bg' : 'text-muted hover:text-text'
               }`}
             >
               {active && (
                 <motion.span
                   layoutId="cadence-pill"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                  className="absolute inset-0 -z-10 rounded-full bg-brand"
+                  className="absolute inset-0 -z-10 rounded-full bg-text"
                 />
               )}
               {c === 'monthly' ? 'Monthly' : 'Annually'}
@@ -50,7 +50,7 @@ export default function CadenceToggle({
         initial={false}
         animate={{ opacity: cadence === 'annual' ? 1 : 0 }}
         transition={{ duration: 0.25 }}
-        className="text-xs font-semibold text-brand h-4"
+        className="text-xs font-semibold text-muted h-4"
       >
         {MONTHS_FREE} months free
       </motion.p>

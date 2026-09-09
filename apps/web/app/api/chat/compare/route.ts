@@ -47,23 +47,20 @@ export async function POST(req: Request) {
   const freeTier = isFreeTierUser(userData);
 
   // Access gate is server-side: the client picking a model in the UI must never be
-  // what decides whether it runs. canUseModel holds paid tiers to their plan, but
-  // lets a signed-in FREE account compare ANY frontier model — that side-by-side is
-  // the product, and gating it behind the paywall is why cold traffic converted at
-  // ~0. Cost is bounded by the free-message counter, metered per column below.
+  // what decides whether it runs. canUseModel holds every tier to its plan — a free
+  // account can only compare the OPEN models (plans:['free']); a frontier column is
+  // refused with model_locked. The frontier side-by-side is a reason to upgrade.
   if (!canUseModel(modelId, plan)) {
     return Response.json({ error: 'Model not available on your plan', code: 'model_locked' }, { status: 402 });
   }
 
   // 🚨 Compare mode counted NOTHING against spend. The per-hour counter below caps
-  // REQUESTS, not spend, and the client fires three of these per comparison.
-  // Meter PER COLUMN, since that is what a request is:
-  //  - free tier spends ONE of its FREE_MESSAGE_LIMIT lifetime messages per column
-  //    (a 3-model compare costs 3), then hits the same free_limit_reached paywall.
-  //    Without this a stranger could farm unlimited frontier compares for free.
-  //  - paid tiers hit their token ceilings (enforcePaidTokenLimit).
+  // REQUESTS, not spend, and the client fires several of these per comparison.
+  // Both gates are read-only pre-checks against the window/weekly ceilings; each
+  // column's cost is metered after it streams (trackTokenUsage), so a multi-model
+  // compare draws down the free window per column just like separate chat turns.
   const budgetBlock = freeTier
-    ? await enforceSubscriptionGate(uid, userData)
+    ? enforceSubscriptionGate(uid, userData)
     : enforcePaidTokenLimit(userData);
   if (budgetBlock) return budgetBlock;
 

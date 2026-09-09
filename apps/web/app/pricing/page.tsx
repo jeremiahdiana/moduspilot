@@ -7,10 +7,6 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import HomePricingSection from '@/components/marketing/HomePricingSection';
 import MarketingDecor from '@/components/marketing/MarketingDecor';
-// 🔢 The free-message count is INTERPOLATED, never typed out. This page promises
-// a number the server enforces, and the two living in different files is how a
-// pricing page ends up advertising an allowance the product does not give.
-import { FREE_MESSAGE_LIMIT } from '@/lib/constants';
 
 /**
  * /pricing — rebuilt 2026-07-21 to match the light/serif homepage.
@@ -34,11 +30,9 @@ import { FREE_MESSAGE_LIMIT } from '@/lib/constants';
 const FAQS = [
   {
     // First on purpose. "Do I have to pay to look at it" is the question that
-    // decides whether a stranger signs in at all, and until 2026-08-04 the honest
-    // answer was yes. FREE_MESSAGE_LIMIT in lib/constants.ts is the source of the
-    // number here; change one and change the other.
+    // decides whether a stranger signs in at all.
     q: 'Do I need a card to try it?',
-    a: `No. Sign in and your first ${FREE_MESSAGE_LIMIT} messages are free, with no card and no trial to cancel. When those run out you can start the 3-day trial, which does need a card, and you can still cancel inside those 3 days at no charge.`,
+    a: 'No. The free plan gives you the open models (Llama, DeepSeek and Gemini Flash) with no card, on a rolling window that refreshes through the day. When you want every frontier model and your apps connected, MODUS and PILOT include a 3-day trial you can cancel inside those 3 days at no charge.',
   },
   {
     q: 'What happens after the 3-day trial?',
@@ -86,14 +80,14 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
-      className="rounded-xl overflow-hidden"
+      className="rounded-xl overflow-hidden border border-border bg-panel"
     >
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-6 py-4 text-left bg-panel hover:bg-panel/80 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-text/[0.03] transition-colors"
       >
         <span className="text-sm font-semibold text-text pr-4">{q}</span>
-        <span className={`text-brand text-lg shrink-0 transition-transform duration-200 ${open ? 'rotate-45' : ''}`}>+</span>
+        <span className={`text-muted text-lg shrink-0 transition-transform duration-200 ${open ? 'rotate-45' : ''}`}>+</span>
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -143,7 +137,7 @@ export default function PricingPage() {
               transition={{ duration: 0.6, delay: 0.12, ease: 'easeOut' }}
               className="text-muted text-lg max-w-xl mx-auto leading-relaxed"
             >
-              Your first {FREE_MESSAGE_LIMIT} messages are free. No card.
+              Free on the open models, no card. Every frontier model and your apps on a paid plan.
             </motion.p>
           </section>
 
@@ -203,18 +197,10 @@ export default function PricingPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <Link
-                href="/login"
-                className="btn-primary inline-flex items-center gap-2 px-9 py-4 text-white font-bold rounded-xl text-base transition-all hover:scale-[1.02] active:scale-100"
-              >
+              <Link href="/login" className="btn-ink px-8 py-4 text-base">
                 Start free
-                <span>→</span>
               </Link>
-              {/* The ladder, in the order a stranger meets it: 10 messages with no
-                  card, then the 3-day trial that does need one. Leading with the
-                  trial is what made cold traffic bounce — the first thing they saw
-                  was a payment form. */}
-              <p className="text-muted text-xs mt-5">{FREE_MESSAGE_LIMIT} messages free, no card · then 3 days free with one</p>
+              <p className="text-muted text-xs mt-5">Free on the open models, no card. Upgrade any time.</p>
             </motion.div>
           </section>
 

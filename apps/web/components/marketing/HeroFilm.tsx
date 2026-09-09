@@ -42,16 +42,23 @@ export default function HeroFilm() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
-          className="mt-9 flex flex-col items-center gap-3"
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
         >
-          <a
-            href="/login"
-            className="btn-primary group inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-white text-sm font-bold hover:scale-[1.02] active:scale-100 transition-transform"
-          >
-            Start your 3-day free trial
-            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+          <a href="/login" className="btn-ink px-6 py-3 text-sm">
+            Start free
+          </a>
+          <a href="/features" className="btn-outline px-6 py-3 text-sm">
+            See how it works
           </a>
         </motion.div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.35 }}
+          className="mt-4 text-sm text-muted"
+        >
+          Free on the open models, no card. Upgrade any time.
+        </motion.p>
       </div>
 
       {/* Contained hero-film "app window" */}
@@ -61,11 +68,6 @@ export default function HeroFilm() {
         transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
         className="relative max-w-5xl mx-auto mt-14 sm:mt-20"
       >
-        {/* Soft glow behind the window */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -inset-x-10 -top-10 bottom-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,rgba(124,58,237,0.16),transparent_70%)]"
-        />
         <HeroFilmWindow />
       </motion.div>
     </section>

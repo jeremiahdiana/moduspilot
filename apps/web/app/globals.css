@@ -40,11 +40,13 @@
    subtree (nav + sections) re-declares the right color tokens regardless of the
    global forced `.dark`. Headlines use the Sentient serif in both themes. */
 .marketing-light-tokens {
-  --color-bg: 255 255 255;
-  --color-panel: 249 250 252;
-  --color-border: 228 230 237;
-  --color-text: 17 18 23;
-  --color-muted: 92 96 108;
+  /* Warm ivory ground (Anthropic/Perplexity reference), not the old pure white.
+     Panel is a lighter off-white so cards read as a raised surface. */
+  --color-bg: 240 238 230;
+  --color-panel: 250 249 245;
+  --color-border: 224 221 210;
+  --color-text: 20 20 19;
+  --color-muted: 104 102 94;
   /* Code editor mockup — light (GitHub-light-ish) so it isn't the one black block on a light page */
   --code-bg: #ffffff;
   --code-chrome: #f6f8fa;
@@ -85,13 +87,15 @@
   --shine-cta-glow: rgba(255, 255, 255, 0.32);
 }
 
-/* PILOT plan card + CTA shine (see HomePricingSection). */
+/* PILOT plan card + CTA — flat now (the old glow "shine" is gone). Kept as
+   no-op-ish hooks so existing className references still resolve; the highlighted
+   plan is distinguished by a solid border, not a glow. */
 .pilot-shine {
-  border-color: var(--shine-border);
-  box-shadow: 0 24px 70px -24px var(--shine-glow);
+  border-color: rgb(var(--color-text) / 0.45);
+  box-shadow: none;
 }
 .pilot-cta-shine {
-  box-shadow: 0 0 28px -4px var(--shine-cta-glow);
+  box-shadow: none;
 }
 .marketing {
   color: rgb(var(--color-text));
@@ -104,6 +108,62 @@
   font-weight: 500;
   letter-spacing: -0.015em;
 }
+
+/* ── Marketing flat buttons (Anthropic / Perplexity look) ────────────────────
+   Primary is a solid ink fill that inverts with the theme: near-black on the
+   ivory light canvas, near-white on the dark canvas. No gradient, no glow, no
+   sweep. Secondary is a hairline ghost. These are marketing-only, so the in-app
+   .btn-primary (below) is untouched. */
+.btn-ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--color-text));
+  color: rgb(var(--color-bg));
+  border: 1px solid rgb(var(--color-text));
+  border-radius: 10px;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+.btn-ink:hover:not(:disabled) { opacity: 0.86; }
+.btn-ink:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: rgb(var(--color-text));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-outline:hover {
+  background: rgb(var(--color-text) / 0.05);
+  border-color: rgb(var(--color-text) / 0.28);
+}
+
+/* Belt-and-suspenders: if any marketing component still applies .btn-primary,
+   strip the old gradient/glow/sweep so nothing shiny survives the redesign. */
+.marketing .btn-primary {
+  background: rgb(var(--color-text));
+  border: 1px solid rgb(var(--color-text));
+  box-shadow: none;
+}
+.marketing .btn-primary:hover:not(:disabled) {
+  background: rgb(var(--color-text));
+  box-shadow: none;
+  opacity: 0.86;
+}
+.marketing .btn-primary::after { display: none; content: none; }
+
+/* Strip the decorative body layers (violet radial gradient, dot grid, film
+   noise) on any page that renders the marketing shell. The in-app dashboard
+   never mounts .marketing, so its look is untouched. :has() is well supported. */
+body:has(.marketing)::before,
+body:has(.marketing)::after { display: none; }
+:root body:has(.marketing) { background: rgb(var(--color-bg)); }
 
 * {
   box-sizing: border-box;

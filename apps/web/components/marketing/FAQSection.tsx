@@ -21,8 +21,8 @@ const FAQS = [
     a: "On the web: Gmail, Google Calendar, Google Drive, Notion, Slack and GitHub. On your Mac and iPhone: iMessage, Apple Notes, Reminders, Contacts, Photos and Apple Health. You can also connect any MCP server. Live across web, Mac and iPhone.",
   },
   {
-    q: 'How much is it, and is there a free trial?',
-    a: "MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Both start with a 3-day free trial, card required, cancel anytime, and you keep access until the end of your billing period.",
+    q: 'Is there a free version?',
+    a: "Yes. Free gives you the open models (Llama, DeepSeek and Gemini Flash) with no card, on a rolling window that refreshes through the day. MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Paid plans include a 3-day trial, cancel anytime.",
   },
   {
     q: 'Is my data private?',
@@ -39,14 +39,14 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
-      className="rounded-xl overflow-hidden"
+      className="rounded-xl overflow-hidden border border-border bg-panel"
     >
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-6 py-4 text-left bg-panel hover:bg-panel/80 transition-colors group"
+        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-text/[0.03] transition-colors group"
       >
         <span className="text-sm font-semibold text-text pr-4">{q}</span>
-        <span className={`text-brand text-lg shrink-0 transition-transform duration-200 ${open ? 'rotate-45' : ''}`}>+</span>
+        <span className={`text-muted text-lg shrink-0 transition-transform duration-200 ${open ? 'rotate-45' : ''}`}>+</span>
       </button>
       <AnimatePresence initial={false}>
         {open && (

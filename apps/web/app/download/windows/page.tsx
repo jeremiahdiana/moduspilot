@@ -35,9 +35,9 @@ export default function DownloadWindowsPage() {
   }, []);
 
   return (
-    <main className="bg-bg text-text min-h-screen overflow-x-hidden relative">
+    <main className="marketing marketing-light-tokens bg-bg text-text min-h-screen overflow-x-hidden relative">
       <MarketingBackground />
-      <Navbar solid />
+      <Navbar marketingTheme="light" />
 
       <div className="relative pt-32 pb-24 px-6" style={{ zIndex: 2 }}>
         <div className="max-w-2xl mx-auto">

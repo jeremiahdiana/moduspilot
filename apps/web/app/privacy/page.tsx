@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Navbar from '@/components/marketing/Navbar';
+import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — MODUS',
@@ -21,13 +22,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function PrivacyPage() {
   return (
-    <div className="bg-bg text-text min-h-screen">
-      <Navbar solid />
-      <div className="pt-16 max-w-2xl mx-auto px-6 py-16 space-y-10">
+    <div className="marketing marketing-light-tokens bg-bg text-text min-h-screen">
+      <Navbar marketingTheme="light" />
+      <div className="pt-24 max-w-2xl mx-auto px-6 py-16 space-y-10">
 
         <div>
-          <p className="text-xs font-semibold text-brand uppercase tracking-widest mb-3">Legal</p>
-          <h1 className="text-3xl font-black text-text mb-2">Privacy Policy</h1>
+          <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">Legal</p>
+          <h1 className="text-4xl text-text tracking-tight mb-2">Privacy Policy</h1>
           <p className="text-sm text-muted">Last updated: {LAST_UPDATED}</p>
         </div>
 
@@ -125,6 +126,7 @@ export default function PrivacyPage() {
           <Link href="/terms" className="hover:text-text transition-colors">Terms of Service →</Link>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

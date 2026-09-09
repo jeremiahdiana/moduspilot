@@ -3,131 +3,97 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PLAN_PRICING, LIMIT_ADDON, CADENCE_STORAGE_KEY, type Cadence } from '@/lib/pricing';
-import { FREE_MESSAGE_LIMIT } from '@/lib/constants';
 import AnimatedPrice from './AnimatedPrice';
 import CadenceToggle from './CadenceToggle';
 
 type Plan = {
-  id: 'modus' | 'pilot';
+  id: 'free' | 'modus' | 'pilot';
   name: string;
   tagline: string;
   features: string[];
   popular?: boolean;
-  accent: 'violet' | 'white';
+  free?: boolean;
 };
 
 const PLANS: Plan[] = [
   {
+    id: 'free',
+    name: 'Free',
+    tagline: 'For trying it out.',
+    free: true,
+    features: [
+      'The open models: Llama, DeepSeek and Gemini Flash',
+      'A rolling window that refreshes through the day',
+      'Full context in every conversation',
+      'Web and Mac apps',
+      'No card, ever',
+    ],
+  },
+  {
     id: 'modus',
     name: 'MODUS',
-    // ⚠️ NOT "Card required" any more. This card renders directly under a hero
-    // that now reads "Your first N messages are free. No card." — the two sat one
-    // scroll apart contradicting each other, which reads as a bait-and-switch on
-    // the exact page where a stranger decides whether to trust the price.
-    // Caught by screenshotting /pricing; the diff alone looked fine.
     tagline: 'Cancel anytime.',
     popular: true,
-    accent: 'violet',
     features: [
-      'AI Chat, unlimited with full context',
       'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama',
-      'Generate images & editable PDFs',
-      'Unlimited briefings',
-      'Unlimited goals + habit engine',
+      'Unlimited chat with full context',
+      'Generate images and editable PDFs',
       'Voice interface',
-      'Calendar integration (read + write)',
-      'Gmail / Outlook triage',
-      'End-of-day reflection',
+      'Gmail / Outlook, Calendar and Drive',
+      'Daily briefings, goals and a habit engine',
       '90-day context memory',
-      'Weekly review reports',
-      'Delegation tracker',
-      'Focus protection',
-      'Life admin automation',
-      'Pattern recognition',
-      'Web + Mac apps live, iPhone in beta',
+      'Web, Mac and iPhone (beta)',
     ],
   },
   {
     id: 'pilot',
     name: 'PILOT',
     tagline: 'For founders and executives.',
-    accent: 'white',
     features: [
       'Everything in MODUS',
-      'The frontier models (GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro), manual pick per message',
+      'The frontier models, manual pick per message: GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro',
       'Unlimited context memory',
-      'Wearable sync (HealthKit, Oura, Whoop)',
+      'Wearable sync: HealthKit, Oura and Whoop',
       'Financial pulse via Plaid',
-      'Relationship intelligence CRM',
-      'Meeting intelligence (pre + post)',
-      'Travel & logistics management',
-      'Document vault',
-      'Cross-app execution',
-      'Slack + Notion + Linear',
-      'Multi-workspace support',
+      'Relationship CRM and meeting intelligence',
+      'Slack, Notion and Linear',
       'Priority response SLA',
     ],
   },
 ];
 
-const ACCENT = {
-  violet: {
-    card: 'border-brand/50 shadow-[0_24px_70px_-24px_rgba(124,58,237,0.45)]',
-    name: 'text-brand',
-    check: 'text-brand',
-    badge: 'bg-brand text-white',
-    cta: 'btn-primary text-white hover:scale-[1.02] active:scale-100 shadow-[0_0_28px_-4px_rgba(124,58,237,0.55)]',
-  },
-  white: {
-    card: 'pilot-shine',
-    name: 'text-brand',
-    check: 'text-brand',
-    badge: 'bg-white text-brand ring-1 ring-brand/15',
-    cta: 'pilot-cta-shine bg-white text-brand ring-1 ring-brand/20 hover:scale-[1.02] active:scale-100',
-  },
-} as const;
-
-function Check({ accent }: { accent: Plan['accent'] }) {
+function Check() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} className={`w-4 h-4 shrink-0 mt-0.5 ${ACCENT[accent].check}`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-4 h-4 shrink-0 mt-0.5 text-text">
       <path strokeLinecap="round" strokeLinejoin="round" d="M20 6 9 17l-5-5" />
     </svg>
   );
 }
 
 /**
- * The two plan cards. Shared by the homepage and /pricing so the offer can never
- * drift between them — `showHeading={false}` on /pricing, where the page's own
- * hero already says this.
+ * The three plan cards. Shared by the homepage and /pricing so the offer can never
+ * drift between them — `showHeading={false}` on /pricing, where the page's own hero
+ * already says this. Flat cards (Anthropic / Perplexity look): a single hairline
+ * border, the popular plan carries a solid darker border and a plain badge, no glow.
  */
 export default function HomePricingSection({
   showHeading = true,
   showCadenceToggle = true,
 }: {
   showHeading?: boolean;
-  /** On everywhere the plans are shown — the homepage and /pricing both sell
-      the annual cadence, so hiding it on one of them hid the cheaper price. */
   showCadenceToggle?: boolean;
 }) {
   const [cadence, setCadence] = useState<Cadence>('monthly');
   const annual = cadence === 'annual';
 
-  /**
-   * Park the choice so it survives /login -> onboarding, where the trial is
-   * actually created. The href carries it too, but auth redirects can drop query
-   * params, and silently billing monthly after someone picked annual is exactly
-   * the class of bug this page just had.
-   */
   function chooseCadence(next: Cadence) {
     setCadence(next);
     try { window.localStorage.setItem(CADENCE_STORAGE_KEY, next); } catch { /* private mode */ }
   }
 
   return (
-    // pt-6 even without the heading: the plan badges sit at -top-3 and this
-    // section is overflow-hidden, so zero top padding clips them.
-    <section id="pricing" className={`${showHeading ? 'py-24 sm:py-28' : 'pt-6 pb-8'} px-6 overflow-hidden`}>
-      <div className="max-w-5xl mx-auto">
+    <section id="pricing" className={`${showHeading ? 'py-24 sm:py-28' : 'pt-6 pb-8'} px-6`}>
+      <div className="max-w-6xl mx-auto">
         {showHeading && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -138,7 +104,7 @@ export default function HomePricingSection({
         >
           <h2 className="text-4xl md:text-5xl text-text tracking-tight mb-4">Simple, honest pricing</h2>
           <p className="text-muted text-base sm:text-lg max-w-2xl mx-auto">
-            One subscription instead of five. Start free, no card, cancel anytime.
+            Start free on the open models. Upgrade for every frontier model and your whole life connected.
           </p>
         </motion.div>
         )}
@@ -149,57 +115,61 @@ export default function HomePricingSection({
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6 items-start">
+        <div className="grid md:grid-cols-3 gap-6 items-start">
           {PLANS.map((plan, i) => (
             <motion.div
               key={plan.name}
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-              className={`relative rounded-2xl p-7 sm:p-8 bg-panel border ${ACCENT[plan.accent].card}`}
+              transition={{ duration: 0.5, delay: i * 0.08, ease: 'easeOut' }}
+              className={`relative rounded-2xl p-7 sm:p-8 bg-panel border ${
+                plan.popular ? 'border-text/40' : 'border-border'
+              }`}
             >
-              <span className={`absolute -top-3 left-8 rounded-full text-[11px] font-bold px-3 py-1 ${ACCENT[plan.accent].badge}`}>
-                {plan.popular ? 'Most popular' : 'Premium'}
-              </span>
+              {plan.popular && (
+                <span className="absolute -top-3 left-8 rounded-full text-[11px] font-semibold px-3 py-1 bg-text text-bg">
+                  Most popular
+                </span>
+              )}
 
-              <div className="flex items-baseline justify-between mb-1">
-                <span className={`text-lg font-black tracking-widest ${ACCENT[plan.accent].name}`}>{plan.name}</span>
+              <div className="mb-1">
+                <span className="text-base font-semibold tracking-widest text-text">{plan.name}</span>
               </div>
               <div className="flex items-baseline gap-1 mb-2">
-                <AnimatedPrice
-                  value={annual ? PLAN_PRICING[plan.id].annualPerMonth : PLAN_PRICING[plan.id].monthlyPrice}
-                  direction={annual ? 'up' : 'down'}
-                  // Arbitrary-value font so the rolling digits keep the serif
-                  // face the static price used.
-                  className="text-5xl text-text [font-family:var(--font-serif)] font-medium"
-                />
-                <span className="text-muted text-lg">/mo</span>
+                {plan.free ? (
+                  <span className="text-5xl text-text [font-family:var(--font-serif)] font-medium">$0</span>
+                ) : (
+                  <>
+                    <AnimatedPrice
+                      value={annual ? PLAN_PRICING[plan.id as 'modus' | 'pilot'].annualPerMonth : PLAN_PRICING[plan.id as 'modus' | 'pilot'].monthlyPrice}
+                      direction={annual ? 'up' : 'down'}
+                      className="text-5xl text-text [font-family:var(--font-serif)] font-medium"
+                    />
+                    <span className="text-muted text-lg">/mo</span>
+                  </>
+                )}
               </div>
               <p className="text-sm text-muted leading-relaxed mb-6 min-h-[40px]">
-                {/* The ladder in the order a stranger climbs it: free messages
-                    with no card, THEN the 3-day trial that needs one. Leading
-                    with the trial is what put a payment form in front of every
-                    cold visitor. FREE_MESSAGE_LIMIT is interpolated, never typed,
-                    so this can't drift from what the server enforces. */}
-                {annual
-                  ? `Billed annually at $${PLAN_PRICING[plan.id].annualTotal}. ${plan.tagline}`
-                  : `${FREE_MESSAGE_LIMIT} messages free, then 3 days free, then $${PLAN_PRICING[plan.id].monthlyPrice}/mo. ${plan.tagline}`}
+                {plan.free
+                  ? `No card. Refreshes through the day. ${plan.tagline}`
+                  : annual
+                    ? `Billed annually at $${PLAN_PRICING[plan.id as 'modus' | 'pilot'].annualTotal}. ${plan.tagline}`
+                    : `Start free, then $${PLAN_PRICING[plan.id as 'modus' | 'pilot'].monthlyPrice}/mo. ${plan.tagline}`}
               </p>
 
               <a
-                href={`/login?plan=${plan.id}&cadence=${cadence}`}
-                onClick={() => chooseCadence(cadence)}
-                className={`group flex items-center justify-center gap-2 w-full rounded-xl px-6 py-3.5 text-sm font-bold transition-all ${ACCENT[plan.accent].cta}`}
+                href={plan.free ? '/login' : `/login?plan=${plan.id}&cadence=${cadence}`}
+                onClick={() => { if (!plan.free) chooseCadence(cadence); }}
+                className={`w-full py-3 text-sm ${plan.popular ? 'btn-ink' : 'btn-outline'}`}
               >
-                Start free
-                <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                {plan.free ? 'Start free' : `Get ${plan.name}`}
               </a>
 
               <ul className="mt-7 space-y-3">
                 {plan.features.map(f => (
                   <li key={f} className="flex items-start gap-2.5">
-                    <Check accent={plan.accent} />
+                    <Check />
                     <span className="text-sm text-text/90 leading-relaxed">{f}</span>
                   </li>
                 ))}
@@ -208,30 +178,26 @@ export default function HomePricingSection({
           ))}
         </div>
 
-        {/* Extra limits — a STRIP, not a third card. Two plans stays two plans;
-            this is a top-up you buy on top of one, so it must not read as a tier.
-
-            🚨 The copy says "double", never a message count. One add-on is ~25
-            more messages a day on standard models but under one more on Claude
-            Fable 5 (weight 27), so any unqualified number would be false for
-            anyone on the frontier tier. "Double" is exact for every model. */}
+        {/* Extra limits — a strip, not a tier. Copy says "double", never a message
+            count (one add-on is ~25 more messages a day on standard models but under
+            one more on a frontier model, so any number would be false for someone). */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
-          className="mt-6 rounded-2xl border border-border/70 bg-panel/50 px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="mt-6 rounded-2xl border border-border bg-panel px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div>
             <p className="text-sm font-semibold text-text mb-1">
               Need more headroom? Add extra limits for ${LIMIT_ADDON.monthlyPrice}/mo
             </p>
             <p className="text-sm text-muted leading-relaxed max-w-xl">
-              Doubles your daily and weekly limits on either plan. Stack it as many times as you
-              need, cancel it without touching your plan. For the days you are actually deep in it.
+              Doubles your daily and weekly limits on either paid plan. Stack it as many times as you
+              need, cancel it without touching your plan.
             </p>
           </div>
-          <span className="shrink-0 text-xs text-muted/70">Available once you&apos;re on a plan</span>
+          <span className="shrink-0 text-xs text-muted">Available once you&apos;re on a plan</span>
         </motion.div>
       </div>
     </section>

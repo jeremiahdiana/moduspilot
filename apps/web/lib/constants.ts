@@ -2,29 +2,34 @@ export const GUEST_DAILY_LIMIT  = 5;
 export const TRIAL_DAYS         = 3;
 export const TRIAL_MS           = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
-// ── The free taste tier ──────────────────────────────────────────────────────
+// ── The free plan: a real, ongoing free tier on the open models ──────────────
 //
-// How many messages a signed-in account with no subscription gets before the card
-// wall. Lifetime, NOT per day: a daily allowance is a permanent free product that
-// a user who never pays costs you forever, and it can be farmed by waiting.
+// Free accounts run the OPEN models only (plans:['free'] in lib/models.ts — Llama,
+// DeepSeek and the two Gemini Flashes). The frontier models are what upgrading buys.
+// Instead of a lifetime message count, free uses the SAME rolling window the paid
+// plans use (WINDOW_HOURS below), but much tighter, plus a weekly ceiling that is
+// the real cost governor. The window allows a burst; the week bounds the dollars.
+// Enforced from windowStart + windowTokens + weeklyTokens on the user doc by
+// enforceSubscriptionGate (lib/chat/limits.ts) — the same counters trackTokenUsage
+// already writes for free users.
 //
-// 💸 WHAT THIS COSTS, because a limit nobody costed is not a limit. Free is pinned
-// to FREE_DEFAULT (gemini-3.5-flash-lite, $0.52/1M blended) and capped by
-// FREE_MAX_MESSAGE_CHARS below, so a free account is worth at most ~10k tokens a
-// message → ~100k tokens → ~$0.05. 10,000 free signups ≈ $520 total, one time.
-//
-// ⚠️ Those two numbers are load-bearing TOGETHER. Raising the message count, the
-// char cap, or letting free reach a pricier model breaks the arithmetic — re-cost
-// it before changing any of them, and re-run scripts/verify-model-cost.ts.
-export const FREE_MESSAGE_LIMIT = 10;
+// 💸 WHAT THIS COSTS. The counters store COST UNITS (weightedTokens), and one unit
+// is ~$0.52/1M (BASELINE_USD_PER_1M) REGARDLESS of model, because a dearer model
+// burns proportionally more units per token. So the WEEKLY ceiling bounds dollars
+// directly: FREE_WEEKLY_LIMIT / 1e6 × $0.52 per week, worst case, per ACTIVE free
+// user. Unlike the old lifetime cap this is an ONGOING cost (the window refreshes),
+// so the number is deliberately small and well under the MODUS ceilings.
+// scripts/verify-free-tier.ts turns it into a monthly figure and fails if it drifts.
+// Re-cost before changing either.
+export const FREE_WINDOW_LIMIT = 300_000;   // one 5h burst: a dozen-plus messages, mixed models
+export const FREE_WEEKLY_LIMIT = 900_000;   // the governor: ~$2.00/mo worst case per active free user
 
 // A free message is only a bounded unit if its INPUT is bounded. The paid path
 // allows 100k chars (~25k tokens) per message so a real document paste survives;
-// at that size 10 free messages would be ~300k tokens, 3x the costing above. These
-// are the free-tier equivalents — generous enough for a genuine try, small enough
-// that the per-signup cost stays a rounding error.
-// ⚠️ Same invariant as the paid pair: the history budget MUST exceed the
-// per-message cap, or a big paste is evicted on the next turn.
+// these are the tighter free-tier equivalents, which also keep a single free turn's
+// weighted cost small against the window above.
+// ⚠️ The history budget MUST exceed the per-message cap, or a big paste is evicted
+// on the next turn.
 export const FREE_MAX_MESSAGE_CHARS   = 12_000;
 export const FREE_HISTORY_CHAR_BUDGET = 16_000;
 

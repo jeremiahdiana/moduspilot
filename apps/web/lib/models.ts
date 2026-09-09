@@ -3,8 +3,6 @@
 // and the Auto router (lib/chat/auto-route.ts). Keep the ids in sync with
 // resolveChatModel() in lib/chat/model.ts — that function does the actual
 // provider routing + env-key gating.
-import { isPaidPlan } from '@/lib/plan';
-
 export interface ModelInfo {
   id: string;
   name: string;
@@ -74,13 +72,18 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // hosts.) Defensible claim: "US-hosted third parties, not DeepSeek's API" — NOT
   // "no Chinese infrastructure", which is unverified: Novita's GPU locations are not
   // published.
-  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['modus', 'pilot'], vision: false },
+  // Free-reachable: DeepSeek is an open model on cheap US-hosted third parties, so
+  // it belongs to the open-model free tier alongside Llama and the Gemini Flashes.
+  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['free', 'modus', 'pilot'], vision: false },
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'], vision: true },
   // Sonnet 5 supersedes Sonnet 4.6 at the SAME list price ($3/$15, and $2/$10
   // introductory through 2026-08-31) — a strictly better model for what we already
   // pay. Verified live 2026-07-17 through the real @ai-sdk/anthropic path.
   { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'], vision: true },
-  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'], vision: true },
+  // Free-reachable: Gemini Flash is the dearest of the open/free models (weight 5,
+  // see lib/chat/model-cost.ts). The free WEEKLY ceiling is what bounds its cost —
+  // re-run scripts/verify-free-tier.ts if this row or that ceiling changes.
+  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['free', 'modus', 'pilot'], vision: true },
   // The FREE_DEFAULT (lib/chat/model.ts) and the BASELINE of the cost table, so it
   // is the one model the free tier can reach. Added 2026-08-04 with the free tier.
   //
@@ -191,15 +194,22 @@ export function isModelUnlocked(id: string, plan: string | null | undefined): bo
 }
 
 /**
- * May this account RUN this model? Superset of isModelUnlocked.
+ * May this account RUN this model?
  *
- * 🧊 The free taste tier is metered by MESSAGE COUNT, not by tier: a signed-in,
- * unpaid account may run ANY catalog model for its FREE_MESSAGE_LIMIT lifetime
- * messages (the actual product is comparing frontier models, and gating that
- * behind the paywall is why cold traffic converted at ~0). Cost is bounded by the
- * counter in lib/chat/limits.ts (enforceSubscriptionGate / the compare route),
- * NOT here. Paid tiers still get exactly their plan's models — a modus user does
- * not reach pilot models through this.
+ * 🧊 The free tier is the OPEN MODELS ONLY (plans:['free'] — Llama, DeepSeek and the
+ * two Gemini Flashes). A signed-in unpaid account is held to exactly those; a free
+ * request for a frontier model is refused so the caller can serve a free model or
+ * prompt an upgrade. This USED to let free accounts run any catalog model for a
+ * lifetime message count — that was the "metered frontier" tier, replaced on the
+ * windowed free-tier change: free is now cheap-models-only, bounded by the rolling
+ * window + weekly ceiling in lib/chat/limits.ts (FREE_WINDOW_LIMIT / FREE_WEEKLY_LIMIT),
+ * and the frontier models are the reason to upgrade. Paid tiers still get exactly
+ * their plan's models — a modus user does not reach pilot models through this.
+ *
+ * This is now exactly isModelUnlocked (effectivePlan maps an unpaid account to
+ * 'free'); it stays a distinct, named accessor because it is the ONE thing both
+ * chat gates (model.ts, route.ts) and the compare route read, and
+ * scripts/verify-free-tier.ts pins that it holds free to the open models.
  *
  * 🚨 GATE ONLY AUTHENTICATED REQUESTS with this. `!isPaidPlan` is also true of a
  * guest, and /api/chat + /api/chat/compare are accounts-only (they 401 without a
@@ -207,9 +217,7 @@ export function isModelUnlocked(id: string, plan: string | null | undefined): bo
  * an unauthenticated surface.
  */
 export function canUseModel(id: string, plan: string | null | undefined): boolean {
-  if (isModelUnlocked(id, plan)) return true;
-  if (!isPaidPlan(plan)) return !!PLATFORM_MODELS.find(m => m.id === canonicalModelId(id));
-  return false;
+  return isModelUnlocked(id, plan);
 }
 
 /** The models a given plan can use, in catalog order. */

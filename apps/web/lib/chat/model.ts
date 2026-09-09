@@ -371,9 +371,10 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   // FREE_DEFAULT is exempt: it is what an unchosen request resolves to, so gating
   // it on the catalog would make a pre-launch or plan-less account "downgrade"
   // from a model it never asked for — and show them a notice naming it.
-  // canUseModel, not isModelUnlocked: a signed-in free-tier account may run any
-  // catalog model, metered by the FREE_MESSAGE_LIMIT counter (enforceSubscriptionGate)
-  // rather than the plan tier. Paid tiers are still held to their own plan's models.
+  // canUseModel gates the pick: a free-tier account is held to the OPEN models
+  // (plans:['free']) and a frontier pick downgrades to a free model here, while
+  // paid tiers are held to their own plan's models. Free usage is bounded by the
+  // window + weekly ceiling (enforceSubscriptionGate), not by this access check.
   if (selectedModel !== FREE_DEFAULT && !canUseModel(selectedModel, plan)) {
     return downgradedToFree(selectedModel, hasImage);
   }

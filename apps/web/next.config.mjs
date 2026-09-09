@@ -21,10 +21,10 @@ const nextConfig = {
       },
       // Connections page was renamed to Capabilities — keep old bookmarks working.
       { source: '/connections', destination: '/capabilities', permanent: true },
-      // The site collapsed to Home + Pricing. /features (and its old alias
-      // /how-it-works) fold into the homepage — keep indexed URLs alive.
-      { source: '/features', destination: '/', permanent: true },
-      { source: '/how-it-works', destination: '/', permanent: true },
+      // /features is restored as the Product / Chat page (linked from the Product
+      // nav dropdown) in the 2026-09 redesign, so it no longer redirects. The old
+      // /how-it-works alias still folds into it.
+      { source: '/how-it-works', destination: '/features', permanent: true },
     ];
   },
 

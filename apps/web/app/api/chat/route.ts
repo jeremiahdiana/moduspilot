@@ -109,12 +109,10 @@ export async function POST(req: Request) {
       return Response.json({ error: 'authentication_required' }, { status: 401 });
     }
 
-    // ⚠️ The access gate used to sit HERE, before the body was parsed. It moved
-    // below the payload validation when the free tier landed, because
-    // enforceSubscriptionGate now CONSUMES one of a free user's messages as a side
-    // effect of allowing it. Charging that against a malformed request, or against
-    // one we are about to reject for carrying an image, spends something the user
-    // never got an answer for. Validate first, then charge. See lib/chat/limits.ts.
+    // The access gate sits below the payload validation. The free gate is now a
+    // read of the window/weekly counters (no side effect), and trackTokenUsage does
+    // the metering after the answer streams — so a malformed or image-rejected
+    // request never advances a free user's usage. See lib/chat/limits.ts.
 
     const body = await bodyPromise as {
       messages: CoreMessage[];
@@ -211,11 +209,9 @@ export async function POST(req: Request) {
       return Response.json({ error: 'image_requires_subscription' }, { status: 402 });
     }
 
-    // Access + usage limits (each returns a ready 4xx Response when blocked).
-    // ⚠️ ORDER MATTERS: enforceSubscriptionGate increments the free-message counter
-    // when it allows a free user through, so nothing that can reject the request
-    // may run after it.
-    const gateBlocked = await enforceSubscriptionGate(uid, userData);
+    // Access + usage limits (each returns a ready 4xx Response when blocked). Both
+    // are now read-only pre-checks; usage is metered after the answer.
+    const gateBlocked = enforceSubscriptionGate(uid, userData);
     if (gateBlocked) return gateBlocked;
     const paidBlocked = enforcePaidTokenLimit(userData);
     if (paidBlocked) return paidBlocked;
@@ -594,8 +590,9 @@ export async function POST(req: Request) {
           forcedModelId = last;
         }
       } else if (modelChoice && modelChoice !== 'default') {
-        // canUseModel: a free-tier account may pick any frontier model (metered by
-        // the free-message counter). Paid tiers still can't reach above their plan.
+        // canUseModel: free accounts are held to the open models (plans:['free']);
+        // a free pick of a frontier model falls into lockedChoice below and is served
+        // a free model instead. Paid tiers still can't reach above their plan.
         if (canUseModel(modelChoice, userData.plan)) {
           forcedModelId = modelChoice;
         } else {

@@ -425,7 +425,7 @@ export default function ChatWindow({
         // A DISTINCT code from subscription_required on purpose. This person has
         // been using MODUS for ten messages — telling them to "start your free
         // trial" reads as the product forgetting who they are. Name what ran out.
-        setChatError("That's your 10 free messages. Subscribe to keep going.");
+        setChatError("You've hit your free limit for now. It refreshes soon, or upgrade for every model.");
         onExhausted?.();
         onShowPaywall?.();
       } else if (msg.includes('image_requires_subscription')) {
@@ -1136,11 +1136,10 @@ export default function ChatWindow({
 
       {isAtLimit ? (
         <div className="px-4 md:px-8 py-4 border-t border-border text-center">
-          {/* NOT "for today" — the free allowance is a LIFETIME cap per account
-              (FREE_MESSAGE_LIMIT), so promising a reset at midnight is a promise
-              the product does not keep. This only renders once the SERVER has
-              said they are out. */}
-          <p className="text-muted text-sm mb-2">You&apos;ve used all your free messages.</p>
+          {/* The free allowance is a rolling window + weekly ceiling now, so it
+              genuinely refreshes — say so. This only renders once the SERVER has
+              said they are out (free_limit_reached). */}
+          <p className="text-muted text-sm mb-2">You&apos;ve hit your free limit for now. It refreshes soon.</p>
           <button
             onClick={onShowPaywall}
             className="bg-brand text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-brand/90 transition-colors"

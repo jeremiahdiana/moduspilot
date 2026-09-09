@@ -32,7 +32,7 @@ export default function HeroFilmWindow({ className = '' }: { className?: string 
   return (
     <div
       ref={filmRef}
-      className={`relative w-full aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-[0_30px_80px_-20px_rgba(30,20,60,0.35)] ring-1 ring-black/5 ${className}`}
+      className={`relative w-full aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-[0_30px_80px_-24px_rgba(0,0,0,0.28)] ring-1 ring-black/5 ${className}`}
     >
       {filmScale > 0 && (
         <iframe
