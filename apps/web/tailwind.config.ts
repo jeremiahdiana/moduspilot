@@ -12,8 +12,12 @@ const config: Config = {
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         panel: 'rgb(var(--color-panel) / <alpha-value>)',
         border: 'rgb(var(--color-border) / <alpha-value>)',
-        brand: '#7C3AED',
-        'brand-light': '#a78bfa',
+        brand: '#6d28d9',
+        // Was #a78bfa (washed lavender) — read as "light purple" on the ivory
+        // marketing bg. Now a true deep violet: kills the washed look while
+        // keeping enough contrast for the `dark:text-brand-light` usages on
+        // dark surfaces (chat, dark marketing).
+        'brand-light': '#7C3AED',
         text: 'rgb(var(--color-text) / <alpha-value>)',
         muted: 'rgb(var(--color-muted) / <alpha-value>)',
       },

@@ -73,11 +73,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             document.fonts.check(): check() answers "can this family render
             this text" and returns true for weights whose file does not exist. */}
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&f[]=satoshi@1,2&f[]=sentient@1,2&display=swap" />
-        {/* Always start dark. Light mode is in-session only and never persisted. */}
+        {/* Apply the saved theme before paint (default dark, no FOUC). The
+            toggler writes 'modus-theme' = 'light' | 'dark'; we honor it and
+            persist across reloads. Also restore a cached reduce-motion pref so
+            animations stay off from the first frame when the user disabled them. */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(){
-            localStorage.removeItem('modus-theme');
-            document.documentElement.classList.add('dark');
+            try {
+              var t = localStorage.getItem('modus-theme');
+              if (t !== 'light') document.documentElement.classList.add('dark');
+              if (localStorage.getItem('modus-reduce-motion') === '1')
+                document.documentElement.setAttribute('data-reduce-motion', 'true');
+            } catch (e) {
+              document.documentElement.classList.add('dark');
+            }
           })();
         ` }} />
       </head>

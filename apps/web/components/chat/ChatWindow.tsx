@@ -13,6 +13,7 @@ import { modelName, unlockedModels } from '@/lib/models';
 import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import { readWebSearchAnnotation, readAttachmentsAnnotation } from '@/lib/chat/annotations';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Preset } from '@/hooks/useUserSettings';
 
 interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
@@ -167,6 +168,8 @@ interface Props {
   personalContext?: string;
   responseStyle?: string;
   customStyle?: string;
+  /** The user's saved prompt presets (managed in Settings → General). */
+  presets?: Preset[];
   briefingHour?: number;
   briefingTimezone?: string;
   plan?: string;
@@ -193,6 +196,7 @@ export default function ChatWindow({
   personalContext,
   responseStyle,
   customStyle,
+  presets = [],
   briefingHour,
   briefingTimezone,
   plan,
@@ -200,6 +204,15 @@ export default function ChatWindow({
   onThreadModelChange,
 }: Props) {
   const { user } = useAuth();
+  // Which presets are active for this thread (composer toggles, not persisted).
+  const [activePresetIds, setActivePresetIds] = useState<Set<string>>(new Set());
+  const togglePreset = (id: string) =>
+    setActivePresetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const activePresetTexts = presets.filter(p => activePresetIds.has(p.id)).map(p => p.text);
   const firstName = user?.displayName?.trim().split(/\s+/)[0] ?? '';
   const [attachedImage, setAttachedImage] = useState<{ base64: string; mimeType: string } | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; text: string }[]>([]);
@@ -409,6 +422,7 @@ export default function ChatWindow({
       personalContext: personalContext ?? '',
       responseStyle: responseStyle ?? 'normal',
       customStyle: customStyle ?? '',
+      presets: activePresetTexts,
       briefingHour: briefingHour ?? 7,
       briefingTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || briefingTimezone || 'UTC',
     },
@@ -1185,6 +1199,9 @@ export default function ChatWindow({
           plan={isGuest ? undefined : plan}
           modelChoice={modelChoice}
           onModelChange={handleModelChange}
+          presets={presets}
+          activePresetIds={activePresetIds}
+          onTogglePreset={togglePreset}
           docked={!isEmpty}
         />
         </motion.div>

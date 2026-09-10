@@ -453,6 +453,7 @@ export default function ChatPage() {
             personalContext={settings.personalContext}
             responseStyle={settings.responseStyle}
             customStyle={settings.customStyle}
+            presets={settings.presets}
             briefingHour={settings.briefingHour}
             briefingTimezone={settings.briefingTimezone}
             plan={plan}

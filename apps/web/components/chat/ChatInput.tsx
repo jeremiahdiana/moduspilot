@@ -7,8 +7,10 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { auth } from '@/lib/firebase';
 import { extForAudioType } from '@/lib/audio-format';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
+import PresetPicker from '@/components/chat/PresetPicker';
 import FilePreviewModal from '@/components/chat/FilePreviewModal';
 import ModelPicker, { MIN_PICKED } from '@/components/chat/ModelPicker';
+import type { Preset } from '@/hooks/useUserSettings';
 
 interface ConnectedServices {
   google: boolean; notion: boolean; slack: boolean; github: boolean; contacts: boolean;
@@ -43,6 +45,10 @@ interface Props {
   plan?: string;
   modelChoice?: string;
   onModelChange?: (value: string) => void;
+  /** Saved prompt presets and which are active for this thread. */
+  presets?: Preset[];
+  activePresetIds?: Set<string>;
+  onTogglePreset?: (id: string) => void;
   /**
    * True when the composer is docked at the bottom of a conversation. The
    * hairline above it separates it from the transcript — but on the opening
@@ -61,6 +67,7 @@ export default function ChatInput({
   webSearchOn = false, onToggleWebSearch, compareOn = false, onToggleCompare,
   compareSelected = [], onToggleCompareModel,
   connectedServices, onSeedPrompt, openQuestion = false, textareaRef, plan, modelChoice, onModelChange,
+  presets = [], activePresetIds, onTogglePreset,
   docked = true,
 }: Props) {
   const [recording, setRecording] = useState(false);
@@ -506,14 +513,23 @@ export default function ChatInput({
         {(voiceError || attachError) && <p className="text-center text-red-400 text-xs mt-1">{voiceError || attachError}</p>}
         <div className="flex items-center justify-between gap-3 mt-2">
           {plan && onModelChange ? (
-            <ModelSwitcher
-              value={modelChoice ?? 'auto'}
-              onChange={onModelChange}
-              plan={plan}
-              compareOn={compareOn}
-              onToggleCompare={onToggleCompare}
-              compareCount={compareSelected.length}
-            />
+            <div className="flex items-center gap-2 min-w-0">
+              <ModelSwitcher
+                value={modelChoice ?? 'auto'}
+                onChange={onModelChange}
+                plan={plan}
+                compareOn={compareOn}
+                onToggleCompare={onToggleCompare}
+                compareCount={compareSelected.length}
+              />
+              {onTogglePreset && (
+                <PresetPicker
+                  presets={presets}
+                  activeIds={activePresetIds ?? new Set()}
+                  onToggle={onTogglePreset}
+                />
+              )}
+            </div>
           ) : <span />}
           {/* Keyboard hint is desktop-only — no Enter/Shift key on mobile, and it
               overflowed the narrow composer row. */}

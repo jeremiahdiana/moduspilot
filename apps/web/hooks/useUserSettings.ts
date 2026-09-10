@@ -13,10 +13,20 @@ export interface ModelConfig {
   anthropicKey?: string;
 }
 
+export interface Preset {
+  id: string;
+  label: string;   // short chip label, e.g. "8th-grade diction"
+  text: string;    // the directive injected into the prompt
+}
+
 export interface UserSettings {
   personalContext: string;
   responseStyle: 'normal' | 'concise' | 'formal' | 'learning' | 'explanatory' | 'custom';
   customStyle: string;
+  // Reusable prompt directives the user can toggle on next to the model picker.
+  presets: Preset[];
+  // When true, decorative animations/transitions are neutralised app-wide.
+  reduceMotion: boolean;
   helpImprove: boolean;
   dataRetention: boolean;
   generateMemoryFromChat: boolean;
@@ -55,10 +65,20 @@ export interface Memory {
   createdAt: Date;
 }
 
+// Sensible starter presets seeded from Jeremiah's known writing preferences.
+// Users can edit or delete these in Settings → General.
+export const DEFAULT_PRESETS: Preset[] = [
+  { id: 'no-dashes', label: 'No em dashes / Oxford commas', text: 'Do not use em dashes or Oxford commas anywhere in the response.' },
+  { id: 'no-emoji', label: 'No emoji', text: 'Do not use any emoji in the response.' },
+  { id: 'grade-8', label: '8th-grade diction', text: 'Write at an 8th-grade reading level: plain words, short sentences, no jargon.' },
+];
+
 const DEFAULT_SETTINGS: UserSettings = {
   personalContext: '',
   responseStyle: 'normal',
   customStyle: '',
+  presets: DEFAULT_PRESETS,
+  reduceMotion: false,
   helpImprove: false,
   dataRetention: false,
   generateMemoryFromChat: false,

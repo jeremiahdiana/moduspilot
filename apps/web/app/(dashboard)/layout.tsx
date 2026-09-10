@@ -8,7 +8,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import { collection, query, where, onSnapshot, doc, setDoc, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
@@ -62,7 +62,6 @@ const PRIMARY: NavItem[] = [
 const WORKSPACE: NavItem[] = [
   { key: 'goals',     href: '/goals',     label: 'Goals',     icon: 'goals'     },
   { key: 'reminders', href: '/reminders', label: 'Reminders', icon: 'reminders' },
-  { key: 'notes',     href: '/notes',     label: 'Notes',     icon: 'notes'     },
 ];
 
 // Bottom group — pinned above Settings.
@@ -104,9 +103,19 @@ function useSidebarPrefs(uid: string | undefined) {
   useEffect(() => {
     if (!uid) { setHidden(new Set()); setWorkspaceCollapsed(false); return; }
     const unsub = onSnapshot(doc(db, 'users', uid), snap => {
-      const sb = snap.data()?.settings?.sidebar;
+      const s = snap.data()?.settings;
+      const sb = s?.sidebar;
       setHidden(new Set(Array.isArray(sb?.hidden) ? sb.hidden : []));
       setWorkspaceCollapsed(!!sb?.workspaceCollapsed);
+      // Reduce-motion is synced across devices: reflect the stored pref onto
+      // <html> (and cache it so the pre-paint script in the root layout can
+      // restore it before first paint next load).
+      try {
+        const rm = !!s?.reduceMotion;
+        document.documentElement.toggleAttribute('data-reduce-motion', rm);
+        if (rm) localStorage.setItem('modus-reduce-motion', '1');
+        else localStorage.removeItem('modus-reduce-motion');
+      } catch { /* storage blocked — attribute still applied */ }
     });
     return unsub;
   }, [uid]);
@@ -170,23 +179,6 @@ function NavLinkWithBriefingDot({ item, pathname, onNavClick, collapsed }: { ite
   return collapsed ? <Tooltip label={item.label} side="right" className="w-full">{link}</Tooltip> : link;
 }
 
-// True when the user has at least one synced note. Notes are read-only and only
-// populated by the Mac desktop app, so web/iPhone-only users have none — we hide
-// the nav item rather than show a permanently empty page.
-function useHasNotes(uid: string | undefined) {
-  const [hasNotes, setHasNotes] = useState(false);
-  useEffect(() => {
-    if (!uid) { setHasNotes(false); return; }
-    const unsub = onSnapshot(
-      query(collection(db, 'users', uid, 'notes'), limit(1)),
-      snap => setHasNotes(!snap.empty),
-      () => setHasNotes(false),
-    );
-    return unsub;
-  }, [uid]);
-  return hasNotes;
-}
-
 // Group left the sidebar when multi-seat moved to a future Enterprise section.
 // /group and /api/group/* are still reachable by direct URL for any account that
 // already has a groupId — this only stops advertising it.
@@ -199,7 +191,6 @@ function SidebarContent({
   onCmdOpen,
   onNavClick,
   hidden,
-  hasNotes,
   workspaceCollapsed,
   onToggleWorkspace,
   collapsed = false,
@@ -212,16 +203,12 @@ function SidebarContent({
   onCmdOpen: () => void;
   onNavClick?: () => void;
   hidden: Set<string>;
-  hasNotes: boolean;
   workspaceCollapsed: boolean;
   onToggleWorkspace: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
-  const visibleWorkspace = WORKSPACE.filter(i =>
-    !hidden.has(i.key)
-    && (i.key !== 'notes' || hasNotes)     // Notes only when synced notes exist
-  );
+  const visibleWorkspace = WORKSPACE.filter(i => !hidden.has(i.key));
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -459,7 +446,6 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user } = useAuth();
   const { hidden, workspaceCollapsed, toggleWorkspace } = useSidebarPrefs(user?.uid);
-  const hasNotes = useHasNotes(user?.uid);
   const [open, setOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -582,7 +568,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <SidebarContent
           pathname={pathname} user={user} open={open} setOpen={setOpen}
           onCmdOpen={() => setCmdOpen(true)}
-          hidden={hidden} hasNotes={hasNotes}
+          hidden={hidden}
           workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
           collapsed={collapsed} onToggleCollapse={toggleCollapse}
         />
@@ -616,7 +602,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
                 pathname={pathname} user={user} open={open} setOpen={setOpen}
                 onCmdOpen={() => { setCmdOpen(true); setMobileOpen(false); }}
                 onNavClick={() => setMobileOpen(false)}
-                hidden={hidden} hasNotes={hasNotes}
+                hidden={hidden}
                 workspaceCollapsed={workspaceCollapsed} onToggleWorkspace={toggleWorkspace}
               />
             </motion.div>

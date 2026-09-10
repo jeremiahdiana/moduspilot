@@ -40,7 +40,6 @@ const SIDEBAR_GROUPS: { label: string; items: { key: string; label: string; lock
     items: [
       { key: 'goals', label: 'Goals' },
       { key: 'reminders', label: 'Reminders' },
-      { key: 'notes', label: 'Notes', hint: 'Shown when you have synced notes' },
     ],
   },
   {
@@ -91,12 +90,38 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
     onSave({ capabilities: { ...settings.capabilities, dailyBriefing: on } as UserSettings['capabilities'] });
   };
 
+  const setReduceMotion = (on: boolean) => {
+    try {
+      if (on) localStorage.setItem('modus-reduce-motion', '1');
+      else localStorage.removeItem('modus-reduce-motion');
+      document.documentElement.toggleAttribute('data-reduce-motion', on);
+    } catch { /* storage may be blocked; the setting still saves below */ }
+    onSave({ reduceMotion: on });
+  };
+
   return (
     <div className="space-y-10">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Display</h2>
         <p className="text-sm text-muted">Choose what you see and where. Turn off anything you don&apos;t use — nothing is lost, and hidden sidebar items stay reachable with <kbd className="text-[10px] bg-panel border border-border rounded px-1 py-0.5 font-mono">⌘K</kbd>.</p>
       </div>
+
+      {/* Appearance */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-text">Appearance</h3>
+          <p className="text-xs text-muted mt-0.5">Motion and visual effects.</p>
+        </div>
+        <div className="bg-panel border border-border rounded-xl divide-y divide-border">
+          <Row
+            label="Reduce motion"
+            hint="Turn off animations and transitions across MODUS"
+            checked={settings.reduceMotion ?? false}
+            disabled={saving}
+            onChange={setReduceMotion}
+          />
+        </div>
+      </section>
 
       {/* Sidebar */}
       <section className="space-y-4">

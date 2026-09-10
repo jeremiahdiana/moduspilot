@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { UserSettings } from '@/hooks/useUserSettings';
+import type { UserSettings, Preset } from '@/hooks/useUserSettings';
+
+const newPresetId = () => {
+  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); } catch { /* noop */ }
+  return `p_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+};
 
 const HOURS = Array.from({ length: 24 }, (_, i) => {
   const label = i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`;
@@ -50,6 +55,36 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
   const [context, setContext] = useState(settings.personalContext);
   const [customStyle, setCustomStyle] = useState(settings.customStyle);
   const [dirty, setDirty] = useState(false);
+
+  // Presets — reusable prompt directives, editable as a list and saved as a
+  // whole array. Re-sync from settings whenever the store changes and we have no
+  // unsaved edits (settings load async after mount).
+  const [presets, setPresets] = useState<Preset[]>(settings.presets ?? []);
+  const [presetsDirty, setPresetsDirty] = useState(false);
+  useEffect(() => {
+    if (!presetsDirty) setPresets(settings.presets ?? []);
+  }, [settings.presets, presetsDirty]);
+
+  const updatePreset = (id: string, field: 'label' | 'text', value: string) => {
+    setPresets(prev => prev.map(p => (p.id === id ? { ...p, [field]: value } : p)));
+    setPresetsDirty(true);
+  };
+  const addPreset = () => {
+    setPresets(prev => [...prev, { id: newPresetId(), label: '', text: '' }]);
+    setPresetsDirty(true);
+  };
+  const removePreset = (id: string) => {
+    setPresets(prev => prev.filter(p => p.id !== id));
+    setPresetsDirty(true);
+  };
+  const savePresets = async () => {
+    const cleaned = presets
+      .map(p => ({ id: p.id, label: p.label.trim(), text: p.text.trim() }))
+      .filter(p => p.label && p.text);
+    await onSave({ presets: cleaned });
+    setPresets(cleaned);
+    setPresetsDirty(false);
+  };
 
   const [userTimezone] = useState(() => {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
@@ -100,6 +135,62 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
             className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
           >
             {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      {/* Presets — reusable prompt directives */}
+      <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-text mb-1">Presets</h3>
+          <p className="text-xs text-muted">Reusable directives you can toggle on next to the model picker in chat (e.g. &quot;no em dashes&quot;, &quot;8th-grade diction&quot;). Only the ones you switch on are applied to a message.</p>
+        </div>
+
+        <div className="space-y-3">
+          {presets.length === 0 && (
+            <p className="text-xs text-muted/70">No presets yet. Add one below.</p>
+          )}
+          {presets.map(p => (
+            <div key={p.id} className="bg-bg border border-border rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  value={p.label}
+                  onChange={e => updatePreset(p.id, 'label', e.target.value)}
+                  placeholder="Label (e.g. No em dashes)"
+                  className="flex-1 min-w-0 bg-panel border border-border rounded-md px-3 py-1.5 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors"
+                />
+                <button
+                  onClick={() => removePreset(p.id)}
+                  className="shrink-0 text-xs text-muted hover:text-red-400 px-2 py-1.5 transition-colors"
+                  aria-label="Remove preset"
+                >
+                  Remove
+                </button>
+              </div>
+              <textarea
+                value={p.text}
+                onChange={e => updatePreset(p.id, 'text', e.target.value)}
+                rows={2}
+                placeholder="The instruction MODUS follows, e.g. Do not use em dashes or Oxford commas anywhere."
+                className="w-full bg-panel border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted/50 resize-none focus:outline-none focus:border-brand/50 transition-colors"
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={addPreset}
+            className="text-sm text-brand hover:text-brand/80 font-medium transition-colors"
+          >
+            + Add preset
+          </button>
+          <button
+            onClick={savePresets}
+            disabled={!presetsDirty || saving}
+            className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save presets'}
           </button>
         </div>
       </div>

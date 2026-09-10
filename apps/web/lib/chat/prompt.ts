@@ -66,6 +66,15 @@ export function buildStyleBlock(responseStyle: string, customStyle: string): str
   return '';
 }
 
+// Reusable prompt presets the user toggled on in the composer (e.g. "no em
+// dashes", "8th-grade diction"). Each is a plain directive; we join them under
+// one heading so they read as a checklist the model must follow.
+export function buildPresetsBlock(presets: string[]): string {
+  const clean = (presets ?? []).map(p => (p ?? '').trim()).filter(Boolean);
+  if (clean.length === 0) return '';
+  return `\n\nACTIVE PRESETS (follow every one of these):\n${clean.map(p => `- ${p}`).join('\n')}`;
+}
+
 export function buildSettingsBlock(briefingHour: number, briefingTimezone: string): string {
   // Format briefing time in user's local timezone for display
   let briefingTimeDisplay = '7:00 AM UTC';

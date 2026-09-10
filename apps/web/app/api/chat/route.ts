@@ -46,6 +46,7 @@ import { fetchGroupAvailabilityBlock } from '@/lib/chat/group-context';
 import {
   buildUserContextBlock,
   buildStyleBlock,
+  buildPresetsBlock,
   buildSettingsBlock,
   buildDateBlock,
   buildGoalContextBlock,
@@ -119,6 +120,8 @@ export async function POST(req: Request) {
       personalContext?: string;
       responseStyle?: string;
       customStyle?: string;
+      // Active composer presets: plain directive strings applied to this message.
+      presets?: string[];
       briefingHour?: number;
       briefingTimezone?: string;
       goalContext?: GoalContext;
@@ -321,6 +324,11 @@ export async function POST(req: Request) {
     let personalContext = (body.personalContext ?? '').slice(0, 2000);
     let responseStyle = body.responseStyle ?? '';
     let customStyle = (body.customStyle ?? '').slice(0, 500);
+    // Active composer presets: array of plain directive strings. Cap count and
+    // length so a crafted client can't blow up the system prompt.
+    const activePresets: string[] = Array.isArray(body.presets)
+      ? body.presets.filter((p: unknown): p is string => typeof p === 'string').slice(0, 12).map((p: string) => p.slice(0, 400))
+      : [];
     let briefingHour = body.briefingHour ?? 7;
     let briefingTimezone = body.briefingTimezone ?? 'UTC';
 
@@ -718,6 +726,7 @@ export async function POST(req: Request) {
     // System prompt blocks
     const userContextBlock = buildUserContextBlock(personalContext);
     const styleBlock = buildStyleBlock(responseStyle, customStyle);
+    const presetsBlock = buildPresetsBlock(activePresets);
     const settingsBlock = buildSettingsBlock(briefingHour, briefingTimezone);
     // Volatile (changes daily) — must NOT join the cached stable prefix below.
     const dateBlock = buildDateBlock(briefingTimezone);
@@ -767,8 +776,8 @@ export async function POST(req: Request) {
     // forced it: the persona alone was ~45% of a screen question's cost, and on a
     // 9x-weighted model that made four questions a whole day's allowance.
     const stableSystem = leanContext
-      ? SCREEN_ASSIST_SYSTEM_PROMPT + userContextBlock + styleBlock
-      : MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + settingsBlock + modelCatalogBlock;
+      ? SCREEN_ASSIST_SYSTEM_PROMPT + userContextBlock + styleBlock + presetsBlock
+      : MODUS_SYSTEM_PROMPT + userContextBlock + styleBlock + presetsBlock + settingsBlock + modelCatalogBlock;
     // Identity of the model serving THIS turn. Volatile (changes per turn under
     // Auto), so it goes here, never in the cached stable prefix. Grounds
     // "what model is this?" instead of letting the model answer from its weights.

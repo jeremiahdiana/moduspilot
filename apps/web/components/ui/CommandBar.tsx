@@ -108,16 +108,6 @@ const QUICK_ACTIONS: Action[] = [
     ),
   },
   {
-    label: 'Open Notes',
-    description: 'Your synced Apple Notes',
-    href: '/notes',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5" />
-      </svg>
-    ),
-  },
-  {
     label: 'Settings',
     description: 'Manage your preferences',
     href: '/settings',

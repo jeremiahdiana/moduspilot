@@ -104,9 +104,6 @@ export default function DashboardPage() {
     <div className="overflow-y-auto h-full">
       {/* Header */}
       <div className="relative px-4 md:px-8 pt-6 md:pt-8 pb-6 border-b border-border/50 overflow-hidden">
-        {/* Single faint static gradient for depth — no motion */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_100%_at_0%_0%,rgba(124,58,237,0.05),transparent)] pointer-events-none" />
-
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}

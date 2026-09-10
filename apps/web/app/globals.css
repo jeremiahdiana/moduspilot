@@ -711,3 +711,19 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .chart-reveal { animation: none; clip-path: none; }
 }
+
+/* ══ Global reduce-motion kill-switch ═══════════════════════════════════════
+   Set from Settings → Display → Reduce motion (writes data-reduce-motion="true"
+   on <html>). Collapses every CSS animation/transition and neutralises the
+   framer-motion springs that drive most of the app's decorative motion, without
+   having to gate each motion.* component individually. Scroll behavior too. */
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
