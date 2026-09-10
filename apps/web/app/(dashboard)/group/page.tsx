@@ -218,12 +218,12 @@ export default function GroupPage() {
 
         {/* No group, not on the Group plan → upgrade (invitees with a pending invite see the accept card above instead) */}
         {groupId === null && plan !== 'group' && myInvites.length === 0 && (
-          <div className="bg-panel border border-brand rounded-2xl p-6 shadow-[0_0_40px_rgba(124,58,237,0.10)]">
+          <div className="bg-panel border border-brand rounded-2xl p-6 shadow-[0_0_40px_rgba(13,148,136,0.10)]">
             <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">GROUP — $79/mo</p>
             <h2 className="text-lg font-semibold text-text mb-1">A private MODUS for your whole group.</h2>
             <p className="text-sm text-muted mb-4">You plus 4 members, each with their own MODUS. Agent-to-agent coordination, a shared group space, and everything in MODUS for each person.</p>
             <button onClick={upgrade} disabled={busy}
-              className="px-5 py-3 rounded-xl bg-brand text-white text-sm font-bold hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all disabled:opacity-50">
+              className="px-5 py-3 rounded-xl bg-brand text-white text-sm font-bold hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(13,148,136,0.4)] transition-all disabled:opacity-50">
               Upgrade to Group
             </button>
           </div>

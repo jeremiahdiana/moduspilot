@@ -386,7 +386,7 @@ export default function ApprovalCard({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={spring}
-            className="border border-brand/15 bg-panel rounded-xl px-4 py-4 space-y-3 shadow-[inset_0_0_32px_rgba(124,58,237,0.04)]"
+            className="border border-brand/15 bg-panel rounded-xl px-4 py-4 space-y-3 shadow-[inset_0_0_32px_rgba(13,148,136,0.04)]"
           >
             <div>
               <p className="text-xs text-muted uppercase tracking-wider mb-1">

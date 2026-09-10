@@ -26,7 +26,7 @@ interface Goal {
 
 const TF: Record<Timeframe, { label: string; sublabel: string; color: string; badge: string; ring: string }> = {
   short: { label: 'Short term', sublabel: 'Under 1 year',    color: 'text-blue-500',  badge: 'bg-blue-500/10 text-blue-500', ring: '#3B82F6' },
-  long:  { label: 'Long term',  sublabel: 'More than 1 year', color: 'text-brand',     badge: 'bg-brand/10 text-brand',       ring: '#7C3AED' },
+  long:  { label: 'Long term',  sublabel: 'More than 1 year', color: 'text-brand',     badge: 'bg-brand/10 text-brand',       ring: '#0d9488' },
 };
 
 interface GoalForm {

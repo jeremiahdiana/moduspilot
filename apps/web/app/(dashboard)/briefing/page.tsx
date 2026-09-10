@@ -678,7 +678,7 @@ function PatternCard({ text }: { text: string }) {
 function MissionCard({ task, source }: { task: string; source?: string }) {
   return (
     <div className="rounded-xl border border-brand/20 px-5 py-4"
-      style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(124,58,237,0.03) 100%)' }}>
+      style={{ background: 'linear-gradient(135deg, rgba(13,148,136,0.08) 0%, rgba(13,148,136,0.03) 100%)' }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-brand"><IconTarget /></span>
         <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-brand/70">Mission today</span>
@@ -792,7 +792,7 @@ function useYesterdayStats(uid: string | null): YesterdayStats | null {
 function DayScoreRing({ score }: { score: number }) {
   const size = 44, r = (size - 5) / 2, circ = 2 * Math.PI * r;
   const pct = Math.min(100, score);
-  const color = pct >= 80 ? '#10B981' : pct >= 40 ? '#7C3AED' : '#F59E0B';
+  const color = pct >= 80 ? '#10B981' : pct >= 40 ? '#0d9488' : '#F59E0B';
   return (
     <div className="relative shrink-0" title={`Day readiness: ${pct}%`}>
       <svg width={size} height={size} className="-rotate-90">
@@ -1355,9 +1355,9 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
     <div className="flex-1 overflow-y-auto" style={{
       background: 'rgb(var(--color-bg))',
       backgroundImage: `
-        radial-gradient(ellipse 100% 45% at 50% -5%, rgba(124,58,237,0.11) 0%, transparent 70%),
-        radial-gradient(ellipse 55% 30% at 88% 20%, rgba(139,92,246,0.06) 0%, transparent 55%),
-        radial-gradient(ellipse 35% 20% at 12% 75%, rgba(167,139,250,0.04) 0%, transparent 50%)
+        radial-gradient(ellipse 100% 45% at 50% -5%, rgba(13,148,136,0.11) 0%, transparent 70%),
+        radial-gradient(ellipse 55% 30% at 88% 20%, rgba(20,184,166,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 35% 20% at 12% 75%, rgba(45,212,191,0.04) 0%, transparent 50%)
       `,
     }}>
       <div className="px-6 py-10">

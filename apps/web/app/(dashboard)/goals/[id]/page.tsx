@@ -57,7 +57,7 @@ const TF_BADGE: Record<Timeframe, string> = {
 };
 const TF_RING: Record<Timeframe, string> = {
   short: '#3B82F6',
-  long:  '#7C3AED',
+  long:  '#0d9488',
 };
 const TF_LABEL: Record<Timeframe, string> = {
   short: 'Short term',
@@ -686,7 +686,7 @@ export default function GoalDetailPage() {
     );
   }
 
-  const ringColor = goal.timeframe ? TF_RING[goal.timeframe] : '#7C3AED';
+  const ringColor = goal.timeframe ? TF_RING[goal.timeframe] : '#0d9488';
   const hasMilestones = goal.milestones.length > 0;
   const momentum = getMomentum(goal);
   const progressChanged = draftProgress !== goal.progress;

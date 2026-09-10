@@ -101,7 +101,7 @@ export default function DraftOptionsCard({
       className={`rounded-xl overflow-hidden ${
         locked
           ? 'border border-border/60 bg-panel/40 pointer-events-none select-none'
-          : 'border border-brand/20 bg-panel shadow-[0_0_24px_rgba(124,58,237,0.06)]'
+          : 'border border-brand/20 bg-panel shadow-[0_0_24px_rgba(13,148,136,0.06)]'
       }`}
     >
       {locked && (
@@ -140,7 +140,7 @@ export default function DraftOptionsCard({
             transition={spring}
             className={`w-full text-left px-3.5 py-3 rounded-xl border transition-all duration-150 ${
               selected === i
-                ? 'border-brand/50 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15)]'
+                ? 'border-brand/50 bg-brand/8 shadow-[0_0_0_1px_rgba(13,148,136,0.15)]'
                 : 'border-border/60 bg-bg/50 hover:border-brand/25 hover:bg-brand/4'
             }`}
           >
@@ -180,7 +180,7 @@ export default function DraftOptionsCard({
           transition={spring}
           className={`w-full text-left px-3.5 py-3 rounded-xl border transition-all duration-150 cursor-pointer ${
             isCustomSelected
-              ? 'border-brand/50 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15)]'
+              ? 'border-brand/50 bg-brand/8 shadow-[0_0_0_1px_rgba(13,148,136,0.15)]'
               : 'border-border/60 bg-bg/50 hover:border-brand/25 hover:bg-brand/4'
           }`}
         >

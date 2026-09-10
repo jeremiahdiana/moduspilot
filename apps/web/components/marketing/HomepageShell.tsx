@@ -4,12 +4,11 @@ import { ScrollProgress } from './MarketingBackground';
 import RevealSection from './RevealSection';
 import MarketingDecor from './MarketingDecor';
 import HeroFilm from './HeroFilm';
+import HomeSections from './HomeSections';
 import HomePricingSection from './HomePricingSection';
 import FAQSection from './FAQSection';
 import FinalCTA from './FinalCTA';
 import Footer from './Footer';
-
-const MODELS = ['Claude', 'GPT-5.6', 'Gemini', 'Llama', 'DeepSeek'];
 
 /**
  * HomepageShell — the simplified homepage (Anthropic / Perplexity reference): a
@@ -26,17 +25,7 @@ export default function HomepageShell({ dark = false }: { dark?: boolean }) {
       <div className="relative" style={{ zIndex: 2 }}>
         <HeroFilm />
 
-        {/* Quiet "works with every model" strip */}
-        <section className="px-6 py-12 border-y border-border">
-          <div className="max-w-5xl mx-auto text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted mb-6">Every frontier model, one subscription</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-              {MODELS.map(m => (
-                <span key={m} className="text-lg sm:text-xl text-text/70 [font-family:var(--font-serif)]">{m}</span>
-              ))}
-            </div>
-          </div>
-        </section>
+        <HomeSections />
 
         <RevealSection direction="none">
           <HomePricingSection />
