@@ -55,14 +55,16 @@ function ModelCard({ row }: { row: Row }) {
 
 function Group({ eyebrow, title, blurb, rows }: { eyebrow: string; title: string; blurb: string; rows: Row[] }) {
   return (
-    <section className="max-w-5xl mx-auto px-6 py-10">
-      <div className="mb-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-muted mb-2">{eyebrow}</p>
-        <h2 className="text-2xl sm:text-3xl text-text tracking-tight mb-2">{title}</h2>
-        <p className="text-muted max-w-2xl leading-relaxed">{blurb}</p>
-      </div>
-      <div className="grid sm:grid-cols-2 gap-4">
-        {rows.map(r => <ModelCard key={r.name} row={r} />)}
+    <section className="max-w-5xl mx-auto px-6 py-12 border-t border-border">
+      <div className="grid md:grid-cols-[260px_1fr] gap-8 md:gap-12">
+        <div className="md:sticky md:top-24 self-start">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted mb-2">{eyebrow}</p>
+          <h2 className="text-2xl sm:text-3xl text-text tracking-tight mb-3">{title}</h2>
+          <p className="text-sm text-muted leading-relaxed">{blurb}</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {rows.map(r => <ModelCard key={r.name} row={r} />)}
+        </div>
       </div>
     </section>
   );

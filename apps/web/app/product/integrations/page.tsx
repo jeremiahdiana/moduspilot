@@ -82,12 +82,15 @@ export default function IntegrationsPage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-6 pb-16 space-y-14">
+      <div className="max-w-5xl mx-auto px-6 pb-16">
         {SECTIONS.map(section => (
-          <section key={section.title}>
-            <h2 className="text-2xl sm:text-3xl text-text tracking-tight mb-2">{section.title}</h2>
-            <p className="text-muted max-w-2xl leading-relaxed mb-6">{section.blurb}</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <section key={section.title} className="py-12 border-t border-border">
+            <div className="grid md:grid-cols-[260px_1fr] gap-8 md:gap-12">
+              <div className="md:sticky md:top-24 self-start">
+                <h2 className="text-2xl sm:text-3xl text-text tracking-tight mb-3">{section.title}</h2>
+                <p className="text-sm text-muted leading-relaxed">{section.blurb}</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
               {section.items.map(item => (
                 <div key={item.name} className="rounded-xl border border-border bg-panel p-5">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -101,6 +104,7 @@ export default function IntegrationsPage() {
                   <p className="text-sm text-muted leading-relaxed">{item.detail}</p>
                 </div>
               ))}
+              </div>
             </div>
           </section>
         ))}
