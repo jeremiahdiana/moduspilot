@@ -55,6 +55,9 @@ export interface UserSettings {
   layout?: {
     dashboardHidden: string[];
     briefingHidden: string[];
+    // User's drag-reordered dashboard widget order (keys from DASHBOARD_WIDGETS).
+    // Empty = fall back to the default order. Unknown/new keys are appended.
+    dashboardOrder?: string[];
   };
 }
 
@@ -89,7 +92,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   // Settings toggle and the job that acts on it cannot disagree again.
   capabilities: { ...CAPABILITY_DEFAULTS },
   sidebar: { hidden: [], workspaceCollapsed: false },
-  layout: { dashboardHidden: [], briefingHidden: [] },
+  layout: { dashboardHidden: [], briefingHidden: [], dashboardOrder: [] },
 };
 
 export function useUserSettings(user: User | null) {
@@ -160,6 +163,7 @@ export function useUserSettings(user: User | null) {
         layout: {
           dashboardHidden: updates.layout?.dashboardHidden ?? settings.layout?.dashboardHidden ?? [],
           briefingHidden: updates.layout?.briefingHidden ?? settings.layout?.briefingHidden ?? [],
+          dashboardOrder: updates.layout?.dashboardOrder ?? settings.layout?.dashboardOrder ?? [],
         },
       };
       setSettings(next);

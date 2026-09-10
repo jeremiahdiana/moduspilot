@@ -8,6 +8,7 @@ import ImageCard from './ImageCard';
 import DocumentCard from './DocumentCard';
 import ChartCard from './ChartCard';
 import MarkdownMessage from './MarkdownMessage';
+import AiCheckButton from './AiCheckButton';
 import { blockProgress } from '@/lib/chat/block-progress';
 import { modelName, modelProvider } from '@/lib/models';
 import { ProviderLogo } from '@/components/marketing/BrandLogos';
@@ -255,6 +256,11 @@ export default function MessageBubble({
           ) : part.value.trim() ? (
             <MarkdownMessage key={i}>{part.value}</MarkdownMessage>
           ) : null
+        )}
+        {/* AI-text check: only on a finished assistant answer with enough prose
+            to score, and never on a card-only message (approval/options/etc). */}
+        {!isStreaming && !hasSpecialBlock && rawText.trim().length >= 40 && (
+          <AiCheckButton text={rawText.trim()} />
         )}
         {progress && (
           <div className="px-4 py-3 border border-border bg-panel rounded-xl min-w-[240px]">

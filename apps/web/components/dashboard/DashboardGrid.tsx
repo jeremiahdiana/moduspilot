@@ -1,6 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, Reorder, useDragControls } from 'framer-motion';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import TaskList from './TaskList';
 import GmailWidget from './GmailWidget';
 import CalendarWidget from './CalendarWidget';
@@ -13,18 +15,38 @@ interface WidgetProps {
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  /** Drag handle wiring — supplied when the widget lives in the reorderable list. */
+  dragControls?: ReturnType<typeof useDragControls>;
 }
 
-function Widget({ title, icon, href, action, children, className = '' }: WidgetProps) {
+function DragHandle({ controls }: { controls: ReturnType<typeof useDragControls> }) {
+  return (
+    <button
+      type="button"
+      aria-label="Drag to reorder"
+      onPointerDown={(e) => { e.preventDefault(); controls.start(e); }}
+      className="cursor-grab active:cursor-grabbing text-muted/50 hover:text-muted transition-colors touch-none -ml-1 mr-0.5"
+    >
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+        <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
+        <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+        <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
+      </svg>
+    </button>
+  );
+}
+
+function Widget({ title, icon, href, action, children, className = '', dragControls }: WidgetProps) {
   return (
     <motion.div
       className={`bg-panel border border-border/60 rounded-2xl flex flex-col overflow-hidden ${className}`}
-      whileHover={{ y: -2, borderColor: 'rgba(124,58,237,0.20)' }}
+      whileHover={{ borderColor: 'rgba(124,58,237,0.20)' }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
       style={{ willChange: 'transform' }}
     >
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2.5">
+          {dragControls && <DragHandle controls={dragControls} />}
           <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand">
             {icon}
           </div>
@@ -73,59 +95,64 @@ const Icons = {
   ),
 };
 
-function FadeUp({ delay, children }: { delay: number; children: React.ReactNode }) {
+// The widgets this grid owns, in their default order. The briefing, focus and
+// needsYou cards are rendered by the dashboard page itself (above the grid), so
+// they are not reorderable here.
+const WIDGET_DEFS: Record<string, { title: string; icon: React.ReactNode; href?: string; minH: string; render: () => React.ReactNode }> = {
+  inbox:    { title: 'Inbox',            icon: Icons.gmail,    href: '/briefing', minH: 'min-h-[220px]', render: () => <GmailWidget /> },
+  tasks:    { title: 'Tasks',            icon: Icons.tasks,    href: '/tasks',    minH: 'min-h-[180px]', render: () => <TaskList /> },
+  schedule: { title: "Today's Schedule", icon: Icons.calendar,                    minH: 'min-h-[80px]',  render: () => <CalendarWidget /> },
+};
+const DEFAULT_ORDER = ['inbox', 'tasks', 'schedule'];
+
+// Merge the saved order with the canonical list: keep known saved keys in their
+// saved order, then append any widgets the user has never reordered (e.g. new
+// ones shipped later), so the list is always complete and never loses a widget.
+function resolveOrder(saved: string[]): string[] {
+  const known = saved.filter(k => k in WIDGET_DEFS);
+  const missing = DEFAULT_ORDER.filter(k => !known.includes(k));
+  return [...known, ...missing];
+}
+
+// A single reorderable widget row. Its own drag controls mean only the handle
+// starts a drag — the scrollable widget body stays clickable/scrollable.
+function ReorderableWidget({ id }: { id: string }) {
+  const controls = useDragControls();
+  const def = WIDGET_DEFS[id];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 190, damping: 22, delay }}
+    <Reorder.Item
+      value={id}
+      dragListener={false}
+      dragControls={controls}
+      className="list-none"
+      whileDrag={{ scale: 1.01, boxShadow: '0 12px 30px rgba(0,0,0,0.18)', zIndex: 20 }}
     >
-      {children}
-    </motion.div>
+      <Widget title={def.title} icon={def.icon} href={def.href} className={def.minH} dragControls={controls}>
+        {def.render()}
+      </Widget>
+    </Reorder.Item>
   );
 }
 
-export default function DashboardGrid({ hidden }: { hidden?: Set<string> }) {
-  const show = (key: string) => !hidden?.has(key);
-  // The briefing now surfaces in the top-of-page hero (BriefingHero), not as a
-  // grid widget — so the left column is just the Inbox.
-  const showInbox = show('inbox');
+export default function DashboardGrid({ uid, hidden, order }: { uid?: string; hidden?: Set<string>; order?: string[] }) {
+  const visible = resolveOrder(order ?? []).filter(k => !hidden?.has(k));
+
+  const persist = (next: string[]) => {
+    if (!uid) return;
+    // Recursive merge leaves dashboardHidden/briefingHidden intact.
+    void setDoc(doc(db, 'users', uid), { settings: { layout: { dashboardOrder: next } } }, { merge: true });
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
-
-        {/* Left column */}
-        {showInbox && (
-          <div className="flex flex-col gap-4">
-            <FadeUp delay={0.12}>
-              <Widget title="Inbox" icon={Icons.gmail} href="/briefing" className="min-h-[220px]">
-                <GmailWidget />
-              </Widget>
-            </FadeUp>
-          </div>
-        )}
-
-        {/* Right column */}
-        {show('tasks') && (
-          <div className="flex flex-col gap-4">
-            <FadeUp delay={0.06}>
-              <Widget title="Tasks" icon={Icons.tasks} href="/tasks" className="min-h-[180px]">
-                <TaskList />
-              </Widget>
-            </FadeUp>
-          </div>
-        )}
-      </div>
-
-      {/* Full-width Calendar */}
-      {show('schedule') && (
-        <FadeUp delay={0.18}>
-          <Widget title="Today's Schedule" icon={Icons.calendar} className="min-h-[80px]">
-            <CalendarWidget />
-          </Widget>
-        </FadeUp>
-      )}
-    </div>
+    <Reorder.Group
+      axis="y"
+      values={visible}
+      onReorder={persist}
+      className="flex flex-col gap-4"
+    >
+      {visible.map(id => (
+        <ReorderableWidget key={id} id={id} />
+      ))}
+    </Reorder.Group>
   );
 }

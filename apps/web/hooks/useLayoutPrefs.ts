@@ -15,12 +15,14 @@ export function useLayoutPrefs(uid: string | undefined) {
   const [dashboardHidden, setDashboardHidden] = useState<Set<string>>(new Set());
   const [briefingHidden, setBriefingHidden] = useState<Set<string>>(new Set());
   const [briefingEnabled, setBriefingEnabled] = useState(CAPABILITY_DEFAULTS.dailyBriefing);
+  const [dashboardOrder, setDashboardOrder] = useState<string[]>([]);
 
   useEffect(() => {
     if (!uid) {
       setDashboardHidden(new Set());
       setBriefingHidden(new Set());
       setBriefingEnabled(CAPABILITY_DEFAULTS.dailyBriefing);
+      setDashboardOrder([]);
       return;
     }
     const unsub = onSnapshot(doc(db, 'users', uid), snap => {
@@ -29,9 +31,10 @@ export function useLayoutPrefs(uid: string | undefined) {
       setDashboardHidden(new Set(Array.isArray(l?.dashboardHidden) ? l.dashboardHidden : []));
       setBriefingHidden(new Set(Array.isArray(l?.briefingHidden) ? l.briefingHidden : []));
       setBriefingEnabled(capabilityEnabled(s?.capabilities, 'dailyBriefing'));
+      setDashboardOrder(Array.isArray(l?.dashboardOrder) ? l.dashboardOrder : []);
     });
     return unsub;
   }, [uid]);
 
-  return { dashboardHidden, briefingHidden, briefingEnabled };
+  return { dashboardHidden, briefingHidden, briefingEnabled, dashboardOrder };
 }

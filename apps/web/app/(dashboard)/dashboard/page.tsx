@@ -97,7 +97,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const firstName = user?.displayName?.split(' ')[0] ?? '';
   const focus = useFocusTask(user?.uid ?? null);
-  const { dashboardHidden, briefingEnabled } = useLayoutPrefs(user?.uid);
+  const { dashboardHidden, briefingEnabled, dashboardOrder } = useLayoutPrefs(user?.uid);
   const showBriefingHero = !dashboardHidden.has('briefing') && briefingEnabled;
 
   return (
@@ -152,7 +152,7 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
         {!dashboardHidden.has('needsYou') && <NeedsYou />}
-        <DashboardGrid hidden={dashboardHidden} />
+        <DashboardGrid uid={user?.uid} hidden={dashboardHidden} order={dashboardOrder} />
       </div>
     </div>
   );
