@@ -21,7 +21,7 @@ type ChartSpec = {
 };
 
 // Brand-led categorical palette (violet first), tuned to read in light + dark.
-const PALETTE = ['#0d9488', '#2dd4bf', '#5eead4', '#0f766e', '#5eead4', '#d8b4fe'];
+const PALETTE = ['#7C3AED', '#a78bfa', '#c084fc', '#6d28d9', '#818cf8', '#d8b4fe'];
 
 export default function ChartCard({ raw }: { raw: string }) {
   const spec = useMemo<ChartSpec | null>(() => {

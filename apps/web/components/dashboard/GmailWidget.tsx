@@ -19,7 +19,7 @@ interface GoogleAccount {
 }
 
 function avatarColor(name: string): string {
-  const colors = ['#0d9488', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2'];
+  const colors = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2'];
   let h = 0;
   for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
   return colors[Math.abs(h) % colors.length];

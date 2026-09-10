@@ -51,7 +51,7 @@ function ParticleCanvas() {
         const a = 0.28 + 0.22 * Math.sin(n.phase);
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(45,212,191,${a})`;
+        ctx.fillStyle = `rgba(167,139,250,${a})`;
         ctx.fill();
       }
       for (let i = 0; i < nodes.length; i++) {
@@ -63,7 +63,7 @@ function ParticleCanvas() {
             ctx.beginPath();
             ctx.moveTo(nodes[i].x, nodes[i].y);
             ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = `rgba(13,148,136,${(1 - d / LINK) * 0.16})`;
+            ctx.strokeStyle = `rgba(124,58,237,${(1 - d / LINK) * 0.16})`;
             ctx.lineWidth = 0.6;
             ctx.stroke();
           }
@@ -173,9 +173,9 @@ export default function LoginPage() {
         <div className="hero-orb hero-orb-2" style={{ opacity: 0.5 }} />
         <div className="hero-orb hero-orb-3" style={{ opacity: 0.4 }} />
         <ParticleCanvas />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(13,148,136,0.10)_1px,transparent_1px)] bg-[size:28px_28px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.10)_1px,transparent_1px)] bg-[size:28px_28px]" />
         {/* Center focus glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_50%,rgba(13,148,136,0.08),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_50%,rgba(124,58,237,0.08),transparent_70%)]" />
       </div>
 
       {/* Card */}

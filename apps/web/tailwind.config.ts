@@ -12,11 +12,8 @@ const config: Config = {
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         panel: 'rgb(var(--color-panel) / <alpha-value>)',
         border: 'rgb(var(--color-border) / <alpha-value>)',
-        // App accent — refined teal (2026-09, replacing violet). One token, so the
-        // whole dashboard/chat recolors from here. Marketing uses .btn-ink (ink), not
-        // this, so it stays near-monochrome.
-        brand: '#0d9488',
-        'brand-light': '#2dd4bf',
+        brand: '#7C3AED',
+        'brand-light': '#a78bfa',
         text: 'rgb(var(--color-text) / <alpha-value>)',
         muted: 'rgb(var(--color-muted) / <alpha-value>)',
       },

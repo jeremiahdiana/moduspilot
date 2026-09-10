@@ -99,8 +99,8 @@ function DotProgress({ step, total }: { step: number; total: number }) {
           animate={{
             width: i + 1 === step ? 20 : 6,
             backgroundColor: i + 1 <= step
-              ? 'rgba(13,148,136,1)'
-              : 'rgba(13,148,136,0.2)',
+              ? 'rgba(124,58,237,1)'
+              : 'rgba(124,58,237,0.2)',
           }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="h-1.5 rounded-full"
@@ -181,7 +181,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={onStart}
-          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(13,148,136,0.35)]"
+          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
         >
           Set up MODUS — takes 60 sec →
         </motion.button>
@@ -306,7 +306,7 @@ function PlanStep({ selected, setSelected, cadence, setCadence }: {
               onClick={() => setSelected(p.id)}
               className={`relative w-full p-4 rounded-2xl border text-left transition-all duration-200 ${
                 active
-                  ? 'border-brand/60 bg-brand/8 shadow-[0_0_0_1px_rgba(13,148,136,0.15),0_4px_20px_rgba(13,148,136,0.12)]'
+                  ? 'border-brand/60 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15),0_4px_20px_rgba(124,58,237,0.12)]'
                   : 'border-border/60 bg-panel/60 hover:border-brand/25'
               }`}
             >
@@ -396,7 +396,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
               animate={{ x: p.x, y: p.y, opacity: 0, scale: 0 }}
               transition={{ delay: 0.15 + i * 0.04, duration: 0.55, ease: 'easeOut' }}
               className="absolute w-2 h-2 rounded-full"
-              style={{ backgroundColor: p.brand ? '#0d9488' : '#2dd4bf' }}
+              style={{ backgroundColor: p.brand ? '#7c3aed' : '#a78bfa' }}
             />
           ))}
 
@@ -404,7 +404,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
             initial={{ scale: 0.3, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.1 }}
-            className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand/25 to-brand/10 border border-brand/30 flex items-center justify-center shadow-[0_12px_48px_rgba(13,148,136,0.42)]"
+            className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand/25 to-brand/10 border border-brand/30 flex items-center justify-center shadow-[0_12px_48px_rgba(124,58,237,0.42)]"
           >
             <Image src="/logo.png"      alt="MODUS" width={48} height={36} className="object-contain block dark:hidden" />
             <Image src="/logo-dark.png" alt="MODUS" width={48} height={36} className="object-contain hidden dark:block" />
@@ -475,7 +475,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={onEnter}
-          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(13,148,136,0.35)]"
+          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
         >
           {alreadyPaid ? 'Enter MODUS →' : `Start my 3-day ${planName} trial →`}
         </motion.button>
@@ -650,7 +650,7 @@ export default function OnboardingPage() {
         description: 'Check in with MODUS each day. Review your goals, plan your day, and stay on track.',
         frequency: 'daily',
         target: 1,
-        color: '#0d9488',
+        color: '#7c3aed',
         icon: '🔁',
         completedDates: [],
         source: 'onboarding',
@@ -799,7 +799,7 @@ export default function OnboardingPage() {
               whileTap={isValid[screen] ? { scale: 0.97 } : {}}
               onClick={handleNext}
               disabled={!isValid[screen] || saving}
-              className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(13,148,136,0.28)]"
+              className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
             >
               {!isLast ? 'Continue →' : alreadyPaid ? 'Finish →' : 'Review & start →'}
             </motion.button>

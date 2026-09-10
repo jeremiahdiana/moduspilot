@@ -208,7 +208,7 @@ export default function RemindersPage() {
   useEffect(() => {
     if (!habitsLoading && totalHabits > 0 && doneToday === totalHabits && prevDoneCount.current < totalHabits) {
       setShowCelebration(true);
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#0d9488', '#2dd4bf', '#10B981', '#F59E0B'] });
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#7C3AED', '#A78BFA', '#10B981', '#F59E0B'] });
       setTimeout(() => setShowCelebration(false), 3500);
     }
     prevDoneCount.current = doneToday;
