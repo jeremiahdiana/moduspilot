@@ -110,7 +110,7 @@ export default function IntegrationsPage() {
         ))}
       </div>
 
-      <section className="max-w-3xl mx-auto px-6 py-20 text-center">
+      <section className="max-w-5xl mx-auto px-6 py-20 border-t border-border">
         <h2 className="text-3xl md:text-4xl text-text tracking-tight mb-5">Connect everything. One subscription.</h2>
         <Link href="/login" className="btn-ink px-8 py-3.5 text-base">Start free</Link>
       </section>

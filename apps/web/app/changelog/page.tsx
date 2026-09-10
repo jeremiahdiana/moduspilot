@@ -68,7 +68,7 @@ export default function ChangelogPage() {
         </ol>
       </div>
 
-      <section className="max-w-3xl mx-auto px-6 py-16 text-center border-t border-border">
+      <section className="max-w-5xl mx-auto px-6 py-16 border-t border-border">
         <h2 className="text-3xl md:text-4xl text-text tracking-tight mb-5">Try the latest.</h2>
         <Link href="/login" className="btn-ink px-8 py-3.5 text-base">Start free</Link>
       </section>
