@@ -184,6 +184,10 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
 
         <div className="flex items-center gap-2 sm:gap-3">
           {isMarketing ? (
+            // Only render the in-session toggle when a handler is wired. A page
+            // that sets marketingTheme with no onToggleTheme (a light-only legal
+            // page) gets no toggle at all rather than a dead button.
+            onToggleTheme ? (
             <button
               onClick={onToggleTheme}
               aria-label="Toggle theme"
@@ -200,6 +204,7 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
                 </svg>
               )}
             </button>
+            ) : null
           ) : (
             <AnimatedThemeToggler />
           )}
@@ -258,18 +263,23 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
                 >
                   Start free
                 </Link>
-                <button
-                  onClick={() => setMenuOpen(o => !o)}
-                  className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5"
-                  aria-label="Toggle menu"
-                >
-                  <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-                  <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-                  <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
-                </button>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Hamburger — rendered in EVERY auth state (a signed-in visitor on a
+              phone needs the nav too). The desktop menus are hidden md:flex, so
+              this is the only way to the dropdown pages on mobile. */}
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 shrink-0"
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+          >
+            <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-text transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
         </div>
       </div>
 
@@ -312,11 +322,11 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
                 ))}
               </div>
               <Link
-                href="/login"
+                href={authedUser ? '/dashboard' : '/login'}
                 onClick={() => setMenuOpen(false)}
                 className="btn-ink w-full py-2.5 text-sm"
               >
-                Start free
+                {authedUser ? 'Go to Dashboard' : 'Start free'}
               </Link>
             </div>
           </motion.div>

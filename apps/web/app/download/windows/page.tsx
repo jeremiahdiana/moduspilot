@@ -20,6 +20,7 @@ const STEPS = [
 
 export default function DownloadWindowsPage() {
   const [started, setStarted] = useState(false);
+  const [dark, setDark] = useState(false);
   const fired = useRef(false);
 
   const download = () => {
@@ -35,9 +36,9 @@ export default function DownloadWindowsPage() {
   }, []);
 
   return (
-    <main className="marketing marketing-light-tokens bg-bg text-text min-h-screen overflow-x-hidden relative">
+    <main className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} bg-bg text-text min-h-screen overflow-x-hidden relative`}>
       <MarketingBackground />
-      <Navbar marketingTheme="light" />
+      <Navbar marketingTheme={dark ? 'dark' : 'light'} onToggleTheme={() => setDark(d => !d)} />
 
       <div className="relative pt-32 pb-24 px-6" style={{ zIndex: 2 }}>
         <div className="max-w-2xl mx-auto">

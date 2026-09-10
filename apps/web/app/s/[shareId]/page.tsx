@@ -138,7 +138,7 @@ export default async function SharedConversationPage({ params }: { params: { sha
           </p>
           <Link
             href="https://moduspilot.com"
-            className="btn-primary inline-flex items-center gap-2 mt-7 px-6 py-3 rounded-xl text-white text-sm font-semibold"
+            className="inline-flex items-center gap-2 mt-7 px-6 py-3 rounded-xl bg-text text-bg text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             <span className="relative z-10">Start free, no card</span>
           </Link>

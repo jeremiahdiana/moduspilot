@@ -434,11 +434,12 @@ function ScenariosSection() {
 }
 
 export default function FeaturesPage() {
+  const [dark, setDark] = useState(false);
   return (
-    <div className="marketing marketing-light-tokens bg-bg text-text min-h-screen relative overflow-x-hidden">
+    <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} bg-bg text-text min-h-screen relative overflow-x-hidden`}>
       <ScrollProgress />
       <MarketingBackground />
-      <Navbar marketingTheme="light" />
+      <Navbar marketingTheme={dark ? 'dark' : 'light'} onToggleTheme={() => setDark(d => !d)} />
 
       <div className="relative pt-24" style={{ zIndex: 2 }}>
 
