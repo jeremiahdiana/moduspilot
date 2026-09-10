@@ -10,6 +10,8 @@
   --font-display: 'Clash Display', system-ui, sans-serif;
   --font-sans: 'Satoshi', system-ui, sans-serif;
   --font-serif: 'Sentient', Georgia, 'Times New Roman', serif;
+  /* Anthropic-style bold grotesque for marketing hero headlines. */
+  --font-grotesk: 'Space Grotesk', system-ui, sans-serif;
   /* The page is a soft grey, not paper-white — pure white on near-white read as
      blinding and left panels with no elevation to separate them. Panel stays the
      lightest surface so raised cards work the same way they do in dark mode. */
@@ -21,11 +23,13 @@
 }
 
 .dark {
-  --color-bg: 8 8 9;
-  --color-panel: 22 22 24;
-  --color-border: 32 32 35;
+  /* Soft neutral grey (Claude / ChatGPT / Perplexity feel), not near-black. The
+     app force-adds .dark, so this is the chat/dashboard surface. */
+  --color-bg: 24 24 27;
+  --color-panel: 34 34 38;
+  --color-border: 48 48 53;
   --color-text: 237 237 240;
-  --color-muted: 140 140 148;
+  --color-muted: 152 152 160;
 }
 
 /* ── Marketing "Cluely-light" scope ──────────────────────────────────────────
@@ -65,11 +69,11 @@
   --shine-cta-glow: rgba(15, 18, 23, 0.14);
 }
 .marketing-dark-tokens {
-  --color-bg: 8 8 9;
-  --color-panel: 22 22 24;
-  --color-border: 34 34 38;
+  --color-bg: 24 24 27;
+  --color-panel: 34 34 38;
+  --color-border: 48 48 53;
   --color-text: 237 237 240;
-  --color-muted: 148 148 156;
+  --color-muted: 152 152 160;
   /* Code editor mockup — dark */
   --code-bg: #0d1117;
   --code-chrome: #0d1117;
@@ -107,6 +111,11 @@
   font-family: var(--font-serif);
   font-weight: 500;
   letter-spacing: -0.015em;
+}
+/* Opt a heading into the Anthropic-style grotesque (beats .marketing h1 above). */
+.marketing .font-grotesk,
+.marketing h1.font-grotesk {
+  font-family: var(--font-grotesk);
 }
 
 /* ── Marketing flat buttons (Anthropic / Perplexity look) ────────────────────

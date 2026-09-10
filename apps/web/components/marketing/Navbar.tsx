@@ -29,7 +29,7 @@ const MENUS: NavMenu[] = [
       { href: '/features', label: 'Chat' },
       { href: '/product/compare', label: 'Compare models' },
       { href: '/product/integrations', label: 'Integrations' },
-      { href: '/download/mac', label: 'Desktop apps' },
+      { href: '/download/mac', label: 'Download for Mac' },
     ],
   },
   {

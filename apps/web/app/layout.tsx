@@ -54,6 +54,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        {/* Space Grotesk — a free geometric grotesque close to Anthropic's Styrene,
+            for the big marketing hero headlines (wide, bold, well-spaced). */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" />
         {/* 🔤 SATOSHI AND SENTIENT ARE LOADED AS VARIABLE FONTS (`@1,2`), NOT
             AS STATIC WEIGHTS — because Satoshi ships NO 600 and Sentient ships
             no 600 either. Tailwind's `font-semibold` IS 600, so every semibold

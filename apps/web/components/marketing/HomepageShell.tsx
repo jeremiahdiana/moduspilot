@@ -4,6 +4,7 @@ import { ScrollProgress } from './MarketingBackground';
 import RevealSection from './RevealSection';
 import MarketingDecor from './MarketingDecor';
 import HeroFilm from './HeroFilm';
+import LatestReleaseCard from './LatestReleaseCard';
 import HomeSections from './HomeSections';
 import HomePricingSection from './HomePricingSection';
 import FAQSection from './FAQSection';
@@ -24,6 +25,18 @@ export default function HomepageShell({ dark = false }: { dark?: boolean }) {
 
       <div className="relative" style={{ zIndex: 2 }}>
         <HeroFilm />
+
+        {/* Anthropic-style latest-release image card */}
+        <section className="max-w-6xl mx-auto px-6 pb-4">
+          <LatestReleaseCard
+            eyebrow="Every frontier model"
+            title={<>Claude, GPT-5.6, Gemini<br className="hidden sm:block" /> and every model, in one place</>}
+            subtitle="One subscription instead of five. Auto-routed to the best model for every task."
+            image="/marketing/sky.jpg"
+            href="/product/compare"
+            cta="See the models"
+          />
+        </section>
 
         <HomeSections />
 

@@ -51,17 +51,12 @@ export default function DownloadMacPage() {
     setStarted(a);
   };
 
+  // Detect the chip so we can mark the right build "Recommended" — but NEVER
+  // auto-download. The user starts the download by clicking a build.
   useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-    const detected = detectArch();
-    setArch(detected);
-    // Only auto-start when we're confident about the chip — never push an Intel
-    // Mac an arm64 build (it simply won't open) or vice versa.
-    if (detected !== 'unknown') {
-      const t = setTimeout(() => download(detected), 800);
-      return () => clearTimeout(t);
-    }
+    setArch(detectArch());
   }, []);
 
   const recommended: Arch | null = arch === 'unknown' ? null : arch;
@@ -71,97 +66,56 @@ export default function DownloadMacPage() {
       <MarketingBackground />
       <Navbar marketingTheme={dark ? 'dark' : 'light'} onToggleTheme={() => setDark(d => !d)} />
 
-      <div className="relative pt-32 pb-24 px-6" style={{ zIndex: 2 }}>
+      <div className="relative pt-36 pb-24 px-6" style={{ zIndex: 2 }}>
         <div className="max-w-2xl mx-auto">
 
-          {/* ── Status ───────────────────────────────────────────────── */}
-          <div className="text-center mb-12">
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-text/[0.04] backdrop-blur-sm mb-8"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-text animate-pulse" />
-              <span className="text-xs font-bold tracking-widest text-text uppercase">Mac App</span>
-            </motion.div>
+          <div className="mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-text/[0.04] mb-6">
+              <AppleLogo className="w-3.5 h-3.5 text-text" />
+              <span className="text-[11px] font-semibold tracking-widest text-muted uppercase">Mac App</span>
+            </div>
 
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-muted flex justify-center mb-6"
-            >
-              <AppleLogo className="w-12 h-12" />
-            </motion.div>
+            <h1 className="font-grotesk font-bold text-4xl md:text-5xl text-text tracking-[-0.02em] leading-[1.05] mb-4">
+              Download MODUS for Mac
+            </h1>
 
-            <motion.h1
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="text-5xl md:text-6xl font-black leading-none mb-6"
-            >
-              {recommended ? (
-                <>
-                  <span className="text-text">Your download is </span>
-                  <span className="text-text">starting.</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-text">Download </span>
-                  <span className="text-text">MODUS.</span>
-                </>
-              )}
-            </motion.h1>
-
-            <motion.p
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-              className="text-muted text-lg leading-relaxed mb-8"
-            >
+            <p className="text-muted text-lg leading-relaxed max-w-md">
               {started
-                ? 'Check your Downloads folder — it should be there now.'
-                : recommended
-                ? `We detected an ${BUILDS[recommended].label} Mac. Starting your download…`
-                : 'Choose the version that matches your Mac.'}
-            </motion.p>
-
-            {/* ── Chip picker ────────────────────────────────────────── */}
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto"
-            >
-              {(Object.keys(BUILDS) as Arch[]).map((a) => {
-                const isRec = recommended === a;
-                return (
-                  <button
-                    key={a}
-                    onClick={() => download(a)}
-                    className={`relative flex flex-col items-center gap-1 px-5 py-4 rounded-2xl border transition-all ${
-                      isRec
-                        ? 'btn-primary text-white border-transparent'
-                        : 'bg-panel/60 border-border/70 hover:border-text/30 text-text'
-                    }`}
-                  >
-                    {isRec && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-text text-white shadow">
-                        Recommended
-                      </span>
-                    )}
-                    <span className="relative z-10 text-sm font-bold">{BUILDS[a].label}</span>
-                    <span className={`relative z-10 text-[11px] ${isRec ? 'text-white/70' : 'text-muted'}`}>{BUILDS[a].sub}</span>
-                  </button>
-                );
-              })}
-            </motion.div>
-            <p className="text-xs text-muted/60 mt-4">
-              Not sure?{' '}
-              <span className="text-muted">Apple menu → About This Mac</span> shows your chip. Most Macs from 2020 on are Apple Silicon.
+                ? 'Your download has started. Check your Downloads folder.'
+                : 'Pick the build that matches your Mac and it downloads right away.'}
             </p>
           </div>
+
+          {/* ── Chip picker — a click starts the download (no auto-download) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+            {(Object.keys(BUILDS) as Arch[]).map((a) => {
+              const isRec = recommended === a;
+              return (
+                <button
+                  key={a}
+                  onClick={() => download(a)}
+                  className={`relative flex items-center justify-between gap-3 px-5 py-4 rounded-xl border text-left transition-all ${
+                    isRec
+                      ? 'border-text/40 bg-panel'
+                      : 'bg-panel border-border hover:border-text/30 text-text'
+                  }`}
+                >
+                  <span>
+                    <span className="block text-sm font-semibold text-text">{BUILDS[a].label}</span>
+                    <span className="block text-[11px] text-muted">{BUILDS[a].sub}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-text shrink-0">
+                    {isRec && <span className="text-[9px] font-semibold uppercase tracking-widest text-muted">Recommended</span>}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" /></svg>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted mt-4 max-w-lg">
+            Not sure? <span className="text-text">Apple menu → About This Mac</span> shows your chip. Most Macs from 2020 on are Apple Silicon.
+          </p>
+          <div className="mb-12" />
 
           {/* Decorative divider */}
           <motion.div

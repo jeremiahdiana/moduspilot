@@ -13,7 +13,7 @@ export default function HeroFilm() {
     <section className="relative px-6 pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 md:items-end">
-          <h1 className="text-[2.8rem] leading-[1.02] sm:text-6xl md:text-7xl text-text tracking-tight">
+          <h1 className="font-grotesk font-bold text-[2.8rem] leading-[1.0] sm:text-6xl md:text-[4.6rem] text-text tracking-[-0.02em]">
             Every model,
             <br className="hidden sm:block" /> one software
           </h1>

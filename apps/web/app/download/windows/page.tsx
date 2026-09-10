@@ -28,75 +28,34 @@ export default function DownloadWindowsPage() {
     setStarted(true);
   };
 
-  useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
-    const t = setTimeout(download, 800);
-    return () => clearTimeout(t);
-  }, []);
-
   return (
     <main className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} bg-bg text-text min-h-screen overflow-x-hidden relative`}>
       <MarketingBackground />
       <Navbar marketingTheme={dark ? 'dark' : 'light'} onToggleTheme={() => setDark(d => !d)} />
 
-      <div className="relative pt-32 pb-24 px-6" style={{ zIndex: 2 }}>
+      <div className="relative pt-36 pb-24 px-6" style={{ zIndex: 2 }}>
         <div className="max-w-2xl mx-auto">
 
-          <div className="text-center mb-12">
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-text/[0.04] backdrop-blur-sm mb-8"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-text animate-pulse" />
-              <span className="text-xs font-bold tracking-widest text-text uppercase">Windows App · Beta</span>
-            </motion.div>
+          <div className="mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-text/[0.04] mb-6">
+              <WindowsLogo className="w-3.5 h-3.5 text-text" />
+              <span className="text-[11px] font-semibold tracking-widest text-muted uppercase">Windows App · Beta</span>
+            </div>
 
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-muted flex justify-center mb-6"
-            >
-              <WindowsLogo className="w-11 h-11" />
-            </motion.div>
+            <h1 className="font-grotesk font-bold text-4xl md:text-5xl text-text tracking-[-0.02em] leading-[1.05] mb-4">
+              Download MODUS for Windows
+            </h1>
 
-            <motion.h1
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="text-5xl md:text-6xl font-black leading-none mb-6"
-            >
-              <span className="text-text">Your download is </span>
-              <span className="text-text">starting.</span>
-            </motion.h1>
+            <p className="text-muted text-lg leading-relaxed max-w-md mb-6">
+              {started
+                ? 'Your download has started. Check your Downloads folder.'
+                : 'A 64-bit installer for Windows 10 and 11.'}
+            </p>
 
-            <motion.p
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-              className="text-muted text-lg leading-relaxed mb-8"
-            >
-              {started ? 'Check your Downloads folder — it should be there now.' : 'Hang tight, this only takes a second.'}
-            </motion.p>
-
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="flex flex-col items-center gap-4"
-            >
-              <p className="text-sm text-muted">Didn&rsquo;t start automatically?</p>
-              <button
-                onClick={download}
-                className="btn-primary inline-block px-10 py-4 text-white font-bold rounded-2xl text-base"
-              >
-                <span className="relative z-10">Download for Windows</span>
-              </button>
-              <p className="text-xs text-muted/60">MODUS-Desktop-x64.exe · Windows 10 &amp; 11 · 64-bit</p>
-            </motion.div>
+            <button onClick={download} className="btn-ink px-7 py-3.5 text-base">
+              Download for Windows
+            </button>
+            <p className="text-xs text-muted mt-3">MODUS-Desktop-x64.exe · Windows 10 &amp; 11 · 64-bit</p>
           </div>
 
           {/* ── SmartScreen heads-up (honest, not hidden) ─────────────── */}
