@@ -97,10 +97,7 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
   const linkActive = (href: string) => pathname === href;
 
   return (
-    <motion.nav
-      initial={{ opacity: 0, y: -16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
         showBg ? 'bg-bg/85 backdrop-blur-xl border-b border-border' : 'bg-transparent border-b border-transparent'
       }`}
@@ -332,6 +329,6 @@ export default function Navbar({ solid = false, marketingTheme, onToggleTheme }:
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </nav>
   );
 }

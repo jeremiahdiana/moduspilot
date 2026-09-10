@@ -77,26 +77,26 @@ export default function DownloadMacPage() {
           {/* ── Status ───────────────────────────────────────────────── */}
           <div className="text-center mb-12">
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand/30 bg-brand/5 backdrop-blur-sm mb-8"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-text/[0.04] backdrop-blur-sm mb-8"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-              <span className="text-xs font-bold tracking-widest text-brand uppercase">Mac App</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-text animate-pulse" />
+              <span className="text-xs font-bold tracking-widest text-text uppercase">Mac App</span>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-brand/70 flex justify-center mb-6"
+              className="text-muted flex justify-center mb-6"
             >
               <AppleLogo className="w-12 h-12" />
             </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 24 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.15 }}
               className="text-5xl md:text-6xl font-black leading-none mb-6"
@@ -104,18 +104,18 @@ export default function DownloadMacPage() {
               {recommended ? (
                 <>
                   <span className="text-text">Your download is </span>
-                  <span className="hero-gradient-text">starting.</span>
+                  <span className="text-text">starting.</span>
                 </>
               ) : (
                 <>
                   <span className="text-text">Download </span>
-                  <span className="hero-gradient-text">MODUS.</span>
+                  <span className="text-text">MODUS.</span>
                 </>
               )}
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.25 }}
               className="text-muted text-lg leading-relaxed mb-8"
@@ -129,7 +129,7 @@ export default function DownloadMacPage() {
 
             {/* ── Chip picker ────────────────────────────────────────── */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.35 }}
               className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto"
@@ -143,11 +143,11 @@ export default function DownloadMacPage() {
                     className={`relative flex flex-col items-center gap-1 px-5 py-4 rounded-2xl border transition-all ${
                       isRec
                         ? 'btn-primary text-white border-transparent'
-                        : 'bg-panel/60 border-border/70 hover:border-brand/40 text-text'
+                        : 'bg-panel/60 border-border/70 hover:border-text/30 text-text'
                     }`}
                   >
                     {isRec && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-brand text-white shadow">
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-text text-white shadow">
                         Recommended
                       </span>
                     )}
@@ -165,28 +165,28 @@ export default function DownloadMacPage() {
 
           {/* Decorative divider */}
           <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
+            initial={false}
             animate={{ opacity: 1, scaleX: 1 }}
             transition={{ duration: 0.8, delay: 0.45 }}
             className="flex items-center justify-center py-8"
           >
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-brand/20 to-transparent max-w-md" />
-            <div className="mx-4 w-2 h-2 rounded-full bg-brand/40" />
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-brand/20 to-transparent max-w-md" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent max-w-md" />
+            <div className="mx-4 w-2 h-2 rounded-full bg-text/30" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent max-w-md" />
           </motion.div>
 
           {/* ── Install steps ────────────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="bg-panel/60 backdrop-blur-xl border border-border/70 rounded-3xl p-8 mb-8 shadow-xl shadow-brand/5"
+            className="bg-panel/60 backdrop-blur-xl border border-border/70 rounded-3xl p-8 mb-8 shadow-xl shadow-black/5"
           >
             <p className="text-xs font-bold tracking-widest text-muted uppercase mb-8 text-center">Installing</p>
             <div className="space-y-6">
               {STEPS.map(s => (
                 <div key={s.n} className="flex items-start gap-4">
-                  <span className="shrink-0 w-8 h-8 rounded-full bg-brand/15 border border-brand/40 text-brand text-sm font-bold flex items-center justify-center">
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-text/[0.06] border border-text/20 text-text text-sm font-bold flex items-center justify-center">
                     {s.n}
                   </span>
                   <div>
@@ -200,31 +200,31 @@ export default function DownloadMacPage() {
 
           {/* ── Reassurance ──────────────────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.6 }}
             className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted mb-10"
           >
             {['Signed & notarized by Apple', 'Updates itself automatically', 'Intel & Apple Silicon'].map(t => (
               <span key={t} className="flex items-center gap-1.5">
-                <span className="text-brand">◆</span>
+                <span className="text-text">◆</span>
                 {t}
               </span>
             ))}
           </motion.div>
 
           <motion.p
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.7 }}
             className="text-center text-sm text-muted"
           >
             On Windows?{' '}
-            <Link href="/download/windows" className="text-brand font-semibold hover:underline">
+            <Link href="/download/windows" className="text-text font-semibold hover:underline">
               Download for Windows →
             </Link>
             {'  ·  '}
-            <Link href="https://app.moduspilot.com" className="text-brand font-semibold hover:underline">
+            <Link href="https://app.moduspilot.com" className="text-text font-semibold hover:underline">
               Use the web app
             </Link>
           </motion.p>

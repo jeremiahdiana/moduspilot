@@ -96,7 +96,7 @@ export default function HomePricingSection({
       <div className="max-w-6xl mx-auto">
         {showHeading && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -119,7 +119,7 @@ export default function HomePricingSection({
           {PLANS.map((plan, i) => (
             <motion.div
               key={plan.name}
-              initial={{ opacity: 0, y: 24 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.5, delay: i * 0.08, ease: 'easeOut' }}
@@ -182,7 +182,7 @@ export default function HomePricingSection({
             count (one add-on is ~25 more messages a day on standard models but under
             one more on a frontier model, so any number would be false for someone). */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}

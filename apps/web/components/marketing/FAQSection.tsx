@@ -35,7 +35,7 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
@@ -72,7 +72,7 @@ export default function FAQSection() {
     <section className="py-32 px-6 overflow-hidden">
       <div className="max-w-3xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.6, ease: 'easeOut' }}

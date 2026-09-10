@@ -7,7 +7,7 @@ export default function FinalCTA() {
     <section className="relative py-32 sm:py-40 px-6 border-t border-border">
       <div className="relative max-w-3xl mx-auto text-center">
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
