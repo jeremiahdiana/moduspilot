@@ -67,16 +67,16 @@ const SECTIONS: Section[] = [
 export default function IntegrationsPage() {
   return (
     <MarketingShell>
-      <section className="pt-36 pb-14 px-6 text-center">
+      <section className="pt-36 pb-14 px-6 max-w-5xl mx-auto">
         <p className="text-xs uppercase tracking-[0.2em] text-muted mb-4">Integrations</p>
         <h1 className="text-5xl md:text-6xl text-text tracking-tight leading-[1.08] mb-5">
           Your whole life,<br />connected
         </h1>
-        <p className="text-muted text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-muted text-lg max-w-2xl leading-relaxed">
           MODUS reads your inbox, calendar, files and apps only to surface what matters, and it never sends
           or changes anything without your approval.
         </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link href="/login" className="btn-ink px-6 py-3 text-sm">Start free</Link>
           <Link href="/pricing" className="btn-outline px-6 py-3 text-sm">See pricing</Link>
         </div>

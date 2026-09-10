@@ -119,7 +119,7 @@ export default function PricingPage() {
 
         <div className="relative" style={{ zIndex: 2 }}>
           {/* ── Hero ──────────────────────────────────────────────────── */}
-          <section className="pt-36 pb-14 px-6 text-center">
+          <section className="pt-36 pb-14 px-6 max-w-5xl mx-auto">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -135,7 +135,7 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.12, ease: 'easeOut' }}
-              className="text-muted text-lg max-w-xl mx-auto leading-relaxed"
+              className="text-muted text-lg max-w-xl leading-relaxed"
             >
               Free on the open models, no card. Every frontier model and your apps on a paid plan.
             </motion.p>

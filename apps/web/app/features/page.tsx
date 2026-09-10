@@ -77,7 +77,7 @@ function ActionCard({ actions, buttons }: { actions: { label: string; detail: st
       className="bg-panel rounded-2xl overflow-hidden shadow-lg shadow-black/25 ring-1 ring-brand/20">
       <div className="px-4 py-3 flex items-center gap-2 bg-brand/[0.07]">
         <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-        <span className="text-xs font-semibold text-brand uppercase tracking-wider">Action set ready</span>
+        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Action set ready</span>
       </div>
       <div className="divide-y divide-text/[0.06]">
         {actions.map((a, i) => (
@@ -155,7 +155,7 @@ const SCENES: Record<string, SceneItem[]> = {
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
         className="bg-panel rounded-2xl overflow-hidden shadow-lg shadow-black/25 ring-1 ring-brand/20">
         <div className="px-4 py-3 bg-brand/[0.07]">
-          <span className="text-xs font-semibold text-brand uppercase tracking-wider">Goal plan · $10k this month</span>
+          <span className="text-xs font-semibold text-muted uppercase tracking-wider">Goal plan · $10k this month</span>
         </div>
         <div className="p-4 space-y-3">
           {[
@@ -185,7 +185,7 @@ const SCENES: Record<string, SceneItem[]> = {
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
         className="bg-panel rounded-2xl overflow-hidden shadow-lg shadow-black/25 ring-1 ring-brand/20">
         <div className="px-4 py-3 bg-brand/[0.07]">
-          <p className="text-xs font-semibold text-brand uppercase tracking-wider">Needs your reply today (3)</p>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wider">Needs your reply today (3)</p>
         </div>
         {[
           { from: 'Alex', subject: '"Contract ready to sign"', badge: 'Reply drafted', urgent: false },
@@ -214,7 +214,7 @@ const SCENES: Record<string, SceneItem[]> = {
       <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ duration: 0.4 }}
         className="bg-panel rounded-2xl overflow-hidden shadow-lg shadow-black/25 ring-1 ring-brand/25">
         <div className="px-4 py-3 bg-brand/[0.07]">
-          <span className="text-xs font-semibold text-brand uppercase tracking-wider">Memory · 3 weeks ago</span>
+          <span className="text-xs font-semibold text-muted uppercase tracking-wider">Memory · 3 weeks ago</span>
         </div>
         <div className="px-4 py-4 space-y-3">
           <p className="text-sm text-text italic">"I think I want to pivot my offer and go more premium by Q3."</p>
@@ -372,7 +372,7 @@ function ScenariosSection() {
   return (
     <section className="px-6 py-20 max-w-5xl mx-auto" ref={ref}>
       <RevealOnScroll>
-        <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Live scenarios</p>
+        <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Live scenarios</p>
         <h2 className="text-4xl font-semibold text-text mb-2">See it in action.</h2>
         <p className="text-muted mb-10 text-base">Real situations. One message each. Watch how MODUS handles it.</p>
       </RevealOnScroll>
@@ -446,10 +446,10 @@ export default function FeaturesPage() {
         {/* Hero */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16,1,0.3,1] }}>
-            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">Features</p>
+            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-4">Features</p>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-text leading-[1.08] mb-8 tracking-tight">
               Every AI you pay for.<br />
-              <span className="text-brand">One that knows you.</span>
+              <span className="text-text">One that knows you.</span>
             </h1>
             <div className="max-w-2xl space-y-4">
               <p className="text-muted text-lg leading-relaxed">
@@ -458,7 +458,7 @@ export default function FeaturesPage() {
             </div>
             <div className="flex flex-wrap gap-3 mt-8">
               {['Every frontier model', 'Reads your email & calendar', 'Makes images, charts, docs', 'Acts with your approval', 'One $24 bill'].map(tag => (
-                <span key={tag} className="text-xs font-medium text-brand bg-brand/10 px-3 py-1.5 rounded-full">
+                <span key={tag} className="text-xs font-medium text-text/80 bg-text/[0.06] px-3 py-1.5 rounded-full">
                   {tag}
                 </span>
               ))}
@@ -470,7 +470,7 @@ export default function FeaturesPage() {
             a single-model chatbot, and it used to sit 3 sections down. */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
-            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">Every model</p>
+            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Every model</p>
             <h2 className="text-4xl md:text-5xl font-semibold text-text mb-4 tracking-tight">One prompt. Every model. One bill.</h2>
             <p className="text-muted text-lg leading-relaxed max-w-2xl mb-8">
               MODUS isn&apos;t tied to one AI. Write with Gemini, research with Claude, ask ChatGPT. Pick the model per message, leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best, or ask three different AIs all at once with our exclusive multi-model feature and see who wins.
@@ -529,9 +529,9 @@ export default function FeaturesPage() {
         {/* MODUS vs others */}
         <section className="px-6 py-20 max-w-5xl mx-auto">
           <RevealOnScroll>
-            <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">The difference</p>
+            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-3">The difference</p>
             <h2 className="text-4xl font-semibold text-text mb-4">They give you one company&apos;s AI.<br />
-              <span className="text-brand">MODUS gives you everyone&apos;s.</span>
+              <span className="text-text">MODUS gives you everyone&apos;s.</span>
             </h2>
             <p className="text-muted text-base leading-relaxed max-w-2xl mb-10">
               Every row here is checkable, and we left out the ones we&apos;d lose. Verified July 2026.
@@ -607,10 +607,10 @@ export default function FeaturesPage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,rgba(124,58,237,0.12),transparent)]" />
           <RevealOnScroll direction="none">
             <div className="relative max-w-2xl mx-auto space-y-6">
-              <p className="text-xs font-bold text-brand uppercase tracking-widest">Ready?</p>
+              <p className="text-xs font-bold text-muted uppercase tracking-widest">Ready?</p>
               <h2 className="text-4xl md:text-5xl font-semibold text-text leading-tight">
                 You&apos;re the executive.<br />
-                <span className="text-brand">MODUS handles the rest.</span>
+                <span className="text-text">MODUS handles the rest.</span>
               </h2>
               <p className="text-muted text-lg leading-relaxed">
                 Tell MODUS what matters. It figures out how to make it happen.

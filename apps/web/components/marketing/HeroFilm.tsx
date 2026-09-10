@@ -17,23 +17,23 @@ import HeroFilmWindow from './HeroFilmWindow';
 export default function HeroFilm() {
   return (
     <section className="relative px-6 pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
-      <div className="max-w-5xl mx-auto text-center">
-        {/* Headline + subtext + CTA */}
+      <div className="max-w-5xl mx-auto">
+        {/* Headline + subtext + CTA — left-aligned (Anthropic style), not centered */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="text-[2.6rem] leading-[1.05] sm:text-6xl md:text-7xl text-text tracking-tight"
+          className="text-[2.8rem] leading-[1.02] sm:text-6xl md:text-7xl text-text tracking-tight max-w-3xl"
         >
-          The only AI you&apos;ll
-          <br className="hidden sm:block" /> ever pay for
+          Every model,
+          <br className="hidden sm:block" /> one software
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
-          className="mt-6 text-base sm:text-lg text-muted leading-relaxed max-w-xl mx-auto"
+          className="mt-6 text-base sm:text-lg text-muted leading-relaxed max-w-xl"
         >
           Claude, GPT, Gemini and every other frontier model, plus your whole life connected. One subscription.
         </motion.p>
@@ -42,7 +42,7 @@ export default function HeroFilm() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          className="mt-9 flex flex-wrap items-center gap-3"
         >
           <a href="/login" className="btn-ink px-6 py-3 text-sm">
             Start free

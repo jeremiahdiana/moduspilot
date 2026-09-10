@@ -47,10 +47,10 @@ const ENTRIES: Entry[] = [
 export default function ChangelogPage() {
   return (
     <MarketingShell>
-      <section className="pt-36 pb-14 px-6 text-center">
+      <section className="pt-36 pb-14 px-6 max-w-5xl mx-auto">
         <p className="text-xs uppercase tracking-[0.2em] text-muted mb-4">Changelog</p>
         <h1 className="text-5xl md:text-6xl text-text tracking-tight leading-[1.08] mb-5">What&apos;s new</h1>
-        <p className="text-muted text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="text-muted text-lg max-w-xl leading-relaxed">
           The latest shipped to MODUS, across web, Mac and iPhone.
         </p>
       </section>

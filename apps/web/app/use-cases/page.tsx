@@ -44,12 +44,12 @@ const CASES: UseCase[] = [
 export default function UseCasesPage() {
   return (
     <MarketingShell>
-      <section className="pt-36 pb-14 px-6 text-center">
+      <section className="pt-36 pb-14 px-6 max-w-5xl mx-auto">
         <p className="text-xs uppercase tracking-[0.2em] text-muted mb-4">Use cases</p>
         <h1 className="text-5xl md:text-6xl text-text tracking-tight leading-[1.08] mb-5">
           One tool,<br />many jobs
         </h1>
-        <p className="text-muted text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-muted text-lg max-w-2xl leading-relaxed">
           MODUS is built for people with too much to hold in their head. Here is how founders, executives and
           busy people actually use it.
         </p>
@@ -77,7 +77,7 @@ export default function UseCasesPage() {
 
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl md:text-4xl text-text tracking-tight mb-5">Put it to work.</h2>
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/login" className="btn-ink px-8 py-3.5 text-base">Start free</Link>
           <Link href="/pricing" className="btn-outline px-8 py-3.5 text-base">See pricing</Link>
         </div>

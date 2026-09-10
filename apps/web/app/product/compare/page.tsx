@@ -71,17 +71,17 @@ function Group({ eyebrow, title, blurb, rows }: { eyebrow: string; title: string
 export default function ComparePage() {
   return (
     <MarketingShell>
-      <section className="pt-36 pb-10 px-6 text-center">
+      <section className="pt-36 pb-10 px-6 max-w-5xl mx-auto">
         <p className="text-xs uppercase tracking-[0.2em] text-muted mb-4">Compare models</p>
         <h1 className="text-5xl md:text-6xl text-text tracking-tight leading-[1.08] mb-5">
           Every model,<br />one conversation
         </h1>
-        <p className="text-muted text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-muted text-lg max-w-2xl leading-relaxed">
           Claude, GPT-5.6, Gemini, Llama and DeepSeek in the same chat. Leave it on Auto and let MODUS
           route each task to the model that fits, or pick one per message. Ask several at once and get one
           clear answer.
         </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link href="/login" className="btn-ink px-6 py-3 text-sm">Start free</Link>
           <Link href="/pricing" className="btn-outline px-6 py-3 text-sm">See pricing</Link>
         </div>

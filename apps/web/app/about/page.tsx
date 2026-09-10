@@ -25,12 +25,12 @@ const PRINCIPLES = [
 export default function AboutPage() {
   return (
     <MarketingShell>
-      <section className="pt-36 pb-14 px-6 text-center">
+      <section className="pt-36 pb-14 px-6 max-w-5xl mx-auto">
         <p className="text-xs uppercase tracking-[0.2em] text-muted mb-4">About</p>
         <h1 className="text-5xl md:text-6xl text-text tracking-tight leading-[1.08] mb-5">
           One AI for<br />your whole life
         </h1>
-        <p className="text-muted text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="text-muted text-lg max-w-2xl leading-relaxed">
           Most people now juggle five AI subscriptions, and none of them know your calendar, your inbox or
           what you decided last week. MODUS is the opposite: every frontier model in one place, connected to
           your life, for one subscription.
@@ -69,7 +69,7 @@ export default function AboutPage() {
 
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl md:text-4xl text-text tracking-tight mb-5">See it for yourself.</h2>
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/login" className="btn-ink px-8 py-3.5 text-base">Start free</Link>
           <Link href="/pricing" className="btn-outline px-8 py-3.5 text-base">See pricing</Link>
         </div>
