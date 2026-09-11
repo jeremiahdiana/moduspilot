@@ -679,7 +679,11 @@ export async function POST(req: Request) {
       (body.projectContext && uid) ? fetchProjectResources(uid, body.projectContext) : Promise.resolve(''),
       (uid && !leanContext) ? fetchConnectorData(uid, queryText) : Promise.resolve({ connectorBlock: '', notionBlock: '', slackBlock: '', githubBlock: '' }),
       uid ? fetchContactsBlock(uid, wantsContacts && userData.settings?.deviceAccess?.contacts !== false) : Promise.resolve(''),
-      uid ? fetchNotesBlock(uid, wantsNotes && capabilities.notesSync !== false) : Promise.resolve(''),
+      // Notes are synced but intentionally never read into the prompt (privacy —
+      // his 09-10 call). The notesSync capability still governs desktop sync; it
+      // no longer feeds chat context. Flip `false` back to
+      // `wantsNotes && capabilities.notesSync !== false` to restore injection.
+      uid ? fetchNotesBlock(uid, false) : Promise.resolve(''),
       // Opt-in only — defaults to OFF, unlike notesSync, since this surfaces
       // other people's private messages, not just the user's own content.
       uid ? fetchMessagesBlock(uid, wantsMessages && capabilities.messagesSync === true) : Promise.resolve(''),
