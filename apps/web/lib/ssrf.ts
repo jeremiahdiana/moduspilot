@@ -48,13 +48,22 @@ function isPrivateV4(ip: string): boolean {
 }
 
 function isPrivateV6(ip: string): boolean {
-  const a = ip.toLowerCase();
-  if (a === '::1' || a === '::') return true;
-  if (a.startsWith('fc') || a.startsWith('fd')) return true; // unique local fc00::/7
-  if (a.startsWith('fe80') || a.startsWith('fe9') || a.startsWith('fea') || a.startsWith('feb')) return true; // link-local fe80::/10
-  // IPv4-mapped (::ffff:a.b.c.d) — check the embedded v4
-  const mapped = a.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return isPrivateV4(mapped[1]);
+  // URL canonicalization converts dotted IPv4-mapped hosts into hex words.
+  // Expand those words so both URL literals and DNS answers use the same checks.
+  const a = new URL(`http://[${ip}]/`).hostname.slice(1, -1);
+  const [left, right] = a.split('::');
+  const head = left ? left.split(':') : [];
+  const tail = right ? right.split(':') : [];
+  const words = (right === undefined ? head : [
+    ...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail,
+  ]).map(word => parseInt(word, 16));
+  if (words.slice(0, 7).every(word => word === 0) && words[7] <= 1) return true;
+  if ((words[0] & 0xfe00) === 0xfc00) return true; // unique local fc00::/7
+  if ((words[0] & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+  if (words.slice(0, 5).every(word => word === 0) && words[5] === 0xffff) {
+    const v4 = [words[6] >> 8, words[6] & 255, words[7] >> 8, words[7] & 255].join('.');
+    return isPrivateV4(v4);
+  }
   return false;
 }
 

@@ -14,17 +14,31 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
 
+      // Keep create and update in sync. These values are written by server
+      // routes/webhooks; clients must not reset usage or replace billing IDs.
+      function serverManagedFields() {
+        return ['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt',
+                'dailyTokens', 'tokenDate', 'weeklyTokens', 'tokenWeek',
+                'windowTokens', 'windowStart', 'limitAddonQty',
+                'stripeCustomerId', 'subscriptionId', 'founding', 'groupId',
+                'compareHour', 'compareCount', 'titleHour', 'titleCount',
+                'goalSuggestHour', 'goalSuggestCount', 'goalPlanHour', 'goalPlanCount',
+                'verdictHour', 'verdictCount', 'clarifyHour', 'clarifyCount',
+                'mcpTestHour', 'mcpTestCount', 'importDate', 'importCount',
+                'imageGenDate', 'imageGenCount', 'imageGenAt',
+                'ttsCharsDate', 'ttsCharsToday', 'ttsCharsLifetime',
+                'sttSecondsDate', 'sttSecondsToday', 'sttSecondsLifetime'];
+      }
+
       // Clients may create their own profile but cannot set billing fields.
       allow create: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.keys()
-            .hasAny(['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt',
-                     'dailyTokens', 'tokenDate', 'weeklyTokens', 'tokenWeek']);
+            .hasAny(serverManagedFields());
 
       // Clients may update their own profile but cannot touch billing fields.
       allow update: if request.auth != null && request.auth.uid == uid
         && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['plan', 'dailyMessages', 'usageDate', 'modusPilotSignupAt',
-                     'dailyTokens', 'tokenDate', 'weeklyTokens', 'tokenWeek']);
+            .hasAny(serverManagedFields());
 
       // Deletion is server-only (account deletion flow uses Admin SDK).
       allow delete: if false;
@@ -65,7 +79,8 @@ service cloud.firestore {
       match /members/{memberUid} {
         allow read: if isGroupMember(groupId);
         allow update: if request.auth != null && request.auth.uid == memberUid
-                      && isGroupMember(groupId);
+                      && isGroupMember(groupId)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sharing']);
         allow create, delete: if false;
       }
 
