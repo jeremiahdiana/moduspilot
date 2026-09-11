@@ -4,78 +4,11 @@ import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithRedirect,
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import type { User } from 'firebase/auth';
-
-/* ── Particle canvas (same system as hero) ── */
-function ParticleCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    type Node = { x: number; y: number; vx: number; vy: number; r: number; phase: number; speed: number };
-    let nodes: Node[] = [];
-    let raf: number;
-
-    const init = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      const count = Math.min(60, Math.floor((canvas.width * canvas.height) / 15000));
-      nodes = Array.from({ length: count }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.28,
-        vy: (Math.random() - 0.5) * 0.28,
-        r: Math.random() * 1.6 + 0.4,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.01 + Math.random() * 0.016,
-      }));
-    };
-    init();
-    window.addEventListener('resize', init);
-
-    const LINK = 130;
-    const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const n of nodes) {
-        n.x += n.vx; n.y += n.vy; n.phase += n.speed;
-        if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
-        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
-        const a = 0.28 + 0.22 * Math.sin(n.phase);
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,139,250,${a})`;
-        ctx.fill();
-      }
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x;
-          const dy = nodes[i].y - nodes[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < LINK) {
-            ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
-            ctx.strokeStyle = `rgba(124,58,237,${(1 - d / LINK) * 0.16})`;
-            ctx.lineWidth = 0.6;
-            ctx.stroke();
-          }
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', init); };
-  }, []);
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full" />;
-}
 
 // A `?next=` internal path (e.g. the founding claim flow returning to
 // /grandfathering) takes precedence over the default routing. Same-origin paths
@@ -105,6 +38,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
   const [checking, setChecking] = useState(true);
+  // Hide the "Back to moduspilot.com" link inside the desktop shell — there is
+  // no marketing site to go back to there. Set after mount to avoid a hydration
+  // mismatch; the desktop shell tags its user-agent with "MODUSDesktop".
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    setIsDesktop(typeof navigator !== 'undefined' && navigator.userAgent.includes('MODUSDesktop'));
+  }, []);
 
   // If already signed in, skip straight to the app
   useEffect(() => {
@@ -118,33 +59,39 @@ export default function LoginPage() {
     return unsub;
   }, [router]);
 
-  async function signInWithGoogle() {
-    setError(''); setLoading('google');
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      router.push(await getDestination(result.user));
-    } catch (e: unknown) {
-      const code = (e as { code?: string }).code;
-      if (code === 'auth/popup-blocked') {
-        await signInWithRedirect(auth, googleProvider);
-      } else if (code !== 'auth/cancelled-popup-request' && code !== 'auth/popup-closed-by-user') {
-        setError('Sign in failed. Please try again.');
-      }
-      setLoading(null);
-    }
-  }
+  // Release the spinner if the user backs out of the OAuth window. In Electron
+  // (and some browsers) Firebase's signInWithPopup can hang without ever
+  // rejecting when the popup is closed, freezing the button forever. When focus
+  // returns to our window after the popup closes, give Firebase a beat to settle
+  // a real sign-in; if none happened, clear loading so the user can retry.
+  useEffect(() => {
+    if (!loading) return;
+    const release = () => {
+      window.setTimeout(() => {
+        if (!auth.currentUser) setLoading(null);
+      }, 1200);
+    };
+    window.addEventListener('focus', release);
+    return () => window.removeEventListener('focus', release);
+  }, [loading]);
 
-  async function signInWithApple() {
-    setError(''); setLoading('apple');
+  async function signIn(kind: 'google' | 'apple') {
+    const provider = kind === 'google' ? googleProvider : appleProvider;
+    setError(''); setLoading(kind);
     try {
-      const result = await signInWithPopup(auth, appleProvider);
+      const result = await signInWithPopup(auth, provider);
       router.push(await getDestination(result.user));
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
-      console.error('[Apple sign-in error]', code, e);
       if (code === 'auth/popup-blocked') {
-        await signInWithRedirect(auth, appleProvider);
+        try {
+          await signInWithRedirect(auth, provider);
+          return; // navigating away; leave the spinner until the redirect lands
+        } catch {
+          setError('Sign in failed. Please try again.');
+        }
       } else if (code !== 'auth/cancelled-popup-request' && code !== 'auth/popup-closed-by-user') {
+        console.error('[sign-in error]', code, e);
         setError('Sign in failed. Please try again.');
       }
       setLoading(null);
@@ -166,23 +113,16 @@ export default function LoginPage() {
         <AnimatedThemeToggler />
       </div>
 
-      {/* Full-screen animated background */}
+      {/* Calm, static, on-brand background — a single soft violet glow. */}
       <div className="fixed inset-0 -z-10 bg-bg">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-950/60 via-bg to-bg dark:from-violet-950/40" />
-        <div className="hero-orb hero-orb-1" style={{ opacity: 0.7 }} />
-        <div className="hero-orb hero-orb-2" style={{ opacity: 0.5 }} />
-        <div className="hero-orb hero-orb-3" style={{ opacity: 0.4 }} />
-        <ParticleCanvas />
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(124,58,237,0.10)_1px,transparent_1px)] bg-[size:28px_28px]" />
-        {/* Center focus glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_50%,rgba(124,58,237,0.08),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_58%_48%_at_50%_40%,rgba(124,58,237,0.13),transparent_70%)]" />
       </div>
 
       {/* Card */}
       <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.55, ease: 'easeOut' }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
         className="relative w-full max-w-sm mx-6"
       >
         <div className="bg-panel/80 backdrop-blur-xl border border-border/60 rounded-2xl p-8 shadow-2xl shadow-black/20">
@@ -192,16 +132,16 @@ export default function LoginPage() {
             <Image
               src="/logo.png"
               alt="MODUS"
-              width={72}
-              height={54}
-              className="object-contain block dark:hidden mb-3"
+              width={104}
+              height={84}
+              className="object-contain block dark:hidden mb-4"
             />
             <Image
               src="/logo-dark.png"
               alt="MODUS"
-              width={72}
-              height={54}
-              className="object-contain hidden dark:block mb-3"
+              width={104}
+              height={84}
+              className="object-contain hidden dark:block mb-4"
             />
             {/* Sentient serif, the homepage face — the old Clash Display black
                 at wide tracking read as a logo from a different product. */}
@@ -215,7 +155,7 @@ export default function LoginPage() {
           {/* Auth buttons */}
           <div className="space-y-3">
             <button
-              onClick={signInWithGoogle}
+              onClick={() => signIn('google')}
               disabled={loading !== null}
               className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover:bg-brand/5 disabled:opacity-60 disabled:cursor-not-allowed group"
             >
@@ -233,7 +173,7 @@ export default function LoginPage() {
             </button>
 
             <button
-              onClick={signInWithApple}
+              onClick={() => signIn('apple')}
               disabled={loading !== null}
               className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover:bg-brand/5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
@@ -252,14 +192,16 @@ export default function LoginPage() {
             <p className="text-red-400 text-xs text-center mt-4">{error}</p>
           )}
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => router.push('/')}
-              className="text-muted/50 text-xs hover:text-muted transition-colors"
-            >
-              Back to moduspilot.com
-            </button>
-          </div>
+          {!isDesktop && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => router.push('/')}
+                className="text-muted/50 text-xs hover:text-muted transition-colors"
+              >
+                Back to moduspilot.com
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
     </>
