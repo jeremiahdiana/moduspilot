@@ -137,7 +137,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
   }
 
   async function handleClearAll() {
-    if (!confirm('Clear all memories? This removes everything MODUS has learned from your conversations. This cannot be undone.')) return;
+    if (!confirm('Clear all memories? This removes everything Modus has learned from your conversations. This cannot be undone.')) return;
     setClearing(true);
     setClearDone(false);
     try {
@@ -178,13 +178,13 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Memory</h2>
-        <p className="text-sm text-muted">MODUS remembers facts about you that persist across all conversations.</p>
+        <p className="text-sm text-muted">Modus remembers facts about you that persist across all conversations.</p>
       </div>
 
       {/* How memory works */}
       <div className="bg-panel border border-border rounded-xl p-5 space-y-2">
-        <p className="text-sm font-semibold text-text">How MODUS memory works</p>
-        <p className="text-xs text-muted leading-relaxed">MODUS maintains two memory layers. <span className="text-text">Semantic context</span> — every conversation is stored as embeddings so MODUS can surface relevant past context when it's useful. <span className="text-text">Stored memories</span> — explicit facts you add manually or that MODUS extracts, visible below. Both are private to your account and never shared.</p>
+        <p className="text-sm font-semibold text-text">How Modus memory works</p>
+        <p className="text-xs text-muted leading-relaxed">Modus maintains two memory layers. <span className="text-text">Semantic context</span> every conversation is stored as embeddings so Modus can surface relevant past context when it's useful. <span className="text-text">Stored memories</span> explicit facts you add manually or that Modus extracts, visible below. Both are private to your account and never shared.</p>
       </div>
 
       {/* Settings */}
@@ -192,7 +192,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
         <div className="flex items-start justify-between p-6 gap-6">
           <div className="flex-1">
             <p className="text-sm font-medium text-text mb-1">Vector Memory</p>
-            <p className="text-xs text-muted leading-relaxed">Store semantic memories from your conversations (in Pinecone) so MODUS recalls relevant past context across sessions. Turning this off disables long-term recall.</p>
+            <p className="text-xs text-muted leading-relaxed">Store semantic memories from your conversations (in Pinecone) so Modus recalls relevant past context across sessions. Turning this off disables long-term recall.</p>
           </div>
           <Toggle
             checked={settings.capabilities.vectorMemory}
@@ -203,7 +203,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
         <div className="flex items-start justify-between p-6 gap-6">
           <div className="flex-1">
             <p className="text-sm font-medium text-text mb-1">Generate Memory from Chat History</p>
-            <p className="text-xs text-muted leading-relaxed">When enabled, MODUS automatically extracts and stores facts from your conversations — your preferences, recurring goals, decisions — so it builds a profile of you over time.</p>
+            <p className="text-xs text-muted leading-relaxed">When enabled, Modus automatically extracts and stores facts from your conversations, your preferences, recurring goals, decisions, so it builds a profile of you over time.</p>
           </div>
           <Toggle
             checked={settings.generateMemoryFromChat}
@@ -247,7 +247,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
                 <p className="font-medium text-text">How to export from ChatGPT:</p>
                 <p>Settings → Data controls → Export data → download ZIP → open <span className="font-mono text-text/80">memories.json</span></p>
                 <p className="mt-1 font-medium text-text">Other sources:</p>
-                <p>Paste any plain text — each line becomes a memory.</p>
+                <p>Paste any plain text, each line becomes a memory.</p>
               </div>
 
               {importState === 'done' ? (
@@ -257,7 +257,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
                   </svg>
                   <div>
                     <p className="text-sm font-medium text-emerald-400">{importCount} memories imported</p>
-                    <p className="text-xs text-muted mt-0.5">They appear below and are now searchable by MODUS.</p>
+                    <p className="text-xs text-muted mt-0.5">They appear below and are now searchable by Modus.</p>
                   </div>
                   <button onClick={resetImport} className="ml-auto text-xs text-muted hover:text-text">Import more</button>
                 </div>
@@ -290,7 +290,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
                       <textarea
                         value={pasteText}
                         onChange={e => { setPasteText(e.target.value); setImportState('idle'); setPreview([]); }}
-                        placeholder="Paste your memories here — one per line, or paste ChatGPT JSON directly..."
+                        placeholder="Paste your memories here, one per line, or paste ChatGPT JSON directly..."
                         rows={6}
                         className="w-full bg-bg border border-border rounded-xl px-3 py-2.5 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-brand/50 transition-colors resize-none font-mono text-xs"
                       />
@@ -311,7 +311,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
 
                   {importState === 'preview' && (
                     <div className="space-y-3">
-                      <p className="text-xs text-muted font-medium">{preview.length} memories found — first 5 shown:</p>
+                      <p className="text-xs text-muted font-medium">{preview.length} memories found, first 5 shown:</p>
                       <div className="space-y-1.5 max-h-40 overflow-y-auto">
                         {preview.slice(0, 5).map((m, i) => (
                           <div key={i} className="text-xs text-text bg-bg border border-border rounded-lg px-3 py-2 truncate">{m}</div>
@@ -341,7 +341,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
       {/* Add memory */}
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-semibold text-text">Add Memory</h3>
-        <p className="text-xs text-muted">Manually store a fact MODUS should always keep in mind.</p>
+        <p className="text-xs text-muted">Manually store a fact Modus should always keep in mind.</p>
         <div className="flex gap-3">
           <input
             value={newMemory}

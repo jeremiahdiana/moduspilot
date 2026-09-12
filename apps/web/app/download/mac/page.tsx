@@ -35,9 +35,9 @@ function detectArch(): Arch | 'unknown' {
 }
 
 const STEPS = [
-  { n: '1', title: 'Open the .dmg', body: 'Find the MODUS Desktop .dmg in your Downloads and double-click it.' },
-  { n: '2', title: 'Drag MODUS to Applications', body: 'A window opens with the MODUS icon and an Applications folder. Drag one onto the other.' },
-  { n: '3', title: 'Open MODUS and sign in', body: 'Use the same account as the web app. Everything syncs across both.' },
+  { n: '1', title: 'Open the .dmg', body: 'Find the Modus Desktop .dmg in your Downloads and double-click it.' },
+  { n: '2', title: 'Drag Modus to Applications', body: 'A window opens with the Modus icon and an Applications folder. Drag one onto the other.' },
+  { n: '3', title: 'Open Modus and sign in', body: 'Use the same account as the web app. Everything syncs across both.' },
 ];
 
 export default function DownloadMacPage() {
@@ -76,7 +76,7 @@ export default function DownloadMacPage() {
             </div>
 
             <h1 className="font-grotesk font-bold text-4xl md:text-5xl text-text tracking-[-0.02em] leading-[1.05] mb-4">
-              Download MODUS for Mac
+              Download Modus for Mac
             </h1>
 
             <p className="text-muted text-lg leading-relaxed max-w-md">

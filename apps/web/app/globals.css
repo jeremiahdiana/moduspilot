@@ -480,7 +480,7 @@ body::after {
 /* rotating holographic foil */
 .fm-card-foil {
   position: absolute; inset: -40%; pointer-events: none;
-  background: conic-gradient(from 0deg,#7c3aed,#c084fc,#818cf8,#22d3ee,#f0abfc,#7c3aed);
+  background: conic-gradient(from 0deg,#7c3aed,#c084fc,#818cf8,#a78bfa,#f0abfc,#7c3aed);
   mix-blend-mode: color-dodge; opacity: 0.18; filter: blur(8px);
   animation: fm-foil-spin 9s linear infinite;
 }

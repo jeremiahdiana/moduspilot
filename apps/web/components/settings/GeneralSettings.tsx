@@ -38,7 +38,7 @@ function getTZAbbr(timezone: string): string {
 
 const STYLES: Array<{ key: UserSettings['responseStyle']; label: string; desc: string }> = [
   { key: 'normal', label: 'Direct', desc: 'Straight to the answer. No softening or filler.' },
-  { key: 'concise', label: 'Concise', desc: '1–3 sentences max. Zero elaboration.' },
+  { key: 'concise', label: 'Concise', desc: '1 to 3 sentences max. Zero elaboration.' },
   { key: 'formal', label: 'Strategic', desc: 'Big-picture framing. Executive-level analysis.' },
   { key: 'learning', label: 'Coach', desc: 'Challenges assumptions. Holds you accountable.' },
   { key: 'explanatory', label: 'Supportive', desc: 'Warm and encouraging, never sycophantic.' },
@@ -112,14 +112,14 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">General</h2>
-        <p className="text-sm text-muted">Personalize how MODUS responds to you.</p>
+        <p className="text-sm text-muted">Personalize how Modus responds to you.</p>
       </div>
 
       {/* Personal context */}
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-text mb-1">Personal Context</h3>
-          <p className="text-xs text-muted">Tell MODUS about yourself — your role, goals, how you like to work. This is included in every conversation.</p>
+          <p className="text-xs text-muted">Tell Modus about yourself, your role, goals, how you like to work. This is included in every conversation.</p>
         </div>
         <textarea
           value={context}
@@ -171,7 +171,7 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
                 value={p.text}
                 onChange={e => updatePreset(p.id, 'text', e.target.value)}
                 rows={2}
-                placeholder="The instruction MODUS follows, e.g. Do not use em dashes or Oxford commas anywhere."
+                placeholder="The instruction Modus follows, e.g. Do not use em dashes or Oxford commas anywhere."
                 className="w-full bg-panel border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted/50 resize-none focus:outline-none focus:border-brand/50 transition-colors"
               />
             </div>
@@ -199,7 +199,7 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-text mb-1">Daily Briefing Time</h3>
-          <p className="text-xs text-muted">MODUS will drop your morning briefing into chat at this time every day.</p>
+          <p className="text-xs text-muted">Modus will drop your morning briefing into chat at this time every day.</p>
         </div>
         <div className="flex items-center gap-4">
           <select
@@ -231,7 +231,7 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-text mb-1">Evening Reflection Time</h3>
-          <p className="text-xs text-muted">MODUS will send you an end-of-day recap at this time — what you shipped, what slipped, frame for tomorrow.</p>
+          <p className="text-xs text-muted">Modus will send you an end-of-day recap at this time, what you shipped, what slipped, frame for tomorrow.</p>
         </div>
         <div className="flex items-center gap-4">
           <select
@@ -260,7 +260,7 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
       <div className="bg-panel border border-border rounded-xl p-6 space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-text mb-1">Response Style</h3>
-          <p className="text-xs text-muted">Controls how MODUS structures and tones its responses.</p>
+          <p className="text-xs text-muted">Controls how Modus structures and tones its responses.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {STYLES.map(s => (

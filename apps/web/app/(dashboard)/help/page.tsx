@@ -10,7 +10,7 @@ export default function HelpPage() {
       <div className="max-w-2xl mx-auto px-4 py-8 md:px-8">
         <div className="mb-6">
           <h1 className="text-2xl font-medium text-text">Tips &amp; Tricks</h1>
-          <p className="text-sm text-muted mt-1">Get the most out of MODUS.</p>
+          <p className="text-sm text-muted mt-1">Get the most out of Modus.</p>
         </div>
         <TipsSettings />
       </div>

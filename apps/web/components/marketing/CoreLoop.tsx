@@ -34,7 +34,7 @@ const STEPS: Step[] = [
   {
     num: '01',
     label: 'Every model',
-    desc: 'Write with Gemini, research with Claude, ask ChatGPT. One subscription gets you every provider, and MODUS routes each task to whichever one does it best.',
+    desc: 'Write with Gemini, research with Claude, ask ChatGPT. One subscription gets you every provider, and Modus routes each task to whichever one does it best.',
     detail: 'ChatGPT · Claude · Gemini · Llama · Auto-routed',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5L12 3Z" /><path d="m3 12 9 4.5L21 12" /></svg>
@@ -58,14 +58,14 @@ const STEPS: Step[] = [
   {
     num: '02',
     label: 'Monitor',
-    desc: 'It reads your calendar, inbox, goals, and habits in real time — drafting replies, detecting conflicts, and surfacing what actually matters today.',
+    desc: 'It reads your calendar, inbox, goals, and habits in real time, drafting replies, detecting conflicts, and surfacing what actually matters today.',
     detail: 'Gmail · Calendar · Pattern recognition · Priority scoring',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7.5" /><path d="m21 21-4.3-4.3" /></svg>
     ),
     visual: (
       <div className="w-full space-y-2">
-        {['3 emails need a reply', 'Calendar conflict at 2 PM', 'Habit streak at risk — gym'].map(row)}
+        {['3 emails need a reply', 'Calendar conflict at 2 PM', 'Habit streak at risk, gym'].map(row)}
         <div className="mt-1 flex flex-wrap gap-1.5 pt-1">{['Gmail', 'Calendar', 'Priority'].map((t) => chip(t))}</div>
       </div>
     ),
@@ -73,7 +73,7 @@ const STEPS: Step[] = [
   {
     num: '03',
     label: 'Approve',
-    desc: 'Every decision surfaces as an approval card. You see exactly what MODUS plans to do, edit anything you want, and nothing runs without your sign-off.',
+    desc: 'Every decision surfaces as an approval card. You see exactly what Modus plans to do, edit anything you want, and nothing runs without your sign-off.',
     detail: 'Approval cards · Edit · Skip · Always in control',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 4.5 6v5.5c0 4.3 3.1 7.6 7.5 9 4.4-1.4 7.5-4.7 7.5-9V6L12 3Z" /><path d="m9 12 2 2 4-4.5" /></svg>
@@ -82,7 +82,7 @@ const STEPS: Step[] = [
       <div className="w-full rounded-xl bg-bg ring-1 ring-border/70 p-3.5">
         <div className="text-[10px] font-bold uppercase tracking-widest text-brand-light mb-2.5">Approval required</div>
         <div className="space-y-2">
-          {['Draft reply to Marcus', 'Block 9–12 as deep work', 'Move 3 PM to Friday'].map(row)}
+          {['Draft reply to Marcus', 'Block 9 to 12 as deep work', 'Move 3 PM to Friday'].map(row)}
         </div>
         <div className="mt-3 flex gap-2">
           <span className="btn-primary flex-1 text-center text-white text-xs font-bold py-2 rounded-lg">Approve all</span>
@@ -94,7 +94,7 @@ const STEPS: Step[] = [
   {
     num: '04',
     label: 'Execute',
-    desc: 'You click approve. It fires instantly across your tools — email sent, calendar updated, task logged. You move on with your day.',
+    desc: 'You click approve. It fires instantly across your tools, email sent, calendar updated, task logged. You move on with your day.',
     detail: 'Cross-app execution · Instant sync · Audit trail',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" /></svg>
@@ -148,7 +148,7 @@ export default function CoreLoop() {
           className="text-center mb-14"
         >
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">
-            How MODUS works
+            How Modus works
           </h2>
           <p className="text-muted text-lg">Four steps. Zero micromanagement.</p>
         </motion.div>

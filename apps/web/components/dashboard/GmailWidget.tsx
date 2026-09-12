@@ -227,7 +227,7 @@ export default function GmailWidget() {
     return (
       <div className="flex flex-col items-center justify-center h-32 gap-2 text-center">
         <p className="text-xs text-muted">Gmail not connected.</p>
-        <p className="text-xs text-muted">Ask MODUS to connect Google in chat.</p>
+        <p className="text-xs text-muted">Ask Modus to connect Google in chat.</p>
       </div>
     );
   }

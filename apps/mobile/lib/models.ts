@@ -15,10 +15,11 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   { id: 'meta/llama-3.3-70b',      name: 'Llama 3.3',            provider: 'Meta',      plans: ['free', 'modus', 'pilot'] },
   // Free default (server FREE_DEFAULT). Free users must see it in the switcher.
   { id: 'gemini-3.5-flash-lite',   name: 'Gemini 3.5 Flash Lite', provider: 'Google',   plans: ['free', 'modus', 'pilot'] },
-  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['modus', 'pilot'] },
+  // Free-reachable open models (matches server lib/models.ts): DeepSeek + both Gemini Flashes.
+  { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['free', 'modus', 'pilot'] },
   { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
   { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'] },
-  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['modus', 'pilot'] },
+  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['free', 'modus', 'pilot'] },
   // PILOT-exclusive: the ladder is MODUS = Llama 3, PILOT = Llama 4.
   { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['pilot'] },
   { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },

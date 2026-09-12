@@ -21,7 +21,7 @@ const PROMPTS: Prompt[] = [
       { name: 'Claude', logo: ClaudeLogo, ms: 2100, answer: 'You have $10. Every year it grows 10%. Year one you earn $1. Year two you earn $1.10, because now $11 is earning for you. Your money makes money.' },
       { name: 'Gemini', logo: GeminiLogo, ms: 900, answer: 'Money that makes money, which then makes more money. Like a tree that grows seeds that grow more trees.' },
     ],
-    verdict: 'Claude explained the mechanism, Gemini was fastest, ChatGPT stayed simplest. MODUS picked Claude.',
+    verdict: 'Claude explained the mechanism, Gemini was fastest, ChatGPT stayed simplest. Modus picked Claude.',
   },
   {
     q: 'Write the first line of a cold email to a busy CEO.',
@@ -30,7 +30,7 @@ const PROMPTS: Prompt[] = [
       { name: 'Claude', logo: ClaudeLogo, ms: 1900, answer: '"Hi Sarah, you’re hiring five AEs this quarter. We ramp new reps 40% faster."' },
       { name: 'Gemini', logo: GeminiLogo, ms: 1000, answer: '"Hi Sarah, congrats on the raise. We help post-raise teams scale ops without new headcount."' },
     ],
-    verdict: 'Gemini opened with a real trigger, Claude led with their problem, ChatGPT was cleanest. MODUS picked Gemini.',
+    verdict: 'Gemini opened with a real trigger, Claude led with their problem, ChatGPT was cleanest. Modus picked Gemini.',
   },
   {
     q: 'Dinner with chicken, rice and spinach?',
@@ -39,7 +39,7 @@ const PROMPTS: Prompt[] = [
       { name: 'Claude', logo: ClaudeLogo, ms: 2000, answer: 'Garlic-butter chicken rice bowl: crisp the chicken, cook rice in the pan juices, wilt the spinach, finish with lemon.' },
       { name: 'Gemini', logo: GeminiLogo, ms: 900, answer: 'Chicken and spinach fried rice: stir-fry the chicken, toss in cold rice, spinach and soy. Weeknight fast.' },
     ],
-    verdict: 'Claude added the most flavor, Gemini was the fastest weeknight option, ChatGPT the simplest. MODUS picked ChatGPT.',
+    verdict: 'Claude added the most flavor, Gemini was the fastest weeknight option, ChatGPT the simplest. Modus picked ChatGPT.',
   },
 ];
 
@@ -142,7 +142,7 @@ function Round({ prompt }: { prompt: Prompt }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" />
         </svg>
         <p className="text-[11px] text-muted leading-relaxed">
-          <span className="text-text font-medium">MODUS:</span> {prompt.verdict}
+          <span className="text-text font-medium">Modus:</span> {prompt.verdict}
         </p>
       </motion.div>
     </motion.div>

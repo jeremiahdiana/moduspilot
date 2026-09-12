@@ -20,7 +20,7 @@ const DOES = [
   },
   {
     title: 'Compare, side by side',
-    body: 'Ask three models the same question at once and MODUS tells you which answer won, and why.',
+    body: 'Ask three models the same question at once and Modus tells you which answer won, and why.',
   },
   {
     title: 'Reads your work',
@@ -74,7 +74,7 @@ export default function FeaturesPage() {
         <LatestReleaseCard
           eyebrow="Every model"
           title={<>The best model,<br className="hidden sm:block" /> for every task</>}
-          subtitle="Claude for writing, GPT for reasoning, Gemini for speed. MODUS routes each message to whichever wins."
+          subtitle="Claude for writing, GPT for reasoning, Gemini for speed. Modus routes each message to whichever wins."
           image="/marketing/galaxy.jpg"
           href="/product/compare"
           cta="Compare the models"
@@ -114,7 +114,7 @@ export default function FeaturesPage() {
         <LatestReleaseCard
           eyebrow="Connected"
           title={<>It knows your<br className="hidden sm:block" /> whole week</>}
-          subtitle="A morning briefing built from your calendar, inbox and goals — waiting when you wake up."
+          subtitle="A morning briefing built from your calendar, inbox and goals, waiting when you wake up."
           image="/marketing/cosmic.jpg"
           href="/product/integrations"
           cta="See integrations"
@@ -128,7 +128,7 @@ export default function FeaturesPage() {
         <div className="mb-8">
           <p className="text-xs uppercase tracking-[0.18em] text-muted mb-2">The difference</p>
           <h2 className="font-grotesk font-bold text-3xl sm:text-4xl text-text tracking-[-0.01em]">
-            They give you one company&apos;s AI. MODUS gives you everyone&apos;s.
+            They give you one company&apos;s AI. Modus gives you everyone&apos;s.
           </h2>
         </div>
         <div className="rounded-2xl border border-border overflow-hidden">

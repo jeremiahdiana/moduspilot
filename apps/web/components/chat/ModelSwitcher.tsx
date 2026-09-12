@@ -143,7 +143,7 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
             </span>
             <div className="min-w-0">
               <p className={`text-sm font-medium ${!compareOn && (value === 'auto' || !value) ? 'text-brand' : 'text-text'}`}>Auto</p>
-              <p className="text-xs text-muted leading-snug">MODUS picks the best model for each task</p>
+              <p className="text-xs text-muted leading-snug">Modus picks the best model for each task</p>
             </div>
           </button>
 

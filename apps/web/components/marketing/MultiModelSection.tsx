@@ -51,7 +51,7 @@ export default function MultiModelSection() {
               Ask them all at once
             </h3>
             <p className="text-sm text-muted leading-relaxed mb-5">
-              One prompt, several models answer side by side, then MODUS tells you which one won.
+              One prompt, several models answer side by side, then Modus tells you which one won.
             </p>
             <ModelCompareDemo />
           </motion.div>
@@ -68,7 +68,7 @@ export default function MultiModelSection() {
               Or pick one, mid-chat
             </h3>
             <p className="text-sm text-muted leading-relaxed mb-5">
-              Switch models right in the composer. Or leave it on <span className="text-text font-semibold">Auto</span> and MODUS routes each task to whichever model is best.
+              Switch models right in the composer. Or leave it on <span className="text-text font-semibold">Auto</span> and Modus routes each task to whichever model is best.
             </p>
             <ModelPickerDemo />
           </motion.div>

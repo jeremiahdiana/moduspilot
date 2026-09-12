@@ -79,7 +79,7 @@ export default function ComparePage() {
           Every model,<br />one conversation
         </h1>
         <p className="text-muted text-lg max-w-2xl leading-relaxed">
-          Claude, GPT-5.6, Gemini, Llama and DeepSeek in the same chat. Leave it on Auto and let MODUS
+          Claude, GPT-5.6, Gemini, Llama and DeepSeek in the same chat. Leave it on Auto and let Modus
           route each task to the model that fits, or pick one per message. Ask several at once and get one
           clear answer.
         </p>
@@ -98,7 +98,7 @@ export default function ComparePage() {
       <Group
         eyebrow="MODUS · $24/mo"
         title="Every provider, auto-routed"
-        blurb="MODUS adds the everyday flagships from every provider. Leave it on Auto and each message goes to the model that fits."
+        blurb="Modus adds the everyday flagships from every provider. Leave it on Auto and each message goes to the model that fits."
         rows={MODUS}
       />
       <Group

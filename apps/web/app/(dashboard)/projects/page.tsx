@@ -103,7 +103,7 @@ export default function ProjectsPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-text">Projects</h1>
-          <p className="text-muted text-sm mt-0.5">Workspaces scoped to specific resources — repos, docs, channels, files.</p>
+          <p className="text-muted text-sm mt-0.5">Workspaces scoped to specific resources, repos, docs, channels, files.</p>
         </div>
         <button
           onClick={() => { setForm({ title: '', description: '' }); setModalOpen(true); }}
@@ -155,7 +155,7 @@ export default function ProjectsPage() {
                   </svg>
                 </div>
                 <p className="text-muted text-sm mb-1">No projects yet.</p>
-                <p className="text-muted/60 text-xs mb-4">Create a workspace and pin resources so MODUS can focus on exactly what matters.</p>
+                <p className="text-muted/60 text-xs mb-4">Create a workspace and pin resources so Modus can focus on exactly what matters.</p>
                 <button
                   onClick={() => { setForm({ title: '', description: '' }); setModalOpen(true); }}
                   className="text-sm text-brand hover:underline"

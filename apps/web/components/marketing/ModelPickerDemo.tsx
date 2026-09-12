@@ -47,7 +47,7 @@ export default function ModelPickerDemo() {
       {/* Composer bar with the live model chip */}
       <div className="px-4 pt-4 pb-3 border-b border-text/[0.06]">
         <div className="flex items-center gap-2 rounded-xl border border-border bg-bg/60 px-3 py-2.5">
-          <span className="text-[13px] text-muted flex-1 truncate">Ask MODUS anything…</span>
+          <span className="text-[13px] text-muted flex-1 truncate">Ask Modus anything…</span>
           <motion.span
             key={sel}
             initial={{ scale: 0.9, opacity: 0.6 }}

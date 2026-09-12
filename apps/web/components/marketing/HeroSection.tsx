@@ -56,7 +56,7 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: 0.22, ease: 'easeOut' }}
           className="text-base sm:text-lg text-muted max-w-xl mx-auto mb-5 leading-relaxed"
         >
-          Tell MODUS your goals. It <Typewriter />, every morning.
+          Tell Modus your goals. It <Typewriter />, every morning.
           You approve every action. Nothing runs without you.
         </motion.p>
 

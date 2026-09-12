@@ -6,8 +6,8 @@ import PasswordGate from './PasswordGate';
 import FoundingOffer from './FoundingOffer';
 
 export const metadata: Metadata = {
-  title: 'MODUS Founding Members',
-  description: 'A private invitation to the first 100 members of MODUS.',
+  title: 'Modus Founding Members',
+  description: 'A private invitation to the first 100 members of Modus.',
   robots: { index: false, follow: false },
 };
 

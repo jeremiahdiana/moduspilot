@@ -103,7 +103,7 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
     <div className="space-y-10">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Display</h2>
-        <p className="text-sm text-muted">Choose what you see and where. Turn off anything you don&apos;t use — nothing is lost, and hidden sidebar items stay reachable with <kbd className="text-[10px] bg-panel border border-border rounded px-1 py-0.5 font-mono">⌘K</kbd>.</p>
+        <p className="text-sm text-muted">Choose what you see and where. Turn off anything you don&apos;t use, nothing is lost, and hidden sidebar items stay reachable with <kbd className="text-[10px] bg-panel border border-border rounded px-1 py-0.5 font-mono">⌘K</kbd>.</p>
       </div>
 
       {/* Appearance */}
@@ -115,7 +115,7 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
         <div className="bg-panel border border-border rounded-xl divide-y divide-border">
           <Row
             label="Reduce motion"
-            hint="Turn off animations and transitions across MODUS"
+            hint="Turn off animations and transitions across Modus"
             checked={settings.reduceMotion ?? false}
             disabled={saving}
             onChange={setReduceMotion}

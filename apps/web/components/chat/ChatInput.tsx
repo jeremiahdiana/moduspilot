@@ -443,7 +443,7 @@ export default function ChatInput({
                   // just skips it — but the composer has to admit that, or the
                   // card gets stranded mid-stepper with no acknowledgement.
                   ? 'Answer above, or type to skip the question…'
-                  : 'Talk to MODUS...'
+                  : 'Talk to Modus...'
             }
             rows={1}
             className="flex-1 min-w-0 bg-transparent text-text text-sm placeholder-muted outline-none resize-none max-h-36 overflow-y-auto"
@@ -459,7 +459,7 @@ export default function ChatInput({
                 transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 onClick={() => onToggleWebSearch?.()}
                 className="shrink-0 overflow-hidden flex items-center gap-1 text-[11px] font-medium text-brand bg-brand/10 border border-brand/25 rounded-full pl-2 pr-1.5 py-1 whitespace-nowrap"
-                title="Web search on — click to turn off"
+                title="Web search on, click to turn off"
               >
                 <SearchIcon className="w-3 h-3" />
                 Search

@@ -105,7 +105,7 @@ export default function PaywallModal({ onClose }: Props) {
               disabled={!!loading}
               className="w-full bg-brand text-white font-bold py-3 rounded-xl hover:bg-brand/90 transition-colors text-sm disabled:opacity-50"
             >
-              {loading === 'modus' ? 'Redirecting…' : 'Start trial — then $24/mo'}
+              {loading === 'modus' ? 'Redirecting…' : 'Start trial, then $24/mo'}
             </button>
           </div>
 
@@ -131,7 +131,7 @@ export default function PaywallModal({ onClose }: Props) {
               disabled={!!loading}
               className="w-full border border-border text-text font-bold py-3 rounded-xl hover:bg-panel transition-colors text-sm disabled:opacity-50"
             >
-              {loading === 'pilot' ? 'Redirecting…' : 'Start trial — then $59/mo'}
+              {loading === 'pilot' ? 'Redirecting…' : 'Start trial, then $59/mo'}
             </button>
           </div>
         </div>

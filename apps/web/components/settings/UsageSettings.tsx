@@ -152,7 +152,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
         /* No active plan — MODUS is fully paid */
         <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
           <h3 className="text-sm font-semibold text-text">No active plan</h3>
-          <p className="text-sm text-muted">MODUS requires an active plan. Start your 3-day free trial to unlock chat, briefings, and everything else.</p>
+          <p className="text-sm text-muted">Modus requires an active plan. Start your 3-day free trial to unlock chat, briefings, and everything else.</p>
         </div>
       )}
 
@@ -166,7 +166,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
           <div>
             <h3 className="text-sm font-semibold text-text mb-1">What uses your allowance</h3>
             <p className="text-xs text-muted leading-relaxed">
-              Every model draws from the same allowance, but not at the same rate — the more
+              Every model draws from the same allowance, but not at the same rate, the more
               capable ones cost more per message.
             </p>
           </div>
@@ -224,7 +224,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
         <div className="bg-brand/10 border border-brand/30 rounded-xl p-5 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-text mb-1">Unlock unlimited messages</p>
-            <p className="text-xs text-muted">Upgrade to MODUS for $24/mo — no daily caps, full memory, daily briefings.</p>
+            <p className="text-xs text-muted">Upgrade to MODUS for $24/mo, no daily caps, full memory, daily briefings.</p>
           </div>
           <button
             onClick={onUpgrade}

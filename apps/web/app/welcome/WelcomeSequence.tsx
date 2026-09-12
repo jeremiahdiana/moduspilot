@@ -61,7 +61,7 @@ export default function WelcomeSequence({ label, foundingNumber, cap }: { label:
       <div className="relative z-10 w-full max-w-md flex flex-col items-center text-center">
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           className="text-[11px] tracking-[0.4em] uppercase text-violet-300 mb-6">
-          Welcome to MODUS
+          Welcome to Modus
         </motion.p>
 
         <motion.div
@@ -79,15 +79,15 @@ export default function WelcomeSequence({ label, foundingNumber, cap }: { label:
         </motion.h1>
         <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.05 }}
           className="text-sm text-muted mt-3 leading-relaxed max-w-sm">
-          One of the first {cap} people ever to run their life on MODUS. Your rate never rises, your access is the highest there is, and you have my direct line. Let’s build.
+          One of the first {cap} people ever to run their life on Modus. Your rate never rises, your access is the highest there is, and you have my direct line. Let’s build.
         </motion.p>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-          className="text-xs text-muted/60 mt-3 italic">— Jeremiah, founder of MODUS</motion.p>
+          className="text-xs text-muted/60 mt-3 italic">Jeremiah, founder of Modus</motion.p>
 
         <motion.button initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.35 }}
           onClick={() => router.push('/dashboard')}
           className="btn-primary mt-8 px-8 py-3.5 rounded-xl text-white text-sm font-semibold">
-          <span className="relative z-10">Enter MODUS</span>
+          <span className="relative z-10">Enter Modus</span>
         </motion.button>
       </div>
     </>

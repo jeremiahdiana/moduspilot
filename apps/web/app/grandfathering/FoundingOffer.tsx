@@ -82,7 +82,7 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
         </p>
         <button onClick={() => router.push(authReady && user ? '/dashboard' : '/login')}
           className="btn-primary mt-7 px-7 py-3.5 rounded-xl text-white text-sm font-semibold fm-rise" style={{ animationDelay: '0.4s' }}>
-          <span className="relative z-10">Enter MODUS</span>
+          <span className="relative z-10">Enter Modus</span>
         </button>
       </div>
     );
@@ -112,7 +112,7 @@ export default function FoundingOffer({ label, foundingNumber, status, claimed, 
             {label ? `${label}, you’re in.` : 'You’re in.'}
           </h1>
           <p className="fm-rise text-sm text-muted mt-2.5 leading-relaxed max-w-md" style={{ animationDelay: '0.34s' }}>
-            A private invitation to the first {cap} members of MODUS. You get our highest tier at our entry price, and you keep that price for as long as you stay.
+            A private invitation to the first {cap} members of Modus. You get our highest tier at our entry price, and you keep that price for as long as you stay.
           </p>
 
           <ul className="mt-6 space-y-3">

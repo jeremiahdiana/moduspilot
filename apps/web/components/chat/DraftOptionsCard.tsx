@@ -59,7 +59,7 @@ export default function DraftOptionsCard({
       direction = custom.trim();
     } else {
       const opt = data.options[selected!];
-      direction = `${opt.label} — ${opt.detail}`;
+      direction = `${opt.label}, ${opt.detail}`;
     }
 
     const label = isCustomSelected ? custom.trim() : data.options[selected!].label;
@@ -106,7 +106,7 @@ export default function DraftOptionsCard({
     >
       {locked && (
         <p className="px-4 pt-3 text-[11px] font-medium text-muted/70">
-          Skipped — you moved on before choosing.
+          Skipped, you moved on before choosing.
         </p>
       )}
       {/* Header */}

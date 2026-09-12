@@ -6,14 +6,14 @@ import { useState } from 'react';
 const FAQS = [
   {
     q: 'Why pay for MODUS instead of ChatGPT Plus?',
-    a: "Because ChatGPT is one model that forgets you. MODUS gives you every frontier model (Claude, GPT-5.6, Gemini, Llama, DeepSeek) in one chat, keeps persistent memory of you across every conversation, and actually connects to your inbox, calendar and files to get things done. One bill instead of five subscriptions.",
+    a: "Because ChatGPT is one model that forgets you. Modus gives you every frontier model (Claude, GPT-5.6, Gemini, Llama, DeepSeek) in one chat, keeps persistent memory of you across every conversation, and actually connects to your inbox, calendar and files to get things done. One bill instead of five subscriptions.",
   },
   {
     q: 'Do I really get every top AI model in one place?',
-    a: "Yes. Claude, GPT-5.6, Gemini, Llama and DeepSeek live in the same chat. Pick the model you want for any message, leave it on Auto and let MODUS route each task to the best one, or ask several at once and get one clear verdict. No API keys, no separate logins.",
+    a: "Yes. Claude, GPT-5.6, Gemini, Llama and DeepSeek live in the same chat. Pick the model you want for any message, leave it on Auto and let Modus route each task to the best one, or ask several at once and get one clear verdict. No API keys, no separate logins.",
   },
   {
-    q: 'What can MODUS actually do for me?',
+    q: 'What can Modus actually do for me?',
     a: "Every morning it sends a briefing: your top priorities, overdue tasks and habits at risk. Through the day you can ask it to draft and send email, reschedule meetings, update goals or log habits. Every action it takes waits on an approval card first, so nothing runs without you.",
   },
   {
@@ -26,7 +26,7 @@ const FAQS = [
   },
   {
     q: 'Is my data private?',
-    a: "Your data is never sold or used to train AI models. Memory is stored in your own encrypted index, and you can view and delete everything MODUS knows about you at any time from Settings → Memory.",
+    a: "Your data is never sold or used to train AI models. Memory is stored in your own encrypted index, and you can view and delete everything Modus knows about you at any time from Settings → Memory.",
   },
 ];
 

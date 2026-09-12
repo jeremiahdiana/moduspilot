@@ -71,7 +71,7 @@ export default function FilePreviewModal({
             </div>
 
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-border/60">
-              <p className="text-[11px] text-muted">This is the text MODUS will read.</p>
+              <p className="text-[11px] text-muted">This is the text Modus will read.</p>
               <div className="flex gap-2">
                 {onRemove && (
                   <button

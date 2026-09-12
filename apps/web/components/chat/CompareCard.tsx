@@ -25,17 +25,17 @@ import OptionsCard from '@/components/chat/OptionsCard';
 const UNSUPPORTED_COPY = {
   image: {
     title: 'This reads like an image request.',
-    body: 'MODUS makes images with one image model, so there are no three answers to put side by side. Make it the normal way, or compare how the models answer it in words.',
+    body: 'Modus makes images with one image model, so there are no three answers to put side by side. Make it the normal way, or compare how the models answer it in words.',
     cta: 'Make the image',
   },
   document: {
     title: 'This reads like a PDF request.',
-    body: 'A PDF is built by MODUS itself rather than by the model you picked. Make it the normal way, or compare how the models answer it in words.',
+    body: 'A PDF is built by Modus itself rather than by the model you picked. Make it the normal way, or compare how the models answer it in words.',
     cta: 'Make the PDF',
   },
   chart: {
     title: 'This reads like a chart request.',
-    body: 'Charts are drawn by MODUS from your data, not written by the model. Make it the normal way, or compare how the models answer it in words.',
+    body: 'Charts are drawn by Modus from your data, not written by the model. Make it the normal way, or compare how the models answer it in words.',
     cta: 'Make the chart',
   },
 } as const;
@@ -351,7 +351,7 @@ export default function CompareCard({
         <div className="flex items-start gap-2 px-3 py-2 border-b border-border/60 bg-amber-500/[0.06]">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 mt-1.5" />
           <p className="text-[11px] text-amber-500/90 leading-relaxed">
-            MODUS couldn’t check whether this needed narrowing down first, so each model answered it as
+            Modus couldn’t check whether this needed narrowing down first, so each model answered it as
             written. If they went in different directions, ask again with more detail.
           </p>
         </div>
@@ -536,7 +536,7 @@ export default function CompareCard({
               </svg>
               {verdict ? (
                 <p className="text-xs text-muted leading-relaxed">
-                  <span className="text-text font-medium">MODUS:</span> {verdict}
+                  <span className="text-text font-medium">Modus:</span> {verdict}
                 </p>
               ) : (
                 <p className="text-xs text-muted/70">Comparing answers…</p>

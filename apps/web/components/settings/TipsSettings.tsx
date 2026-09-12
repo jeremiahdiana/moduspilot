@@ -21,7 +21,7 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Rename any chat',
-        body: 'Double-click a conversation title in the sidebar — or in a goal\'s chat tabs — to rename it inline. Hit Enter or click away to save.',
+        body: 'Double-click a conversation title in the sidebar, or in a goal\'s chat tabs, to rename it inline. Hit Enter or click away to save.',
         tag: 'Double-click',
       },
       {
@@ -31,46 +31,46 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Switch goals fast',
-        body: 'The Goals page shows all your active goals. Click any card to open its full detail view — progress, milestones, tasks, habits, and a dedicated MODUS chat.',
+        body: 'The Goals page shows all your active goals. Click any card to open its full detail view, progress, milestones, tasks, habits, and a dedicated Modus chat.',
       },
     ],
   },
   {
-    heading: 'Using MODUS AI',
+    heading: 'Using Modus AI',
     icon: '🤖',
     tips: [
       {
-        title: 'Approval cards — approve, edit, or skip',
-        body: 'When MODUS proposes an action (create goal, schedule event, send email), it surfaces an approval card. You can approve it as-is, hit Edit to change the title, or Skip to ignore it. Nothing executes until you say so.',
+        title: 'Approval cards, approve, edit, or skip',
+        body: 'When Modus proposes an action (create goal, schedule event, send email), it surfaces an approval card. You can approve it as-is, hit Edit to change the title, or Skip to ignore it. Nothing executes until you say so.',
         tag: 'Core mechanic',
       },
       {
-        title: 'Ask MODUS to create things from chat',
-        body: 'Say "add that as a goal", "create a task for X", "add a daily habit for Y", or "schedule that for Thursday at 3pm" — MODUS will surface the right card immediately.',
+        title: 'Ask Modus to create things from chat',
+        body: 'Say "add that as a goal", "create a task for X", "add a daily habit for Y", or "schedule that for Thursday at 3pm", Modus will surface the right card immediately.',
       },
       {
         title: 'Email reply drafting',
-        body: 'Paste an email and say "draft a reply". MODUS will ask you to pick a tone (Optimistic, Candid, Strategic) before writing — so your reply actually sounds like you. Then you approve the send.',
+        body: 'Paste an email and say "draft a reply". Modus will ask you to pick a tone (Optimistic, Candid, Strategic) before writing, so your reply actually sounds like you. Then you approve the send.',
         tag: 'Workflow',
       },
       {
         title: 'Schedule straight from an email',
-        body: 'Paste or forward an email and say "put this on my calendar". MODUS pulls out the date and time and surfaces a calendar hold — approve it and the event lands in Google Calendar.',
+        body: 'Paste or forward an email and say "put this on my calendar". Modus pulls out the date and time and surfaces a calendar hold, approve it and the event lands in Google Calendar.',
         tag: 'Cross-tool',
       },
       {
         title: 'Update goal progress with words',
-        body: 'Just say "I\'m about 60% done with my YC application goal" and MODUS will surface an update_goal_progress card with the slider pre-set.',
+        body: 'Just say "I\'m about 60% done with my YC application goal" and Modus will surface an update_goal_progress card with the slider pre-set.',
       },
       {
-        title: 'Tell MODUS who you are',
-        body: 'Go to Settings → General → Personal Context. Write 2–5 sentences about your role, how you like to work, and your priorities. MODUS reads this in every conversation.',
+        title: 'Tell Modus who you are',
+        body: 'Go to Settings → General → Personal Context. Write 2 to 5 sentences about your role, how you like to work, and your priorities. Modus reads this in every conversation.',
         tag: 'Setup tip',
       },
     ],
   },
   {
-    heading: 'Your Brain — AI model selection',
+    heading: 'Your Brain, AI model selection',
     icon: '🧠',
     tips: [
       {
@@ -78,7 +78,7 @@ const SECTIONS: Section[] = [
         // ⚠️ This sentence NAMES AND COUNTS the catalog, so it goes stale the moment
         // lib/models.ts changes and nobody notices — it still said "7 AI models"
         // three models later. Update it in the same commit as PLATFORM_MODELS.
-        body: 'MODUS runs on 10 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. DeepSeek V3.1, GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). Llama 4 Maverick, GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro unlock on PILOT ($59/mo).',
+        body: 'Modus runs on 10 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. DeepSeek V3.1, GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). Llama 4 Maverick, GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro unlock on PILOT ($59/mo).',
         tag: 'Feature',
       },
       {
@@ -98,31 +98,31 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    heading: 'Proactive — MODUS works on its own',
+    heading: 'Proactive, Modus works on its own',
     icon: '✨',
     tips: [
       {
-        title: 'MODUS triages your inbox for you',
-        body: 'Through the day MODUS scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and drops it in chat with a push notification. Approve, edit, or skip — nothing sends until you tap. Turn it off in the Capabilities page → Inbox Triage.',
+        title: 'Modus triages your inbox for you',
+        body: 'Through the day Modus scans your connected inbox for emails waiting on a reply, drafts a response in your voice, and drops it in chat with a push notification. Approve, edit, or skip, nothing sends until you tap. Turn it off in the Capabilities page → Inbox Triage.',
         tag: 'Automatic',
       },
       {
         title: 'Meeting requests become calendar holds',
-        body: 'When an email proposes a specific date and time, MODUS recognizes the meeting request and surfaces a calendar hold instead of a reply. Approve it and the event is created in your Google Calendar — no copying details by hand.',
+        body: 'When an email proposes a specific date and time, Modus recognizes the meeting request and surfaces a calendar hold instead of a reply. Approve it and the event is created in your Google Calendar, no copying details by hand.',
         tag: 'Cross-tool',
       },
       {
         title: 'Pre- and post-meeting briefs',
-        body: 'Before a meeting MODUS sends a sharp brief: what it is likely about, what to have in mind, and one question to be ready for. After it ends, it asks how it went and can turn action items into tasks.',
+        body: 'Before a meeting Modus sends a sharp brief: what it is likely about, what to have in mind, and one question to be ready for. After it ends, it asks how it went and can turn action items into tasks.',
       },
       {
         title: 'Your morning briefing reads your whole day',
-        body: 'At the time you set (Settings → General), MODUS generates a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox — your top 3, anything overdue, and habits at risk of breaking streak. Turn it off in the Capabilities page → Daily Briefing.',
+        body: 'At the time you set (Settings → General), Modus generates a briefing from your goals, tasks, habits, today\'s calendar, and unread inbox, your top 3, anything overdue, and habits at risk of breaking streak. Turn it off in the Capabilities page → Daily Briefing.',
         tag: 'Daily',
       },
       {
         title: 'Relationship follow-up nudges',
-        body: 'MODUS notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold. Enable in the Capabilities page → Relationship Follow-ups.',
+        body: 'Modus notices contacts who emailed you and never got a reply, and flags the most overdue ones so relationships don\'t go cold. Enable in the Capabilities page → Relationship Follow-ups.',
       },
     ],
   },
@@ -132,25 +132,25 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Connect Google to unlock Calendar + Gmail',
-        body: 'the Capabilities page → Google. Once connected, MODUS can see your inbox, schedule events directly in Google Calendar, archive emails, and draft or send replies.',
+        body: 'the Capabilities page → Google. Once connected, Modus can see your inbox, schedule events directly in Google Calendar, archive emails, and draft or send replies.',
         tag: 'Setup',
       },
       {
         title: 'Multi-account Gmail',
-        body: 'If you have multiple Google accounts connected, MODUS will let you pick which inbox to send from when you approve a send_email card.',
+        body: 'If you have multiple Google accounts connected, Modus will let you pick which inbox to send from when you approve a send_email card.',
       },
       {
-        title: 'Ask MODUS to connect from chat',
-        body: 'If you haven\'t connected an integration, just ask MODUS to use it ("show me my emails"). It will drop a connect card in the chat so you don\'t have to go to settings.',
+        title: 'Ask Modus to connect from chat',
+        body: 'If you haven\'t connected an integration, just ask Modus to use it ("show me my emails"). It will drop a connect card in the chat so you don\'t have to go to settings.',
       },
       {
-        title: 'On iOS — health, contacts, and files',
-        body: 'In the MODUS iOS app, go to the Capabilities page → On This Device to enable Health (steps + sleep in your briefing), Contacts (for relationship tracking), Photos, and Files (including Obsidian notes via iCloud Drive).',
+        title: 'On iOS, health, contacts, and files',
+        body: 'In the Modus iOS app, go to the Capabilities page → On This Device to enable Health (steps + sleep in your briefing), Contacts (for relationship tracking), Photos, and Files (including Obsidian notes via iCloud Drive).',
         tag: 'iOS',
       },
       {
-        title: 'Share files to MODUS on iOS',
-        body: 'In the iOS app: the Capabilities page → Files & Notes → Browse. Pick any text or Markdown file from iCloud Drive. MODUS opens a chat with the file contents ready to discuss — great for Obsidian notes, meeting transcripts, or strategy docs.',
+        title: 'Share files to Modus on iOS',
+        body: 'In the iOS app: the Capabilities page → Files & Notes → Browse. Pick any text or Markdown file from iCloud Drive. Modus opens a chat with the file contents ready to discuss, great for Obsidian notes, meeting transcripts, or strategy docs.',
         tag: 'iOS',
       },
     ],
@@ -160,8 +160,8 @@ const SECTIONS: Section[] = [
     icon: '💾',
     tips: [
       {
-        title: 'MODUS builds a profile of you over time',
-        body: 'With "Generate Memory from Chat History" enabled (Settings → Brain), MODUS extracts key facts from your conversations — your preferences, recurring goals, communication style.',
+        title: 'Modus builds a profile of you over time',
+        body: 'With "Generate Memory from Chat History" enabled (Settings → Brain), Modus extracts key facts from your conversations, your preferences, recurring goals, communication style.',
       },
       {
         title: 'Add memories manually',
@@ -184,8 +184,8 @@ const SECTIONS: Section[] = [
         tag: 'Click to edit',
       },
       {
-        title: 'Let MODUS build your plan',
-        body: 'Hit "✦ Generate plan" on any goal and MODUS will create a milestone checklist tailored to your goal title and timeframe. You can regenerate any time.',
+        title: 'Let Modus build your plan',
+        body: 'Hit "Generate plan" on any goal and Modus will create a milestone checklist tailored to your goal title and timeframe. You can regenerate any time.',
         tag: 'AI',
       },
       {
@@ -194,11 +194,11 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Use goal chats to think, not just track',
-        body: 'Each goal has its own MODUS chat. Use it to think out loud: "what\'s blocking me on this?", "help me plan next steps", "reflect on what I shipped this week". MODUS has full context on the goal.',
+        body: 'Each goal has its own Modus chat. Use it to think out loud: "what\'s blocking me on this?", "help me plan next steps", "reflect on what I shipped this week". Modus has full context on the goal.',
       },
       {
         title: 'Log wins, blockers, and ideas',
-        body: 'Open the Notes tab on any goal. Tag each note as a Win, Blocker, Idea, or Reflection — then filter to see just blockers when you\'re stuck, or just wins when you need a boost.',
+        body: 'Open the Notes tab on any goal. Tag each note as a Win, Blocker, Idea, or Reflection, then filter to see just blockers when you\'re stuck, or just wins when you need a boost.',
       },
     ],
   },
@@ -207,8 +207,8 @@ const SECTIONS: Section[] = [
     icon: '⚡',
     tips: [
       {
-        title: 'Open MODUS first thing in the morning',
-        body: 'MODUS drops a daily briefing at your configured time (Settings → General). It covers your top 3 for the day, anything overdue, and habits at risk of breaking streak.',
+        title: 'Open Modus first thing in the morning',
+        body: 'Modus drops a daily briefing at your configured time (Settings → General). It covers your top 3 for the day, anything overdue, and habits at risk of breaking streak.',
         tag: 'Daily habit',
       },
       {
@@ -218,12 +218,12 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Set up your response style',
-        body: 'Settings → General → Response Style. Choose Direct, Concise, Strategic, Coach, or Supportive — or write your own. This changes how MODUS communicates with you across every conversation.',
+        body: 'Settings → General → Response Style. Choose Direct, Concise, Strategic, Coach, or Supportive, or write your own. This changes how Modus communicates with you across every conversation.',
         tag: 'Personalization',
       },
       {
         title: 'Trigger inbox triage manually',
-        body: 'Go to Briefing → Inbox and tap "Triage inbox". MODUS will immediately scan your email and generate draft replies for emails waiting on you — without waiting for the hourly cron.',
+        body: 'Go to Briefing → Inbox and tap "Triage inbox". Modus will immediately scan your email and generate draft replies for emails waiting on you, without waiting for the hourly cron.',
       },
     ],
   },
@@ -236,7 +236,7 @@ export default function TipsSettings() {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Tips & Tricks</h2>
-        <p className="text-sm text-muted">Everything you can do in MODUS — and how to get the most out of it.</p>
+        <p className="text-sm text-muted">Everything you can do in Modus, and how to get the most out of it.</p>
       </div>
 
       <div className="space-y-3">
@@ -292,7 +292,7 @@ export default function TipsSettings() {
 
       <div className="bg-brand/5 border border-brand/20 rounded-xl px-5 py-4">
         <p className="text-sm font-semibold text-text mb-1">Still figuring something out?</p>
-        <p className="text-xs text-muted">Ask MODUS directly in chat — it knows everything about itself and can walk you through any feature.</p>
+        <p className="text-xs text-muted">Ask Modus directly in chat, it knows everything about itself and can walk you through any feature.</p>
       </div>
     </div>
   );

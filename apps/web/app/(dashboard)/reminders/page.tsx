@@ -317,7 +317,7 @@ export default function RemindersPage() {
         className="mb-8"
       >
         <h1 className="text-2xl font-bold text-text">Reminders</h1>
-        <p className="text-muted text-sm mt-0.5">Habits and tasks — everything you need to show up for today.</p>
+        <p className="text-muted text-sm mt-0.5">Habits and tasks, everything you need to show up for today.</p>
 
         <AnimatePresence>
           {showCelebration && (
@@ -375,7 +375,7 @@ export default function RemindersPage() {
 
             {habits.length === 0 ? (
               <div className="py-8 text-center">
-                <p className="text-muted text-sm">No habits yet — tell MODUS what you want to build.</p>
+                <p className="text-muted text-sm">No habits yet, tell Modus what you want to build.</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -526,7 +526,7 @@ export default function RemindersPage() {
             {visibleTasks.length === 0 ? (
               <p className="text-muted text-sm text-center py-10">
                 {tab === 'todo'
-                  ? priorityFilter !== 'all' ? `No ${priorityFilter}-priority tasks.` : 'No tasks. Add one above or ask MODUS.'
+                  ? priorityFilter !== 'all' ? `No ${priorityFilter}-priority tasks.` : 'No tasks. Add one above or ask Modus.'
                   : 'No completed tasks yet.'}
               </p>
             ) : (

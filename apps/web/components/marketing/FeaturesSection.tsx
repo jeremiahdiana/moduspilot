@@ -42,37 +42,37 @@ const FEATURES = [
     icon: icons.models,
     tag: 'Every model',
     title: 'Every AI model, one chat',
-    desc: 'Claude, GPT-5.6, Gemini, Llama. Pick the model you want, or let MODUS auto-route each task to the best one — switch anytime, right in the chat.',
+    desc: 'Claude, GPT-5.6, Gemini, Llama. Pick the model you want, or let Modus auto-route each task to the best one, switch anytime, right in the chat.',
   },
   {
     icon: icons.create,
     tag: 'Make things',
     title: 'Create images & documents',
-    desc: 'Ask MODUS to generate an image or a formatted PDF, then edit it in a live canvas and download it — all inside the same conversation.',
+    desc: 'Ask Modus to generate an image or a formatted PDF, then edit it in a live canvas and download it, all inside the same conversation.',
   },
   {
     icon: icons.briefing,
     tag: 'Every morning',
     title: 'Daily briefing',
-    desc: 'MODUS comes to you, not the other way around. Energy check, top 3 priorities, inbox triage, habit streaks — done before you open Gmail.',
+    desc: 'Modus comes to you, not the other way around. Energy check, top 3 priorities, inbox triage, habit streaks, done before you open Gmail.',
   },
   {
     icon: icons.approve,
     tag: 'You decide',
     title: 'You approve everything',
-    desc: 'Every action surfaces as an approval card. See exactly what MODUS plans to do, edit anything, skip anything. Nothing executes without your sign-off.',
+    desc: 'Every action surfaces as an approval card. See exactly what Modus plans to do, edit anything, skip anything. Nothing executes without your sign-off.',
   },
   {
     icon: icons.goals,
     tag: 'Follow through',
     title: 'Goals, habits, tasks',
-    desc: 'Set a goal in chat. MODUS breaks it into milestones, links daily habits, and surfaces tasks automatically — adjusting when life gets in the way.',
+    desc: 'Set a goal in chat. Modus breaks it into milestones, links daily habits, and surfaces tasks automatically, adjusting when life gets in the way.',
   },
   {
     icon: icons.memory,
     tag: 'It remembers',
     title: 'Memory that persists',
-    desc: 'Remembers your goals, decisions, and commitments across every conversation. The longer you use MODUS, the more precisely it knows you.',
+    desc: 'Remembers your goals, decisions, and commitments across every conversation. The longer you use Modus, the more precisely it knows you.',
   },
 ];
 
@@ -87,9 +87,9 @@ export default function FeaturesSection() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="mb-14"
         >
-          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">What MODUS does</p>
+          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">What Modus does</p>
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text leading-tight max-w-2xl">
-            One place for every model — and everything after the answer.
+            One place for every model, and everything after the answer.
           </h2>
         </motion.div>
 

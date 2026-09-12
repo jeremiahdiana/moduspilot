@@ -102,8 +102,8 @@ function getMomentum(goal: Goal): { label: string; color: string } | null {
 
 function checkinMessage(goal: Goal): string {
   if (goal.progress === 0)   return `You're at 0% on "${goal.title}". What's the first move to get this started?`;
-  if (goal.progress < 50)    return `You're ${goal.progress}% into "${goal.title}". What's moved since you set this — and what's next?`;
-  if (goal.progress < 100)   return `You're ${goal.progress}% through "${goal.title}" — solid. What's left to get this across the line?`;
+  if (goal.progress < 50)    return `You're ${goal.progress}% into "${goal.title}". What's moved since you set this, and what's next?`;
+  if (goal.progress < 100)   return `You're ${goal.progress}% through "${goal.title}", solid. What's left to get this across the line?`;
   return `"${goal.title}" is done. Want to capture any lessons before closing it out?`;
 }
 
@@ -379,10 +379,10 @@ export default function GoalDetailPage() {
     },
     onError: (err) => {
       const m = (err?.message ?? '').toLowerCase();
-      if (m.includes('authentication_required')) setChatError('Your session expired — refresh and sign in again.');
+      if (m.includes('authentication_required')) setChatError('Your session expired, refresh and sign in again.');
       else if (m.includes('free_limit_reached')) setChatError("You've hit your free limit for now. It refreshes soon, or upgrade for every model.");
-      else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature — subscribe to attach one.');
-      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use MODUS.');
+      else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature, subscribe to attach one.');
+      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use Modus.');
       else if (m.includes('token_limit_reached')) setChatError("You've hit your daily AI limit. Resets at midnight.");
       else if (m.includes('all_models_busy') || m.includes('rate') || m.includes('busy') || m.includes('429')) setChatError('The AI is briefly busy. Try again in a moment.');
       else setChatError('Something went wrong. Please try again.');
@@ -810,7 +810,7 @@ export default function GoalDetailPage() {
 
               {goal.milestones.length === 0 && !addingMilestone && (
                 <p className="text-xs text-muted/50 text-center py-3">
-                  Add steps manually or hit &ldquo;Generate plan&rdquo; to let MODUS build them for you.
+                  Add steps manually or hit &ldquo;Generate plan&rdquo; to let Modus build them for you.
                 </p>
               )}
 
@@ -1175,7 +1175,7 @@ export default function GoalDetailPage() {
             {/* Explore tab */}
             {activeTab === 'explore' && (
               <div>
-                <p className="text-xs text-muted mb-4">Tap a question to open a dedicated chat thread with MODUS.</p>
+                <p className="text-xs text-muted mb-4">Tap a question to open a dedicated chat thread with Modus.</p>
                 {suggestionsLoading ? (
                   <div className="flex flex-wrap gap-2">
                     {[100, 140, 115, 160, 125].map((w, i) => (
@@ -1202,7 +1202,7 @@ export default function GoalDetailPage() {
         <div className="w-[360px] shrink-0 flex flex-col overflow-hidden border-l border-border">
 
           <div className="shrink-0 border-b border-border px-3 pt-3 pb-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">MODUS on this goal</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">Modus on this goal</p>
             <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
               <button
                 onClick={() => {
@@ -1308,7 +1308,7 @@ export default function GoalDetailPage() {
 
           <div className="shrink-0 border-t border-border">
             <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-3">
-              <input value={input} onChange={handleInputChange} placeholder="Message MODUS…"
+              <input value={input} onChange={handleInputChange} placeholder="Message Modus…"
                 className="flex-1 bg-transparent text-sm text-text placeholder:text-muted/40 outline-none border-none" />
               <button type="submit" disabled={!input.trim() || isLoading}
                 className="w-7 h-7 rounded-full bg-text flex items-center justify-center text-panel shrink-0 disabled:opacity-30 transition-opacity">

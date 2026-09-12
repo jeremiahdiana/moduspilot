@@ -6,11 +6,11 @@ import MarketingShell from '@/components/marketing/MarketingShell';
 const PRINCIPLES = [
   {
     title: 'Every model, not one',
-    body: 'The best model changes with the task. MODUS gives you Claude, GPT-5.6, Gemini, Llama and DeepSeek in one chat, on Auto or picked per message, so you never bet your work on a single provider.',
+    body: 'The best model changes with the task. Modus gives you Claude, GPT-5.6, Gemini, Llama and DeepSeek in one chat, on Auto or picked per message, so you never bet your work on a single provider.',
   },
   {
     title: 'Connected to your life',
-    body: 'An AI that cannot see your inbox, calendar or files can only ever guess. MODUS connects to the apps you already use and grounds its answers in your real context.',
+    body: 'An AI that cannot see your inbox, calendar or files can only ever guess. Modus connects to the apps you already use and grounds its answers in your real context.',
   },
   {
     title: 'You stay in control',
@@ -18,7 +18,7 @@ const PRINCIPLES = [
   },
   {
     title: 'Private by default',
-    body: 'Your data is never sold or used to train models. Your conversations, goals and memory live in your own database, and you can view and delete everything MODUS knows about you.',
+    body: 'Your data is never sold or used to train models. Your conversations, goals and memory live in your own database, and you can view and delete everything Modus knows about you.',
   },
 ];
 
@@ -32,14 +32,14 @@ export default function AboutPage() {
         </h1>
         <p className="text-muted text-lg max-w-2xl leading-relaxed">
           Most people now juggle five AI subscriptions, and none of them know your calendar, your inbox or
-          what you decided last week. MODUS is the opposite: every frontier model in one place, connected to
+          what you decided last week. Modus is the opposite: every frontier model in one place, connected to
           your life, for one subscription.
         </p>
       </section>
 
       <section className="max-w-5xl mx-auto px-6 py-12 border-t border-border">
         <div className="grid md:grid-cols-[260px_1fr] gap-8 md:gap-12">
-          <h2 className="text-2xl sm:text-3xl text-text tracking-tight md:sticky md:top-24 self-start">Why MODUS exists</h2>
+          <h2 className="text-2xl sm:text-3xl text-text tracking-tight md:sticky md:top-24 self-start">Why Modus exists</h2>
           <div className="space-y-4 text-muted leading-relaxed max-w-2xl">
             <p>
               The frontier models are extraordinary and getting better every month, but they arrive as a pile
@@ -48,7 +48,7 @@ export default function AboutPage() {
               never know you.
             </p>
             <p>
-              MODUS collapses that into one product. Ask any model in a single chat. Leave it on Auto and each
+              Modus collapses that into one product. Ask any model in a single chat. Leave it on Auto and each
               message routes to whatever fits. Connect your inbox, calendar and files so answers are grounded in
               your real work, and let it draft, schedule and act, always with your approval. It remembers what
               you told it, so you are not starting from zero every morning.

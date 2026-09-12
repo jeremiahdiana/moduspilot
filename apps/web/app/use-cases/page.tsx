@@ -9,7 +9,7 @@ const CASES: UseCase[] = [
   {
     eyebrow: 'For founders',
     title: 'Run the whole company from one place',
-    blurb: 'You are the bottleneck on ten fronts. MODUS keeps the plates spinning and routes the hard problems to the best model.',
+    blurb: 'You are the bottleneck on ten fronts. Modus keeps the plates spinning and routes the hard problems to the best model.',
     workflows: [
       'A morning briefing of your top priorities, overdue tasks and habits at risk',
       'Draft and send investor updates and cold emails, approved before they go',
@@ -33,7 +33,7 @@ const CASES: UseCase[] = [
     title: 'Keep your life from slipping',
     blurb: 'Goals, habits and the endless admin, handled quietly in the background so you can focus on what matters.',
     workflows: [
-      'A habit engine and goals that MODUS actually checks in on',
+      'A habit engine and goals that Modus actually checks in on',
       'An end-of-day reflection that closes the loop',
       'Life admin automation: reminders, bookings and follow-ups',
       'Wearable sync so your energy and recovery inform the plan',
@@ -50,7 +50,7 @@ export default function UseCasesPage() {
           One tool,<br />many jobs
         </h1>
         <p className="text-muted text-lg max-w-2xl leading-relaxed">
-          MODUS is built for people with too much to hold in their head. Here is how founders, executives and
+          Modus is built for people with too much to hold in their head. Here is how founders, executives and
           busy people actually use it.
         </p>
       </section>

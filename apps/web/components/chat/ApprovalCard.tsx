@@ -73,12 +73,12 @@ function buildFollowUpMessage(type: string, title: string, payload: Record<strin
       const dueDate = payload.dueDate as string | undefined;
       let msg = `Goal set: "${title}".`;
       if (dueDate) msg += ` Targeting ${dueDate}.`;
-      msg += ` Progress starts at 0% — I'll track it as you move forward.`;
+      msg += ` Progress starts at 0%, I'll track it as you move forward.`;
       return msg;
     }
     case 'create_habit': {
       const freq = (payload.frequency as string | undefined) ?? 'daily';
-      return `"${title}" is now a ${freq} habit. Day 1 starts today — let's build the streak.`;
+      return `"${title}" is now a ${freq} habit. Day 1 starts today, let's build the streak.`;
     }
     case 'schedule_event': {
       const date = payload.date as string | undefined;
@@ -252,7 +252,7 @@ export default function ApprovalCard({
     ? `Sent${emailSubject ? `: ${emailSubject}` : ''}`
     : data.type === 'draft_email'
     ? `Draft saved${emailSubject ? `: ${emailSubject}` : ''}`
-    : `${editedTitle || data.title} — done`;
+    : `${editedTitle || data.title}, done`;
   const pendingProgress = typeof data.payload?.progress === 'number' ? data.payload.progress : 0;
   const isConnectCard = REDIRECT_TYPES.has(data.type);
 

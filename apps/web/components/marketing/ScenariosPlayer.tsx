@@ -103,7 +103,7 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'card', delay: 2800, component: <ActionCard actions={[
       { label: 'Reply to David re: investor update', detail: 'Draft ready for review' },
       { label: 'Follow up with Sarah on the contract', detail: 'Draft ready for review' },
-      { label: 'Block 8–11 AM as deep work', detail: 'Removed from booking availability' },
+      { label: 'Block 8 to 11 AM as deep work', detail: 'Removed from booking availability' },
     ]} buttons={['Approve all', 'Review drafts']} /> },
   ],
   followup: [
@@ -119,7 +119,7 @@ const SCENES: Record<string, SceneItem[]> = {
     { type: 'msg', role: 'user', text: "What do I need to do today to get back on track?", delay: 1200 },
     { type: 'thinking', delay: 2000 },
     { type: 'card', delay: 2800, component: <ActionCard actions={[
-      { label: 'Block 3–5 PM for outreach calls', detail: 'Added to calendar as focus time' },
+      { label: 'Block 3 to 5 PM for outreach calls', detail: 'Added to calendar as focus time' },
       { label: 'Reminder at 2:45 PM to prep call list', detail: 'Push notification set' },
       { label: 'Add "Send 5 follow-up DMs" to today', detail: 'Task with end-of-day deadline' },
     ]} buttons={['Approve all', 'Adjust']} /> },
@@ -138,7 +138,7 @@ const SCENES: Record<string, SceneItem[]> = {
           {[
             { week: 'Week 1', title: 'Reach out to 20 prospects', note: 'Daily outreach reminder at 9 AM' },
             { week: 'Week 2', title: 'Book 5 discovery calls', note: 'Calendar blocks + prep briefs' },
-            { week: 'Week 3', title: 'Close 2 deals, follow up on the rest', note: 'MODUS flags cold leads' },
+            { week: 'Week 3', title: 'Close 2 deals, follow up on the rest', note: 'Modus flags cold leads' },
             { week: 'Week 4', title: 'Invoice, collect, and review', note: 'Invoices drafted + summary sent' },
           ].map((w, i) => (
             <div key={i} className="flex gap-2.5">

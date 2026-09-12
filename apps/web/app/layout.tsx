@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: 'Modus',
     template: '%s | Modus',
   },
-  description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
+  description: 'Stop managing yourself. Modus is your AI chief of staff that tracks your goals, clears your plate and tells you what to focus on next.',
   alternates: {
     canonical: '/',
   },
@@ -29,21 +29,21 @@ export const metadata: Metadata = {
     type: 'website',
     url: 'https://moduspilot.com',
     title: 'Modus',
-    description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
+    description: 'Stop managing yourself. Modus is your AI chief of staff that tracks your goals, clears your plate and tells you what to focus on next.',
     siteName: 'Modus',
     images: [
       {
         url: '/og.png',
         width: 1200,
         height: 630,
-        alt: "Modus — the only AI you'll ever need. Every frontier model, one subscription.",
+        alt: "Modus: the only AI you'll ever need. Every frontier model, one subscription.",
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Modus',
-    description: 'Stop managing yourself. Modus is your AI chief of staff — it tracks your goals, clears your plate, and tells you what to focus on next.',
+    description: 'Stop managing yourself. Modus is your AI chief of staff that tracks your goals, clears your plate and tells you what to focus on next.',
     images: ['/og.png'],
   },
 };

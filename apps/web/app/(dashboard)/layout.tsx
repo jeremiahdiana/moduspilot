@@ -261,10 +261,10 @@ function SidebarContent({
 
       {/* Ask MODUS button */}
       {collapsed ? (
-        <Tooltip label="Ask MODUS  ⌘K" side="right" className="w-full">
+        <Tooltip label="Ask Modus  ⌘K" side="right" className="w-full">
           <button
             onClick={onCmdOpen}
-            aria-label="Ask MODUS"
+            aria-label="Ask Modus"
             className="w-full flex items-center justify-center mb-4 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
@@ -283,7 +283,7 @@ function SidebarContent({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
-          <span className="flex-1 text-xs font-medium">Ask MODUS</span>
+          <span className="flex-1 text-xs font-medium">Ask Modus</span>
           <div className="flex items-center gap-0.5">
             <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">⌘</kbd>
             <kbd className="text-[9px] bg-bg border border-border/60 rounded px-1 py-0.5 font-mono leading-none">K</kbd>

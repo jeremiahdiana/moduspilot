@@ -16,9 +16,9 @@ const BRAINS = [
   {
     id: 'auto',
     name: 'Auto',
-    provider: 'MODUS routing',
+    provider: 'Modus routing',
     tagline: 'Best model for every task',
-    description: "MODUS reads each message and routes it to the model that'll do it best — Claude for nuanced writing and analysis, a reasoning model for code and math, real-time models for research, and fast Llama for everyday chat. One Brain, every model. Auto only routes to the models your plan unlocks.",
+    description: "Modus reads each message and routes it to the model that'll do it best, Claude for nuanced writing and analysis, a reasoning model for code and math, real-time models for research, and fast Llama for everyday chat. One Brain, every model. Auto only routes to the models your plan unlocks.",
     badge: 'Recommended',
     badgeColor: 'bg-brand text-white',
     plans: ['free', 'modus', 'pilot'] as string[],
@@ -26,9 +26,9 @@ const BRAINS = [
   {
     id: 'auto-saver',
     name: 'Auto Saver',
-    provider: 'MODUS routing',
+    provider: 'Modus routing',
     tagline: 'Same routing, lighter models',
-    description: 'MODUS still routes each message per task, but chooses the cheapest model that can do it well, so your usage allowance lasts far longer. Best for coursework, everyday questions, and long sessions. It can trail the frontier on the hardest reasoning or code, where plain Auto is the better pick.',
+    description: 'Modus still routes each message per task, but chooses the cheapest model that can do it well, so your usage allowance lasts far longer. Best for coursework, everyday questions, and long sessions. It can trail the frontier on the hardest reasoning or code, where plain Auto is the better pick.',
     badge: 'Saver',
     badgeColor: 'bg-emerald-500/10 text-emerald-400',
     plans: ['free', 'modus', 'pilot'] as string[],
@@ -58,10 +58,10 @@ const BRAINS = [
     name: 'DeepSeek V3.1',
     provider: 'DeepSeek',
     tagline: 'Strong open reasoning',
-    description: "DeepSeek's V3.1, a capable open model for reasoning, code, and analysis.",
-    badge: 'MODUS+',
-    badgeColor: 'bg-violet-500/10 text-violet-400',
-    plans: ['modus', 'pilot'] as string[],
+    description: "DeepSeek's V3.1, a capable open model for reasoning, code and analysis.",
+    badge: 'Free',
+    badgeColor: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
     id: 'gpt-5.6-terra',
@@ -89,16 +89,16 @@ const BRAINS = [
     provider: 'Google',
     tagline: 'Fast & multimodal',
     description: "Google's fastest current model, strong on agentic and coding work, with a huge context window.",
-    badge: 'MODUS+',
-    badgeColor: 'bg-violet-500/10 text-violet-400',
-    plans: ['modus', 'pilot'] as string[],
+    badge: 'Free',
+    badgeColor: 'bg-emerald-500/10 text-emerald-400',
+    plans: ['free', 'modus', 'pilot'] as string[],
   },
   {
     id: 'gpt-5.6-sol',
     name: 'GPT-5.6 Sol',
     provider: 'OpenAI',
     tagline: 'Deepest reasoning',
-    description: "OpenAI's flagship. For the hardest problems — long-horizon reasoning, coding, and science.",
+    description: "OpenAI's flagship. For the hardest problems, long-horizon reasoning, coding, and science.",
     badge: 'PILOT',
     badgeColor: 'bg-brand/10 text-brand',
     plans: ['pilot'] as string[],
@@ -120,7 +120,7 @@ const BRAINS = [
     name: 'Claude Fable 5',
     provider: 'Anthropic',
     tagline: "Anthropic's most capable",
-    description: 'The strongest model MODUS can run, for the hardest reasoning and long, multi-step work. Thinks longer, so it answers slower.',
+    description: 'The strongest model Modus can run, for the hardest reasoning and long, multi-step work. Thinks longer, so it answers slower.',
     badge: 'PILOT',
     badgeColor: 'bg-brand/10 text-brand',
     plans: ['pilot'] as string[],
@@ -156,7 +156,7 @@ const BYOK_PROVIDERS = [
   {
     id: 'openai' as const,
     name: 'OpenAI',
-    description: 'Use your own OpenAI subscription — full control over usage and billing.',
+    description: 'Use your own OpenAI subscription, full control over usage and billing.',
     badge: 'Your key',
     badgeColor: 'bg-blue-500/10 text-blue-400',
     models: [
@@ -170,7 +170,7 @@ const BYOK_PROVIDERS = [
   {
     id: 'anthropic' as const,
     name: 'Anthropic',
-    description: 'Use your own Anthropic subscription to power MODUS with Claude.',
+    description: 'Use your own Anthropic subscription to power Modus with Claude.',
     badge: 'Your key',
     badgeColor: 'bg-blue-500/10 text-blue-400',
     models: [
@@ -262,7 +262,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text mb-1">Your Brain</h2>
-        <p className="text-sm text-muted">Choose the AI that powers MODUS. Your memory, inbox triage, and integrations stay consistent no matter which Brain you pick.</p>
+        <p className="text-sm text-muted">Choose the AI that powers Modus. Your memory, inbox triage, and integrations stay consistent no matter which Brain you pick.</p>
       </div>
 
       {/* Platform Brains */}

@@ -41,7 +41,7 @@ export default function HomeSections() {
           </div>
           <div>
             <p className="text-muted leading-relaxed max-w-xl mb-8">
-              Leave it on Auto and MODUS routes each message to the model that fits, or pick one yourself. Ask
+              Leave it on Auto and Modus routes each message to the model that fits, or pick one yourself. Ask
               several at once and get one clear answer.
             </p>
             <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
@@ -68,7 +68,7 @@ export default function HomeSections() {
           </div>
           <div>
             <p className="text-muted leading-relaxed max-w-xl mb-8">
-              MODUS reads your inbox, calendar, files and apps only to surface what matters, and never sends or
+              Modus reads your inbox, calendar, files and apps only to surface what matters, and never sends or
               changes anything without your approval.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -90,7 +90,7 @@ export default function HomeSections() {
         <div className="grid md:grid-cols-[260px_1fr] gap-8 md:gap-12">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-muted mb-2">The math</p>
-            <h2 className="text-2xl sm:text-3xl text-text tracking-tight">You&apos;re paying for five. MODUS is one.</h2>
+            <h2 className="text-2xl sm:text-3xl text-text tracking-tight">You&apos;re paying for five. Modus is one.</h2>
           </div>
           <div>
             <p className="text-muted leading-relaxed max-w-xl mb-8">
@@ -105,7 +105,7 @@ export default function HomeSections() {
                 </div>
               ))}
               <div className="flex items-center justify-between px-5 py-4">
-                <span className="text-sm font-semibold text-text">MODUS, all of it</span>
+                <span className="text-sm font-semibold text-text">Modus, all of it</span>
                 <span className="text-base font-semibold text-text">$24/mo</span>
               </div>
             </div>

@@ -6,7 +6,7 @@ import Aurora from '../Aurora';
 import FoundingJourney from '../FoundingJourney';
 
 export const metadata: Metadata = {
-  title: 'MODUS: claim your founding seat',
+  title: 'Modus: claim your founding seat',
   robots: { index: false, follow: false },
 };
 

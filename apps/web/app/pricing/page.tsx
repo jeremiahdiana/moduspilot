@@ -67,7 +67,7 @@ const FAQS = [
   },
   {
     q: 'Is my data private?',
-    a: 'Your data is never sold or used to train AI models. Conversations, goals and memories are stored in your own database, MODUS reads your connected apps only to surface what matters, and it never sends or publishes anything without your explicit approval.',
+    a: 'Your data is never sold or used to train AI models. Conversations, goals and memories are stored in your own database, Modus reads your connected apps only to surface what matters, and it never sends or publishes anything without your explicit approval.',
   },
 ];
 

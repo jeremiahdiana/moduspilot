@@ -45,7 +45,7 @@ export default function AboutSettings() {
         </div>
         {desktopVersion ? (
           <p className="text-xs text-muted/70">
-            The desktop app updates itself automatically — it downloads on launch and installs when you quit.
+            The desktop app updates itself automatically, it downloads on launch and installs when you quit.
           </p>
         ) : (
           <p className="text-xs text-muted/70">

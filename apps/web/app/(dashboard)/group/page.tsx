@@ -176,7 +176,7 @@ export default function GroupPage() {
     <div className="overflow-y-auto h-full">
       <div className="px-4 md:px-8 pt-6 md:pt-8 pb-6 border-b border-border/50">
         <h1 className="text-2xl font-medium text-text">Group</h1>
-        <p className="text-muted text-sm mt-0.5">A private MODUS for each person, together where it counts.</p>
+        <p className="text-muted text-sm mt-0.5">A private Modus for each person, together where it counts.</p>
       </div>
 
       <div className="p-4 md:p-8 max-w-2xl space-y-5">
@@ -204,7 +204,7 @@ export default function GroupPage() {
         {groupId === null && plan === 'group' && (
           <div className="bg-panel border border-border rounded-2xl p-6">
             <h2 className="text-base font-semibold text-text mb-1">Start a group</h2>
-            <p className="text-sm text-muted mb-4">Create a group, then invite up to 4 people. Each gets their own private MODUS.</p>
+            <p className="text-sm text-muted mb-4">Create a group, then invite up to 4 people. Each gets their own private Modus.</p>
             <div className="flex gap-2">
               <input value={nameInput} onChange={e => setNameInput(e.target.value)} placeholder="Group name (e.g. Acme founders)"
                 className="flex-1 bg-bg border border-border rounded-xl px-3.5 py-2.5 text-sm text-text outline-none focus:border-brand/50" />
@@ -219,9 +219,9 @@ export default function GroupPage() {
         {/* No group, not on the Group plan → upgrade (invitees with a pending invite see the accept card above instead) */}
         {groupId === null && plan !== 'group' && myInvites.length === 0 && (
           <div className="bg-panel border border-brand rounded-2xl p-6 shadow-[0_0_40px_rgba(124,58,237,0.10)]">
-            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">GROUP — $79/mo</p>
-            <h2 className="text-lg font-semibold text-text mb-1">A private MODUS for your whole group.</h2>
-            <p className="text-sm text-muted mb-4">You plus 4 members, each with their own MODUS. Agent-to-agent coordination, a shared group space, and everything in MODUS for each person.</p>
+            <p className="text-xs font-bold text-muted uppercase tracking-widest mb-2">GROUP, $79/mo</p>
+            <h2 className="text-lg font-semibold text-text mb-1">A private Modus for your whole group.</h2>
+            <p className="text-sm text-muted mb-4">You plus 4 members, each with their own Modus. Agent-to-agent coordination, a shared group space, and everything in Modus for each person.</p>
             <button onClick={upgrade} disabled={busy}
               className="px-5 py-3 rounded-xl bg-brand text-white text-sm font-bold hover:bg-brand/90 hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-all disabled:opacity-50">
               Upgrade to Group
@@ -257,7 +257,7 @@ export default function GroupPage() {
             <div className="bg-panel border border-border rounded-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-border/40">
                 <span className="text-base font-semibold text-text">Group space</span>
-                <p className="text-[12px] text-muted mt-0.5">Trips, plans, links — anything the whole group should see.</p>
+                <p className="text-[12px] text-muted mt-0.5">Trips, plans, links, anything the whole group should see.</p>
               </div>
               <div className="px-5 py-4">
                 <div className="flex gap-2 mb-3">
@@ -299,7 +299,7 @@ export default function GroupPage() {
             <div className="bg-panel border border-border rounded-2xl p-5 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-text">Share my availability</p>
-                <p className="text-[12px] text-muted mt-0.5">Lets the group ask your MODUS when you’re free. Nothing else is shared.</p>
+                <p className="text-[12px] text-muted mt-0.5">Lets the group ask your Modus when you’re free. Nothing else is shared.</p>
               </div>
               <button
                 onClick={() => toggleSharing(!(me?.sharing?.availability ?? false))}
@@ -327,7 +327,7 @@ export default function GroupPage() {
                     {sentInvites.map(inv => (
                       <li key={inv.id} className="text-[12px] text-muted flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />
-                        <span className="flex-1 truncate">{inv.email} — pending</span>
+                        <span className="flex-1 truncate">{inv.email} pending</span>
                         <button onClick={() => revoke(inv.id)} disabled={busy}
                           className="text-muted/60 hover:text-red-500 transition-colors shrink-0" aria-label="Cancel invite">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">

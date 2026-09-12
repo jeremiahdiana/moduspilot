@@ -13,7 +13,7 @@ interface Result {
 // (GPTZero proxy). Detection is probabilistic, so we present the likelihood and
 // confidence band, never a hard verdict.
 export default function AiCheckButton({ text }: { text: string }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error' | 'hidden'>('idle');
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState('');
 
@@ -32,6 +32,12 @@ export default function AiCheckButton({ text }: { text: string }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // No detector configured yet: hide the control entirely rather than show
+        // an error on every message until GPTZERO_API_KEY lands.
+        if (data?.error === 'not_configured') {
+          setState('hidden');
+          return;
+        }
         setError(data?.message || 'Could not check this text right now.');
         setState('error');
         return;
@@ -46,6 +52,8 @@ export default function AiCheckButton({ text }: { text: string }) {
 
   const aiPct = result ? Math.round(result.ai * 100) : 0;
   const humanPct = result ? Math.round(result.human * 100) : 0;
+
+  if (state === 'hidden') return null;
 
   return (
     <div className="pt-0.5">
@@ -88,7 +96,7 @@ export default function AiCheckButton({ text }: { text: string }) {
             <span className="text-muted/40">·</span>
             <span className="text-muted capitalize">{result.confidence} confidence</span>
             <span className="w-full text-[10px] text-muted/60 leading-snug">
-              Detectors are probabilistic and can be wrong — treat this as a signal, not proof.
+              Detectors are probabilistic and can be wrong, so treat this as a signal, not proof.
             </span>
           </motion.div>
         )}

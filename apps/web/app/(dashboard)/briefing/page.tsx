@@ -122,12 +122,12 @@ const ENERGY_OPTS = [
 const ENERGY_CONFIRM: Record<string, string> = {
   fully_charged: 'front-load your hardest work.',
   okay:          'pace your day around your top 3.',
-  running_low:   'protect your focus — only essentials today.',
+  running_low:   'protect your focus, only essentials today.',
 };
 const ENERGY_CHAT: Record<string, string> = {
-  fully_charged: "Fully charged today — let's make the most of it.",
-  okay:          'Feeling okay today — help me pace this well.',
-  running_low:   'Running low on energy today — help me protect my focus.',
+  fully_charged: "Fully charged today, let's make the most of it.",
+  okay:          'Feeling okay today, help me pace this well.',
+  running_low:   'Running low on energy today, help me protect my focus.',
 };
 
 function EnergyCard({ energy, onSelect }: { energy: string | null; onSelect: (k: string, chatMsg: string) => void }) {
@@ -274,7 +274,7 @@ function ActionQueueCard({ items, onDoneTask, onLogHabit }: {
         <div className="px-5 py-4">
           <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
-            All clear — nothing urgent right now.
+            All clear, nothing urgent right now.
           </div>
         </div>
       ) : (
@@ -432,7 +432,7 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
                     </p>
                   </div>
                   <button onClick={() => onDraftReply(t)} className="mt-2.5 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer">
-                    Draft reply with MODUS ↗
+                    Draft reply with Modus ↗
                   </button>
                 </div>
               )}
@@ -485,7 +485,7 @@ function ScheduleTimeline({ events, schedule, connected, onConnectGoogle }: {
     return (
       <BCard>
         <Label icon={<IconCalendar />} color="text-blue-500" text="Today's schedule" />
-        <p className="text-xs text-muted">No meetings today — clear runway.</p>
+        <p className="text-xs text-muted">No meetings today, clear runway.</p>
       </BCard>
     );
   }
@@ -623,7 +623,7 @@ function InlineBriefingHabits({ habits, onToggle }: {
         {allDone && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
             className="mt-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-center">
-            <p className="text-xs font-semibold text-emerald-400">🎉 All habits done!</p>
+            <p className="text-xs font-semibold text-emerald-400">All habits done!</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -694,7 +694,7 @@ function MissionCard({ task, source }: { task: string; source?: string }) {
 const QUICK_CHIPS = [
   { label: '+ Add a task',               fill: 'Add task: ' },
   { label: '↻ Check anything I missed?', fill: 'Is there anything important I missed in my briefing?' },
-  { label: '📅 Show full schedule',      fill: 'Show me my schedule for today.' },
+  { label: 'Show full schedule',      fill: 'Show me my schedule for today.' },
   { label: "Something's on my mind",     fill: '' },
 ];
 
@@ -831,9 +831,9 @@ function briefingToSpeech(data: BriefingData | null, content: string): string {
   if (data.narrative) parts.push(data.narrative);
   else if (data.openingLine) parts.push(data.openingLine);
   if (data.top3.length) parts.push('Your top 3 today: ' + data.top3.map((t, i) => `${i + 1}. ${t.task}`).join('. '));
-  if (data.schedule.length) parts.push('Schedule: ' + data.schedule.map(s => `${s.time} — ${s.title}`).join('. '));
+  if (data.schedule.length) parts.push('Schedule: ' + data.schedule.map(s => `${s.time}, ${s.title}`).join('. '));
   if (data.looseEnd) parts.push('Loose end: ' + data.looseEnd.text);
-  if (data.patternCallout) parts.push('MODUS noticed: ' + data.patternCallout);
+  if (data.patternCallout) parts.push('Modus noticed: ' + data.patternCallout);
   return parts.join('. ');
 }
 
@@ -921,7 +921,7 @@ function NewsCard({ items, industry, loading, onChangeTopic }: {
           <div className="border-t border-border px-3 py-2 flex items-center gap-2">
             <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && customTopic.trim()) { onChangeTopic(customTopic.trim()); setOpen(false); setCustomTopic(''); } }}
-              placeholder="Other — type any topic..."
+              placeholder="Other, type any topic..."
               className="flex-1 bg-transparent text-[12px] text-text placeholder:text-muted/40 outline-none" />
             {customTopic.trim() && (
               <button onClick={() => { onChangeTopic(customTopic.trim()); setOpen(false); setCustomTopic(''); }}
@@ -1332,7 +1332,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   }
 
   function handleDraftReply(thread: GmailThread) {
-    const content = `Write a draft reply for this email directly in chat — no approval card, just the reply text I can copy. When I say "send it" or "ok send", generate a send_email approval card with type "send_email", to: "${thread.fromAddress}", subject: "${thread.subject}", threadId: "${thread.id}", and body = the draft text.\n\nFrom: ${thread.from} <${thread.fromAddress}>\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
+    const content = `Write a draft reply for this email directly in chat, no approval card, just the reply text I can copy. When I say "send it" or "ok send", generate a send_email approval card with type "send_email", to: "${thread.fromAddress}", subject: "${thread.subject}", threadId: "${thread.id}", and body = the draft text.\n\nFrom: ${thread.from} <${thread.fromAddress}>\nSubject: ${thread.subject}\n\n${thread.body || thread.snippet}`;
     append({ role: 'user', content });
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }
@@ -1459,7 +1459,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
                 }));
                 const streakItems: ActionItem[] = habits
                   .filter(h => !h.done && h.streak >= 2)
-                  .map(h => ({ id: h.id, type: 'streak' as const, title: h.title, sub: `${h.streak}-day streak — log before midnight` }));
+                  .map(h => ({ id: h.id, type: 'streak' as const, title: h.title, sub: `${h.streak}-day streak, log before midnight` }));
                 const allItems = [...taskItems, ...streakItems];
                 if (allItems.length === 0) return null;
                 return (

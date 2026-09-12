@@ -429,7 +429,7 @@ export default function ChatPage() {
               <div className="px-4 md:px-8 py-4 border-t border-border shrink-0" aria-hidden>
                 <div className="flex items-center gap-3 bg-panel border border-border rounded-2xl px-4 py-3">
                   <span className="w-5 h-5 rounded bg-muted/10 shrink-0" />
-                  <span className="flex-1 text-sm text-muted/30">Talk to MODUS…</span>
+                  <span className="flex-1 text-sm text-muted/30">Talk to Modus…</span>
                   <span className="w-8 h-8 rounded-lg bg-brand/30 shrink-0" />
                 </div>
                 <div className="flex items-center justify-between mt-2">
@@ -547,7 +547,7 @@ function ConversationPanel({
             <span>Trial not started</span>
             <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Start trial</button>
           </div>
-          <p className="text-[11px] text-muted/70 leading-snug">Start your 3-day free trial to use MODUS.</p>
+          <p className="text-[11px] text-muted/70 leading-snug">Start your 3-day free trial to use Modus.</p>
         </div>
       )}
 

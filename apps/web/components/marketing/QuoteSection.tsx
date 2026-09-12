@@ -23,8 +23,7 @@ export default function QuoteSection() {
         >
           <p className="text-xs font-bold text-brand uppercase tracking-widest mb-6">The Problem</p>
           <blockquote className="text-2xl md:text-3xl lg:text-4xl font-bold text-text leading-tight mb-12">
-            You're using Gmail, Notion, Todoist, Google Calendar, ChatGPT, and six other apps —
-            and <span className="text-brand">you're still the one holding it all together.</span>
+            You're using Gmail, Notion, Todoist, Google Calendar, ChatGPT, and six other apps, and <span className="text-brand">you're still the one holding it all together.</span>
           </blockquote>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-2xl mx-auto">
@@ -44,7 +43,7 @@ export default function QuoteSection() {
           </div>
 
           <p className="text-muted text-base mt-12 max-w-xl mx-auto">
-            MODUS is the intelligence layer that connects everything — and runs the parts that don't need you.
+            Modus is the intelligence layer that connects everything, and runs the parts that don't need you.
           </p>
         </motion.div>
       </div>

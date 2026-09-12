@@ -74,7 +74,7 @@ function RoutedChip({ modelId, replacedModel, manualPick }: { modelId: string; r
     ? `${modelName(replacedModel)} was unavailable · answered by`
     : manualPick
       ? 'Answered by'
-      : 'MODUS routed this to';
+      : 'Modus routed this to';
   return (
     <motion.div
       initial={{ opacity: 0, y: -4 }}

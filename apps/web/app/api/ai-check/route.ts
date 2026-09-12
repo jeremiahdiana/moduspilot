@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   }
   if (text.length < 40) {
     return Response.json(
-      { error: 'too_short', message: 'Add more text — detection needs at least a couple of sentences.' },
+      { error: 'too_short', message: 'Add more text. Detection needs at least a couple of sentences.' },
       { status: 422 },
     );
   }

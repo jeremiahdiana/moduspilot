@@ -24,11 +24,11 @@ const AI_FEATURES: { key: 'webSearch' | 'dailyBriefing' | 'voiceInput' | 'inboxT
   // NOT a master switch, and the label must not imply one: "+ → Web search" in the
   // composer always works, and Auto searches when it routes a message to research.
   // This governs ONE thing — searching a message you never asked to be searched.
-  { key: 'webSearch', label: 'Search the web automatically', desc: 'When a message looks like it needs current information, MODUS searches before answering. You can always search a single message with + → Web search.' },
+  { key: 'webSearch', label: 'Search the web automatically', desc: 'When a message looks like it needs current information, Modus searches before answering. You can always search a single message with + → Web search.' },
   { key: 'dailyBriefing', label: 'Daily Briefing', desc: 'A morning brief with your top priorities, pending approvals, and a quick check-in.' },
-  { key: 'voiceInput', label: 'Voice Input', desc: 'Speak to MODUS instead of typing. Audio is transcribed locally before sending.', beta: true },
-  { key: 'inboxTriage', label: 'Inbox Triage', desc: 'MODUS drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft.', beta: true },
-  { key: 'relationshipNurture', label: 'Relationship Follow-ups', desc: 'MODUS drafts warm reach-outs to people you’ve fallen out of touch with. Nothing sends until you approve.', beta: true },
+  { key: 'voiceInput', label: 'Voice Input', desc: 'Speak to Modus instead of typing. Audio is transcribed locally before sending.', beta: true },
+  { key: 'inboxTriage', label: 'Inbox Triage', desc: 'Modus drafts replies to emails waiting on you. Nothing sends until you approve, and you can edit any draft.', beta: true },
+  { key: 'relationshipNurture', label: 'Relationship Follow-ups', desc: 'Modus drafts warm reach-outs to people you’ve fallen out of touch with. Nothing sends until you approve.', beta: true },
 ];
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ export default function ConnectorsSettings({ user }: Props) {
    * a user's data because they flipped a toggle is not a thing to do quietly.
    */
   const handleClearSynced = async (source: 'notes' | 'messages', label: string) => {
-    if (!confirm(`Delete every ${label} MODUS has synced from your Mac? This cannot be undone. They stay on your Mac, only MODUS's copy is removed.`)) return;
+    if (!confirm(`Delete every ${label} Modus has synced from your Mac? This cannot be undone. They stay on your Mac, only Modus's copy is removed.`)) return;
     setClearingSource(source);
     try {
       const n = await clearSyncedData([source]);
@@ -515,7 +515,7 @@ export default function ConnectorsSettings({ user }: Props) {
             </AnimatePresence>
             {slackAccounts.length > 0 && (
               <div className="pl-11 pr-4 py-2 border-t border-border/40 bg-bg/30">
-                <p className="text-[11px] text-muted">Run <span className="font-mono text-text/60">/invite @MODUS</span> in channels you want it to read.</p>
+                <p className="text-[11px] text-muted">Run <span className="font-mono text-text/60">/invite @Modus</span> in channels you want it to read.</p>
               </div>
             )}
           </CloudRow>
@@ -694,7 +694,7 @@ export default function ConnectorsSettings({ user }: Props) {
             }
           </div>
         </div>
-        <p className="text-[11px] text-muted mt-2 px-1">Permissions are managed in iOS Settings → MODUS.</p>
+        <p className="text-[11px] text-muted mt-2 px-1">Permissions are managed in iOS Settings → Modus.</p>
       </SectionGroup>
 
       {/* ── On Your Mac (MODUS Desktop) ── */}
@@ -708,7 +708,7 @@ export default function ConnectorsSettings({ user }: Props) {
                 <p className="text-sm font-medium text-text">Apple Notes</p>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>
               </div>
-              <p className="text-xs text-muted leading-relaxed mt-0.5">Sync notes from the MODUS Desktop app (Mac) so you can ask about them in chat — e.g. &quot;what&apos;s on my grocery list?&quot; Turning this off stops new notes being stored.</p>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Sync notes from the Modus Desktop app (Mac) so you can ask about them in chat, e.g. &quot;what&apos;s on my grocery list?&quot; Turning this off stops new notes being stored.</p>
               <button
                 onClick={() => handleClearSynced('notes', 'notes')}
                 disabled={clearingSource !== null}
@@ -727,7 +727,7 @@ export default function ConnectorsSettings({ user }: Props) {
                 <p className="text-sm font-medium text-text">iMessage</p>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>
               </div>
-              <p className="text-xs text-muted leading-relaxed mt-0.5">Sync recent iMessage conversations from the Mac app. Off by default — this includes other people&apos;s messages, not just your own notes. While off, nothing is stored.</p>
+              <p className="text-xs text-muted leading-relaxed mt-0.5">Sync recent iMessage conversations from the Mac app. Off by default, this includes other people&apos;s messages, not just your own notes. While off, nothing is stored.</p>
               <button
                 onClick={() => handleClearSynced('messages', 'conversations')}
                 disabled={clearingSource !== null}
@@ -748,7 +748,7 @@ export default function ConnectorsSettings({ user }: Props) {
             <span className="text-[11px] text-muted shrink-0 mt-1">Auto</span>
           </div>
         </div>
-        <p className="text-[11px] text-muted mt-2 px-1">Requires the MODUS Desktop app with Full Disk Access granted.</p>
+        <p className="text-[11px] text-muted mt-2 px-1">Requires the Modus Desktop app with Full Disk Access granted.</p>
       </SectionGroup>
 
       {/* ── Plugins (elevated, full width) ── */}
@@ -759,7 +759,7 @@ export default function ConnectorsSettings({ user }: Props) {
             <IconBox><McpIcon /></IconBox>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-text">Plugins</p>
-              <p className="text-xs text-muted">Give MODUS new tools &amp; data. Plugins connect over MCP and their tools become available in chat.</p>
+              <p className="text-xs text-muted">Give Modus new tools &amp; data. Plugins connect over MCP and their tools become available in chat.</p>
             </div>
             {loading ? (
               <div className="w-12 h-3 rounded bg-border animate-pulse" />
@@ -875,7 +875,7 @@ export default function ConnectorsSettings({ user }: Props) {
                     <div className={`flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs ${mcpTestResult.ok ? 'bg-emerald-500/8 border border-emerald-500/15 text-emerald-400' : 'bg-red-500/8 border border-red-500/15 text-red-400'}`}>
                       {mcpTestResult.ok ? (
                         <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        Connected — {mcpTestResult.tools?.length ?? 0} tool{(mcpTestResult.tools?.length ?? 0) !== 1 ? 's' : ''} found
+                        Connected, {mcpTestResult.tools?.length ?? 0} tool{(mcpTestResult.tools?.length ?? 0) !== 1 ? 's' : ''} found
                         {mcpTestResult.tools?.length ? `: ${mcpTestResult.tools.slice(0, 4).join(', ')}${mcpTestResult.tools.length > 4 ? ` +${mcpTestResult.tools.length - 4} more` : ''}` : ''}</>
                       ) : (
                         <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mt-0.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>{mcpTestResult.error}</>
@@ -1013,7 +1013,7 @@ function AccountSubRow({ avatar, title, subtitle, removing, onRemove, needsRecon
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-text truncate">{title}</p>
           {needsReconnect
-            ? <p className="text-[11px] text-yellow-500">Access expired — reconnect to restore</p>
+            ? <p className="text-[11px] text-yellow-500">Access expired, reconnect to restore</p>
             : <p className="text-[11px] text-muted">{subtitle}</p>}
         </div>
         {needsReconnect && onReconnect && (

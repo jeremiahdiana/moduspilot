@@ -20,20 +20,20 @@ interface SharedConversation {
 export async function generateMetadata({ params }: { params: { shareId: string } }): Promise<Metadata> {
   try {
     const snap = await adminDb.collection('sharedConversations').doc(params.shareId).get();
-    if (!snap.exists) return { title: 'MODUS — Shared conversation' };
+    if (!snap.exists) return { title: 'Modus, Shared conversation' };
     const data = snap.data() as SharedConversation;
     return {
-      title: `${data.title} — MODUS`,
-      description: 'A conversation from MODUS, the AI operating system that runs your day.',
+      title: `${data.title} | Modus`,
+      description: 'A conversation from Modus, the AI operating system that runs your day.',
       openGraph: {
-        title: `${data.title} — MODUS`,
-        description: 'A conversation from MODUS, the AI operating system that runs your day.',
+        title: `${data.title} | Modus`,
+        description: 'A conversation from Modus, the AI operating system that runs your day.',
         url: `https://moduspilot.com/s/${params.shareId}`,
         siteName: 'MODUS',
         images: ['/og.png'],
         type: 'article',
       },
-      twitter: { card: 'summary_large_image', title: `${data.title} — MODUS`, images: ['/og.png'] },
+      twitter: { card: 'summary_large_image', title: `${data.title} | Modus`, images: ['/og.png'] },
       alternates: {
         canonical: `https://moduspilot.com/s/${params.shareId}`,
       },
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: { params: { shareId: string }
   } catch {
     // A transient Firestore failure must not throw an unstyled 500 on a public
     // page — fall back to a generic title; the page body handles the data.
-    return { title: 'MODUS — Shared conversation' };
+    return { title: 'Modus, Shared conversation' };
   }
 }
 
@@ -79,7 +79,7 @@ export default async function SharedConversationPage({ params }: { params: { sha
             href="https://moduspilot.com"
             className="text-xs font-semibold text-muted hover:text-text transition-colors"
           >
-            Try MODUS free →
+            Try Modus free →
           </Link>
         </div>
       </header>
@@ -134,7 +134,7 @@ export default async function SharedConversationPage({ params }: { params: { sha
             One system for goals, tasks, inbox and calendar.
           </h2>
           <p className="text-sm text-muted mt-3 max-w-md mx-auto leading-relaxed">
-            MODUS is the AI operating system that runs your day — and executes, not just chats. This is a glimpse of what it does.
+            Modus is the AI operating system that runs your day, and executes, not just chats. This is a glimpse of what it does.
           </p>
           <Link
             href="https://moduspilot.com"

@@ -183,7 +183,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           onClick={onStart}
           className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
         >
-          Set up MODUS — takes 60 sec →
+          Set up Modus, takes 60 sec →
         </motion.button>
         <p className="text-xs text-muted text-center">3-day free trial · Card required · Cancel anytime</p>
       </motion.div>
@@ -236,12 +236,12 @@ function YouStep({ name, setName, role, setRole, age, setAge, gender, setGender 
         <h1 className="text-3xl text-text leading-tight" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>
           A little about you.
         </h1>
-        <p className="text-sm text-muted mt-1.5">So MODUS knows who it is working for.</p>
+        <p className="text-sm text-muted mt-1.5">So Modus knows who it is working for.</p>
       </div>
 
       <div>
         <label htmlFor="onboarding-name" className="text-xs font-semibold text-muted mb-2 block">
-          What should MODUS call you?
+          What should Modus call you?
         </label>
         <input
           id="onboarding-name"
@@ -272,7 +272,7 @@ const PLAN_OPTIONS: { id: PlanId; name: string; tagline: string; popular?: boole
   },
   {
     id: 'pilot', name: 'PILOT', tagline: 'Everything, higher limits', popular: true,
-    features: ['Everything in MODUS', 'The frontier models — GPT-5.6 Sol, Claude Opus, Claude Fable 5 + Gemini 3.1 Pro', 'Much higher usage limits', 'Manual model pick per message'],
+    features: ['Everything in MODUS', 'The frontier models, GPT-5.6 Sol, Claude Opus, Claude Fable 5 + Gemini 3.1 Pro', 'Much higher usage limits', 'Manual model pick per message'],
   },
 ];
 
@@ -369,8 +369,8 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
 
   const items = [
     { label: `Profile personalized${name.trim() ? ` for ${name.trim()}` : ''}` },
-    { label: 'Every provider unlocked — ChatGPT, Claude, Gemini, Llama' },
-    { label: 'Daily Review habit — streak starts today' },
+    { label: 'Every provider unlocked, ChatGPT, Claude, Gemini, Llama' },
+    { label: 'Daily Review habit, streak starts today' },
   ];
 
   // 10 burst particles
@@ -477,7 +477,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
           onClick={onEnter}
           className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
         >
-          {alreadyPaid ? 'Enter MODUS →' : `Start my 3-day ${planName} trial →`}
+          {alreadyPaid ? 'Enter Modus →' : `Start my 3-day ${planName} trial →`}
         </motion.button>
         <p className="text-xs text-muted text-center">
           {alreadyPaid
@@ -647,7 +647,7 @@ export default function OnboardingPage() {
 
       await addDoc(collection(db, 'users', uid, 'habits'), {
         name: 'Daily Review',
-        description: 'Check in with MODUS each day. Review your goals, plan your day, and stay on track.',
+        description: 'Check in with Modus each day. Review your goals, plan your day, and stay on track.',
         frequency: 'daily',
         target: 1,
         color: '#7c3aed',

@@ -407,9 +407,9 @@ export default function ChatWindow({
         // the user is about to judge an image answer and deserves to know whose.
         if (response.headers.get('x-modus-downgrade-reason') === 'vision') {
           const by = served ? modelName(served) : 'a vision model';
-          setModelNotice(`${label} can't read images — ${by} answered this one instead.`);
+          setModelNotice(`${label} can't read images, ${by} answered this one instead.`);
         } else {
-          setModelNotice(`${label} is temporarily unavailable — answered with the fast default model instead.`);
+          setModelNotice(`${label} is temporarily unavailable, answered with the fast default model instead.`);
         }
       } else {
         setModelNotice(null);
@@ -443,23 +443,23 @@ export default function ChatWindow({
         onExhausted?.();
         onShowPaywall?.();
       } else if (msg.includes('image_requires_subscription')) {
-        setChatError('Images are a paid feature — subscribe to attach one.');
+        setChatError('Images are a paid feature, subscribe to attach one.');
         onShowPaywall?.();
       } else if (msg.includes('subscription_required')) {
-        setChatError('Start your 3-day free trial to use MODUS.');
+        setChatError('Start your 3-day free trial to use Modus.');
         onExhausted?.();
         onShowPaywall?.();
       } else if (msg.includes('empty_message')) {
         // The composer already blocks this, so it only reaches here from another
         // client (mobile, the API directly). Say something useful rather than
         // "something went wrong".
-        setChatError('That message was empty — type something first.');
+        setChatError('That message was empty, type something first.');
       } else if (msg.includes('token_limit_reached')) {
         // "usage limit", not "token limit" — the ceiling counts cost units, and
         // the two differ by up to 27x on frontier models.
         setChatError("You've hit your daily AI usage limit. Resets at midnight.");
       } else if (msg.includes('groq_daily_limit')) {
-        setChatError('AI daily limit reached — switch models with the selector below the chat box, or try again tomorrow.');
+        setChatError('AI daily limit reached, switch models with the selector below the chat box, or try again tomorrow.');
       } else if (msg.includes('rate_limit_reached') || msg.includes('rate limit') || msg.includes('429') || msg.includes('tpd') || msg.includes('tokens per day') || msg.includes('too many')) {
         setChatError('AI service is busy. Wait a moment and try again.');
       } else if (msg.includes('api_key_error') || msg.includes('401') || msg.includes('unauthorized') || msg.includes('api key') || msg.includes('invalid key')) {
@@ -681,7 +681,7 @@ export default function ChatWindow({
     const s = readServedAnnotation(last);
     if (!s?.downgraded) return;
     setModelNotice(
-      `${s.requested ? modelName(s.requested) : 'The selected model'} was unavailable — ${modelName(s.served)} answered instead.`,
+      `${s.requested ? modelName(s.requested) : 'The selected model'} was unavailable, ${modelName(s.served)} answered instead.`,
     );
   }, [messages, isLoading]);
 
@@ -820,7 +820,7 @@ export default function ChatWindow({
     // race F1 fixes: if there is truly no user, say so plainly instead of firing a
     // request that will 401 and read as a session that mysteriously "expired".
     if (!isGuest && !auth.currentUser) {
-      setChatError('You’re signed out — please sign in again.');
+      setChatError('You’re signed out, please sign in again.');
       return;
     }
 

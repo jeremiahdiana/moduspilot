@@ -46,7 +46,7 @@ export default function FoundingAuth({ onAuthed }: { onAuthed: (u: User) => void
     } catch (e: unknown) {
       const code = (e as { code?: string }).code;
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') setError('Incorrect email or password.');
-      else if (code === 'auth/email-already-in-use') setError('You already have an account — sign in instead.');
+      else if (code === 'auth/email-already-in-use') setError('You already have an account, sign in instead.');
       else if (code === 'auth/weak-password') setError('Password must be at least 6 characters.');
       else if (code === 'auth/invalid-email') setError('Enter a valid email address.');
       else setError('Something went wrong. Please try again.');

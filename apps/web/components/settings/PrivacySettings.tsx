@@ -33,8 +33,8 @@ export default function PrivacySettings({ settings, saving, onSave }: Props) {
       <div className="bg-panel border border-border rounded-xl divide-y divide-border">
         <div className="flex items-start justify-between p-6 gap-6">
           <div className="flex-1">
-            <p className="text-sm font-medium text-text mb-1">Help Improve MODUS</p>
-            <p className="text-xs text-muted leading-relaxed">Allow your conversations to be used to improve MODUS responses. Opting in extends data retention to 2 years. Opting out means conversations are deleted after 90 days.</p>
+            <p className="text-sm font-medium text-text mb-1">Help Improve Modus</p>
+            <p className="text-xs text-muted leading-relaxed">Allow your conversations to be used to improve Modus responses. Opting in extends data retention to 2 years. Opting out means conversations are deleted after 90 days.</p>
           </div>
           <Toggle
             checked={settings.helpImprove}
@@ -76,7 +76,7 @@ export default function PrivacySettings({ settings, saving, onSave }: Props) {
 
       <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
         <h3 className="text-sm font-semibold text-text">Shared Links</h3>
-        <p className="text-xs text-muted leading-relaxed">You can share any conversation as a read-only public link from the share button on a conversation in Chat. Anyone with the link can view that conversation until you revoke it — open the same menu and choose “Unshare” to revoke access at any time.</p>
+        <p className="text-xs text-muted leading-relaxed">You can share any conversation as a read-only public link from the share button on a conversation in Chat. Anyone with the link can view that conversation until you revoke it, open the same menu and choose “Unshare” to revoke access at any time.</p>
       </div>
     </div>
   );

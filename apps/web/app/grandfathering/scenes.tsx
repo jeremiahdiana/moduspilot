@@ -39,12 +39,12 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export function SceneOpening({}: SceneProps) {
   return (
     <div className="w-full max-w-4xl text-center flex flex-col items-center">
-      <div {...rise(0.1)}><Eyebrow>Welcome to MODUS</Eyebrow></div>
+      <div {...rise(0.1)}><Eyebrow>Welcome to Modus</Eyebrow></div>
       <h1 {...rise(0.25)} className="fm-rise text-4xl sm:text-6xl font-semibold tracking-tight text-text text-balance mt-5 leading-[1.05]">
         The only AI<br />you’ll ever need.
       </h1>
       <p {...rise(0.45)} className="fm-rise text-base text-muted mt-5 max-w-lg leading-relaxed">
-        MODUS is the AI operating system that runs your day. Every frontier model in one place, plus an assistant that actually acts instead of just answering.
+        Modus is the AI operating system that runs your day. Every frontier model in one place, plus an assistant that actually acts instead of just answering.
       </p>
       <div {...rise(0.7)} className="fm-rise mt-9 w-full max-w-[820px] relative">
         <div
@@ -72,7 +72,7 @@ export function SceneModels({}: SceneProps) {
       </h2>
       <p {...rise(0.34)} className="fm-rise text-sm text-muted mt-3 max-w-xl leading-relaxed">
         PILOT is our highest tier, the best model from every frontier lab. Pick one, or leave it on{' '}
-        <span className="text-text font-medium">Auto</span> and MODUS routes each task to whichever model does it best.
+        <span className="text-text font-medium">Auto</span> and Modus routes each task to whichever model does it best.
       </p>
 
       <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 w-full">

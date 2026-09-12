@@ -140,7 +140,7 @@ export default function IntegrationsSection() {
             Connect Everything
           </h2>
           <p className="text-muted text-base leading-relaxed max-w-2xl mx-auto mb-4">
-            MODUS reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone it reaches iMessage, notes, reminders, photos and health, and connects to any MCP server on top.
+            Modus reads your Gmail, writes to your calendar, pulls Notion and Drive, watches GitHub. On your Mac and iPhone it reaches iMessage, notes, reminders, photos and health, and connects to any MCP server on top.
           </p>
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

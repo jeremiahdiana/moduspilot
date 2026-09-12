@@ -19,7 +19,7 @@ export default function HeroFilm() {
           </h1>
           <p className="text-lg sm:text-xl text-muted leading-relaxed md:pb-3">
             The AI apps you pay for each know only their maker&apos;s model, and forget you the moment you
-            close the tab. MODUS puts every frontier model in one place, connected to your inbox, calendar and
+            close the tab. Modus puts every frontier model in one place, connected to your inbox, calendar and
             files.
           </p>
         </div>

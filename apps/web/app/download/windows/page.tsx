@@ -14,8 +14,8 @@ const EXE_URL = 'https://github.com/jeremiahdiana/moduspilot/releases/latest/dow
 
 const STEPS = [
   { n: '1', title: 'Run the installer', body: 'Open MODUS-Desktop-x64.exe from your Downloads.' },
-  { n: '2', title: 'Pass the SmartScreen notice', body: 'Windows may say "Windows protected your PC" because the app isn’t signed yet. Click More info, then Run anyway — it’s the same file, just without a paid certificate.' },
-  { n: '3', title: 'Open MODUS and sign in', body: 'Use the same account as the web app. Everything syncs across both.' },
+  { n: '2', title: 'Pass the SmartScreen notice', body: 'Windows may say "Windows protected your PC" because the app isn’t signed yet. Click More info, then Run anyway, it’s the same file, just without a paid certificate.' },
+  { n: '3', title: 'Open Modus and sign in', body: 'Use the same account as the web app. Everything syncs across both.' },
 ];
 
 export default function DownloadWindowsPage() {
@@ -43,7 +43,7 @@ export default function DownloadWindowsPage() {
             </div>
 
             <h1 className="font-grotesk font-bold text-4xl md:text-5xl text-text tracking-[-0.02em] leading-[1.05] mb-4">
-              Download MODUS for Windows
+              Download Modus for Windows
             </h1>
 
             <p className="text-muted text-lg leading-relaxed max-w-md mb-6">
@@ -71,7 +71,7 @@ export default function DownloadWindowsPage() {
             <div>
               <p className="text-sm font-semibold text-text mb-1">Windows may warn you on first run</p>
               <p className="text-sm text-muted leading-relaxed">
-                This build isn&rsquo;t code-signed yet, so SmartScreen shows &ldquo;Windows protected your PC.&rdquo; That&rsquo;s expected — click <span className="text-text font-medium">More info</span> then <span className="text-text font-medium">Run anyway</span>. A signed release is on the way.
+                This build isn&rsquo;t code-signed yet, so SmartScreen shows &ldquo;Windows protected your PC.&rdquo; That&rsquo;s expected, click <span className="text-text font-medium">More info</span> then <span className="text-text font-medium">Run anyway</span>. A signed release is on the way.
               </p>
             </div>
           </motion.div>

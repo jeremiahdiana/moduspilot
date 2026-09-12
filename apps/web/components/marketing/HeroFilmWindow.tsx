@@ -37,7 +37,7 @@ export default function HeroFilmWindow({ className = '' }: { className?: string 
       {filmScale > 0 && (
         <iframe
           src="/hero-film.html"
-          title="MODUS in action: every frontier model, every task, one place"
+          title="Modus in action: every frontier model, every task, one place"
           loading="eager"
           scrolling="no"
           className="absolute top-0 left-0 border-0"

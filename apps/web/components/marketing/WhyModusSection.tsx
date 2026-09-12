@@ -131,7 +131,7 @@ export default function WhyModusSection() {
         >
           <h2 className="text-4xl md:text-5xl text-text tracking-tight mb-4">Beyond the answer</h2>
           <p className="text-muted text-base sm:text-lg max-w-2xl mx-auto">
-            Every model is table stakes. MODUS makes things, handles your day, and ships the work.
+            Every model is table stakes. Modus makes things, handles your day, and ships the work.
           </p>
         </motion.div>
 

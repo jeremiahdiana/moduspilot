@@ -17,7 +17,7 @@ const ROWS = [
 
 function Cell({ value }: { value: boolean | string }) {
   if (value === true) return <span className="text-brand font-bold text-base">✓</span>;
-  if (value === false) return <span className="text-muted/30 text-base">—</span>;
+  if (value === false) return <span className="text-muted/30 text-base">-</span>;
   return <span className="text-muted text-xs font-medium">{value}</span>;
 }
 

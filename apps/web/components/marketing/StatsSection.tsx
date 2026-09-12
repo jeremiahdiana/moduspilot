@@ -9,7 +9,7 @@ const STATS: Stat[] = [
   {
     value: '10',
     label: 'Frontier models',
-    body: 'Claude, GPT-5.6, Gemini, Llama and DeepSeek — every one of them, in a single chat.',
+    body: 'Claude, GPT-5.6, Gemini, Llama and DeepSeek, every one of them, in a single chat.',
   },
   {
     value: '$24',
@@ -20,7 +20,7 @@ const STATS: Stat[] = [
   {
     value: '12',
     label: 'Apps connected',
-    body: 'Gmail, Calendar, Drive, Notion, Slack, GitHub, iMessage and more — live across web, Mac and iPhone.',
+    body: 'Gmail, Calendar, Drive, Notion, Slack, GitHub, iMessage and more, live across web, Mac and iPhone.',
   },
 ];
 
@@ -43,7 +43,7 @@ export default function StatsSection() {
           <div className="relative rounded-2xl border border-border overflow-hidden shadow-[0_24px_60px_-24px_rgba(30,20,60,0.30)]">
             <Image
               src="/screenshot-briefing.png"
-              alt="MODUS daily briefing — your priorities, habits and inbox in one place"
+              alt="Modus daily briefing, your priorities, habits and inbox in one place"
               width={1200}
               height={900}
               className="w-full h-auto"

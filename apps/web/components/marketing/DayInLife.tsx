@@ -13,7 +13,7 @@ const EVENTS = [
   {
     time: '8:45 AM',
     title: 'Deep work block defended.',
-    desc: 'Two meeting requests came in for 9 AM. MODUS queued a decline with a reschedule suggestion. You approved in one tap.',
+    desc: 'Two meeting requests came in for 9 AM. Modus queued a decline with a reschedule suggestion. You approved in one tap.',
     tag: 'Approval Card',
     tagColor: 'bg-brand/10 text-brand border-brand/20',
   },
@@ -27,7 +27,7 @@ const EVENTS = [
   {
     time: '2:00 PM',
     title: 'Pattern flagged.',
-    desc: 'You\'ve deferred "Review Q2 goals" three days in a row. MODUS surfaced it — neutral, no guilt. Just data.',
+    desc: 'You\'ve deferred "Review Q2 goals" three days in a row. Modus surfaced it, neutral, no guilt. Just data.',
     tag: 'Pattern Recognition',
     tagColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
@@ -54,7 +54,7 @@ export default function DayInLife() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">A Day With MODUS</p>
+          <p className="text-xs font-bold text-brand uppercase tracking-widest mb-3">A Day With Modus</p>
           <h2 className="text-4xl md:text-5xl font-black text-text mb-4">
             From Wakeup to Wrap-up.
           </h2>

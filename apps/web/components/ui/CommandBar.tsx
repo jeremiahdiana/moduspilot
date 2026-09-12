@@ -69,7 +69,7 @@ const QUICK_ACTIONS: Action[] = [
   },
   {
     label: 'Add a goal',
-    description: 'Tell MODUS about a new goal',
+    description: 'Tell Modus about a new goal',
     query: 'Add a new goal for me',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -286,7 +286,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search or ask MODUS anything…"
+                placeholder="Search or ask Modus anything…"
                 className="flex-1 bg-transparent text-text text-sm placeholder-muted outline-none"
               />
               {q && (
@@ -331,7 +331,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                         </svg>
                       </div>
-                      <p className="text-sm text-muted">Ask MODUS: <span className="text-text font-medium">"{q.trim()}"</span></p>
+                      <p className="text-sm text-muted">Ask Modus: <span className="text-text font-medium">"{q.trim()}"</span></p>
                     </button>
                   </div>
                 ) : (
@@ -342,7 +342,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                         onClick={() => { router.push(`/chat?q=${encodeURIComponent(q.trim())}`); onClose(); }}
                         className="text-xs px-4 py-2 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-colors"
                       >
-                        Ask MODUS instead →
+                        Ask Modus instead →
                       </button>
                     </div>
                   </div>

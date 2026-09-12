@@ -118,7 +118,7 @@ export default function OptionsCard({
   function describe(i: number, oi: number): string {
     if (oi === qs[i].options.length) return (custom[i] ?? '').trim();
     const opt = qs[i].options[oi];
-    return opt.detail ? `${opt.label} — ${opt.detail}` : opt.label;
+    return opt.detail ? `${opt.label}, ${opt.detail}` : opt.label;
   }
   function shortLabel(i: number, oi: number): string {
     return oi === qs[i].options.length ? (custom[i] ?? '').trim() : qs[i].options[oi].label;
@@ -207,7 +207,7 @@ export default function OptionsCard({
     >
       {locked && (
         <p className="px-4 pt-3 text-[11px] font-medium text-muted/70">
-          Skipped — you moved on before answering.
+          Skipped, you moved on before answering.
         </p>
       )}
       <AnimatePresence mode="wait" initial={false}>
@@ -298,7 +298,7 @@ export default function OptionsCard({
                                 value={custom[qi] ?? ''}
                                 onChange={e => setCustom(prev => ({ ...prev, [qi]: e.target.value }))}
                                 onClick={e => e.stopPropagation()}
-                                placeholder={q.customPlaceholder ?? 'Tell MODUS what you want instead…'}
+                                placeholder={q.customPlaceholder ?? 'Tell Modus what you want instead…'}
                                 rows={2}
                                 className="w-full bg-bg border border-border rounded-lg px-2.5 py-2 text-xs text-text outline-none focus:border-brand transition-colors resize-none overflow-hidden"
                               />

@@ -26,7 +26,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'Work',
-    blurb: 'Keep MODUS in the loop on the tools your team actually runs on.',
+    blurb: 'Keep Modus in the loop on the tools your team actually runs on.',
     items: [
       { name: 'GitHub', detail: 'Issues, pull requests and repositories.' },
       { name: 'Slack', detail: 'Read and post, stay on top of threads.', plan: 'PILOT' },
@@ -73,7 +73,7 @@ export default function IntegrationsPage() {
           Your whole life,<br />connected
         </h1>
         <p className="text-muted text-lg max-w-2xl leading-relaxed">
-          MODUS reads your inbox, calendar, files and apps only to surface what matters, and it never sends
+          Modus reads your inbox, calendar, files and apps only to surface what matters, and it never sends
           or changes anything without your approval.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">

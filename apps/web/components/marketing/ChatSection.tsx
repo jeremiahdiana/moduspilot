@@ -23,7 +23,7 @@ function ApprovalCardMockup() {
     <div className="bg-panel rounded-2xl overflow-hidden shadow-2xl shadow-black/40">
       <div className="px-4 py-3 flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-        <span className="text-xs text-muted font-medium">MODUS Chat</span>
+        <span className="text-xs text-muted font-medium">Modus Chat</span>
       </div>
 
       <div className="p-4 space-y-4 min-h-[280px]">
@@ -52,7 +52,7 @@ function ApprovalCardMockup() {
               <div className="space-y-2">
                 {[
                   'Draft reply to Marcus re: Q3 roadmap',
-                  'Block 9–12am tomorrow as Deep Work',
+                  'Block 9 to 12am tomorrow as Deep Work',
                   'Move 3 PM to Friday 3 PM',
                 ].map((action, i) => (
                   <div key={i} className="flex items-center gap-2.5 text-sm text-muted">
@@ -74,7 +74,7 @@ function ApprovalCardMockup() {
 
       <div className="px-4 py-3">
         <div className="bg-bg rounded-xl px-3 py-2 text-xs text-muted/50">
-          Message MODUS…
+          Message Modus…
         </div>
       </div>
     </div>
@@ -96,7 +96,7 @@ export default function ChatSection() {
               One Message.<br />Your Entire Life.
             </h2>
             <p className="text-muted text-base leading-relaxed mb-6">
-              The chat is not a feature. It's the operating surface MODUS is built on.
+              The chat is not a feature. It's the operating surface Modus is built on.
               From a single message you can connect integrations, execute cross-app actions,
               surface a decision you made three months ago, or restructure your goals entirely.
             </p>

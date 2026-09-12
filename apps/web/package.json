@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "check-copy": "node scripts/check-copy.mjs",
     "verify:sync": "npx tsx scripts/verify-sync-reconcile.ts",
     "verify:sync-live": "npx tsx scripts/verify-sync-ingest-live.ts"
   },

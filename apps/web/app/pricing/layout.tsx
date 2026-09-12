@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 const DESC = 'Start free on the open models, no card. $24/mo for every frontier model auto-routed, $59/mo for founders and executives. One subscription instead of five.';
 
 export const metadata: Metadata = {
-  title: 'Pricing — Modus',
+  title: 'Pricing | Modus',
   description: DESC,
   alternates: {
     canonical: 'https://moduspilot.com/pricing',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     url: 'https://moduspilot.com/pricing',
     siteName: 'Modus',
     type: 'website',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Modus — every frontier model, one subscription.' }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Modus: every frontier model, one subscription.' }],
   },
   twitter: {
     card: 'summary_large_image',

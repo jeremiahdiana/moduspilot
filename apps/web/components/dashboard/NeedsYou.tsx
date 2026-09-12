@@ -215,7 +215,7 @@ export default function NeedsYou() {
         <span className="text-[11px] font-medium text-brand bg-brand/10 rounded-full px-2 py-0.5 tabular-nums">
           {items.length + invites.length}
         </span>
-        <span className="text-[11px] text-muted ml-auto hidden sm:block">MODUS worked while you were away</span>
+        <span className="text-[11px] text-muted ml-auto hidden sm:block">Modus worked while you were away</span>
       </div>
 
       <div className="px-3 pb-3 space-y-2">

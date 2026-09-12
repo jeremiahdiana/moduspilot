@@ -107,10 +107,10 @@ export default function StackSection() {
         <p className="text-xs font-bold text-brand dark:text-brand-light uppercase tracking-widest mb-3">The math</p>
         <h2 className="text-4xl md:text-5xl font-semibold text-text mb-4 tracking-tight">
           You&apos;re paying for five of these.<br />
-          <span className="text-brand dark:text-brand-light">MODUS is one of them.</span>
+          <span className="text-brand dark:text-brand-light">Modus is one of them.</span>
         </h2>
         <p className="text-muted text-lg leading-relaxed max-w-2xl mb-10">
-          Every line below is a real price, and every line is something MODUS already does. Check them yourself.
+          Every line below is a real price, and every line is something Modus already does. Check them yourself.
         </p>
       </motion.div>
 
@@ -188,7 +188,7 @@ export default function StackSection() {
             <span className="text-5xl font-semibold text-brand dark:text-brand-light tabular-nums">${MODUS}</span>
             <span className="text-sm text-muted">/mo</span>
           </div>
-          <p className="text-sm font-semibold text-text mb-4">MODUS. All of it, one bill.</p>
+          <p className="text-sm font-semibold text-text mb-4">Modus. All of it, one bill.</p>
           <ul className="space-y-2 mb-6">
             {[
               'Every model above, in one chat',
@@ -223,7 +223,7 @@ export default function StackSection() {
         transition={{ delay: 0.7 }}
         className="text-xs text-muted/60 mt-6 max-w-2xl"
       >
-        Prices as listed by each provider, July 2026, and the total counts only those five — the one-trick apps on top are yours to add up. Your everyday tools stay: Gmail, Calendar, Notion, Slack. MODUS runs on top of them.
+        Prices as listed by each provider, July 2026, and the total counts only those five, the one-trick apps on top are yours to add up. Your everyday tools stay: Gmail, Calendar, Notion, Slack. Modus runs on top of them.
       </motion.p>
     </section>
   );

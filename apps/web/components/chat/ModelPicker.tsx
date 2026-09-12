@@ -76,7 +76,7 @@ export default function ModelPicker({
                     onClick={() => !disabled && onToggleModel(m.id)}
                     disabled={disabled}
                     aria-pressed={on}
-                    title={locked ? `${m.name} — ${m.plans.includes('modus') ? 'MODUS' : 'PILOT'} plan` : m.name}
+                    title={locked ? `${m.name}, ${m.plans.includes('modus') ? 'MODUS' : 'PILOT'} plan` : m.name}
                     className={`flex items-center gap-1.5 rounded-lg pl-1.5 pr-2 py-1 text-[11px] font-medium border transition-colors ${
                       on
                         ? 'border-brand/50 bg-brand/15 text-brand'

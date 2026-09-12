@@ -170,7 +170,7 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
         <div className="bg-brand/10 border border-brand/30 rounded-xl px-5 py-4 flex items-center gap-3">
           <span className="text-brand text-lg">◆</span>
           <div>
-            <p className="text-sm font-semibold text-text">You're on {plan.toUpperCase()} — welcome.</p>
+            <p className="text-sm font-semibold text-text">You're on {plan.toUpperCase()} welcome.</p>
             <p className="text-xs text-muted">Your plan is active. All features are unlocked.</p>
           </div>
         </div>
@@ -181,10 +181,10 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
         <div>
           <p className="text-xs text-muted font-medium uppercase tracking-wider mb-1">Current Plan</p>
           <p className="text-2xl font-black tracking-wide text-brand">{plan.toUpperCase()}</p>
-          {plan === 'free' && <p className="text-xs text-muted mt-1">No active subscription — start a 3-day trial below.</p>}
-          {plan === 'modus' && <p className="text-xs text-muted mt-1">$24/mo — billed monthly.</p>}
-          {plan === 'pilot' && <p className="text-xs text-muted mt-1">$59/mo — billed monthly.</p>}
-          {plan === 'group' && <p className="text-xs text-muted mt-1">$79/mo — up to 5 members.</p>}
+          {plan === 'free' && <p className="text-xs text-muted mt-1">No active subscription, start a 3-day trial below.</p>}
+          {plan === 'modus' && <p className="text-xs text-muted mt-1">$24/mo, billed monthly.</p>}
+          {plan === 'pilot' && <p className="text-xs text-muted mt-1">$59/mo, billed monthly.</p>}
+          {plan === 'group' && <p className="text-xs text-muted mt-1">$79/mo, up to 5 members.</p>}
         </div>
         {plan !== 'free' && (
           <button
@@ -312,7 +312,7 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
                 </h3>
                 <p className="text-sm text-muted mt-2">
                   {isUp ? (
-                    <>Your plan switches to <span className="text-text font-medium">{target.label}</span> right now. Upgrades are prorated — you&apos;ll be charged the difference for the rest of this billing period (nothing extra while you&apos;re still in a free trial), then <span className="text-text font-medium">{target.price}/mo</span>.</>
+                    <>Your plan switches to <span className="text-text font-medium">{target.label}</span> right now. Upgrades are prorated, you&apos;ll be charged the difference for the rest of this billing period (nothing extra while you&apos;re still in a free trial), then <span className="text-text font-medium">{target.price}/mo</span>.</>
                   ) : (
                     <>Your plan switches to <span className="text-text font-medium">{target.label}</span> right now at <span className="text-text font-medium">{target.price}/mo</span>. Any unused credit is applied to your next invoice.</>
                   )}

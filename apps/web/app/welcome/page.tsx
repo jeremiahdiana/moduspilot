@@ -6,7 +6,7 @@ import Aurora from '../grandfathering/Aurora';
 import WelcomeSequence from './WelcomeSequence';
 
 export const metadata: Metadata = {
-  title: 'Welcome, Founding Member — MODUS',
+  title: 'Welcome, Founding Member | Modus',
   robots: { index: false, follow: false },
 };
 

@@ -277,10 +277,10 @@ export default function ProjectDetailPage() {
     },
     onError: (err) => {
       const m = (err?.message ?? '').toLowerCase();
-      if (m.includes('authentication_required')) setChatError('Your session expired — refresh and sign in again.');
+      if (m.includes('authentication_required')) setChatError('Your session expired, refresh and sign in again.');
       else if (m.includes('free_limit_reached')) setChatError("You've hit your free limit for now. It refreshes soon, or upgrade for every model.");
-      else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature — subscribe to attach one.');
-      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use MODUS.');
+      else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature, subscribe to attach one.');
+      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use Modus.');
       else if (m.includes('token_limit_reached')) setChatError("You've hit your daily AI limit. Resets at midnight.");
       else if (m.includes('all_models_busy') || m.includes('rate') || m.includes('busy') || m.includes('429')) setChatError('The AI is briefly busy. Try again in a moment.');
       else setChatError('Something went wrong. Please try again.');
@@ -741,7 +741,7 @@ export default function ProjectDetailPage() {
                   </button>
                 </div>
                 {activeTasks.length === 0 ? (
-                  <p className="text-sm text-muted/60 py-3">No open tasks. Add one or ask MODUS to help plan.</p>
+                  <p className="text-sm text-muted/60 py-3">No open tasks. Add one or ask Modus to help plan.</p>
                 ) : (
                   <div className="space-y-1.5">
                     {activeTasks.slice(0, 5).map(t => (
@@ -777,7 +777,7 @@ export default function ProjectDetailPage() {
                   </button>
                 </div>
                 {project.resources.length === 0 ? (
-                  <p className="text-sm text-muted/60 py-3">No resources pinned. Pin repos, docs, and channels to scope MODUS's context.</p>
+                  <p className="text-sm text-muted/60 py-3">No resources pinned. Pin repos, docs, and channels to scope Modus's context.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {project.resources.map((r, i) => {
@@ -842,7 +842,7 @@ export default function ProjectDetailPage() {
               {project.resources.length === 0 && !showPicker && (
                 <div className="text-center py-10 bg-panel border border-dashed border-border rounded-xl">
                   <p className="text-muted text-sm mb-1">No resources pinned yet.</p>
-                  <p className="text-muted/60 text-xs mb-4">Pin repos, docs, channels, and files to scope MODUS's context to this project.</p>
+                  <p className="text-muted/60 text-xs mb-4">Pin repos, docs, channels, and files to scope Modus's context to this project.</p>
                   <button
                     onClick={() => setShowPicker(true)}
                     className="text-sm text-brand hover:underline"
@@ -961,7 +961,7 @@ export default function ProjectDetailPage() {
                                 ? `Connect ${pickerType === 'drive' ? 'Google' : 'Notion'} in `
                                 : `Connect ${pickerType === 'github' ? 'GitHub' : 'Slack'} in `}
                               <a href="/settings?tab=connectors" className="text-brand underline">Settings → Connectors</a>
-                              {pickerType === 'slack' ? '. Make sure MODUS is added to the channels you want to pin.' : '.'}
+                              {pickerType === 'slack' ? '. Make sure Modus is added to the channels you want to pin.' : '.'}
                             </p>
                           </div>
                         ) : (
@@ -1376,7 +1376,7 @@ export default function ProjectDetailPage() {
               value={input}
               onChange={handleInputChange}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e as unknown as React.FormEvent); } }}
-              placeholder="Ask MODUS about this project…"
+              placeholder="Ask Modus about this project…"
               rows={1}
               className="flex-1 bg-transparent text-sm text-text placeholder:text-muted outline-none resize-none max-h-32"
               style={{ height: 'auto', minHeight: '1.5rem' }}

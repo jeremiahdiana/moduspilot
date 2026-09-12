@@ -297,7 +297,7 @@ export function DemoWindow({ showRail = true, compact = false }: { showRail?: bo
               {/* routing chip */}
               {stage >= 1 && (
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex items-center gap-2 self-start flex-wrap">
-                  <span className="text-[11px] text-muted">MODUS routed this to</span>
+                  <span className="text-[11px] text-muted">Modus routed this to</span>
                   <span className="inline-flex items-center gap-1.5 bg-brand/10 rounded-full pl-1.5 pr-2.5 py-1">
                     <Logo className="w-3.5 h-3.5" />
                     <span className="text-xs font-semibold text-text">{d.model}</span>
