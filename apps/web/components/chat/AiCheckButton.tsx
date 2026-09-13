@@ -5,13 +5,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { auth } from '@/lib/firebase';
 
 interface Result {
-  ai: number; human: number; mixed: number;
-  predictedClass: string; confidence: string;
+  ai: number; human: number;
 }
 
-// A ZeroGPT-style AI-text check on a single chat message. Calls /api/ai-check
-// (GPTZero proxy). Detection is probabilistic, so we present the likelihood and
-// confidence band, never a hard verdict.
+// A ZeroGPT AI-text check on a single chat message. Calls /api/ai-check (ZeroGPT
+// proxy). Detection is probabilistic, so we present the likelihood as AI% and
+// human%, never a hard verdict.
 export default function AiCheckButton({ text }: { text: string }) {
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error' | 'hidden'>('idle');
   const [result, setResult] = useState<Result | null>(null);
@@ -93,8 +92,6 @@ export default function AiCheckButton({ text }: { text: string }) {
             <span className="font-medium text-text">{aiPct}% likely AI</span>
             <span className="text-muted/40">·</span>
             <span className="text-muted">{humanPct}% human</span>
-            <span className="text-muted/40">·</span>
-            <span className="text-muted capitalize">{result.confidence} confidence</span>
             <span className="w-full text-[10px] text-muted/60 leading-snug">
               Detectors are probabilistic and can be wrong, so treat this as a signal, not proof.
             </span>

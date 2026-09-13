@@ -1,19 +1,20 @@
 import { requireAuth } from '@/lib/api-auth';
 
-// AI-text detector, proxied to GPTZero so the API key never reaches the client.
+// AI-text detector, proxied to ZeroGPT so the API key never reaches the client.
 // The user triggers this from a chat message's "Check for AI" action. Detectors
-// are probabilistic — we return a score + confidence band, never a verdict.
+// are probabilistic, so we return a likelihood, never a verdict. ZeroGPT gives a
+// single AI percentage, so we report AI% and derive human = 1 - ai.
 //
-// Needs GPTZERO_API_KEY. Until it's set the route returns a clear 503 the UI can
+// Needs ZEROGPT_API_KEY. Until it's set the route returns a clear 503 the UI can
 // show, rather than a generic failure.
-const GPTZERO_URL = 'https://api.gptzero.me/v2/predict/text';
-const MAX_CHARS = 20000; // GPTZero rejects very short/very long docs; keep it sane.
+const ZEROGPT_URL = 'https://api.zerogpt.com/api/detect/detectText';
+const MAX_CHARS = 20000; // Keep documents to a sane size for the detector.
 
 export async function POST(req: Request) {
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
 
-  const key = process.env.GPTZERO_API_KEY;
+  const key = process.env.ZEROGPT_API_KEY;
   if (!key) {
     return Response.json(
       { error: 'not_configured', message: 'AI detection is not set up yet (missing API key).' },
@@ -36,42 +37,35 @@ export async function POST(req: Request) {
   }
 
   try {
-    const res = await fetch(GPTZERO_URL, {
+    const res = await fetch(ZEROGPT_URL, {
       method: 'POST',
       headers: {
-        'x-api-key': key,
+        ApiKey: key,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({ document: text }),
+      body: JSON.stringify({ input_text: text }),
     });
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
-      console.error('[ai-check] GPTZero error', res.status, detail.slice(0, 300));
+      console.error('[ai-check] ZeroGPT error', res.status, detail.slice(0, 300));
       return Response.json({ error: 'provider_error', status: res.status }, { status: 502 });
     }
 
+    // ZeroGPT nests the result under `data` and reports the AI likelihood as a
+    // 0-100 percentage in `fakePercentage`. We normalise it to 0..1 and derive
+    // human = 1 - ai.
     const data = (await res.json()) as {
-      documents?: Array<{
-        class_probabilities?: { ai?: number; human?: number; mixed?: number };
-        predicted_class?: string;
-        confidence_category?: string;
-      }>;
+      data?: { fakePercentage?: number };
     };
-    const doc = data.documents?.[0];
-    if (!doc?.class_probabilities) {
+    const pct = data.data?.fakePercentage;
+    if (typeof pct !== 'number' || Number.isNaN(pct)) {
       return Response.json({ error: 'no_result' }, { status: 502 });
     }
 
-    const p = doc.class_probabilities;
-    return Response.json({
-      ai: p.ai ?? 0,
-      human: p.human ?? 0,
-      mixed: p.mixed ?? 0,
-      predictedClass: doc.predicted_class ?? 'unknown', // 'ai' | 'human' | 'mixed'
-      confidence: doc.confidence_category ?? 'low',      // 'high' | 'medium' | 'low'
-    });
+    const ai = Math.min(1, Math.max(0, pct / 100));
+    return Response.json({ ai, human: 1 - ai });
   } catch (e) {
     console.error('[ai-check] request failed', e);
     return Response.json({ error: 'request_failed' }, { status: 502 });
