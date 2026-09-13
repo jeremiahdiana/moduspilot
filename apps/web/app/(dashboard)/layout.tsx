@@ -559,7 +559,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg max-w-[100vw]">
+    <div className="modus-app flex h-screen overflow-hidden bg-bg max-w-[100vw]">
       {/* Desktop sidebar */}
       <aside
         className={`hidden md:flex shrink-0 border-r border-border flex-col relative ${dragging ? '' : 'transition-[width] duration-200 ease-out'}`}

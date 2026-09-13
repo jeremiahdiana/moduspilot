@@ -12,14 +12,17 @@
   --font-serif: 'Sentient', Georgia, 'Times New Roman', serif;
   /* Anthropic-style bold grotesque for marketing hero headlines. */
   --font-grotesk: 'Space Grotesk', system-ui, sans-serif;
-  /* The page is a soft grey, not paper-white — pure white on near-white read as
-     blinding and left panels with no elevation to separate them. Panel stays the
-     lightest surface so raised cards work the same way they do in dark mode. */
-  --color-bg: 240 240 243;
-  --color-panel: 252 252 253;
-  --color-border: 222 222 228;
-  --color-text: 15 15 18;
-  --color-muted: 92 92 102;
+  /* Share the homepage's warm light palette across the software. */
+  --light-bg: 240 238 230;
+  --light-panel: 250 249 245;
+  --light-border: 224 221 210;
+  --light-text: 20 20 19;
+  --light-muted: 104 102 94;
+  --color-bg: var(--light-bg);
+  --color-panel: var(--light-panel);
+  --color-border: var(--light-border);
+  --color-text: var(--light-text);
+  --color-muted: var(--light-muted);
 }
 
 .dark {
@@ -46,11 +49,11 @@
 .marketing-light-tokens {
   /* Warm ivory ground (Anthropic/Perplexity reference), not the old pure white.
      Panel is a lighter off-white so cards read as a raised surface. */
-  --color-bg: 240 238 230;
-  --color-panel: 250 249 245;
-  --color-border: 224 221 210;
-  --color-text: 20 20 19;
-  --color-muted: 104 102 94;
+  --color-bg: var(--light-bg);
+  --color-panel: var(--light-panel);
+  --color-border: var(--light-border);
+  --color-text: var(--light-text);
+  --color-muted: var(--light-muted);
   /* Code editor mockup — light (GitHub-light-ish) so it isn't the one black block on a light page */
   --code-bg: #ffffff;
   --code-chrome: #f6f8fa;
@@ -212,13 +215,18 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.015em;
 }
 
-/* Light mode: restrained gradient background + dot grid */
-:root body {
-  background:
-    radial-gradient(ellipse 90% 55% at 5% 0%,   rgba(124,58,237,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 40% at 10% 90%, rgba(139,92,246,0.04)  0%, transparent 55%),
-    rgb(240, 240, 243);
+/* Match the homepage hero in the workspace, with Satoshi for compact UI text. */
+.modus-app :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-grotesk);
 }
+
+/* Use the active palette behind the app as well as inside its panels. */
+:root body {
+  background: rgb(var(--color-bg));
+}
+
+:root:not(.dark) body::before,
+:root:not(.dark) body::after { display: none; }
 
 :root body::before {
   content: '';
