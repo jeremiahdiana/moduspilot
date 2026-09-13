@@ -18,7 +18,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
-import LoginPlants from '@/components/auth/LoginPlants';
+import HomePricingSection from '@/components/marketing/HomePricingSection';
 import type { User } from 'firebase/auth';
 
 // A `?next=` internal path (e.g. the founding claim flow returning to
@@ -301,7 +301,7 @@ export default function LoginPage() {
                     <button
                       type="submit"
                       disabled={loading !== null || !email.trim()}
-                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-white rounded-xl px-4 py-3.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-white rounded-xl px-4 py-3.5 text-sm font-semibold transition-colors disabled:bg-border disabled:text-muted disabled:cursor-not-allowed"
                     >
                       {loading === 'email' ? (
                         <div className="w-4 h-4 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
@@ -339,9 +339,12 @@ export default function LoginPage() {
           </motion.div>
         </div>
 
-        {/* Revealed on scroll */}
-        <div className="pb-12 px-6">
-          <LoginPlants />
+        {/* Revealed on scroll, like the Claude sign-in: the actual plans. */}
+        <div className="pb-8">
+          <div className="text-center mb-2 pt-4">
+            <h2 className="font-serif text-3xl sm:text-4xl font-medium text-text">Explore plans</h2>
+          </div>
+          <HomePricingSection showHeading={false} />
         </div>
       </div>
     </>
