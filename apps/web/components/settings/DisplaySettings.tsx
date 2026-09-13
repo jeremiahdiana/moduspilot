@@ -3,6 +3,8 @@
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { DASHBOARD_WIDGETS, BRIEFING_SECTIONS } from '@/lib/layout-keys';
 import { capabilityEnabled } from '@/lib/capabilities';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useMobileConnected } from '@/hooks/useMobileConnected';
 
 interface Props {
   settings: UserSettings;
@@ -69,6 +71,8 @@ function Row({ label, hint, sublabel, checked, disabled, onChange }: {
 }
 
 export default function DisplaySettings({ settings, saving, onSave }: Props) {
+  const { user } = useAuth();
+  const mobileConnected = useMobileConnected(user?.uid);
   const sidebarHidden = settings.sidebar?.hidden ?? [];
   const dashHidden = settings.layout?.dashboardHidden ?? [];
   const briefHidden = settings.layout?.briefingHidden ?? [];
@@ -90,13 +94,16 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
     onSave({ capabilities: { ...settings.capabilities, dailyBriefing: on } as UserSettings['capabilities'] });
   };
 
-  const setReduceMotion = (on: boolean) => {
+  // "Animations" is the friendly inverse of the stored `reduceMotion` flag:
+  // animations on == reduceMotion off. Reuses the same cross-device machinery.
+  const setAnimations = (on: boolean) => {
+    const reduce = !on;
     try {
-      if (on) localStorage.setItem('modus-reduce-motion', '1');
+      if (reduce) localStorage.setItem('modus-reduce-motion', '1');
       else localStorage.removeItem('modus-reduce-motion');
-      document.documentElement.toggleAttribute('data-reduce-motion', on);
+      document.documentElement.toggleAttribute('data-reduce-motion', reduce);
     } catch { /* storage may be blocked; the setting still saves below */ }
-    onSave({ reduceMotion: on });
+    onSave({ reduceMotion: reduce });
   };
 
   return (
@@ -114,11 +121,11 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
         </div>
         <div className="bg-panel border border-border rounded-xl divide-y divide-border">
           <Row
-            label="Reduce motion"
-            hint="Turn off animations and transitions across Modus"
-            checked={settings.reduceMotion ?? false}
+            label="Animations"
+            hint="Show motion and animated effects across Modus"
+            checked={!(settings.reduceMotion ?? false)}
             disabled={saving}
-            onChange={setReduceMotion}
+            onChange={setAnimations}
           />
         </div>
       </section>
@@ -133,17 +140,23 @@ export default function DisplaySettings({ settings, saving, onSave }: Props) {
           <div key={group.label}>
             <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">{group.label}</p>
             <div className="bg-panel border border-border rounded-xl divide-y divide-border">
-              {group.items.map(item => (
-                <Row
-                  key={item.key}
-                  label={item.label}
-                  hint={item.hint}
-                  sublabel={item.locked ? 'Always shown' : undefined}
-                  checked={item.locked || !sidebarHidden.includes(item.key)}
-                  disabled={saving || item.locked}
-                  onChange={v => setSidebar(item.key, v)}
-                />
-              ))}
+              {group.items.map(item => {
+                // Goals and Reminders live in the Workspace group and only make
+                // sense once the phone app feeds them, so they stay off and
+                // locked until a phone is connected.
+                const needsPhone = group.label === 'Workspace' && !mobileConnected;
+                return (
+                  <Row
+                    key={item.key}
+                    label={item.label}
+                    hint={needsPhone ? 'Connect your phone to enable' : item.hint}
+                    sublabel={item.locked ? 'Always shown' : needsPhone ? 'Phone' : undefined}
+                    checked={item.locked ? true : needsPhone ? false : !sidebarHidden.includes(item.key)}
+                    disabled={saving || item.locked || needsPhone}
+                    onChange={v => setSidebar(item.key, v)}
+                  />
+                );
+              })}
             </div>
           </div>
         ))}

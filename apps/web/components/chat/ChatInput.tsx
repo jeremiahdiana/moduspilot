@@ -280,7 +280,7 @@ export default function ChatInput({
                   transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
                   onClick={() => setPreviewIndex(i)}
                   title={`${f.name} · click to preview`}
-                  className="flex items-center gap-2 bg-panel border border-border hover:border-brand/40 rounded-lg pl-2 pr-1.5 py-1.5 max-w-[220px] transition-colors group/file"
+                  className="flex items-center gap-2 bg-panel border border-border hover-border-tint rounded-lg pl-2 pr-1.5 py-1.5 max-w-[220px] transition-colors group/file"
                 >
                   <span className="text-muted group-hover/file:text-brand transition-colors"><FileIcon /></span>
                   <span className="text-xs text-text truncate">{f.name}</span>
@@ -352,7 +352,7 @@ export default function ChatInput({
                 onClick={() => setMenuOpen(o => !o)}
                 whileTap={{ scale: 0.88 }}
                 transition={{ duration: 0.12 }}
-                className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors ${menuOpen ? 'bg-brand/10 border-brand/40 text-brand' : 'border-border text-muted hover:text-text hover:border-brand/40'}`}
+                className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors ${menuOpen ? 'surface-tint border-brand/40 text-brand' : 'border-border text-muted hover:text-text hover-border-tint'}`}
                 aria-label="Attach and tools"
                 aria-expanded={menuOpen}
               >
@@ -458,7 +458,7 @@ export default function ChatInput({
                 exit={{ opacity: 0, scale: 0.8, width: 0 }}
                 transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 onClick={() => onToggleWebSearch?.()}
-                className="shrink-0 overflow-hidden flex items-center gap-1 text-[11px] font-medium text-brand bg-brand/10 border border-brand/25 rounded-full pl-2 pr-1.5 py-1 whitespace-nowrap"
+                className="shrink-0 overflow-hidden flex items-center gap-1 text-[11px] font-medium text-brand surface-tint border border-tint rounded-full pl-2 pr-1.5 py-1 whitespace-nowrap"
                 title="Web search on, click to turn off"
               >
                 <SearchIcon className="w-3 h-3" />

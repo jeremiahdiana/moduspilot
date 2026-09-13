@@ -131,7 +131,7 @@ function ColumnBody({ col, onUse, expanded = false }: { col: ColumnState; onUse?
         <div className="px-3 pb-2.5 pt-1">
           <button
             onClick={() => onUse(col.text)}
-            className="w-full text-[11px] font-medium text-muted hover:text-brand border border-border hover:border-brand/40 rounded-md py-1 transition-colors"
+            className="w-full text-[11px] font-medium text-muted hover:text-brand border border-border hover-border-tint rounded-md py-1 transition-colors"
           >
             Continue with this
           </button>
@@ -391,7 +391,7 @@ export default function CompareCard({
             {onRunNormally && (
               <button
                 onClick={() => onRunNormally(prompt)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-text border border-border hover:border-brand/40 transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-text border border-border hover-border-tint transition-colors"
               >
                 {UNSUPPORTED_COPY[unsupported].cta}
               </button>
@@ -451,7 +451,7 @@ export default function CompareCard({
                     }`}
                   >
                     {expanded === i && (
-                      <motion.span layoutId="compareExpandedTab" transition={{ type: 'spring', stiffness: 420, damping: 34 }} className="absolute inset-0 bg-brand/15 rounded-md" />
+                      <motion.span layoutId="compareExpandedTab" transition={{ type: 'spring', stiffness: 420, damping: 34 }} className="absolute inset-0 surface-tint-strong rounded-md" />
                     )}
                     <span className="relative z-10 flex items-center gap-1.5">
                       <Logo className="w-3.5 h-3.5" />
@@ -495,7 +495,7 @@ export default function CompareCard({
                 }`}
               >
                 {tab === i && (
-                  <motion.span layoutId="compareTab" transition={{ type: 'spring', stiffness: 420, damping: 34 }} className="absolute inset-0 bg-brand/15 rounded-md" />
+                  <motion.span layoutId="compareTab" transition={{ type: 'spring', stiffness: 420, damping: 34 }} className="absolute inset-0 surface-tint-strong rounded-md" />
                 )}
                 <span className="relative z-10 flex items-center gap-1">
                   <Logo className="w-3 h-3" />

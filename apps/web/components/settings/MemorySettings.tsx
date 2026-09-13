@@ -297,7 +297,7 @@ export default function MemorySettings({ settings, memories, saving, onSave, onA
                       {importState === 'idle' && pasteText.trim() && (
                         <button
                           onClick={handlePastePreview}
-                          className="w-full py-2 border border-border rounded-lg text-xs text-muted hover:text-text hover:border-brand/40 transition-colors"
+                          className="w-full py-2 border border-border rounded-lg text-xs text-muted hover:text-text hover-border-tint transition-colors"
                         >
                           Preview memories
                         </button>

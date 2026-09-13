@@ -75,9 +75,9 @@ function FocusCard({ focus }: { focus: { title: string; source: 'briefing' | 'ta
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className="px-5 py-4 rounded-2xl bg-brand/5 border border-brand/20 flex items-center gap-4"
+        className="px-5 py-4 rounded-2xl surface-tint border border-tint flex items-center gap-4"
       >
-        <div className="w-9 h-9 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-xl surface-tint-strong flex items-center justify-center shrink-0">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-brand">
             <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
           </svg>

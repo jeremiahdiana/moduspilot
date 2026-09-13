@@ -10,6 +10,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import { collection, query, where, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import CommandBar from '@/components/ui/CommandBar';
+import { useMobileConnected } from '@/hooks/useMobileConnected';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
@@ -83,7 +84,7 @@ function NavLink({ item, pathname, onNavClick, collapsed }: { item: NavItem; pat
       {active && (
         <motion.div
           layoutId="nav-active-pill"
-          className="absolute inset-0 rounded-xl bg-brand/10"
+          className="absolute inset-0 rounded-xl surface-tint"
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         />
       )}
@@ -162,7 +163,7 @@ function NavLinkWithBriefingDot({ item, pathname, onNavClick, collapsed }: { ite
       {active && (
         <motion.div
           layoutId="nav-active-pill"
-          className="absolute inset-0 rounded-xl bg-brand/10"
+          className="absolute inset-0 rounded-xl surface-tint"
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         />
       )}
@@ -208,7 +209,10 @@ function SidebarContent({
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }) {
-  const visibleWorkspace = WORKSPACE.filter(i => !hidden.has(i.key));
+  // Goals and Reminders are phone-sourced surfaces: keep them out of the sidebar
+  // until the user connects the Modus phone app, then let them hide them anyway.
+  const mobileConnected = useMobileConnected(user?.uid);
+  const visibleWorkspace = WORKSPACE.filter(i => mobileConnected && !hidden.has(i.key));
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -265,7 +269,7 @@ function SidebarContent({
           <button
             onClick={onCmdOpen}
             aria-label="Ask Modus"
-            className="w-full flex items-center justify-center mb-4 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all"
+            className="w-full flex items-center justify-center mb-4 py-2 rounded-xl border border-dashed border-border text-muted hover-border-tint hover:text-brand hover-surface-tint transition-all"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -278,7 +282,7 @@ function SidebarContent({
           whileHover={{ scale: 1.015, y: -1 }}
           whileTap={{ scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover:border-brand/40 hover:text-brand hover:bg-brand/5 transition-all group"
+          className="flex items-center gap-2 mx-1 mb-4 px-3 py-2 rounded-xl border border-dashed border-border text-muted hover-border-tint hover:text-brand hover-surface-tint transition-all group"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -394,7 +398,7 @@ function SidebarContent({
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 rounded-full surface-tint-strong flex items-center justify-center shrink-0">
                     <span className="text-xs text-brand font-semibold">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
                   </div>
                 )}
@@ -406,7 +410,7 @@ function SidebarContent({
               {user.photoURL ? (
                 <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full shrink-0 ring-1 ring-border" />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-brand/20 flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-full surface-tint-strong flex items-center justify-center shrink-0">
                   <span className="text-xs text-brand font-semibold">{(user.displayName || user.email || '?')[0].toUpperCase()}</span>
                 </div>
               )}
@@ -574,7 +578,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         />
         {/* Drag handle */}
         <div
-          className="absolute inset-y-0 right-0 w-1 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-10"
+          className="absolute inset-y-0 right-0 w-1 cursor-col-resize hover-surface-tint0 active:bg-brand/60 transition-colors z-10"
           onMouseDown={startSidebarDrag}
         />
       </aside>

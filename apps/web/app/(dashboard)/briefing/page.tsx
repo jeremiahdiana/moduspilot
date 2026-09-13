@@ -352,7 +352,7 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
           <FilterToggle />
         </div>
         <p className="text-xs text-muted mb-3">Connect Gmail to surface emails that need your attention.</p>
-        <button onClick={onConnectGoogle} className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer">Connect Google →</button>
+        <button onClick={onConnectGoogle} className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 surface-tint text-brand hover-surface-tint transition-colors cursor-pointer">Connect Google →</button>
       </BCard>
     );
   }
@@ -372,7 +372,7 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
           <button
             onClick={() => onTriage(triageAccount ?? undefined)}
             disabled={triageState === 'loading'}
-            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-colors disabled:opacity-50"
+            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg surface-tint text-brand hover-surface-tint transition-colors disabled:opacity-50"
           >
             {triageState === 'loading' ? 'Scanning…' : 'Triage inbox'}
           </button>
@@ -394,7 +394,7 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
         </div>
       )}
       {triageResult && triageState === 'done' && (
-        <div className={`flex items-center justify-between px-5 py-2.5 border-b border-border/50 text-[11px] ${triageResult.created > 0 ? 'bg-brand/5 text-brand' : 'text-muted'}`}>
+        <div className={`flex items-center justify-between px-5 py-2.5 border-b border-border/50 text-[11px] ${triageResult.created > 0 ? 'surface-tint text-brand' : 'text-muted'}`}>
           <span>{triageResult.message}</span>
           {triageResult.created > 0 && (
             <a href="/chat" className="font-semibold underline underline-offset-2">View drafts →</a>
@@ -411,7 +411,7 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
           {shown.map(t => (
             <div key={t.id} className="border-b border-border/50 last:border-b-0">
               <button onClick={() => setExpanded(expanded === t.id ? null : t.id)}
-                className="w-full flex items-start gap-3 px-5 py-3.5 hover:bg-brand/5 transition-colors text-left cursor-pointer">
+                className="w-full flex items-start gap-3 px-5 py-3.5 hover-surface-tint transition-colors text-left cursor-pointer">
                 <ContactAvatar name={t.from || t.fromAddress} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2 mb-0.5">
@@ -431,7 +431,7 @@ function ApprovalQueueCard({ threads, connected, filter, loading, onFilterChange
                       {(t.body || t.snippet || '').length > 600 && '…'}
                     </p>
                   </div>
-                  <button onClick={() => onDraftReply(t)} className="mt-2.5 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer">
+                  <button onClick={() => onDraftReply(t)} className="mt-2.5 text-[11px] px-3 py-1.5 rounded-lg border border-brand/40 surface-tint text-brand hover-surface-tint transition-colors cursor-pointer">
                     Draft reply with Modus ↗
                   </button>
                 </div>
@@ -474,7 +474,7 @@ function ScheduleTimeline({ events, schedule, connected, onConnectGoogle }: {
       <BCard>
         <Label icon={<IconCalendar />} color="text-blue-500" text="Today's schedule" />
         <p className="text-xs text-muted mb-3">Connect Google Calendar to see your meetings here.</p>
-        <button onClick={onConnectGoogle} className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 bg-brand/5 text-brand hover:bg-brand/10 transition-colors cursor-pointer">Connect Google →</button>
+        <button onClick={onConnectGoogle} className="text-xs px-3 py-1.5 rounded-lg border border-brand/40 surface-tint text-brand hover-surface-tint transition-colors cursor-pointer">Connect Google →</button>
       </BCard>
     );
   }
@@ -564,7 +564,7 @@ function CheckableTop3Card({ items, completedIndices, onToggle }: {
           const done = completedIndices.includes(i);
           return (
             <button key={i} onClick={() => onToggle(i)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 bg-bg rounded-lg hover:bg-brand/5 transition-colors text-left group cursor-pointer">
+              className="w-full flex items-center gap-3 px-3 py-2.5 bg-bg rounded-lg hover-surface-tint transition-colors text-left group cursor-pointer">
               <span className={`text-[11px] font-bold w-3 shrink-0 ${done ? 'text-muted/40' : 'text-brand/40'}`}>{i + 1}</span>
               <motion.div whileTap={{ scale: 0.8 }}
                 className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${done ? 'bg-brand border-brand' : 'border-border group-hover:border-brand/50'}`}>
@@ -677,8 +677,7 @@ function PatternCard({ text }: { text: string }) {
 
 function MissionCard({ task, source }: { task: string; source?: string }) {
   return (
-    <div className="rounded-xl border border-brand/20 px-5 py-4"
-      style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(124,58,237,0.03) 100%)' }}>
+    <div className="rounded-xl border border-tint surface-tint px-5 py-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-brand"><IconTarget /></span>
         <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-brand/70">Mission today</span>
@@ -711,7 +710,7 @@ function ClosingChatBar({ input, onChange, onSubmit, onChip, isLoading }: {
       <div className="px-3 py-3 grid grid-cols-2 gap-2 border-b border-border">
         {QUICK_CHIPS.map(chip => (
           <button key={chip.label} onClick={() => onChip(chip.fill)}
-            className="text-[13px] font-medium px-4 py-3 rounded-xl border border-border bg-bg text-text hover:border-brand/40 hover:bg-brand/5 transition-colors cursor-pointer text-left leading-snug">
+            className="text-[13px] font-medium px-4 py-3 rounded-xl border border-border bg-bg text-text hover-border-tint hover-surface-tint transition-colors cursor-pointer text-left leading-snug">
             {chip.label}
           </button>
         ))}
@@ -913,7 +912,7 @@ function NewsCard({ items, industry, loading, onChangeTopic }: {
           <div className="max-h-44 overflow-y-auto">
             {NEWS_TOPICS.map(topic => (
               <button key={topic} onClick={() => { onChangeTopic(topic); setOpen(false); setCustomTopic(''); }}
-                className={`w-full text-left px-3 py-2 text-[12px] transition-colors cursor-pointer border-b border-border/40 last:border-0 hover:bg-brand/5 ${topic === industry ? 'text-brand font-semibold bg-brand/5' : 'text-text'}`}>
+                className={`w-full text-left px-3 py-2 text-[12px] transition-colors cursor-pointer border-b border-border/40 last:border-0 hover-surface-tint ${topic === industry ? 'text-brand font-semibold surface-tint' : 'text-text'}`}>
                 {topic}
               </button>
             ))}
@@ -1064,7 +1063,7 @@ export default function BriefingPage() {
             <div className="flex-1 overflow-y-auto py-2">
               {sidebarBriefings.map(b => (
                 <button key={b.id} onClick={() => setSelected(b)}
-                  className={`w-full text-left px-4 py-3 transition-colors ${selected?.id === b.id ? 'bg-brand/10 border-r-2 border-brand' : 'hover:bg-panel'}`}>
+                  className={`w-full text-left px-4 py-3 transition-colors ${selected?.id === b.id ? 'surface-tint border-r-2 border-brand' : 'hover:bg-panel'}`}>
                   <div className="flex items-center gap-2">
                     {!b.read && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" />}
                     <p className={`text-xs font-medium truncate ${selected?.id === b.id ? 'text-brand' : 'text-text'}`}>{fmtShort(b.createdAt)}</p>
@@ -1079,7 +1078,7 @@ export default function BriefingPage() {
             sidebar's own handle. Reopen via the tab instead. */}
         {!rail.collapsed && (
           <div
-            className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-20"
+            className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover-surface-tint0 active:bg-brand/60 transition-colors z-20"
             onMouseDown={rail.startDrag}
           />
         )}
@@ -1352,18 +1351,11 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
   const unreadCount = gmailThreads.filter(t => t.unread).length;
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{
-      background: 'rgb(var(--color-bg))',
-      backgroundImage: `
-        radial-gradient(ellipse 100% 45% at 50% -5%, rgba(124,58,237,0.11) 0%, transparent 70%),
-        radial-gradient(ellipse 55% 30% at 88% 20%, rgba(139,92,246,0.06) 0%, transparent 55%),
-        radial-gradient(ellipse 35% 20% at 12% 75%, rgba(167,139,250,0.04) 0%, transparent 50%)
-      `,
-    }}>
+    <div className="flex-1 overflow-y-auto bg-bg briefing-ambient">
       <div className="px-6 py-10">
 
         {autoGenerating && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-brand/10 border border-brand/20 rounded-xl text-[12px] text-brand mb-6">
+          <div className="flex items-center gap-2 px-4 py-2.5 surface-tint border border-tint rounded-xl text-[12px] text-brand mb-6">
             <div className="w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin shrink-0" />
             Generating today&apos;s briefing…
           </div>
@@ -1425,7 +1417,7 @@ function BriefingContent({ briefing, onEnergySelect, settings, saveMessages, aut
             <div className="flex items-center gap-2 shrink-0">
               <DayScoreRing score={dayScore} />
               <button onClick={toggleSpeech} title={speaking ? 'Stop' : 'Listen'}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${speaking ? 'border-brand/40 bg-brand/10 text-brand' : 'border-border bg-panel text-muted hover:text-text'}`}>
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${speaking ? 'border-brand/40 surface-tint text-brand' : 'border-border bg-panel text-muted hover:text-text'}`}>
                 {speaking
                   ? <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                   : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/><path d="M19.07 4.93a10 10 0 010 14.14"/></svg>

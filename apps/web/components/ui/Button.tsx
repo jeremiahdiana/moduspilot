@@ -6,7 +6,7 @@ type Size = 'sm' | 'md';
 const VARIANTS: Record<Variant, string> = {
   // `.btn-primary` (globals.css) carries the brand gradient + sweep shine.
   primary: 'btn-primary text-white',
-  ghost: 'border border-border text-text hover:border-brand/30 hover:bg-panel',
+  ghost: 'border border-border text-text hover-border-tint hover:bg-panel',
   danger: 'text-red-400 hover:bg-red-900/10 border border-transparent hover:border-red-900/20',
 };
 

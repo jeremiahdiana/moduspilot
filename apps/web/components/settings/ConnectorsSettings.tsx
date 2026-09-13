@@ -562,7 +562,7 @@ export default function ConnectorsSettings({ user }: Props) {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-text">{f.label}</p>
                     {f.beta && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Beta</span>}
-                    {locked && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand/20 text-brand">MODUS+</span>}
+                    {locked && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full surface-tint-strong text-brand">MODUS+</span>}
                   </div>
                   <p className="text-xs text-muted leading-relaxed mt-0.5">{f.desc}</p>
                 </div>
@@ -645,7 +645,7 @@ export default function ConnectorsSettings({ user }: Props) {
                                       c.userCategory === cat
                                         ? cat === 'excluded'
                                           ? 'bg-red-500/15 text-red-400 border border-red-500/25'
-                                          : 'bg-brand/15 text-brand border border-brand/25'
+                                          : 'surface-tint-strong text-brand border border-tint'
                                         : 'bg-bg border border-border text-muted hover:text-text hover:border-border/80'
                                     }`}
                                   >
@@ -810,7 +810,7 @@ export default function ConnectorsSettings({ user }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex items-center gap-2.5 pl-11 pr-4 py-2.5 bg-bg/40"
               >
-                <div className="w-5 h-5 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-full surface-tint border border-tint flex items-center justify-center shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -839,7 +839,7 @@ export default function ConnectorsSettings({ user }: Props) {
               >
                 <div className="px-4 py-4 space-y-3 bg-bg/40">
                   {mcpTemplate && (
-                    <div className="rounded-lg bg-brand/5 border border-brand/15 px-3 py-2 text-[11px] text-muted leading-relaxed">
+                    <div className="rounded-lg surface-tint border border-tint px-3 py-2 text-[11px] text-muted leading-relaxed">
                       Paste your {mcpTemplate.name} {mcpTemplate.authLabel ?? 'API key / token'} in the auth field below.
                       {mcpTemplate.docsUrl && (<> <a href={mcpTemplate.docsUrl} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">How to get it →</a></>)}
                     </div>
@@ -889,7 +889,7 @@ export default function ConnectorsSettings({ user }: Props) {
                       Cancel
                     </button>
                     <button onClick={testMcpConnection} disabled={mcpTesting || !mcpUrl.trim()}
-                      className="flex items-center gap-1.5 px-3 py-2 border border-border text-xs text-muted hover:text-text hover:border-brand/30 rounded-lg transition-colors disabled:opacity-40">
+                      className="flex items-center gap-1.5 px-3 py-2 border border-border text-xs text-muted hover:text-text hover-border-tint rounded-lg transition-colors disabled:opacity-40">
                       {mcpTesting && <span className="w-3 h-3 border border-muted border-t-transparent rounded-full animate-spin" />}
                       {mcpTesting ? 'Testing…' : 'Test connection'}
                     </button>

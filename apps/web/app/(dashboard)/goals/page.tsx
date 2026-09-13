@@ -26,7 +26,7 @@ interface Goal {
 
 const TF: Record<Timeframe, { label: string; sublabel: string; color: string; badge: string; ring: string }> = {
   short: { label: 'Short term', sublabel: 'Under 1 year',    color: 'text-blue-500',  badge: 'bg-blue-500/10 text-blue-500', ring: '#3B82F6' },
-  long:  { label: 'Long term',  sublabel: 'More than 1 year', color: 'text-brand',     badge: 'bg-brand/10 text-brand',       ring: '#7C3AED' },
+  long:  { label: 'Long term',  sublabel: 'More than 1 year', color: 'text-brand',     badge: 'surface-tint text-brand',       ring: '#7C3AED' },
 };
 
 interface GoalForm {
@@ -296,7 +296,7 @@ export default function GoalsPage() {
             <div
               key={g.id}
               onClick={() => router.push(`/goals/${g.id}`)}
-              className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover:border-brand/30 transition-colors"
+              className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover-border-tint transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -388,7 +388,7 @@ export default function GoalsPage() {
                         onClick={() => setForm(f => ({ ...f, timeframe: key }))}
                         className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
                           form.timeframe === key
-                            ? key === 'short' ? 'bg-blue-500/10 border-blue-500/50 text-blue-500' : 'bg-brand/10 border-brand/50 text-brand'
+                            ? key === 'short' ? 'bg-blue-500/10 border-blue-500/50 text-blue-500' : 'surface-tint border-brand/50 text-brand'
                             : 'border-border bg-bg text-muted hover:text-text'
                         }`}
                       >
@@ -479,7 +479,7 @@ function GoalCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
       onClick={onClick}
-      className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover:border-brand/30 transition-colors group relative flex items-center gap-4"
+      className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover-border-tint transition-colors group relative flex items-center gap-4"
     >
       {/* Circular progress ring */}
       <div className="relative shrink-0">

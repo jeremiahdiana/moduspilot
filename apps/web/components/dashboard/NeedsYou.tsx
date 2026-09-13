@@ -91,7 +91,7 @@ function ItemCard({ item, onDismiss }: { item: ProactiveItem; onDismiss: (id: st
     >
       <div className="flex items-center justify-between gap-3 mb-1.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand bg-brand/10 rounded px-1.5 py-0.5 shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand surface-tint rounded px-1.5 py-0.5 shrink-0">
             {item.label}
           </span>
           <span className="text-[11px] text-muted shrink-0">{ago(item.createdAtMs)}</span>
@@ -203,7 +203,7 @@ export default function NeedsYou() {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="mb-5 rounded-2xl border border-brand/25 bg-brand/[0.04] overflow-hidden"
+      className="mb-5 rounded-2xl border border-tint surface-tint overflow-hidden"
     >
       <div className="flex items-center gap-2.5 px-5 pt-4 pb-3">
         <div className="w-6 h-6 rounded-md bg-brand/12 flex items-center justify-center text-brand shrink-0">
@@ -212,7 +212,7 @@ export default function NeedsYou() {
           </svg>
         </div>
         <span className="text-sm font-semibold text-text">Needs you</span>
-        <span className="text-[11px] font-medium text-brand bg-brand/10 rounded-full px-2 py-0.5 tabular-nums">
+        <span className="text-[11px] font-medium text-brand surface-tint rounded-full px-2 py-0.5 tabular-nums">
           {items.length + invites.length}
         </span>
         <span className="text-[11px] text-muted ml-auto hidden sm:block">Modus worked while you were away</span>
@@ -231,7 +231,7 @@ export default function NeedsYou() {
               className="rounded-xl border border-border/60 bg-bg/40 px-4 py-3"
             >
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand bg-brand/10 rounded px-1.5 py-0.5">Group invite</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand surface-tint rounded px-1.5 py-0.5">Group invite</span>
               </div>
               <p className="text-sm leading-relaxed text-text mb-2.5">
                 <span className="font-semibold">{inv.invitedByName ?? 'Someone'}</span> invited you to join{' '}

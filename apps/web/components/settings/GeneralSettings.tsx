@@ -269,8 +269,8 @@ export default function GeneralSettings({ settings, saving, onSave }: Props) {
               onClick={() => onSave({ responseStyle: s.key })}
               className={`text-left p-4 rounded-lg border transition-all ${
                 settings.responseStyle === s.key
-                  ? 'border-brand bg-brand/10 text-text'
-                  : 'border-border hover:border-brand/40 text-muted hover:text-text'
+                  ? 'border-brand surface-tint text-text'
+                  : 'border-border hover-border-tint text-muted hover:text-text'
               }`}
             >
               <p className="text-sm font-medium">{s.label}</p>

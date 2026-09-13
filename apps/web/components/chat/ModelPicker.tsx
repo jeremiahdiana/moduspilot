@@ -42,7 +42,7 @@ export default function ModelPicker({
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="overflow-hidden"
         >
-          <div className="mb-2 rounded-xl border border-brand/25 bg-panel p-2.5">
+          <div className="mb-2 rounded-xl border border-tint bg-panel p-2.5">
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-[11px] font-semibold text-text">
                 Ask these models
@@ -79,10 +79,10 @@ export default function ModelPicker({
                     title={locked ? `${m.name}, ${m.plans.includes('modus') ? 'MODUS' : 'PILOT'} plan` : m.name}
                     className={`flex items-center gap-1.5 rounded-lg pl-1.5 pr-2 py-1 text-[11px] font-medium border transition-colors ${
                       on
-                        ? 'border-brand/50 bg-brand/15 text-brand'
+                        ? 'border-brand/50 surface-tint-strong text-brand'
                         : disabled
                           ? 'border-border/60 text-muted/40 cursor-not-allowed'
-                          : 'border-border text-muted hover:text-text hover:border-brand/40'
+                          : 'border-border text-muted hover:text-text hover-border-tint'
                     }`}
                   >
                     <Logo className={`w-3.5 h-3.5 ${disabled ? 'opacity-40' : ''}`} />

@@ -31,7 +31,7 @@ const NOTE_TYPES: Record<NoteType, { label: string; color: string; bg: string; b
   win:        { label: 'Win',        color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
   blocker:    { label: 'Blocker',    color: 'text-red-400',     bg: 'bg-red-400/10',     border: 'border-red-400/30'     },
   idea:       { label: 'Idea',       color: 'text-amber-500',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30'   },
-  reflection: { label: 'Reflection', color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30'       },
+  reflection: { label: 'Reflection', color: 'text-brand',       bg: 'surface-tint',       border: 'border-tint'       },
 };
 
 interface Goal {
@@ -53,7 +53,7 @@ interface GoalChat { id: string; title: string; messages: Message[]; createdAt: 
 
 const TF_BADGE: Record<Timeframe, string> = {
   short: 'bg-blue-500/10 text-blue-500',
-  long:  'bg-brand/10 text-brand',
+  long:  'surface-tint text-brand',
 };
 const TF_RING: Record<Timeframe, string> = {
   short: '#3B82F6',
@@ -900,7 +900,7 @@ export default function GoalDetailPage() {
                 {t.label}
                 {t.badge !== null && (
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
-                    activeTab === t.key ? 'bg-brand/20 text-brand' : 'bg-border text-muted'
+                    activeTab === t.key ? 'surface-tint-strong text-brand' : 'bg-border text-muted'
                   }`}>{t.badge}</span>
                 )}
               </button>
@@ -1004,7 +1004,7 @@ export default function GoalDetailPage() {
                       .filter((h): h is HabitRef => !!h)
                       .map(h => (
                         <div key={h.id} className="flex items-center gap-2.5 group py-1.5">
-                          <div className="w-4 h-4 shrink-0 rounded border border-brand/30 bg-brand/5 flex items-center justify-center">
+                          <div className="w-4 h-4 shrink-0 rounded border border-tint surface-tint flex items-center justify-center">
                             <span className="text-brand text-[8px] leading-none">↺</span>
                           </div>
                           <span className="flex-1 text-sm text-text">{h.title}</span>
@@ -1186,7 +1186,7 @@ export default function GoalDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {(suggestions.length > 0 ? suggestions : CHAT_CHIPS).map(s => (
                       <button key={s} onClick={() => tapSuggestion(s)}
-                        className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors text-left">
+                        className="text-[11px] px-3 py-1.5 rounded-full border border-border text-muted hover:text-text hover-border-tint hover-surface-tint transition-colors text-left">
                         {s}
                       </button>
                     ))}
@@ -1218,14 +1218,14 @@ export default function GoalDetailPage() {
                   }
                 }}
                 className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                  isMainChat ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover:border-brand/30'
+                  isMainChat ? 'bg-brand text-white border-brand' : 'border-border text-muted hover:text-text hover-border-tint'
                 }`}
               >
                 Main
               </button>
               {extraChats.map(c => (
                 <div key={c.id} className={`shrink-0 flex items-center rounded-full border transition-colors ${
-                  activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover:border-brand/30'
+                  activeChatId === c.id ? 'bg-brand border-brand' : 'border-border hover-border-tint'
                 }`}>
                   {renamingChatId === c.id ? (
                     <input
@@ -1264,7 +1264,7 @@ export default function GoalDetailPage() {
                 </div>
               ))}
               <button onClick={startNewChat}
-                className="shrink-0 text-xs px-2.5 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover:border-brand/40 transition-colors">
+                className="shrink-0 text-xs px-2.5 py-1 rounded-full border border-dashed border-border text-muted hover:text-text hover-border-tint transition-colors">
                 + New
               </button>
             </div>
@@ -1287,7 +1287,7 @@ export default function GoalDetailPage() {
           <div className="shrink-0 border-t border-border px-3 py-2 flex gap-1 flex-wrap">
             {CHAT_CHIPS.map(chip => (
               <button key={chip} onClick={() => setInput(chip)} disabled={isLoading}
-                className="text-[10px] px-2.5 py-1 rounded-full border border-border text-muted hover:text-text hover:border-brand/40 hover:bg-brand/5 transition-colors disabled:opacity-40 whitespace-nowrap">
+                className="text-[10px] px-2.5 py-1 rounded-full border border-border text-muted hover:text-text hover-border-tint hover-surface-tint transition-colors disabled:opacity-40 whitespace-nowrap">
                 {chip}
               </button>
             ))}

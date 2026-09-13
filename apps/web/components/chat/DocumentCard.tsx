@@ -71,7 +71,7 @@ export default function DocumentCard({ raw }: { raw: string }) {
         className="border border-border rounded-2xl overflow-hidden bg-panel max-w-md"
       >
         <div className="px-4 py-3 flex items-center gap-2.5 border-b border-border">
-          <div className="w-8 h-8 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg surface-tint border border-tint flex items-center justify-center shrink-0">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 4H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" />
             </svg>

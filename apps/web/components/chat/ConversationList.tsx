@@ -407,7 +407,7 @@ export default function ConversationList({ conversations, activeId, onSelect, on
         layout="position"
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
         className={`group relative flex flex-col px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-          isActive ? 'bg-brand/10' : 'hover:bg-panel'
+          isActive ? 'surface-tint' : 'hover:bg-panel'
         }`}
         onClick={() => { if (!isEditing) onSelect(conv.id); }}
       >
@@ -465,7 +465,7 @@ export default function ConversationList({ conversations, activeId, onSelect, on
             "Pinned" group header already says the chat is pinned. */}
         {!isEditing && (
           <div
-            className={`absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-lg px-0.5 py-0.5 shadow-sm transition-all duration-150 ${isActive ? 'bg-brand/15' : 'bg-panel'} ${
+            className={`absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-lg px-0.5 py-0.5 shadow-sm transition-all duration-150 ${isActive ? 'surface-tint-strong' : 'bg-panel'} ${
               isMenuOpen || isShareOpen
                 ? 'opacity-100 translate-x-0'
                 : 'opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 focus-within:opacity-100 focus-within:translate-x-0'
@@ -512,7 +512,7 @@ export default function ConversationList({ conversations, activeId, onSelect, on
           onClick={onNew}
           whileTap={{ scale: 0.97 }}
           transition={{ duration: 0.12 }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20 text-brand text-sm font-medium hover:bg-brand/20 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg surface-tint border border-tint text-brand text-sm font-medium hover-surface-tint transition-colors"
         >
           <span className="text-lg leading-none">+</span>
           New chat
@@ -537,7 +537,7 @@ export default function ConversationList({ conversations, activeId, onSelect, on
                   <motion.span
                     layoutId="chatFilterPill"
                     transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                    className="absolute inset-0 bg-brand/15 rounded-md"
+                    className="absolute inset-0 surface-tint-strong rounded-md"
                   />
                 )}
                 <span className="relative z-10">{f}</span>

@@ -55,7 +55,7 @@ export function extractTextContent(content: Message['content']): string {
 
 function ModusAvatar() {
   return (
-    <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+    <div className="w-7 h-7 rounded-full surface-tint border border-tint flex items-center justify-center shrink-0 mt-0.5">
       <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75 dark:hidden" />
       <Image src="/logo-dark.png" alt="MODUS" width={14} height={14} className="opacity-75 hidden dark:block" />
     </div>
@@ -168,14 +168,14 @@ export default function MessageBubble({
       >
         <div className="max-w-[72%] space-y-1.5">
           {hasImage && (
-            <div className="bg-brand/10 border border-brand/20 rounded-xl px-3 py-2 text-xs text-brand text-right">
+            <div className="surface-tint border border-tint rounded-xl px-3 py-2 text-xs text-brand text-right">
               Image attached
             </div>
           )}
           {files.length > 0 && (
             <div className="flex flex-wrap justify-end gap-1.5">
               {files.map((f, i) => (
-                <div key={i} className="bg-brand/10 border border-brand/20 rounded-lg px-2.5 py-1.5 text-xs text-brand flex items-center gap-1.5 max-w-full">
+                <div key={i} className="surface-tint border border-tint rounded-lg px-2.5 py-1.5 text-xs text-brand flex items-center gap-1.5 max-w-full">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 shrink-0">
                     <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                   </svg>

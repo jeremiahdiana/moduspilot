@@ -221,7 +221,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
       </div>
 
       {!isPaid && (
-        <div className="bg-brand/10 border border-brand/30 rounded-xl p-5 flex items-center justify-between gap-4">
+        <div className="surface-tint border border-tint rounded-xl p-5 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-text mb-1">Unlock unlimited messages</p>
             <p className="text-xs text-muted">Upgrade to MODUS for $24/mo, no daily caps, full memory, daily briefings.</p>

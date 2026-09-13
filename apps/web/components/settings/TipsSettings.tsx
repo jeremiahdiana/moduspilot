@@ -273,7 +273,7 @@ export default function TipsSettings() {
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <p className="text-sm font-medium text-text">{tip.title}</p>
                             {tip.tag && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full surface-tint text-brand">
                                 {tip.tag}
                               </span>
                             )}
@@ -290,7 +290,7 @@ export default function TipsSettings() {
         })}
       </div>
 
-      <div className="bg-brand/5 border border-brand/20 rounded-xl px-5 py-4">
+      <div className="surface-tint border border-tint rounded-xl px-5 py-4">
         <p className="text-sm font-semibold text-text mb-1">Still figuring something out?</p>
         <p className="text-xs text-muted">Ask Modus directly in chat, it knows everything about itself and can walk you through any feature.</p>
       </div>

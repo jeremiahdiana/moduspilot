@@ -17,6 +17,19 @@ import { useEffect, useRef, useState } from 'react';
 export default function HeroFilmWindow({ className = '' }: { className?: string }) {
   const filmRef = useRef<HTMLDivElement>(null);
   const [filmScale, setFilmScale] = useState(0);
+  // Honor the Modus "Animations" toggle (data-reduce-motion, synced from the
+  // user's setting) and the OS setting: the film lives in an isolated iframe and
+  // can't read the parent, so pass the preference in via ?reduced=1.
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    try {
+      setReduced(
+        document.documentElement.hasAttribute('data-reduce-motion') ||
+        matchMedia('(prefers-reduced-motion: reduce)').matches,
+      );
+    } catch { /* no matchMedia — leave the film animated */ }
+  }, []);
 
   useEffect(() => {
     const el = filmRef.current;
@@ -36,7 +49,7 @@ export default function HeroFilmWindow({ className = '' }: { className?: string 
     >
       {filmScale > 0 && (
         <iframe
-          src="/hero-film.html"
+          src={reduced ? '/hero-film.html?reduced=1' : '/hero-film.html'}
           title="Modus in action: every frontier model, every task, one place"
           loading="eager"
           scrolling="no"

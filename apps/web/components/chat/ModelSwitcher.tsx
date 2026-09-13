@@ -90,7 +90,7 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
         type="button"
         onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-1 text-xs border rounded-lg px-2 py-1 transition-colors max-w-[9rem] ${
-          compareOn ? 'text-brand border-brand/40 bg-brand/10' : 'text-muted hover:text-text border-border'
+          compareOn ? 'text-brand border-brand/40 surface-tint' : 'text-muted hover:text-text border-border'
         }`}
       >
         {/* Multi-model overrides the label: it IS the answer to "which model
@@ -134,9 +134,9 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
           <button
             type="button"
             onClick={() => select('auto')}
-            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${!compareOn && (value === 'auto' || !value) ? 'bg-brand/5' : ''}`}
+            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover-surface-tint transition-colors ${!compareOn && (value === 'auto' || !value) ? 'surface-tint' : ''}`}
           >
-            <span className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="w-7 h-7 rounded-lg surface-tint border border-tint flex items-center justify-center shrink-0 mt-0.5">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4 text-brand">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16 2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3Z" />
               </svg>
@@ -153,7 +153,7 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
           <button
             type="button"
             onClick={() => select('auto-saver')}
-            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${!compareOn && value === 'auto-saver' ? 'bg-brand/5' : ''}`}
+            className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover-surface-tint transition-colors ${!compareOn && value === 'auto-saver' ? 'surface-tint' : ''}`}
           >
             <span className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
               <SaverIcon className="w-4 h-4 text-emerald-500" />
@@ -173,9 +173,9 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
             <button
               type="button"
               onClick={() => { onToggleCompare(); setOpen(false); }}
-              className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover:bg-brand/5 transition-colors ${compareOn ? 'bg-brand/5' : ''}`}
+              className={`w-full text-left px-3 py-2 flex items-start gap-2.5 hover-surface-tint transition-colors ${compareOn ? 'surface-tint' : ''}`}
             >
-              <span className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
+              <span className="w-7 h-7 rounded-lg surface-tint border border-tint flex items-center justify-center shrink-0 mt-0.5">
                 <CompareIcon className="w-4 h-4 text-brand" />
               </span>
               <div className="min-w-0 flex-1">
@@ -208,8 +208,8 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
                 disabled={locked}
                 onClick={() => select(m.id)}
                 className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 transition-colors ${
-                  locked ? 'opacity-45 cursor-not-allowed' : 'hover:bg-brand/5'
-                } ${selected ? 'bg-brand/5' : ''}`}
+                  locked ? 'opacity-45 cursor-not-allowed' : 'hover-surface-tint'
+                } ${selected ? 'surface-tint' : ''}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="w-7 h-7 rounded-lg bg-muted/10 border border-border/60 flex items-center justify-center shrink-0">

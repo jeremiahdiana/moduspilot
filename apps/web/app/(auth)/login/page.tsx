@@ -1,13 +1,24 @@
 'use client';
 
-import { signInWithPopup, GoogleAuthProvider, OAuthProvider, signInWithRedirect, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithRedirect,
+  onAuthStateChanged,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+} from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
+import LoginPlants from '@/components/auth/LoginPlants';
 import type { User } from 'firebase/auth';
 
 // A `?next=` internal path (e.g. the founding claim flow returning to
@@ -32,19 +43,43 @@ async function getDestination(user: User): Promise<string> {
 
 const googleProvider = new GoogleAuthProvider();
 const appleProvider = new OAuthProvider('apple.com');
+const EMAIL_KEY = 'modus-email-for-signin';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
+  const [loading, setLoading] = useState<'google' | 'apple' | 'email' | null>(null);
   const [checking, setChecking] = useState(true);
-  // Hide the "Back to moduspilot.com" link inside the desktop shell — there is
-  // no marketing site to go back to there. Set after mount to avoid a hydration
-  // mismatch; the desktop shell tags its user-agent with "MODUSDesktop".
+  const [reduced, setReduced] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  // Hide the "Download desktop app" button inside the desktop shell — there is
+  // nothing to download there. Set after mount to avoid a hydration mismatch;
+  // the desktop shell tags its user-agent with "MODUSDesktop".
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     setIsDesktop(typeof navigator !== 'undefined' && navigator.userAgent.includes('MODUSDesktop'));
+    try {
+      setReduced(
+        document.documentElement.hasAttribute('data-reduce-motion') ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      );
+    } catch { /* no matchMedia — leave animations on */ }
+  }, []);
+
+  // Complete a passwordless email-link sign-in if the user landed here from the
+  // emailed link. onAuthStateChanged below then routes them onward.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isSignInWithEmailLink(auth, window.location.href)) return;
+    let stored = '';
+    try { stored = localStorage.getItem(EMAIL_KEY) || ''; } catch { /* storage blocked */ }
+    const addr = stored || window.prompt('Confirm your email to finish signing in') || '';
+    if (!addr) return;
+    signInWithEmailLink(auth, addr, window.location.href)
+      .then(() => { try { localStorage.removeItem(EMAIL_KEY); } catch { /* ignore */ } })
+      .catch(() => setError('That sign in link is invalid or expired. Please try again.'));
   }, []);
 
   // If already signed in, skip straight to the app
@@ -65,7 +100,7 @@ export default function LoginPage() {
   // returns to our window after the popup closes, give Firebase a beat to settle
   // a real sign-in; if none happened, clear loading so the user can retry.
   useEffect(() => {
-    if (!loading) return;
+    if (loading !== 'google' && loading !== 'apple') return;
     const release = () => {
       window.setTimeout(() => {
         if (!auth.currentUser) setLoading(null);
@@ -98,6 +133,31 @@ export default function LoginPage() {
     }
   }
 
+  async function signInEmail(e: React.FormEvent) {
+    e.preventDefault();
+    const addr = email.trim();
+    if (!addr) return;
+    setError(''); setLoading('email');
+    try {
+      const next = safeNext();
+      const url = `${window.location.origin}/login${next ? `?next=${encodeURIComponent(next)}` : ''}`;
+      await sendSignInLinkToEmail(auth, addr, { url, handleCodeInApp: true });
+      try { localStorage.setItem(EMAIL_KEY, addr); } catch { /* storage blocked */ }
+      setEmailSent(true);
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === 'auth/operation-not-allowed') {
+        setError('Email sign in is not available yet. Use Google or Apple.');
+      } else if (code === 'auth/invalid-email') {
+        setError('That email does not look right. Please check it.');
+      } else {
+        setError('Could not send the sign in link. Please try again.');
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
   if (checking) {
     return (
       <div className="fixed inset-0 bg-bg flex items-center justify-center">
@@ -106,104 +166,174 @@ export default function LoginPage() {
     );
   }
 
+  const anim = reduced
+    ? {}
+    : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4, ease: 'easeOut' as const } };
+
   return (
     <>
-      {/* Theme toggle — top right */}
+      {/* Wordmark, top left. Links home on the web; inert in the desktop shell. */}
+      <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50">
+        {isDesktop ? (
+          <div className="flex items-center gap-1.5">
+            <BrandLockup />
+          </div>
+        ) : (
+          <Link href="/" className="flex items-center gap-1.5">
+            <BrandLockup />
+          </Link>
+        )}
+      </div>
+
+      {/* Theme toggle, top right */}
       <div className="fixed top-4 right-4 z-50">
         <AnimatedThemeToggler />
       </div>
 
-      {/* Calm, static, on-brand background — a single soft violet glow. */}
-      <div className="fixed inset-0 -z-10 bg-bg">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_58%_48%_at_50%_40%,rgba(124,58,237,0.13),transparent_70%)]" />
-      </div>
-
-      {/* Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut' }}
-        className="relative w-full max-w-sm mx-6"
-      >
-        <div className="bg-panel/80 backdrop-blur-xl border border-border/60 rounded-2xl p-8 shadow-2xl shadow-black/20">
-
-          {/* Logo + wordmark */}
-          <div className="flex flex-col items-center mb-8">
-            <Image
-              src="/logo.png"
-              alt="MODUS"
-              width={104}
-              height={84}
-              className="object-contain block dark:hidden mb-4"
-            />
-            <Image
-              src="/logo-dark.png"
-              alt="MODUS"
-              width={104}
-              height={84}
-              className="object-contain hidden dark:block mb-4"
-            />
-            {/* Sentient serif, the homepage face — the old Clash Display black
-                at wide tracking read as a logo from a different product. */}
-            <h1 className="hero-gradient-text font-serif text-[2.1rem] leading-none font-medium tracking-[0.06em]">MODUS</h1>
-            <p className="text-muted text-[10px] tracking-[0.34em] uppercase mt-2">pilot</p>
-            <p className="text-muted/70 text-sm mt-3 text-center leading-relaxed">
-              Sign in to pick up where you left off.
-            </p>
-          </div>
-
-          {/* Auth buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={() => signIn('google')}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover:bg-brand/5 disabled:opacity-60 disabled:cursor-not-allowed group"
-            >
-              {loading === 'google' ? (
-                <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-              ) : (
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-              )}
-              Continue with Google
-            </button>
-
-            <button
-              onClick={() => signIn('apple')}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover:bg-brand/5 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading === 'apple' ? (
-                <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-              ) : (
-                <svg className="w-4 h-4 fill-text shrink-0" viewBox="0 0 24 24">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                </svg>
-              )}
-              Continue with Apple
-            </button>
-          </div>
-
-          {error && (
-            <p className="text-red-400 text-xs text-center mt-4">{error}</p>
-          )}
-
-          {!isDesktop && (
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => router.push('/')}
-                className="text-muted/50 text-xs hover:text-muted transition-colors"
-              >
-                Back to moduspilot.com
-              </button>
+      <div className="w-full flex flex-col bg-bg">
+        {/* First screen: logo, heading, card, centered */}
+        <div className="min-h-screen flex items-center justify-center px-6 py-24">
+          <motion.div {...anim} className="w-full max-w-sm">
+            {/* Logo above the heading */}
+            <div className="flex flex-col items-center text-center mb-8">
+              <Image src="/logo.png" alt="Modus" width={72} height={58} className="object-contain block dark:hidden mb-5" />
+              <Image src="/logo-dark.png" alt="Modus" width={72} height={58} className="object-contain hidden dark:block mb-5" />
+              <h1 className="font-serif text-[2rem] leading-[1.1] font-medium text-text">
+                The only AI you&apos;ll ever need.
+              </h1>
+              <p className="text-muted text-sm mt-3 leading-relaxed">
+                Sign in to pick up where you left off.
+              </p>
             </div>
-          )}
+
+            {/* Card */}
+            <div className="bg-panel/90 backdrop-blur-sm border border-border rounded-2xl p-6 sm:p-7 shadow-xl shadow-black/5">
+              <div className="space-y-3">
+                <button
+                  onClick={() => signIn('google')}
+                  disabled={loading !== null}
+                  className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover-surface-tint disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading === 'google' ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                  )}
+                  Continue with Google
+                </button>
+
+                <button
+                  onClick={() => signIn('apple')}
+                  disabled={loading !== null}
+                  className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover-surface-tint disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading === 'apple' ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4 fill-text shrink-0" viewBox="0 0 24 24">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                  )}
+                  Continue with Apple
+                </button>
+              </div>
+
+              {emailSent ? (
+                <div className="mt-6 text-center">
+                  <p className="text-text text-sm font-medium">Check your email</p>
+                  <p className="text-muted text-xs mt-1.5 leading-relaxed">
+                    We emailed a link to {email.trim()}. Open it to finish signing in.
+                  </p>
+                  <button
+                    onClick={() => { setEmailSent(false); setEmail(''); }}
+                    className="text-brand text-xs mt-3 hover:underline"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-muted/70 text-[11px] font-medium tracking-wider">OR</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  <form onSubmit={signInEmail} className="space-y-3">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      autoComplete="email"
+                      disabled={loading !== null}
+                      className="w-full bg-bg/60 border border-border focus:border-brand/60 rounded-xl px-4 py-3.5 text-text text-sm placeholder:text-muted/60 outline-none transition-colors disabled:opacity-60"
+                    />
+                    <button
+                      type="submit"
+                      disabled={loading !== null || !email.trim()}
+                      className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand/90 text-white rounded-xl px-4 py-3.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading === 'email' ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />
+                      ) : 'Continue with email'}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              {error && (
+                <p className="text-red-400 text-xs text-center mt-4">{error}</p>
+              )}
+
+              <p className="text-muted/60 text-[11px] text-center mt-5 leading-relaxed">
+                By continuing you agree to our{' '}
+                <Link href="/terms" className="underline hover:text-muted">Terms</Link> and{' '}
+                <Link href="/privacy" className="underline hover:text-muted">Privacy</Link>.
+              </p>
+            </div>
+
+            {/* Download desktop app — hidden inside the desktop shell */}
+            {!isDesktop && (
+              <div className="mt-5 flex justify-center">
+                <Link
+                  href="/download/mac"
+                  className="inline-flex items-center gap-2 text-muted text-xs hover:text-text transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current" aria-hidden>
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                  Download desktop app
+                </Link>
+              </div>
+            )}
+          </motion.div>
         </div>
-      </motion.div>
+
+        {/* Revealed on scroll */}
+        <div className="pb-12 px-6">
+          <LoginPlants />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// The "MODUS pilot" lockup, matching the marketing navbar.
+function BrandLockup() {
+  return (
+    <>
+      <Image src="/logo.png" alt="Modus" width={40} height={31} className="object-contain block dark:hidden" />
+      <Image src="/logo-dark.png" alt="Modus" width={40} height={31} className="object-contain hidden dark:block" />
+      <div className="flex flex-col leading-none">
+        <span className="text-sm font-bold tracking-widest text-text">MODUS</span>
+        <span className="text-[8px] font-semibold text-muted tracking-widest uppercase">pilot</span>
+      </div>
     </>
   );
 }

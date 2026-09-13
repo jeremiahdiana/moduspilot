@@ -97,7 +97,7 @@ function SettingsContent() {
               onClick={() => setTab(tab.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-brand/10 text-brand'
+                  ? 'surface-tint text-brand'
                   : 'text-muted hover:text-text hover:bg-panel'
               }`}
             >
@@ -127,7 +127,7 @@ function SettingsContent() {
               onClick={() => setTab(tab.key)}
               className={`flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-brand/10 text-brand'
+                  ? 'surface-tint text-brand'
                   : 'text-muted hover:text-text hover:bg-panel'
               }`}
             >

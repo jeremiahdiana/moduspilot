@@ -52,7 +52,7 @@ const NOTE_TYPES: Record<NoteType, { label: string; color: string; bg: string; b
   win:        { label: 'Win',        color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
   blocker:    { label: 'Blocker',    color: 'text-red-400',     bg: 'bg-red-400/10',     border: 'border-red-400/30'     },
   idea:       { label: 'Idea',       color: 'text-amber-500',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30'   },
-  reflection: { label: 'Reflection', color: 'text-brand',       bg: 'bg-brand/10',       border: 'border-brand/30'       },
+  reflection: { label: 'Reflection', color: 'text-brand',       bg: 'surface-tint',       border: 'border-tint'       },
 };
 
 const RESOURCE_TYPES: { type: ResourceType; label: string; d: string }[] = [
@@ -655,7 +655,7 @@ export default function ProjectDetailPage() {
               >
                 {t.label}
                 {t.key === 'tasks' && activeTasks.length > 0 && (
-                  <span className={`ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${activeTab === 'tasks' ? 'bg-white/20' : 'bg-brand/15 text-brand'}`}>{activeTasks.length}</span>
+                  <span className={`ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${activeTab === 'tasks' ? 'bg-white/20' : 'surface-tint-strong text-brand'}`}>{activeTasks.length}</span>
                 )}
               </button>
             ))}
@@ -679,7 +679,7 @@ export default function ProjectDetailPage() {
                 {/* Tasks card */}
                 <button
                   onClick={() => setActiveTab('tasks')}
-                  className="bg-panel border border-border rounded-xl p-4 text-left hover:border-brand/40 transition-colors group"
+                  className="bg-panel border border-border rounded-xl p-4 text-left hover-border-tint transition-colors group"
                 >
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Tasks</p>
                   <p className="text-2xl font-bold text-text">{activeTasks.length}</p>
@@ -697,7 +697,7 @@ export default function ProjectDetailPage() {
                 {/* Resources card */}
                 <button
                   onClick={() => setActiveTab('resources')}
-                  className="bg-panel border border-border rounded-xl p-4 text-left hover:border-brand/40 transition-colors"
+                  className="bg-panel border border-border rounded-xl p-4 text-left hover-border-tint transition-colors"
                 >
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Resources</p>
                   <p className="text-2xl font-bold text-text">{project.resources.length}</p>
@@ -714,7 +714,7 @@ export default function ProjectDetailPage() {
                 {/* Notes card */}
                 <button
                   onClick={() => setActiveTab('notes')}
-                  className="bg-panel border border-border rounded-xl p-4 text-left hover:border-brand/40 transition-colors"
+                  className="bg-panel border border-border rounded-xl p-4 text-left hover-border-tint transition-colors"
                 >
                   <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">Notes</p>
                   <p className="text-2xl font-bold text-text">{project.notes.length}</p>
@@ -783,7 +783,7 @@ export default function ProjectDetailPage() {
                     {project.resources.map((r, i) => {
                       const rt = RESOURCE_TYPES.find(t => t.type === r.type);
                       const inner = (
-                        <div className="flex items-center gap-2 bg-bg border border-border rounded-lg px-3 py-2 hover:border-brand/40 transition-colors">
+                        <div className="flex items-center gap-2 bg-bg border border-border rounded-lg px-3 py-2 hover-border-tint transition-colors">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-muted shrink-0">
                             <path d={rt?.d ?? ''} />
                           </svg>
@@ -897,7 +897,7 @@ export default function ProjectDetailPage() {
               {project.resources.length > 0 && !showPicker && (
                 <button
                   onClick={() => setShowPicker(true)}
-                  className="flex items-center gap-2 text-sm text-muted hover:text-brand transition-colors px-2 py-1 rounded-lg hover:bg-brand/5"
+                  className="flex items-center gap-2 text-sm text-muted hover:text-brand transition-colors px-2 py-1 rounded-lg hover-surface-tint"
                 >
                   <span className="text-base leading-none">+</span> Add resource
                 </button>
@@ -927,8 +927,8 @@ export default function ProjectDetailPage() {
                             }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
                               pickerType === rt.type
-                                ? 'bg-brand/10 border-brand/40 text-brand'
-                                : 'border-border bg-bg text-muted hover:text-text hover:border-brand/30'
+                                ? 'surface-tint border-brand/40 text-brand'
+                                : 'border-border bg-bg text-muted hover:text-text hover-border-tint'
                             }`}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
@@ -1050,7 +1050,7 @@ export default function ProjectDetailPage() {
               {!addingTask ? (
                 <button
                   onClick={() => setAddingTask(true)}
-                  className="flex items-center gap-2 text-sm text-muted hover:text-brand transition-colors px-2 py-1 rounded-lg hover:bg-brand/5"
+                  className="flex items-center gap-2 text-sm text-muted hover:text-brand transition-colors px-2 py-1 rounded-lg hover-surface-tint"
                 >
                   <span className="text-base leading-none">+</span> Add task
                 </button>
@@ -1098,7 +1098,7 @@ export default function ProjectDetailPage() {
                     <div className="space-y-1.5">
                       {doneTasks.map(t => (
                         <div key={t.id} className="flex items-center gap-3 group px-2 py-1.5 rounded-lg hover:bg-panel transition-colors opacity-50">
-                          <button onClick={() => toggleTask(t.id, t.done)} className="w-4 h-4 rounded border border-brand bg-brand/20 flex items-center justify-center shrink-0">
+                          <button onClick={() => toggleTask(t.id, t.done)} className="w-4 h-4 rounded border border-brand surface-tint-strong flex items-center justify-center shrink-0">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-brand">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>
@@ -1160,7 +1160,7 @@ export default function ProjectDetailPage() {
                     onClick={() => setNoteFilter(f as 'all' | NoteType)}
                     className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
                       noteFilter === f
-                        ? 'bg-brand/10 border-brand/40 text-brand'
+                        ? 'surface-tint border-brand/40 text-brand'
                         : 'border-border text-muted hover:text-text'
                     }`}
                   >
@@ -1244,7 +1244,7 @@ export default function ProjectDetailPage() {
       >
         {/* Drag handle — left edge */}
         <div
-          className="absolute inset-y-0 left-0 w-1 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-10"
+          className="absolute inset-y-0 left-0 w-1 cursor-col-resize hover-surface-tint0 active:bg-brand/60 transition-colors z-10"
           onMouseDown={startChatDrag}
         />
 
@@ -1347,7 +1347,7 @@ export default function ProjectDetailPage() {
             <button
               key={chip}
               onClick={() => { setChatError(null); append({ role: 'user', content: chip }); }}
-              className="text-[11px] px-2.5 py-1 rounded-full border border-border text-muted hover:text-brand hover:border-brand/40 transition-colors"
+              className="text-[11px] px-2.5 py-1 rounded-full border border-border text-muted hover:text-brand hover-border-tint transition-colors"
             >
               {chip}
             </button>

@@ -167,7 +167,7 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
 
       {/* Success banner */}
       {upgraded && (
-        <div className="bg-brand/10 border border-brand/30 rounded-xl px-5 py-4 flex items-center gap-3">
+        <div className="surface-tint border border-tint rounded-xl px-5 py-4 flex items-center gap-3">
           <span className="text-brand text-lg">◆</span>
           <div>
             <p className="text-sm font-semibold text-text">You're on {plan.toUpperCase()} welcome.</p>
@@ -190,7 +190,7 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
           <button
             onClick={handleManage}
             disabled={loading === 'portal'}
-            className="px-4 py-2 border border-border text-muted text-sm rounded-lg hover:text-text hover:border-brand/40 transition-colors disabled:opacity-50"
+            className="px-4 py-2 border border-border text-muted text-sm rounded-lg hover:text-text hover-border-tint transition-colors disabled:opacity-50"
           >
             {loading === 'portal' ? 'Opening…' : 'Manage'}
           </button>
@@ -207,7 +207,7 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
             <div
               key={p.key}
               className={`relative bg-panel border rounded-xl p-5 flex flex-col gap-4 ${
-                isCurrent ? 'border-brand' : p.popular ? 'border-brand/30' : 'border-border'
+                isCurrent ? 'border-brand' : p.popular ? 'border-tint' : 'border-border'
               }`}
             >
               {p.popular && !isCurrent && (
@@ -256,7 +256,7 @@ export default function BillingSettings({ plan, limitAddonQty = 0 }: Props) {
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-sm font-semibold text-text">Extra limits</h3>
               {limitAddonQty > 0 && (
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-brand/15 text-brand px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold uppercase tracking-wider surface-tint-strong text-brand px-2 py-0.5 rounded-full">
                   {limitAddonQty}× active
                 </span>
               )}

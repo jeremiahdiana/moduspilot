@@ -174,7 +174,7 @@ export default function GmailWidget() {
             {hasMultipleAccounts && (
               <button
                 onClick={() => { setSelectedAccount('all'); setDropdownOpen(false); }}
-                className={`w-full text-left text-xs px-3 py-2 transition-colors ${selectedAccount === 'all' ? 'bg-brand/10 text-brand' : 'text-text hover:bg-brand/5'}`}
+                className={`w-full text-left text-xs px-3 py-2 transition-colors ${selectedAccount === 'all' ? 'surface-tint text-brand' : 'text-text hover-surface-tint'}`}
               >
                 All inboxes
               </button>
@@ -183,7 +183,7 @@ export default function GmailWidget() {
               <button
                 key={a.email}
                 onClick={() => { setSelectedAccount(a.email); setDropdownOpen(false); }}
-                className={`w-full text-left text-xs px-3 py-2 transition-colors truncate ${selectedAccount === a.email ? 'bg-brand/10 text-brand' : 'text-text hover:bg-brand/5'}`}
+                className={`w-full text-left text-xs px-3 py-2 transition-colors truncate ${selectedAccount === a.email ? 'surface-tint text-brand' : 'text-text hover-surface-tint'}`}
               >
                 {a.email}
               </button>
@@ -303,7 +303,7 @@ export default function GmailWidget() {
           <Link
             key={t.id}
             href="/briefing"
-            className="flex items-start gap-3 py-3 hover:bg-brand/5 px-5 transition-colors group"
+            className="flex items-start gap-3 py-3 hover-surface-tint px-5 transition-colors group"
           >
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold text-white"

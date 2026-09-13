@@ -307,7 +307,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                         data-index={i}
                         onClick={() => { router.push(r.href); onClose(); }}
                         onMouseEnter={() => setSelectedIndex(i)}
-                        className={`flex items-center gap-3 w-full px-4 py-2.5 text-left transition-colors ${i === selectedIndex ? 'bg-brand/8' : 'hover:bg-brand/5'}`}
+                        className={`flex items-center gap-3 w-full px-4 py-2.5 text-left transition-colors ${i === selectedIndex ? 'surface-tint' : 'hover-surface-tint'}`}
                       >
                         <div className="w-7 h-7 rounded-lg bg-bg border border-border/50 flex items-center justify-center shrink-0">
                           <span className={`text-[9px] font-bold uppercase ${TYPE_COLOR[r.type]}`}>{r.type[0]}</span>
@@ -324,7 +324,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                       data-index={filtered.length}
                       onClick={() => { router.push(`/chat?q=${encodeURIComponent(q.trim())}`); onClose(); }}
                       onMouseEnter={() => setSelectedIndex(filtered.length)}
-                      className={`flex items-center gap-3 w-full px-4 py-2.5 text-left border-t border-border/30 mt-1 transition-colors ${selectedIndex === filtered.length ? 'bg-brand/8' : 'hover:bg-brand/5'}`}
+                      className={`flex items-center gap-3 w-full px-4 py-2.5 text-left border-t border-border/30 mt-1 transition-colors ${selectedIndex === filtered.length ? 'surface-tint' : 'hover-surface-tint'}`}
                     >
                       <div className="w-7 h-7 rounded-lg bg-bg border border-border/50 flex items-center justify-center shrink-0 text-brand">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -340,7 +340,7 @@ export default function CommandBar({ open, onClose, user }: Props) {
                       <p className="text-sm text-muted mb-3">No results for "{q}"</p>
                       <button
                         onClick={() => { router.push(`/chat?q=${encodeURIComponent(q.trim())}`); onClose(); }}
-                        className="text-xs px-4 py-2 rounded-lg bg-brand/10 text-brand hover:bg-brand/20 transition-colors"
+                        className="text-xs px-4 py-2 rounded-lg surface-tint text-brand hover-surface-tint transition-colors"
                       >
                         Ask Modus instead →
                       </button>
@@ -356,9 +356,9 @@ export default function CommandBar({ open, onClose, user }: Props) {
                       data-index={i}
                       onClick={() => handleAction(action)}
                       onMouseEnter={() => setSelectedIndex(i)}
-                      className={`flex items-center gap-3 w-full px-4 py-2.5 transition-colors group text-left ${i === selectedIndex ? 'bg-brand/8' : 'hover:bg-brand/5'}`}
+                      className={`flex items-center gap-3 w-full px-4 py-2.5 transition-colors group text-left ${i === selectedIndex ? 'surface-tint' : 'hover-surface-tint'}`}
                     >
-                      <div className={`w-7 h-7 rounded-lg bg-bg border flex items-center justify-center shrink-0 transition-colors ${i === selectedIndex ? 'text-brand border-brand/30' : 'border-border/50 text-muted group-hover:text-brand group-hover:border-brand/30'}`}>
+                      <div className={`w-7 h-7 rounded-lg bg-bg border flex items-center justify-center shrink-0 transition-colors ${i === selectedIndex ? 'text-brand border-tint' : 'border-border/50 text-muted group-hover:text-brand group-hover-border-tint'}`}>
                         {action.icon}
                       </div>
                       <div className="flex-1 min-w-0">

@@ -90,14 +90,14 @@ export default function BriefingHero() {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="mb-5 rounded-2xl bg-brand/5 border border-brand/20 overflow-hidden"
+      className="mb-5 rounded-2xl surface-tint border border-tint overflow-hidden"
     >
       {/* Header row — always visible, doubles as the collapse toggle */}
       <button
         onClick={() => setExpanded(v => !v)}
         className="w-full text-left px-5 py-4 flex items-start gap-4 group"
       >
-        <div className="w-9 h-9 rounded-xl bg-brand/15 flex items-center justify-center shrink-0 mt-0.5">
+        <div className="w-9 h-9 rounded-xl surface-tint-strong flex items-center justify-center shrink-0 mt-0.5">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-brand">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 01-3.46 0" />
@@ -144,7 +144,7 @@ export default function BriefingHero() {
                 <ul className="space-y-1.5 mb-3">
                   {data.top3.slice(0, 3).map((item, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm">
-                      <span className="w-4 h-4 rounded-full bg-brand/15 text-brand text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">{i + 1}</span>
+                      <span className="w-4 h-4 rounded-full surface-tint-strong text-brand text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">{i + 1}</span>
                       <span className="min-w-0">
                         <span className="text-text">{item.task}</span>
                         {item.source && <span className="text-muted text-xs"> · {item.source}</span>}

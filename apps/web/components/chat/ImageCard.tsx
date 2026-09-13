@@ -81,7 +81,7 @@ export default function ImageCard({ raw }: { raw: string }) {
       </div>
 
       {status === 'loading' && (
-        <div className="aspect-square flex flex-col items-center justify-center gap-3 bg-brand/5">
+        <div className="aspect-square flex flex-col items-center justify-center gap-3 surface-tint">
           <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           <p className="text-xs text-muted">Generating image…</p>
         </div>

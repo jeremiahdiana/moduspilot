@@ -271,7 +271,7 @@ export default function ApprovalCard({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94 }}
             transition={spring}
-            className="border border-brand/30 bg-brand/5 rounded-xl px-4 py-3 space-y-1"
+            className="border border-tint surface-tint rounded-xl px-4 py-3 space-y-1"
           >
             <div className="flex items-center gap-2">
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 text-brand shrink-0">
@@ -386,7 +386,7 @@ export default function ApprovalCard({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={spring}
-            className="border border-brand/15 bg-panel rounded-xl px-4 py-4 space-y-3 shadow-[inset_0_0_32px_rgba(124,58,237,0.04)]"
+            className="border border-tint bg-panel rounded-xl px-4 py-4 space-y-3 shadow-[inset_0_0_32px_rgba(124,58,237,0.04)]"
           >
             <div>
               <p className="text-xs text-muted uppercase tracking-wider mb-1">

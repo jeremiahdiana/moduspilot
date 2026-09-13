@@ -297,7 +297,7 @@ export default function ChatPage() {
               sidebar's own handle. Reopen via the tab instead. */}
           {!convRail.collapsed && (
             <div
-              className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 transition-colors z-20"
+              className="absolute inset-y-0 -right-0.5 w-1.5 cursor-col-resize hover-surface-tint0 active:bg-brand/60 transition-colors z-20"
               onMouseDown={convRail.startDrag}
             />
           )}
@@ -421,7 +421,7 @@ export default function ChatPage() {
             // greeting will — the loading→loaded hand-off has zero vertical jump.
             <div className="flex flex-col h-full">
               <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl surface-tint border border-tint flex items-center justify-center">
                   <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
                 </div>
                 <p className="text-xs text-muted">Loading your chat…</p>

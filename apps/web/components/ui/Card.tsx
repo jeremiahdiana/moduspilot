@@ -13,7 +13,7 @@ export const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
     <div
       ref={ref}
       className={`bg-panel border border-border rounded-2xl ${padding} ${
-        hover ? 'transition-colors hover:border-brand/30 hover:shadow-lg hover:shadow-brand/5' : ''
+        hover ? 'transition-colors hover-border-tint hover:shadow-lg hover:shadow-brand/5' : ''
       } ${className}`}
       {...props}
     >

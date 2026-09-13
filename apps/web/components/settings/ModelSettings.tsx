@@ -100,7 +100,7 @@ const BRAINS = [
     tagline: 'Deepest reasoning',
     description: "OpenAI's flagship. For the hardest problems, long-horizon reasoning, coding, and science.",
     badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
+    badgeColor: 'surface-tint text-brand',
     plans: ['pilot'] as string[],
   },
   {
@@ -112,7 +112,7 @@ const BRAINS = [
     tagline: 'Deep reasoning, faster',
     description: 'Highly capable and quicker to answer than Fable 5. The right pick for hard work that still needs to come back promptly.',
     badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
+    badgeColor: 'surface-tint text-brand',
     plans: ['pilot'] as string[],
   },
   {
@@ -122,7 +122,7 @@ const BRAINS = [
     tagline: "Anthropic's most capable",
     description: 'The strongest model Modus can run, for the hardest reasoning and long, multi-step work. Thinks longer, so it answers slower.',
     badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
+    badgeColor: 'surface-tint text-brand',
     plans: ['pilot'] as string[],
   },
   {
@@ -132,7 +132,7 @@ const BRAINS = [
     tagline: 'Google’s frontier model',
     description: "Google's most capable model. Strong on long-context reasoning, research, and code.",
     badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
+    badgeColor: 'surface-tint text-brand',
     plans: ['pilot'] as string[],
   },
   {
@@ -142,7 +142,7 @@ const BRAINS = [
     tagline: 'Fast multimodal open model',
     description: "Meta's Llama 4 Maverick. Multimodal and quick, for everyday work on PILOT.",
     badge: 'PILOT',
-    badgeColor: 'bg-brand/10 text-brand',
+    badgeColor: 'surface-tint text-brand',
     plans: ['pilot'] as string[],
   },
   // Grok 4.5 is withheld until xAI has credits (Gemini 3.1 Pro was restored
@@ -281,8 +281,8 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
                   locked
                     ? 'border-border bg-panel opacity-50 cursor-not-allowed'
                     : isSelected
-                    ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
-                    : 'border-border bg-panel hover:border-brand/20 cursor-pointer'
+                    ? 'border-brand/50 surface-tint ring-1 ring-brand/20'
+                    : 'border-border bg-panel hover-border-tint cursor-pointer'
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
@@ -338,8 +338,8 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
               onClick={() => toggleByok(p.id)}
               className={`text-left p-4 rounded-xl border transition-all ${
                 byokProvider === p.id
-                  ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/20'
-                  : 'border-border bg-panel hover:border-brand/20'
+                  ? 'border-brand/50 surface-tint ring-1 ring-brand/20'
+                  : 'border-border bg-panel hover-border-tint'
               }`}
             >
               <div className="flex items-center justify-between gap-4">
@@ -367,7 +367,7 @@ export default function ModelSettings({ settings, plan, saving, onSave }: Props)
                 key={m.id}
                 onClick={() => { setByokModel(m.id); setSaved(false); }}
                 className={`text-left p-3 rounded-lg border transition-all ${
-                  byokModel === m.id ? 'border-brand/50 bg-brand/5' : 'border-border hover:border-brand/20'
+                  byokModel === m.id ? 'border-brand/50 surface-tint' : 'border-border hover-border-tint'
                 }`}
               >
                 <p className="text-sm font-medium text-text">{m.label}</p>

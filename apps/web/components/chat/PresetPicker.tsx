@@ -38,7 +38,7 @@ export default function PresetPicker({ presets, activeIds, onToggle }: Props) {
         type="button"
         onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-1 text-xs border rounded-lg px-2 py-1 transition-colors max-w-[9rem] ${
-          on ? 'text-brand border-brand/40 bg-brand/10' : 'text-muted hover:text-text border-border'
+          on ? 'text-brand border-brand/40 surface-tint' : 'text-muted hover:text-text border-border'
         }`}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
@@ -81,7 +81,7 @@ export default function PresetPicker({ presets, activeIds, onToggle }: Props) {
                     key={p.id}
                     type="button"
                     onClick={() => onToggle(p.id)}
-                    className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 hover:bg-brand/5 transition-colors ${active ? 'bg-brand/5' : ''}`}
+                    className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 hover-surface-tint transition-colors ${active ? 'surface-tint' : ''}`}
                   >
                     <div className="min-w-0">
                       <p className={`text-sm font-medium truncate ${active ? 'text-brand' : 'text-text'}`}>{p.label}</p>

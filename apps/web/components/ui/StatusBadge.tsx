@@ -2,7 +2,7 @@ type Status = 'live' | 'beta' | 'soon';
 
 const STYLES: Record<Status, string> = {
   live: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  beta: 'bg-brand/10 text-brand border-brand/20',
+  beta: 'surface-tint text-brand border-tint',
   soon: 'bg-muted/10 text-muted border-border',
 };
 

@@ -35,6 +35,35 @@
   --color-muted: 152 152 160;
 }
 
+/* ── Accent surface tints ────────────────────────────────────────────────────
+   Low-opacity `bg-brand/N` fills read as light purple (lavender) over the warm
+   ivory light ground, which he did not want in the software. These utilities
+   render a warm NEUTRAL on light grounds and keep the VIOLET tint on dark
+   (where he wants it kept). Use them for surface fills (active nav pill, active
+   conversation row, avatar chips, hover states, card washes) instead of
+   `bg-brand/N` / `border-brand/N`. The solid `bg-brand` accent (buttons, active
+   tab text, the user chat bubble) is unchanged. */
+.surface-tint { background-color: rgb(var(--color-text) / 0.05); }
+.surface-tint-strong { background-color: rgb(var(--color-text) / 0.09); }
+.border-tint { border-color: rgb(var(--color-text) / 0.12); }
+.hover-surface-tint:hover { background-color: rgb(var(--color-text) / 0.05); }
+.dark .surface-tint { background-color: rgb(109 40 217 / 0.14); }
+.dark .surface-tint-strong { background-color: rgb(109 40 217 / 0.22); }
+.dark .border-tint { border-color: rgb(109 40 217 / 0.24); }
+.dark .hover-surface-tint:hover { background-color: rgb(109 40 217 / 0.10); }
+.hover-border-tint:hover { border-color: rgb(var(--color-text) / 0.20); }
+.dark .hover-border-tint:hover { border-color: rgb(109 40 217 / 0.35); }
+
+/* Briefing page ambient wash: none on the light ivory ground (the violet
+   radials read as a lavender wash there), the soft violet aura kept on dark. */
+.briefing-ambient { background-image: none; }
+.dark .briefing-ambient {
+  background-image:
+    radial-gradient(ellipse 100% 45% at 50% -5%, rgba(124,58,237,0.11) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 30% at 88% 20%, rgba(139,92,246,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 35% 20% at 12% 75%, rgba(167,139,250,0.04) 0%, transparent 50%);
+}
+
 /* ── Marketing "Cluely-light" scope ──────────────────────────────────────────
    The app force-adds `.dark` to <html> on every load (see app/layout.tsx), so a
    light homepage can't rely on the global theme. This class re-declares the
@@ -355,7 +384,9 @@ body::after {
   50%      { background-position: 100% 50%; }
 }
 .hero-gradient-text {
-  background: linear-gradient(90deg, #a78bfa, #7c3aed, #c084fc, #818cf8, #7c3aed, #a78bfa);
+  /* Deep violet throughout — the old #a78bfa/#c084fc stops read as washed light
+     purple on the ivory light ground. Kept rich so it stays an accent in dark. */
+  background: linear-gradient(90deg, #7c3aed, #6d28d9, #8b5cf6, #6d28d9, #7c3aed);
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

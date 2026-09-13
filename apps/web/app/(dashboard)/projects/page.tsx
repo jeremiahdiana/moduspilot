@@ -282,7 +282,7 @@ function ProjectCard({
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.35, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
       onClick={onClick}
-      className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover:border-brand/30 transition-colors group relative flex flex-col gap-3"
+      className="bg-panel border border-border rounded-xl p-5 cursor-pointer hover-border-tint transition-colors group relative flex flex-col gap-3"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">

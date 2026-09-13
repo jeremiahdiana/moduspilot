@@ -181,12 +181,12 @@ export default function GroupPage() {
 
       <div className="p-4 md:p-8 max-w-2xl space-y-5">
         {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{error}</div>}
-        {notice && <div className="text-sm text-brand bg-brand/10 border border-brand/20 rounded-xl px-4 py-2.5">{notice}</div>}
+        {notice && <div className="text-sm text-brand surface-tint border border-tint rounded-xl px-4 py-2.5">{notice}</div>}
 
         {/* Pending invites addressed to me */}
         {myInvites.length > 0 && !groupId && myInvites.map(inv => (
           <motion.div key={inv.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-panel border border-brand/30 rounded-2xl p-5">
+            className="bg-panel border border-tint rounded-2xl p-5">
             <p className="text-sm text-text">
               <span className="font-semibold">{inv.invitedByName ?? 'Someone'}</span> invited you to join{' '}
               <span className="font-semibold">{inv.groupName}</span>.
@@ -240,14 +240,14 @@ export default function GroupPage() {
               <ul className="divide-y divide-border/40">
                 {members.map(m => (
                   <li key={m.uid} className="px-5 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-brand/15 flex items-center justify-center text-brand text-xs font-semibold shrink-0">
+                    <div className="w-8 h-8 rounded-full surface-tint-strong flex items-center justify-center text-brand text-xs font-semibold shrink-0">
                       {(m.displayName || m.email || '?')[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-text truncate">{m.displayName || m.email}{m.uid === uid && ' (you)'}</p>
                       {m.email && <p className="text-[11px] text-muted truncate">{m.email}</p>}
                     </div>
-                    {m.role === 'owner' && <span className="text-[10px] font-semibold uppercase tracking-wider text-brand bg-brand/10 rounded px-1.5 py-0.5">Owner</span>}
+                    {m.role === 'owner' && <span className="text-[10px] font-semibold uppercase tracking-wider text-brand surface-tint rounded px-1.5 py-0.5">Owner</span>}
                   </li>
                 ))}
               </ul>
@@ -266,7 +266,7 @@ export default function GroupPage() {
                     placeholder="Add to the group space…"
                     className="flex-1 bg-bg border border-border rounded-xl px-3.5 py-2.5 text-sm text-text outline-none focus:border-brand/50" />
                   <button onClick={addShared}
-                    className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted hover:text-text hover:border-brand/40 transition-colors shrink-0">
+                    className="px-4 py-2.5 rounded-xl border border-border text-sm font-semibold text-muted hover:text-text hover-border-tint transition-colors shrink-0">
                     Add
                   </button>
                 </div>

@@ -137,8 +137,8 @@ function Heatmap({ completedDates, onToggle }: { completedDates: string[]; onTog
                 style={{ width: CELL, height: CELL }}
                 className={`rounded-[2px] transition-all ${
                   day.isFuture ? 'opacity-0 cursor-default'
-                  : day.isToday ? day.done ? 'bg-brand ring-1 ring-brand ring-offset-1 ring-offset-panel' : 'bg-brand/20 ring-1 ring-brand/60 ring-offset-1 ring-offset-panel'
-                  : day.done ? 'bg-brand hover:bg-brand/80' : 'bg-border hover:bg-border/60 cursor-pointer'
+                  : day.isToday ? day.done ? 'bg-brand ring-1 ring-brand ring-offset-1 ring-offset-panel' : 'surface-tint-strong ring-1 ring-brand/60 ring-offset-1 ring-offset-panel'
+                  : day.done ? 'bg-brand hover-surface-tint0' : 'bg-border hover:bg-border/60 cursor-pointer'
                 }`}
               />
             )))}
@@ -360,7 +360,7 @@ export default function RemindersPage() {
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Habits</h2>
                 {totalHabits > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full surface-tint text-brand">
                       {doneToday}/{totalHabits} today
                     </span>
                     {topStreak > 0 && (
@@ -512,7 +512,7 @@ export default function RemindersPage() {
                           ? p === 'high' ? 'bg-red-500/10 border-red-500/30 text-red-400'
                             : p === 'medium' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
                             : p === 'low' ? 'bg-border border-border text-muted'
-                            : 'bg-brand/10 border-brand/30 text-brand'
+                            : 'surface-tint border-tint text-brand'
                           : 'border-border text-muted hover:text-text'
                       }`}
                     >
@@ -551,7 +551,7 @@ export default function RemindersPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
                                 transition={{ duration: 0.25, delay: i * 0.03, ease: [0.16, 1, 0.3, 1] }}
-                                className="bg-panel border border-border rounded-xl flex items-stretch overflow-hidden group hover:border-brand/20 transition-colors"
+                                className="bg-panel border border-border rounded-xl flex items-stretch overflow-hidden group hover-border-tint transition-colors"
                               >
                                 {t.priority && <div className={`w-1 shrink-0 ${PRIORITY_BAND[t.priority] ?? 'bg-border'}`} />}
                                 <div className="flex items-start gap-3 px-4 py-3 flex-1 min-w-0">

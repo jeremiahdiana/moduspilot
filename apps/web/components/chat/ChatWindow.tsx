@@ -1053,7 +1053,7 @@ export default function ChatWindow({
             transition={{ duration: 0.2 }}
             className="flex items-center gap-2.5"
           >
-            <div className="w-7 h-7 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-full surface-tint border border-tint flex items-center justify-center shrink-0">
               <Image src="/logo.png" alt="MODUS" width={14} height={14} className="opacity-75 dark:hidden" />
               <Image src="/logo-dark.png" alt="MODUS" width={14} height={14} className="opacity-75 hidden dark:block" />
             </div>

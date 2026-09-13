@@ -47,7 +47,7 @@ function Widget({ title, icon, href, action, children, className = '', dragContr
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 shrink-0">
         <div className="flex items-center gap-2.5">
           {dragControls && <DragHandle controls={dragControls} />}
-          <div className="w-6 h-6 rounded-md bg-brand/10 flex items-center justify-center text-brand">
+          <div className="w-6 h-6 rounded-md surface-tint flex items-center justify-center text-brand">
             {icon}
           </div>
           <span className="text-sm font-semibold text-text">{title}</span>

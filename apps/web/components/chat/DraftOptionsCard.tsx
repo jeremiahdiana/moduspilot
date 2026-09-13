@@ -81,7 +81,7 @@ export default function DraftOptionsCard({
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={spring}
-        className="border border-brand/20 bg-brand/5 rounded-xl px-4 py-3 flex items-center gap-2.5"
+        className="border border-tint surface-tint rounded-xl px-4 py-3 flex items-center gap-2.5"
       >
         <span className={`w-1.5 h-1.5 rounded-full bg-brand shrink-0 ${submitted ? 'animate-pulse' : ''}`} />
         <span className="text-sm text-muted">
@@ -101,7 +101,7 @@ export default function DraftOptionsCard({
       className={`rounded-xl overflow-hidden ${
         locked
           ? 'border border-border/60 bg-panel/40 pointer-events-none select-none'
-          : 'border border-brand/20 bg-panel shadow-[0_0_24px_rgba(124,58,237,0.06)]'
+          : 'border border-tint bg-panel shadow-[0_0_24px_rgba(124,58,237,0.06)]'
       }`}
     >
       {locked && (
@@ -140,8 +140,8 @@ export default function DraftOptionsCard({
             transition={spring}
             className={`w-full text-left px-3.5 py-3 rounded-xl border transition-all duration-150 ${
               selected === i
-                ? 'border-brand/50 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15)]'
-                : 'border-border/60 bg-bg/50 hover:border-brand/25 hover:bg-brand/4'
+                ? 'border-brand/50 surface-tint shadow-[0_0_0_1px_rgba(124,58,237,0.15)]'
+                : 'border-border/60 bg-bg/50 hover-border-tint hover-surface-tint'
             }`}
           >
             <div className="flex items-start gap-2.5">
@@ -180,8 +180,8 @@ export default function DraftOptionsCard({
           transition={spring}
           className={`w-full text-left px-3.5 py-3 rounded-xl border transition-all duration-150 cursor-pointer ${
             isCustomSelected
-              ? 'border-brand/50 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15)]'
-              : 'border-border/60 bg-bg/50 hover:border-brand/25 hover:bg-brand/4'
+              ? 'border-brand/50 surface-tint shadow-[0_0_0_1px_rgba(124,58,237,0.15)]'
+              : 'border-border/60 bg-bg/50 hover-border-tint hover-surface-tint'
           }`}
         >
           <div className="flex items-start gap-2.5">

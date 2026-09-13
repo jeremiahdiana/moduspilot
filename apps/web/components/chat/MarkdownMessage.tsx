@@ -47,7 +47,7 @@ export default function MarkdownMessage({ children }: { children: string }) {
               return <code className={className} {...props}>{children}</code>;
             }
             return (
-              <code className="rounded bg-brand/10 border border-brand/15 px-1 py-0.5 text-[0.85em] font-mono text-brand-light">{children}</code>
+              <code className="rounded surface-tint border border-tint px-1 py-0.5 text-[0.85em] font-mono text-brand-light">{children}</code>
             );
           },
           pre: ({ children }) => (
@@ -58,12 +58,12 @@ export default function MarkdownMessage({ children }: { children: string }) {
               <table className="w-full text-left text-[13px] border-collapse">{children}</table>
             </div>
           ),
-          thead: ({ children }) => <thead className="bg-brand/5">{children}</thead>,
+          thead: ({ children }) => <thead className="surface-tint">{children}</thead>,
           th: ({ children }) => <th className="px-3 py-2 font-semibold text-muted border-b border-border whitespace-nowrap">{children}</th>,
           td: ({ children }) => <td className="px-3 py-2 text-text/90 border-b border-border/40 align-top">{children}</td>,
           input: ({ checked, type }) =>
             type === 'checkbox' ? (
-              <span className={`inline-flex w-4 h-4 translate-y-0.5 items-center justify-center rounded border shrink-0 ${checked ? 'bg-brand/15 border-brand/50' : 'border-border bg-panel'}`}>
+              <span className={`inline-flex w-4 h-4 translate-y-0.5 items-center justify-center rounded border shrink-0 ${checked ? 'surface-tint-strong border-brand/50' : 'border-border bg-panel'}`}>
                 {checked && (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-2.5 h-2.5 text-brand">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m5 13 4 4L19 7" />
