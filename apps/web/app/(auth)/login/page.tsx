@@ -43,12 +43,15 @@ async function getDestination(user: User): Promise<string> {
 
 const googleProvider = new GoogleAuthProvider();
 const appleProvider = new OAuthProvider('apple.com');
+const microsoftProvider = new OAuthProvider('microsoft.com');
+const OAUTH_PROVIDERS = { google: googleProvider, apple: appleProvider, microsoft: microsoftProvider } as const;
+type OAuthKind = keyof typeof OAUTH_PROVIDERS;
 const EMAIL_KEY = 'modus-email-for-signin';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState<'google' | 'apple' | 'email' | null>(null);
+  const [loading, setLoading] = useState<OAuthKind | 'email' | null>(null);
   const [checking, setChecking] = useState(true);
   const [reduced, setReduced] = useState(false);
   const [email, setEmail] = useState('');
@@ -100,7 +103,7 @@ export default function LoginPage() {
   // returns to our window after the popup closes, give Firebase a beat to settle
   // a real sign-in; if none happened, clear loading so the user can retry.
   useEffect(() => {
-    if (loading !== 'google' && loading !== 'apple') return;
+    if (loading !== 'google' && loading !== 'apple' && loading !== 'microsoft') return;
     const release = () => {
       window.setTimeout(() => {
         if (!auth.currentUser) setLoading(null);
@@ -110,8 +113,8 @@ export default function LoginPage() {
     return () => window.removeEventListener('focus', release);
   }, [loading]);
 
-  async function signIn(kind: 'google' | 'apple') {
-    const provider = kind === 'google' ? googleProvider : appleProvider;
+  async function signIn(kind: OAuthKind) {
+    const provider = OAUTH_PROVIDERS[kind];
     setError(''); setLoading(kind);
     try {
       const result = await signInWithPopup(auth, provider);
@@ -125,6 +128,9 @@ export default function LoginPage() {
         } catch {
           setError('Sign in failed. Please try again.');
         }
+      } else if (code === 'auth/operation-not-allowed') {
+        // Provider not enabled yet (e.g. Microsoft before its Azure app is set up).
+        setError(`${kind === 'microsoft' ? 'Microsoft' : 'That'} sign in is not available yet. Use Google or Apple.`);
       } else if (code !== 'auth/cancelled-popup-request' && code !== 'auth/popup-closed-by-user') {
         console.error('[sign-in error]', code, e);
         setError('Sign in failed. Please try again.');
@@ -225,6 +231,24 @@ export default function LoginPage() {
                     </svg>
                   )}
                   Continue with Google
+                </button>
+
+                <button
+                  onClick={() => signIn('microsoft')}
+                  disabled={loading !== null}
+                  className="w-full flex items-center justify-center gap-3 bg-bg/60 border border-border hover:border-brand/50 rounded-xl px-4 py-3.5 text-text text-sm font-medium transition-all hover-surface-tint disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading === 'microsoft' ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 23 23">
+                      <path fill="#f25022" d="M1 1h10v10H1z"/>
+                      <path fill="#7fba00" d="M12 1h10v10H12z"/>
+                      <path fill="#00a4ef" d="M1 12h10v10H1z"/>
+                      <path fill="#ffb900" d="M12 12h10v10H12z"/>
+                    </svg>
+                  )}
+                  Continue with Microsoft
                 </button>
 
                 <button
