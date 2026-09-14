@@ -1,7 +1,8 @@
+import { getUsageWeekKey } from '@/lib/usage';
 import { createHash } from 'crypto';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { GUEST_DAILY_LIMIT, FREE_WINDOW_LIMIT, FREE_WEEKLY_LIMIT, WINDOW_MS } from '@/lib/constants';
+import { GUEST_DAILY_LIMIT, WINDOW_MS } from '@/lib/constants';
 import { hasActiveAccess, isPaidPlan, planCeilings } from '@/lib/plan';
 import { weightedTokens } from '@/lib/chat/model-cost';
 
@@ -20,13 +21,7 @@ export function isFreeTierUser(userData: Record<string, any> | null | undefined)
 }
 
 /** ISO date (YYYY-MM-DD) of the Monday that starts the current UTC week. */
-export function getWeekKey(): string {
-  const now = new Date();
-  const day = now.getUTCDay();
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - (day === 0 ? 6 : day - 1));
-  return monday.toISOString().slice(0, 10);
-}
+export function getWeekKey(): string { return getUsageWeekKey(); }
 
 /**
  * Guest rate limit — GUEST_DAILY_LIMIT messages per day per IP (unauthenticated).
@@ -74,7 +69,7 @@ export async function enforceGuestRateLimit(req: Request): Promise<Response | nu
  * enforcePaidTokenLimit rather than a write.
  *
  * ⚠️ `plan` is undefined for a free-tier user, so anything keying off isPaidPlan()
- * — enforcePaidTokenLimit, planCeilings — skips them; each free path is explicit.
+ * needs the shared free allowance; paid-only feature gates still skip them.
  *
  * Returns a Response when blocked, otherwise null.
  */
@@ -110,7 +105,8 @@ export function enforceFreeTokenLimit(userData: Record<string, any>): Response |
   const windowStart  = (userData.windowStart as number) ?? 0;
   const tokensWindow = now < windowStart + WINDOW_MS ? ((userData.windowTokens as number) ?? 0) : 0;
   const tokensWeek   = (userData.tokenWeek as string) === weekKey ? ((userData.weeklyTokens as number) ?? 0) : 0;
-  if (tokensWindow >= FREE_WINDOW_LIMIT || tokensWeek >= FREE_WEEKLY_LIMIT) {
+  const { window: windowLimit, weekly: weeklyLimit } = planCeilings({ plan: 'free' });
+  if (tokensWindow >= windowLimit || tokensWeek >= weeklyLimit) {
     return Response.json({ error: 'free_limit_reached' }, { status: 402 });
   }
   return null;

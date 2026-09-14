@@ -1,10 +1,10 @@
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { resolvePlanPrice } from '@/lib/pricing';
-import { cadenceOfSubscription, isFoundingSubscription, isAddonSubscription } from '@/lib/billing';
+import { cadenceOfSubscription, isFoundingSubscription, isAddonSubscription, findLivePlanSubscription } from '@/lib/billing';
 
 // Plan changes for an EXISTING subscriber. Unlike /checkout (which is for brand
-// new customers and always attaches a 3-day trial), this repricing the customer's
+// new customers), this reprices the customer's
 // current subscription in place — so upgrading never grants another free trial
 // and never leaves a second, parallel subscription billing alongside the first.
 // Price order, so we can charge immediately on an upgrade but only credit the
@@ -16,13 +16,19 @@ export async function POST(req: Request) {
   if (!token) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   let uid: string;
+  let email: string | undefined;
   try {
-    uid = (await adminAuth.verifyIdToken(token)).uid;
+    const decoded = await adminAuth.verifyIdToken(token);
+    uid = decoded.uid;
+    email = decoded.email;
   } catch {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { plan: newPlan } = await req.json() as { plan: string };
+  let body: { plan?: unknown };
+  try { body = await req.json(); } catch { return Response.json({ error: 'Invalid plan' }, { status: 400 }); }
+  const newPlan = body?.plan;
+  if (typeof newPlan !== 'string') return Response.json({ error: 'Invalid plan' }, { status: 400 });
   if (newPlan === 'free') return Response.json({ error: 'Invalid plan' }, { status: 400 });
   // The limits add-on is bought and cancelled through Checkout/the portal by
   // quantity — it is not a plan and must never be a repricing target here.
@@ -32,19 +38,14 @@ export async function POST(req: Request) {
 
   const userRef = adminDb.collection('users').doc(uid);
   const userData = (await userRef.get()).data() ?? {};
-  const subId = userData.subscriptionId as string | undefined;
-  const currentPlan = (userData.plan as string | undefined) ?? 'free';
-
-  // No active subscription → the caller should use /checkout (new customer + trial).
-  if (!subId) return Response.json({ error: 'No active subscription to change.' }, { status: 409 });
-  if (newPlan === currentPlan) return Response.json({ error: 'Already on this plan.' }, { status: 400 });
-
-  let sub;
-  try {
-    sub = await stripe.subscriptions.retrieve(subId);
-  } catch {
-    return Response.json({ error: 'Subscription not found — contact support.' }, { status: 404 });
+  const sub = await findLivePlanSubscription(uid, email);
+  if (!sub) return Response.json({ error: 'No active subscription to change.' }, { status: 409 });
+  const subId = sub.id;
+  const currentPlan = sub.metadata?.plan;
+  if (!currentPlan || !['modus', 'pilot', 'group'].includes(currentPlan)) {
+    return Response.json({ error: 'Your subscription needs review before changing plans. Contact support.' }, { status: 409 });
   }
+  if (newPlan === currentPlan) return Response.json({ error: 'Already on this plan.' }, { status: 400 });
   const itemId = sub.items.data[0]?.id;
   if (!itemId) return Response.json({ error: 'Subscription has no items.' }, { status: 500 });
 
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
 
   // Reflect immediately; the subscription.updated webhook also sets this (idempotent).
   // set+merge so this can never throw `5 NOT_FOUND` on a missing users doc.
-  await userRef.set({ plan: newPlan }, { merge: true });
+  await userRef.set({ plan: newPlan, subscriptionId: sub.id }, { merge: true });
 
   return Response.json({ updated: true, plan: newPlan, cadence });
 }

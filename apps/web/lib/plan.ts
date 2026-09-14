@@ -6,6 +6,8 @@
 // and MUST compute ceilings from the same function the server gates on — see
 // planCeilings below.
 import {
+  FREE_WINDOW_LIMIT,
+  FREE_WEEKLY_LIMIT,
   MODUS_WINDOW_LIMIT,
   PILOT_WINDOW_LIMIT,
   MODUS_WEEKLY_LIMIT,
@@ -87,6 +89,7 @@ export function limitAddonQty(userData: Record<string, any> | null | undefined):
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function planCeilings(userData: Record<string, any> | null | undefined): { window: number; weekly: number } {
+  if (!isPaidPlan(userData?.plan)) return { window: FREE_WINDOW_LIMIT, weekly: FREE_WEEKLY_LIMIT };
   const pilot = isPilotLevelPlan(userData?.plan);
   const qty = limitAddonQty(userData);
   return {

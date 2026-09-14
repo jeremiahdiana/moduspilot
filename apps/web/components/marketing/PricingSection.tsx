@@ -6,8 +6,8 @@ const PLANS = [
   {
     tier: 'MODUS',
     price: '$24',
-    sub: '3 days free, then $24/mo. Card required · cancel anytime.',
-    cta: 'Start 3-day trial',
+    sub: '$24/mo. Billed when you subscribe · cancel anytime.',
+    cta: 'Get started',
     popular: true,
     features: [
       'AI Chat, unlimited with full context',
@@ -31,8 +31,8 @@ const PLANS = [
   {
     tier: 'PILOT',
     price: '$59',
-    sub: 'For founders and executives. 3 days free, then $59/mo.',
-    cta: 'Start 3-day trial',
+    sub: 'For founders and executives. $59/mo, billed when you subscribe.',
+    cta: 'Get started',
     popular: false,
     features: [
       'Everything in MODUS',
@@ -78,7 +78,7 @@ export default function PricingSection() {
         >
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">One subscription. Every model.</h2>
           <p className="text-muted text-lg max-w-2xl mx-auto">
-            Write with Gemini, research with Claude, ask ChatGPT, for one price, with far higher limits than paying for any of them alone. Try it free for 3 days. Card required · cancel anytime.
+            Write with Gemini, research with Claude, ask ChatGPT, for one price, with far higher limits than paying for any of them alone. Start with the Free plan. Upgrade anytime.
           </p>
           <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted bg-panel rounded-full px-4 py-2">
             <span className="text-text font-semibold">Replaces</span>

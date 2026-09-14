@@ -446,7 +446,7 @@ export default function ChatWindow({
         setChatError('Images are a paid feature, subscribe to attach one.');
         onShowPaywall?.();
       } else if (msg.includes('subscription_required')) {
-        setChatError('Start your 3-day free trial to use Modus.');
+        setChatError('Continue with the Free plan or upgrade for more access.');
         onExhausted?.();
         onShowPaywall?.();
       } else if (msg.includes('empty_message')) {
@@ -547,7 +547,6 @@ export default function ChatWindow({
   useEffect(() => {
     stop();
     setMessages(initialMessages);
-    savedLengthRef.current = initialMessages.length;
     // The comparison belongs to the conversation it was started in. It lives in
     // component state, not in messages, so without this it stays mounted and
     // follows the user into whichever chat they open next.
@@ -750,9 +749,9 @@ export default function ChatWindow({
     }
 
     if (messages.length === 0 || !onMessagesChange) return;
-    if (messages.length <= savedLengthRef.current) return;
+    // Regenerated replies can have the same message count. Save every finished
+    // response so a retry is not lost when the user reloads.
 
-    savedLengthRef.current = messages.length;
 
     const firstUserMsg = messages.find(m => m.role === 'user');
     const isFirstExchange = messages.filter(m => m.role === 'assistant').length === 1;
@@ -789,7 +788,7 @@ export default function ChatWindow({
     });
 
     onMessagesChange(messagesToSave, title);
-  }, [isLoading, messages, onMessagesChange, routedByMsgId, attachmentsByMsgId]);
+  }, [isLoading, messages, onMessagesChange, routedByMsgId, attachmentsByMsgId, reload]);
 
   function handleVoiceTranscript(text: string) {
     setInput(text);

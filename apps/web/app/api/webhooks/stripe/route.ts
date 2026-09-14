@@ -2,7 +2,7 @@ import { stripe } from '@/lib/stripe';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendPushToUser } from '@/lib/fcm-admin';
-import { stripeId, sessionIsPaid, downgradeIfNoLiveSubscription, isAddonSubscription } from '@/lib/billing';
+import { stripeId, sessionIsPaid, downgradeIfNoLiveSubscription, isAddonSubscription, customerIdsForUser, findLivePlanSubscription } from '@/lib/billing';
 
 const PLAN_PRICE: Record<string, string> = { modus: '$24', pilot: '$59', group: '$79' };
 
@@ -15,7 +15,7 @@ function isGrantablePlan(p: unknown): p is GrantablePlan {
 const ADDON_LIVE_STATUSES = ['active', 'trialing'];
 
 /**
- * Mirror an add-on subscription's QUANTITY onto users/{uid}.limitAddonQty.
+ * Mirror the total quantity across current live add-on subscriptions.
  *
  * 🪤 THE QUANTITY IS NOT ON THE SESSION. `checkout.session.completed` gives
  * `session.subscription` as a bare id, so reading `items.data[0].quantity`
@@ -31,10 +31,26 @@ async function syncAddonQty(
   sub: { id: string; status: string; items?: { data: Array<{ quantity?: number | null }> } },
   event: { id: string; type: string },
 ) {
-  const live = ADDON_LIVE_STATUSES.includes(sub.status);
-  const qty = live ? Math.max(0, Math.floor(sub.items?.data[0]?.quantity ?? 1)) : 0;
-  await adminDb.collection('users').doc(uid).set({ limitAddonQty: qty }, { merge: true });
-  log(event, `limit add-on → qty ${qty}`, { uid, sub: sub.id, status: sub.status });
+  const ref = adminDb.collection('users').doc(uid);
+  await adminDb.runTransaction(async transaction => {
+    const account = (await transaction.get(ref)).data();
+    const email = typeof account?.email === 'string' ? account.email : undefined;
+    const livePlan = await findLivePlanSubscription(uid, email);
+    let qty = 0;
+    if (livePlan) {
+      const seen = new Set<string>();
+      for (const customer of await customerIdsForUser(uid, email)) {
+        // Ask Stripe for current state, not the possibly delayed event payload.
+        for await (const addon of stripe.subscriptions.list({ customer, status: 'all', limit: 100 })) {
+          if (seen.has(addon.id) || !isAddonSubscription(addon) || !ADDON_LIVE_STATUSES.includes(addon.status)) continue;
+          seen.add(addon.id);
+          qty += Math.max(0, Math.floor(addon.items.data[0]?.quantity ?? 0));
+        }
+      }
+    }
+    transaction.set(ref, { limitAddonQty: qty }, { merge: true });
+  });
+  log(event, 'limit add-on total reconciled', { uid, sub: sub.id, status: sub.status });
 }
 
 /**

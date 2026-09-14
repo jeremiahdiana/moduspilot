@@ -13,7 +13,7 @@ import PrivacySettings from '@/components/settings/PrivacySettings';
 import BillingSettings from '@/components/settings/BillingSettings';
 import UsageSettings from '@/components/settings/UsageSettings';
 import MemorySettings from '@/components/settings/MemorySettings';
-import ModelSettings from '@/components/settings/ModelSettings';
+import ApiKeySettings from '@/components/settings/ApiKeySettings';
 import DisplaySettings from '@/components/settings/DisplaySettings';
 import AboutSettings from '@/components/settings/AboutSettings';
 
@@ -31,7 +31,7 @@ const TABS = [
   { key: 'display',      label: 'Display',      icon: <TabIcon d="M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" d2="M9 4v16" /> },
   { key: 'account',      label: 'Account',      icon: <TabIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" d2="M12 3a4 4 0 110 8 4 4 0 010-8z" /> },
   { key: 'billing',      label: 'Billing',      icon: <TabIcon d="M21 4H3a2 2 0 00-2 2v12a2 2 0 002 2h18a2 2 0 002-2V6a2 2 0 00-2-2zM1 10h22" /> },
-  { key: 'model',        label: 'Brain',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
+  { key: 'memory',       label: 'Memory',        icon: <TabIcon d="M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM12 16a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2v-2a2 2 0 012-2zM4 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2H6a2 2 0 01-2-2zM14 10a2 2 0 012-2h2a2 2 0 012 2 2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
   { key: 'about',        label: 'About',        icon: <TabIcon d="M12 22a10 10 0 100-20 10 10 0 000 20z" d2="M12 16v-4M12 8h.01" /> },
 ] as const;
 
@@ -41,7 +41,7 @@ function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory, clearMemories } = useUserSettings(user);
+  const { settings, memories, plan, usage, loading, error, saving, saveSettings, addMemory, deleteMemory, clearMemories } = useUserSettings(user);
 
   const rawTab = searchParams.get('tab') ?? 'general';
   const validKeys = TABS.map(t => t.key) as string[];
@@ -51,8 +51,8 @@ function SettingsContent() {
     if (rawTab === 'connectors' || rawTab === 'capabilities') {
       // Capabilities merged into the top-level Capabilities page.
       router.replace('/capabilities');
-    } else if (rawTab === 'memory') {
-      router.replace('/settings?tab=model');       // Memory lives in Brain.
+    } else if (rawTab === 'model') {
+      router.replace('/settings?tab=memory');
     } else if (rawTab === 'sidebar') {
       router.replace('/settings?tab=display');      // Sidebar folded into Display.
     } else if (rawTab === 'usage') {
@@ -151,7 +151,8 @@ function SettingsContent() {
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto py-6 px-4 md:py-8 md:px-8">
-        <div className="max-w-2xl">
+        <div className="max-w-2xl" key={user.uid}>
+          {error && <p role="alert" className="mb-4 text-sm text-red-500">{error}</p>}
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeTab}
@@ -170,17 +171,19 @@ function SettingsContent() {
                 <DisplaySettings settings={settings} saving={saving} onSave={saveSettings} />
               )}
               {activeTab === 'account' && (
-                <AccountSettings user={user} />
+                <div className="space-y-12">
+                  <AccountSettings user={user} />
+                  <ApiKeySettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
+                </div>
               )}
               {activeTab === 'billing' && (
                 <div className="space-y-12">
-                  <UsageSettings plan={plan} usage={usage} onUpgrade={() => { /* already on billing */ }} />
+                  <UsageSettings plan={plan} usage={usage} />
                   <BillingSettings plan={plan} limitAddonQty={usage.limitAddonQty} />
                 </div>
               )}
-              {activeTab === 'model' && (
+              {activeTab === 'memory' && (
                 <div className="space-y-12">
-                  <ModelSettings settings={settings} plan={plan} saving={saving} onSave={saveSettings} />
                   <MemorySettings
                     settings={settings}
                     memories={memories}

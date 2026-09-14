@@ -1,7 +1,7 @@
+import { createHash } from 'crypto';
 import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
-import { TRIAL_DAYS } from '@/lib/constants';
 import { isCadence, resolvePlanPrice, type Cadence } from '@/lib/pricing';
 import { ensureUserDoc, resolveStripeCustomer, findLivePlanSubscription, stripeId } from '@/lib/billing';
 
@@ -21,19 +21,26 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { plan, returnTo, cadence: rawCadence, quantity: rawQuantity } = await req.json() as {
-    plan: string; returnTo?: string; cadence?: string; quantity?: number;
-  };
+  let body: { plan?: unknown; returnTo?: unknown; cadence?: unknown; quantity?: unknown };
+  try { body = await req.json(); }
+  catch { return Response.json({ error: 'Invalid checkout request' }, { status: 400 }); }
+  if (!body || typeof body.plan !== 'string') return Response.json({ error: 'Invalid plan' }, { status: 400 });
+  const { plan, returnTo, cadence: rawCadence, quantity: rawQuantity } = body;
   const requested: Cadence = isCadence(rawCadence) ? rawCadence : 'monthly';
   const { priceId, cadence } = resolvePlanPrice(plan, requested);
   if (!priceId) return Response.json({ error: 'Invalid plan' }, { status: 400 });
+  if (plan !== 'limitAddon' && cadence !== requested) return Response.json({ error: 'This billing cadence is unavailable. Choose monthly billing or try again later.', code: 'cadence_unavailable' }, { status: 409 });
 
   // The limits add-on is a TOP-UP, not a plan: it grants no access on its own and
   // stacks by Stripe subscription quantity. It therefore takes the opposite path
   // through the duplicate-subscription guard below — it REQUIRES an existing plan
   // instead of being blocked by one.
   const isAddon = plan === 'limitAddon';
-  const quantity = isAddon ? Math.min(20, Math.max(1, Math.floor(Number(rawQuantity) || 1))) : 1;
+  const parsedQuantity = rawQuantity === undefined ? 1 : Number(rawQuantity);
+  if (isAddon && (!Number.isInteger(parsedQuantity) || parsedQuantity < 1 || parsedQuantity > 20)) {
+    return Response.json({ error: 'Choose between 1 and 20 extra limit packs.' }, { status: 400 });
+  }
+  const quantity = isAddon ? parsedQuantity : 1;
 
   // Never let a later write hit `5 NOT_FOUND` on a users doc that doesn't exist yet.
   await ensureUserDoc(uid, email);
@@ -78,16 +85,16 @@ export async function POST(req: Request) {
   const existingCustomerId = await resolveStripeCustomer(uid, email);
 
   // Optional post-checkout destination (e.g. new users land on the dashboard
-  // after starting their trial; billing changes stay in settings).
+  // after checkout; billing changes stay in settings).
   const successUrl = returnTo === 'dashboard'
-    ? `${APP_URL}/dashboard?trial_started=1`
+    ? `${APP_URL}/dashboard?checkout_completed=1`
     : `${APP_URL}/settings?tab=billing&upgraded=1`;
 
   // Abandoning checkout must not dead-end an account-only user with no access:
   // from onboarding (returnTo=dashboard), send them back to the plan/Start step
-  // (?trial=1) so it's one tap to retry. Settings upgrades return to settings.
+  // (?checkout=1) so it's one tap to retry. Settings upgrades return to settings.
   const cancelUrl = returnTo === 'dashboard'
-    ? `${APP_URL}/onboarding?trial=1`
+    ? `${APP_URL}/onboarding?checkout=1`
     : `${APP_URL}/settings?tab=billing`;
 
   // 🚨 ADD-ON METADATA CARRIES NO `plan` KEY, DELIBERATELY.
@@ -108,23 +115,16 @@ export async function POST(req: Request) {
     ...(isAddon ? { adjustable_quantity: { enabled: true, minimum: 1, maximum: 20 } } : {}),
   };
 
-  // Card required now; MODUS is billed after the 3-day trial. Stripe fires
-  // checkout.session.completed + a `trialing` subscription (handled in the
-  // webhook → plan set immediately), then auto-charges when the trial ends.
-  //
-  // The add-on gets NO trial: it is bought by someone who already pays and wants
-  // headroom now, and a 3-day free boost is a free-usage loophole (buy → burn →
-  // cancel, repeatedly).
-  const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {
-    // `cadence` is the one that was actually resolved, not the one requested —
-    // an annual request for a monthly-only plan is recorded as monthly.
-    metadata: subMetadata,
-  };
-  if (!isAddon) {
-    subscriptionData.trial_period_days = TRIAL_DAYS;
-    subscriptionData.trial_settings = { end_behavior: { missing_payment_method: 'cancel' } };
-  }
+  // New purchases are charged at checkout. Existing trial subscriptions keep
+  // their original schedule through the webhook lifecycle.
+  const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = { metadata: subMetadata };
 
+  // Reuse an abandoned checkout. Concurrent retries for the same intent share
+  // a Stripe idempotency key, rather than creating duplicate subscriptions.
+  const intent = createHash('sha256').update(JSON.stringify([uid, priceId, quantity, successUrl, cancelUrl])).digest('hex');
+  const openSessions = await stripe.checkout.sessions.list({ customer: existingCustomerId, status: 'open', limit: 100 });
+  const existing = openSessions.data.find(session => session.metadata?.checkoutIntent === intent && session.url);
+  if (existing) return Response.json({ url: existing.url });
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
@@ -134,8 +134,8 @@ export async function POST(req: Request) {
     customer: existingCustomerId,
     subscription_data: subscriptionData,
     payment_method_collection: 'always',
-    metadata: subMetadata,
-  });
+    metadata: { ...subMetadata, checkoutIntent: intent },
+  }, { idempotencyKey: `checkout:${intent}:${Math.floor(Date.now() / 1_800_000)}` });
 
   return Response.json({ url: session.url });
 }

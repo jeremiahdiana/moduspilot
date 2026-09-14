@@ -10,6 +10,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useResizableSidebar } from '@/hooks/useResizableSidebar';
 import { Tooltip } from '@/components/ui/Tooltip';
 import PaywallModal from '@/components/chat/PaywallModal';
+import { accountModelChoice, resolveModelChoice } from '@/lib/model-choice';
 import { isPaidPlan } from '@/lib/plan';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -18,7 +19,7 @@ import type { Message } from 'ai';
 
 type Plan = 'free' | 'modus' | 'pilot' | 'group';
 
-export default function ChatPage() {
+function ChatContent() {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
   const isGuest = !uid;
@@ -26,7 +27,7 @@ export default function ChatPage() {
   const initialQuery = searchParams.get('q') ?? undefined;
 
   const { conversations, loading, createConversation, setConversationModel, saveMessages, renameConversation, togglePin, deleteConversation, restoreConversation } = useConversations(uid);
-  const { settings, loading: settingsLoading } = useUserSettings(user);
+  const { settings, plan, loading: settingsLoading } = useUserSettings(user);
   // Conversation rail: same drag/collapse behaviour as the app sidebar. A chat
   // list has no icons to shrink to, so collapsed hides it behind a reopen tab.
   const convRail = useResizableSidebar({
@@ -49,15 +50,18 @@ export default function ChatPage() {
   const [headerTitle, setHeaderTitle] = useState('');
   const [showDeleted, setShowDeleted] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [plan, setPlan] = useState<Plan>('free');
+
   // Whether the plan read has come back at all. 'free' above is a placeholder, not
   // an answer, and treating it as one is what showed the paywall to paying users.
-  const [planLoaded, setPlanLoaded] = useState(false);
+  const planLoaded = !settingsLoading;
+  const defaultModelChoice = accountModelChoice(settings.modelSettings, plan);
   const [connectedToast, setConnectedToast] = useState('');
+  const [modelSaveError, setModelSaveError] = useState('');
+  const [failedSaves, setFailedSaves] = useState<Record<string, () => Promise<void>>>({});
+  const viewEpoch = useRef(0);
   // Mobile-only: the conversation list is a slide-in drawer on narrow screens
   // (on desktop it's the always-visible left column).
   const [convDrawerOpen, setConvDrawerOpen] = useState(false);
-  const initDone = useRef(false);
   const pendingConvIdRef = useRef<string | null>(null);
   const [inFlightMessages, setInFlightMessages] = useState<Message[]>([]);
   // A model the user switched to before the chat had a Firestore doc (still a
@@ -92,32 +96,7 @@ export default function ChatPage() {
     }
   }, [conversations]);
 
-  // Load the user's plan. A subscription is the only thing that grants access.
-  useEffect(() => {
-    if (!uid || initDone.current) return;
-    initDone.current = true;
-
-    getDoc(doc(db, 'users', uid)).then(snap => {
-      const data = snap.data() ?? {};
-      const userPlan = data.plan as Plan | undefined;
-      // isPaidPlan covers modus/pilot/group; anything else (incl. undefined) → free.
-      setPlan(isPaidPlan(userPlan) ? userPlan : 'free');
-      // PreLaunchAccess = account predates the paywall launch (permanent free access).
-    }).catch(() => {
-      // 🚨 FAIL OPEN. This used to leave the defaults in place and call that
-      // "fine". It is not: the SERVER gate is what actually enforces payment
-      // (enforceSubscriptionGate), so a client that walls up on a failed read
-      // protects no revenue and locks out only real, paying customers who
-      // happened to load on a bad connection.
-    }).finally(() => {
-      setPlanLoaded(true);
-    });
-  }, [uid, user]);
-
-  // Trialing subscriptions set plan='modus' via the Stripe webhook, so paid
-  // covers the 3-day trial too. PreLaunchAccess accounts keep permanent access.
-  // Use the shared plan helper so this stays in sync with the server gate
-  // (isPaidPlan covers modus/pilot/group — don't inline the list here).
+  // Plan state is live; the API remains authoritative for access.
   const isPaid = isPaidPlan(plan);
   const hasAccess = isPaid;
   // Used for upsell surfaces (the conversation rail), NOT to gate the composer.
@@ -156,6 +135,7 @@ export default function ChatPage() {
   }, [activeConversation?.messages?.length, inFlightMessages.length]);
 
   const handleNew = useCallback(() => {
+    viewEpoch.current++;
     // Open an empty draft — no Firestore doc until the first message is sent.
     // Prevents the pile of empty "New chat" ghosts.
     setInFlightMessages([]); // never inherit a previous chat's in-flight messages
@@ -167,6 +147,7 @@ export default function ChatPage() {
   }, []);
 
   const handleSelect = useCallback((id: string) => {
+    viewEpoch.current++;
     setInFlightMessages([]);
     draftModelRef.current = null; // opening an existing thread: use its own saved model
     setIsDraft(false);
@@ -219,51 +200,58 @@ export default function ChatPage() {
   const handleMessagesChange = useCallback(async (messages: Message[], title?: string) => {
     if (isGuest || !uid) return;
     let convId = activeId ?? pendingConvIdRef.current;
-    if (!convId) {
-      // Persist any model the user switched to while this was still a draft, so
-      // the pick lands on the new doc. draftModelRef is NOT cleared here: the
-      // key={activeId} remount that follows reads it as the seed fallback until
-      // the Firestore snapshot catches up with the persisted modelChoice.
-      convId = await createConversation(draftModelRef.current ?? undefined);
-      pendingConvIdRef.current = convId;
-      setIsDraft(false);        // draft is now a real conversation
-      setActiveId(convId); // set immediately so spinner never shows when Firestore confirms
-      setInFlightMessages(messages);
-    }
-    await saveMessages(convId, messages, title);
-
-    // `title` is only set on the first exchange, so this fires once per chat.
-    // The truncated title above is the provisional one (the sidebar should never
-    // sit blank); this replaces it with a real summary a beat later. Failure is
-    // silent by design — a worse title is not worth an error toast.
-    if (title) generateTitle(convId, messages);
-  }, [isGuest, uid, activeId, createConversation, saveMessages, generateTitle]);
+    const epoch = viewEpoch.current;
+    const chosenModel = draftModelRef.current ?? defaultModelChoice;
+    const draftSaveId = crypto.randomUUID();
+    let persisting = false;
+    // Retry captures the original conversation, even after the user switches.
+    const persist = async () => {
+      if (persisting) return;
+      persisting = true;
+      try {
+        if (!convId) {
+          convId = await createConversation(chosenModel);
+          if (viewEpoch.current === epoch) {
+            pendingConvIdRef.current = convId;
+            setIsDraft(false);
+            setActiveId(convId);
+            setInFlightMessages(messages);
+          }
+        }
+        await saveMessages(convId, messages, title);
+        setFailedSaves(previous => {
+          const next = { ...previous };
+          delete next[draftSaveId];
+          if (convId) delete next[convId];
+          return next;
+        });
+        if (title) void generateTitle(convId, messages);
+      } catch {
+        setFailedSaves(previous => ({ ...previous, [convId ?? draftSaveId]: persist }));
+      } finally { persisting = false; }
+    };
+    await persist();
+  }, [isGuest, uid, activeId, createConversation, saveMessages, generateTitle, defaultModelChoice]);
 
   // Access is server-authoritative: the API returns subscription_required (402)
   // and the composer opens the paywall via onShowPaywall. Nothing to track here.
   const handleUserMessage = useCallback(() => {}, []);
 
-  // Two scopes, not one:
-  //  • The Brain setting (settings.modelSettings) is the account-wide DEFAULT a
-  //    NEW chat opens on. Edited from the Brain settings page.
-  //  • A model switch inside a thread overrides that for THAT conversation only
-  //    and persists on the conversation doc (see onThreadModelChange), so it
-  //    survives reload and never changes the account default.
-  const ms = settings.modelSettings;
-  const defaultModelChoice = ms?.provider === 'openai' || ms?.provider === 'anthropic'
-    ? 'default'
-    : (ms?.model ?? 'auto');
   // A per-thread switch: persist onto the conversation doc, or stash on the draft
   // ref if the doc does not exist yet (it lands via createConversation). The
-  // account default (Brain settings) is edited on its own page, not from here.
+  // account default changes only through the separate default action.
   const handleThreadModelChange = useCallback((v: string) => {
     const convId = activeId ?? pendingConvIdRef.current;
-    if (convId) setConversationModel(convId, v);
+    setModelSaveError('');
+    if (convId) void setConversationModel(convId, v).catch(() => setModelSaveError('Could not save the model choice. Select it again to retry.'));
     else draftModelRef.current = v;
   }, [activeId, setConversationModel]);
 
   return (
     <div className="flex h-full overflow-hidden relative">
+      {Object.keys(failedSaves).length > 0 && <div role="alert" className="absolute top-2 left-1/2 -translate-x-1/2 z-50 max-w-lg rounded-xl border border-border bg-panel p-3 text-sm text-text shadow-lg">
+        Some conversation changes could not be saved. <button className="text-brand underline" onClick={() => { void Promise.all(Object.values(failedSaves).map(retry => retry())); }}>Retry saving</button>
+      </div>}
       {/* OAuth connected toast */}
       {connectedToast && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none">
@@ -414,8 +402,9 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden">
+          {modelSaveError && <p role="alert" className="px-4 py-2 text-sm text-red-500">{modelSaveError}</p>}
           {/* Wait until activeId is settled so ChatWindow doesn't remount with a key change */}
-          {!isGuest && !isDraft && (loading || settingsLoading || (conversations.length > 0 && !activeId)) ? (
+          {!isGuest && (settingsLoading || (!isDraft && (loading || (conversations.length > 0 && !activeId)))) ? (
             // Mirror ChatWindow's exact layout (centered content above a
             // composer-shaped footer) so the spinner sits precisely where the
             // greeting will — the loading→loaded hand-off has zero vertical jump.
@@ -440,7 +429,7 @@ export default function ChatPage() {
             </div>
           ) : (
           <ChatWindow
-            key={activeId ?? (isGuest ? 'guest' : 'draft')}
+            key={activeId ?? (isGuest ? 'guest' : `draft:${viewEpoch.current}`)}
             conversationId={activeId}
             initialMessages={activeConversation?.messages?.length ? activeConversation.messages : inFlightMessages}
             initialInput={initialQuery}
@@ -457,7 +446,7 @@ export default function ChatPage() {
             briefingHour={settings.briefingHour}
             briefingTimezone={settings.briefingTimezone}
             plan={plan}
-            initialModelChoice={activeConversation?.modelChoice ?? draftModelRef.current ?? defaultModelChoice}
+            initialModelChoice={resolveModelChoice(activeConversation?.modelChoice ?? draftModelRef.current ?? defaultModelChoice, plan)}
             onThreadModelChange={handleThreadModelChange}
           />
           )}
@@ -540,14 +529,14 @@ function ConversationPanel({
         />
       )}
 
-      {/* No subscription — prompt to start the trial */}
+      {/* Free plan upgrade option */}
       {needsSubscription && (
         <div className="px-3 pt-3 border-t border-border mt-auto">
           <div className="flex justify-between text-xs text-muted mb-1">
-            <span>Trial not started</span>
-            <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Start trial</button>
+            <span>Free plan</span>
+            <button onClick={() => setShowPaywall(true)} className="text-brand hover:underline">Upgrade</button>
           </div>
-          <p className="text-[11px] text-muted/70 leading-snug">Start your 3-day free trial to use Modus.</p>
+          <p className="text-[11px] text-muted/70 leading-snug">Continue with the Free plan or upgrade for more access.</p>
         </div>
       )}
 
@@ -602,4 +591,9 @@ function DeletedList({ uid, onRestore, restoreFn }: {
       ))}
     </div>
   );
+}
+
+export default function ChatPage() {
+  const { user } = useAuth();
+  return <ChatContent key={user?.uid ?? 'guest'} />;
 }

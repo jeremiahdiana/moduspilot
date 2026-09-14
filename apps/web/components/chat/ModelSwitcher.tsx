@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PLATFORM_MODELS, effectivePlan, modelName } from '@/lib/models';
+import { PLATFORM_MODELS, effectivePlan, modelName, canUseModel, canonicalModelId } from '@/lib/models';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { logoForModel } from '@/components/marketing/ModelLogos';
 
 interface Props {
@@ -21,7 +24,7 @@ interface Props {
 function currentLabel(value: string): string {
   if (value === 'auto' || !value) return 'Auto';
   if (value === 'auto-saver') return 'Auto Saver';
-  if (value === 'default') return 'Default';
+  if (value === 'default') return 'Account default';
   return modelName(value);
 }
 
@@ -48,6 +51,30 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const ep = effectivePlan(plan);
+  const { user } = useAuth();
+  const [defaultStatus, setDefaultStatus] = useState('');
+  const [savingDefault, setSavingDefault] = useState(false);
+  const defaultPending = useRef(false);
+  useEffect(() => { setDefaultStatus(''); }, [value, user?.uid]);
+
+  async function saveDefault() {
+    if (!user || defaultPending.current || value === 'default') return;
+    const model = canonicalModelId(value || 'auto');
+    defaultPending.current = true;
+    setSavingDefault(true);
+    setDefaultStatus('');
+    try {
+      const account = await getDoc(doc(db, 'users', user.uid));
+      if (auth.currentUser?.uid !== user.uid) return;
+      if (model !== 'auto' && model !== 'auto-saver' && !canUseModel(model, account.data()?.plan)) {
+        setDefaultStatus('This model is not available on your plan.');
+        return;
+      }
+      await setDoc(doc(db, 'users', user.uid), { settings: { modelSettings: { provider: 'platform', model } } }, { merge: true });
+      if (auth.currentUser?.uid === user.uid) setDefaultStatus('Default saved for new chats.');
+    } catch { if (auth.currentUser?.uid === user.uid) setDefaultStatus('Could not save. Please retry.'); }
+    finally { defaultPending.current = false; setSavingDefault(false); }
+  }
 
   // Yours first, then the upgrade ladder: what $24 buys, then what $59 buys.
   //
@@ -131,6 +158,11 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
           transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
           className="absolute bottom-full left-0 mb-2 w-60 origin-bottom-left bg-panel border border-border rounded-xl shadow-lg py-1.5 z-50 max-h-80 overflow-y-auto"
         >
+          {user && <div className="border-b border-border/60 pb-1 mb-1">
+            <button type="button" onClick={() => select('default')} className="w-full text-left px-3 py-2 text-xs text-muted hover-surface-tint">Account default</button>
+            {value !== 'default' && !compareOn && <button type="button" disabled={savingDefault} onClick={saveDefault} className="w-full text-left px-3 py-2 text-xs text-brand hover-surface-tint disabled:opacity-50">{savingDefault ? 'Saving…' : 'Use as default for new chats'}</button>}
+            {defaultStatus && <p role="status" className="px-3 py-2 text-xs text-muted">{defaultStatus}</p>}
+          </div>}
           <button
             type="button"
             onClick={() => select('auto')}
@@ -222,7 +254,7 @@ export default function ModelSwitcher({ value, onChange, plan, compareOn = false
                 </div>
                 {locked && (
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted/10 text-muted shrink-0">
-                    {m.plans.includes('modus') ? 'MODUS+' : 'PILOT'}
+                    {m.plans.includes('modus') ? 'MODUS' : 'PILOT'}
                   </span>
                 )}
               </button>

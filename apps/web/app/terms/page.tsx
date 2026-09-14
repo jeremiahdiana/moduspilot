@@ -33,12 +33,12 @@ export default function TermsPage() {
         </div>
 
         <Section title="Agreement">
-          <p>By accessing or using MODUS Pilot ("MODUS", "the Service"), you agree to these Terms of Service. If you do not agree, do not use the Service. These terms form a binding agreement between you and MODUS Pilot.</p>
+          <p>By accessing or using MODUS Pilot (&quot;MODUS&quot;, &quot;the Service&quot;), you agree to these Terms of Service. If you do not agree, do not use the Service. These terms form a binding agreement between you and MODUS Pilot.</p>
         </Section>
 
         <Section title="The Service">
           <p>Modus is an AI-powered personal operating system that helps you manage goals, tasks, habits, email, and calendar through a conversational interface. Modus acts on your behalf only when you explicitly approve actions via approval cards.</p>
-          <p>The Service is provided "as is." We are continuously improving Modus and features may change, be added, or be removed at any time.</p>
+          <p>The Service is provided &quot;as is.&quot; We are continuously improving Modus and features may change, be added, or be removed at any time.</p>
         </Section>
 
         <Section title="Your Account">
@@ -47,7 +47,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Subscription and Payment">
-          <p>Modus is a paid service offered with a 3-day free trial. A payment method is required to start the trial. Unless you cancel before the trial ends, your card is charged for the plan and billing cadence you selected.</p>
+          <p>Modus offers a Free plan with usage limits and paid MODUS and PILOT subscriptions. Paid subscriptions require a payment method and are billed when you subscribe at the selected billing cadence. Existing trials retain their original end date. Extra limits are available as a separate paid subscription.</p>
           <p>Current plans: MODUS at $24/mo billed monthly, or $240/yr billed annually. PILOT at $59/mo billed monthly, or $588/yr billed annually. Annual plans are charged once up front for the full year.</p>
           <p>Payments are processed by Stripe. By subscribing you authorize us to charge your payment method on a recurring basis at the cadence you chose, until you cancel. You may cancel at any time from Settings → Billing. Cancellation takes effect at the end of your current billing period, and we do not refund partial months or partial years.</p>
           <p>Founding member seats, where offered, are billed at the price stated at the time you claim the seat, and that price is honoured for as long as the subscription stays active.</p>
@@ -93,7 +93,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="Disclaimer of Warranties">
-          <p>The Service is provided "as is" without warranties of any kind, express or implied. We do not warrant that the Service will be uninterrupted, error-free, or that any defects will be corrected.</p>
+          <p>The Service is provided &quot;as is&quot; without warranties of any kind, express or implied. We do not warrant that the Service will be uninterrupted, error-free, or that any defects will be corrected.</p>
         </Section>
 
         <Section title="Changes to Terms">

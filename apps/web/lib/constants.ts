@@ -1,6 +1,4 @@
 export const GUEST_DAILY_LIMIT  = 5;
-export const TRIAL_DAYS         = 3;
-export const TRIAL_MS           = TRIAL_DAYS * 24 * 60 * 60 * 1000;
 
 // ── The free plan: a real, ongoing free tier on the open models ──────────────
 //

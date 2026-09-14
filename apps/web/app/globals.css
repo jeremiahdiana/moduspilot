@@ -766,3 +766,14 @@ body::after {
   transition-delay: 0ms !important;
   scroll-behavior: auto !important;
 }
+
+/* Onboarding keeps its neutral palette in both themes. */
+.onboarding-reduced *, .onboarding-reduced *::before, .onboarding-reduced *::after {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+.onboarding-reduced [style*="opacity"] { opacity: 1 !important; }
+.onboarding-reduced .absolute.rounded-full,
+.onboarding-reduced .absolute.inset-0.rounded-3xl { display: none; }

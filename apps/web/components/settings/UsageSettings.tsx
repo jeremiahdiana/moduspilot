@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { allowancePercent, usageSnapshot } from '@/lib/usage';
 import { isPaidPlan, planCeilings } from '@/lib/plan';
 import { unlockedModels } from '@/lib/models';
 import { costWeight } from '@/lib/chat/model-cost';
-import { WINDOW_MS, WINDOW_HOURS } from '@/lib/constants';
+import { WINDOW_HOURS } from '@/lib/constants';
 
 /**
  * What each model this plan can pick actually costs against the allowance.
@@ -54,22 +56,15 @@ function UsageBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-// Must match the server's getWeekKey (lib/chat/limits.ts) EXACTLY — it computes
-// the Monday-of-week key in UTC and stores it as `tokenWeek`. Computing it in
-// local time here made the keys disagree for non-UTC users near week boundaries,
-// so `usage.tokenWeek === weekKey` failed and the weekly bar read 0% mid-week.
-function getWeekKey() {
-  const now = new Date();
-  const day = now.getUTCDay();
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - (day === 0 ? 6 : day - 1));
-  return monday.toISOString().slice(0, 10);
-}
-
-export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUpgrade?: () => void }) {
+export default function UsageSettings({ plan, usage }: Props) {
   const isPaid = isPaidPlan(plan);
-  const now     = Date.now();
-  const weekKey = getWeekKey();
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
+    const refresh = () => setNow(Date.now());
+    window.addEventListener('focus', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, []);
 
   // 🪤 The SAME function the server gates on (lib/plan.ts). Recomputing the
   // ceilings here is how the meter and the gate drift apart — an add-on holder
@@ -77,31 +72,12 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
   const { window: windowLimit, weekly: weeklyLimit } = planCeilings({ plan, limitAddonQty: usage.limitAddonQty });
   const costs = allowanceCosts(plan);
 
-  // 🕔 The short window is rolling: an expired (or never-started) window reads as
-  // 0, matching enforcePaidTokenLimit in lib/chat/limits.ts exactly.
-  const windowLive   = usage.windowStart > 0 && now < usage.windowStart + WINDOW_MS;
-  const windowCount  = windowLive ? usage.windowTokens : 0;
-  const weeklyCount  = usage.tokenWeek === weekKey ? usage.weeklyTokens : 0;
-
-  const windowPct  = Math.min(100, (windowCount / windowLimit) * 100);
-  const weeklyPct  = Math.min(100, (weeklyCount / weeklyLimit) * 100);
-
-  const resetTime = (() => {
-    if (!windowLive) return null;
-    const diff = usage.windowStart + WINDOW_MS - now;
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    return `${h}h ${m}m`;
-  })();
-
-  const nextMonday = (() => {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = day === 0 ? 1 : 8 - day;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
-    return monday.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-  })();
+  const { windowCount, weeklyCount, windowReset, weekReset } = usageSnapshot(usage, now);
+  const windowPct = allowancePercent(windowCount, windowLimit);
+  const weeklyPct = allowancePercent(weeklyCount, weeklyLimit);
+  const remainingMinutes = windowReset ? Math.max(1, Math.ceil((windowReset - now) / 60_000)) : 0;
+  const resetTime = windowReset ? `${Math.floor(remainingMinutes / 60)}h ${remainingMinutes % 60}m` : null;
+  const nextMonday = new Date(weekReset).toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
 
   return (
     <div className="space-y-8">
@@ -110,8 +86,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
         <p className="text-sm text-muted">Track your AI usage and plan limits.</p>
       </div>
 
-      {isPaid ? (
-        <>
+      <>
           {/* Current rolling window */}
           <div className="bg-panel border border-border rounded-xl p-6 space-y-5">
             <h3 className="text-sm font-semibold text-text">Current session</h3>
@@ -147,14 +122,7 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
               </div>
             </div>
           </div>
-        </>
-      ) : (
-        /* No active plan — MODUS is fully paid */
-        <div className="bg-panel border border-border rounded-xl p-6 space-y-3">
-          <h3 className="text-sm font-semibold text-text">No active plan</h3>
-          <p className="text-sm text-muted">Modus requires an active plan. Start your 3-day free trial to unlock chat, briefings, and everything else.</p>
-        </div>
-      )}
+      </>
 
       {/* What actually drains the allowance.
           This card is the honest replacement for the old "Daily AI tokens —
@@ -196,8 +164,8 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
             { label: 'Memory storage',    value: 'Unlimited' },
             { label: 'Data retention',    value: '2 years' },
           ] : [
-            { label: 'AI access',         value: 'Requires an active plan' },
-            { label: 'Free trial',        value: '3 days, card required' },
+            { label: 'AI access',         value: 'Open models, no card required' },
+            { label: 'Allowance',         value: 'Five-hour window plus a weekly cap' },
             { label: 'MODUS',             value: '$24/mo' },
             { label: 'PILOT',             value: '$59/mo' },
           ]).map(row => (
@@ -211,11 +179,11 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
             arithmetic can still see it; it is just no longer the headline, and
             it says credits because that is what it counts. planCeilings()
             already folds in any purchased add-on. */}
-        {isPaid && (
+        {(
           <p className="text-xs text-muted/70 pt-1 leading-relaxed">
             Usage allowance: {windowLimit.toLocaleString()} credits per {WINDOW_HOURS}h ·{' '}
             {weeklyLimit.toLocaleString()}/week
-            {(usage.limitAddonQty ?? 0) > 0 && ` · includes ${usage.limitAddonQty}× extra limits`}
+            {isPaid && (usage.limitAddonQty ?? 0) > 0 && ` · includes ${usage.limitAddonQty}× extra limits`}
           </p>
         )}
       </div>
@@ -223,15 +191,15 @@ export default function UsageSettings({ plan, usage, onUpgrade }: Props & { onUp
       {!isPaid && (
         <div className="surface-tint border border-tint rounded-xl p-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-text mb-1">Unlock unlimited messages</p>
-            <p className="text-xs text-muted">Upgrade to MODUS for $24/mo, no daily caps, full memory, daily briefings.</p>
+            <p className="text-sm font-semibold text-text mb-1">Unlock higher limits</p>
+            <p className="text-xs text-muted">Upgrade to MODUS for $24/mo for paid models and higher usage limits.</p>
           </div>
-          <button
-            onClick={onUpgrade}
+          <a
+            href="#paid-plans"
             className="shrink-0 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand/90 transition-colors"
           >
-            Upgrade
-          </button>
+            Compare plans
+          </a>
         </div>
       )}
     </div>

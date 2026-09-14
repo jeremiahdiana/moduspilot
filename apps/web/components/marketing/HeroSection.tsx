@@ -86,7 +86,7 @@ export default function HeroSection() {
         </motion.div>
 
         <p className="text-xs text-muted/70 -mt-4 mb-10 px-4">
-          10 messages on every frontier model, no card. Then a 3-day trial.
+          Open models free, no card. Upgrade for frontier models and higher limits.
         </p>
 
         {/* Trust bar */}

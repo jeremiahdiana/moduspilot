@@ -36,7 +36,7 @@ const PLANS: Plan[] = [
     popular: true,
     features: [
       'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama',
-      'Unlimited chat with full context',
+      'Chat with full context and higher limits',
       'Generate images and editable PDFs',
       'Voice interface',
       'Gmail / Outlook, Calendar and Drive',
@@ -178,9 +178,7 @@ export default function HomePricingSection({
           ))}
         </div>
 
-        {/* Extra limits — a strip, not a tier. Copy says "double", never a message
-            count (one add-on is ~25 more messages a day on standard models but under
-            one more on a frontier model, so any number would be false for someone). */}
+        {/* Extra limits are purchased separately from the base plan. */}
         <motion.div
           initial={false}
           whileInView={{ opacity: 1, y: 0 }}
@@ -193,8 +191,8 @@ export default function HomePricingSection({
               Need more headroom? Add extra limits for ${LIMIT_ADDON.monthlyPrice}/mo
             </p>
             <p className="text-sm text-muted leading-relaxed max-w-xl">
-              Doubles your daily and weekly limits on either paid plan. Stack it as many times as you
-              need, cancel it without touching your plan.
+              Each pack adds 500,000 credits per five-hour window and 3,500,000 per week on a paid plan.
+              Packs stack and can be canceled separately.
             </p>
           </div>
           <span className="shrink-0 text-xs text-muted">Available once you&apos;re on a plan</span>

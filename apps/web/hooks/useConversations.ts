@@ -83,7 +83,7 @@ export function useConversations(uid: string | null) {
       messages: [],
       // Carry a model the user picked while the chat was still a draft (no doc
       // yet), so the pick is not lost when the draft becomes a real conversation.
-      ...(modelChoice && modelChoice !== 'auto' ? { modelChoice } : {}),
+      ...(modelChoice ? { modelChoice } : {}),
     });
     return ref.id;
   }, [uid]);

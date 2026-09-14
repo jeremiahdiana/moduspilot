@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { auth } from '@/lib/firebase';
+import { validateCheckText } from '@/lib/ai-check';
 
 interface Result {
   ai: number; human: number;
@@ -16,36 +17,57 @@ export default function AiCheckButton({ text }: { text: string }) {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState('');
 
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => {
+    pending.current?.abort();
+    pending.current = null;
+    setState('idle');
+    setResult(null);
+    setError('');
+    return () => { pending.current?.abort(); pending.current = null; };
+  }, [text]);
+
   const run = async () => {
+    if (pending.current) return;
+    const checked = validateCheckText(text);
+    if ('error' in checked) { setError(checked.message); setState('error'); return; }
+    const controller = new AbortController();
+    pending.current = controller;
     setState('loading');
     setError('');
+    const timer = setTimeout(() => {
+      controller.abort();
+      if (pending.current === controller) {
+        pending.current = null;
+        setError('The checker took too long. Please retry.');
+        setState('error');
+      }
+    }, 12_000);
     try {
       const token = await auth.currentUser?.getIdToken();
+      if (controller.signal.aborted) return;
+      if (!token) throw new Error('Please sign in to check text.');
       const res = await fetch('/api/ai-check', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ text }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: checked.text }),
+        signal: controller.signal,
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        // No detector configured yet: hide the control entirely rather than show
-        // an error on every message until GPTZERO_API_KEY lands.
-        if (data?.error === 'not_configured') {
-          setState('hidden');
-          return;
-        }
-        setError(data?.message || 'Could not check this text right now.');
-        setState('error');
-        return;
+      if (pending.current !== controller) return;
+      if (!res.ok) throw new Error(data?.message || 'Could not check this text right now.');
+      if (!Number.isFinite(data.ai) || !Number.isFinite(data.human) || data.ai < 0 || data.ai > 1 || data.human < 0 || data.human > 1) {
+        throw new Error('The checker returned no valid result.');
       }
       setResult(data as Result);
       setState('done');
-    } catch {
-      setError('Could not reach the checker.');
+    } catch (error) {
+      if (pending.current !== controller) return;
+      setError(error instanceof Error && !controller.signal.aborted ? error.message : 'The checker took too long. Please retry.');
       setState('error');
+    } finally {
+      clearTimeout(timer);
+      if (pending.current === controller) pending.current = null;
     }
   };
 

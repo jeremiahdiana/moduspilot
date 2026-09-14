@@ -70,24 +70,24 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    heading: 'Your Brain, AI model selection',
+    heading: 'AI model selection',
     icon: '🧠',
     tips: [
       {
-        title: 'Switch your AI in Settings → Brain',
+        title: 'Switch your AI in chat',
         // ⚠️ This sentence NAMES AND COUNTS the catalog, so it goes stale the moment
         // lib/models.ts changes and nobody notices — it still said "7 AI models"
         // three models later. Update it in the same commit as PLATFORM_MODELS.
-        body: 'Modus runs on 10 AI models. Go to Settings → Brain to pick one. Llama 3.3 is fast and always free. DeepSeek V3.1, GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.5 Flash unlock on MODUS ($24/mo). Llama 4 Maverick, GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro unlock on PILOT ($59/mo).',
+        body: 'Choose a model in the chat picker. Free includes open models. MODUS and PILOT unlock paid models with higher limits. The picker shows which models your plan includes. Use the default option there to choose the model for new chats.',
         tag: 'Feature',
       },
       {
-        title: 'All features work on every Brain',
-        body: 'Your memory, inbox triage, approval cards, and integrations work identically no matter which Brain you pick. The Brain only changes which AI model answers your chat messages.',
+        title: 'Your settings stay with you',
+        body: 'Your memory, inbox triage, approval cards, and integrations work identically no matter which model you pick. The model selection only changes which AI model answers your chat messages.',
       },
       {
         title: 'Use your own API key',
-        body: 'Have your own OpenAI or Anthropic subscription? Settings → Brain → "Use your own subscription". Your key overrides the platform Brain and routes chat directly through your account.',
+        body: 'Have your own OpenAI or Anthropic API account? Settings → Account → "Use your own API account". Select Account default in chat to use your key. Provider API billing is separate.',
         tag: 'BYOK',
       },
       {
@@ -161,16 +161,16 @@ const SECTIONS: Section[] = [
     tips: [
       {
         title: 'Modus builds a profile of you over time',
-        body: 'With "Generate Memory from Chat History" enabled (Settings → Brain), Modus extracts key facts from your conversations, your preferences, recurring goals, communication style.',
+        body: 'With "Generate Memory from Chat History" enabled (Settings → Memory), Modus extracts key facts from your conversations, your preferences, recurring goals, communication style.',
       },
       {
         title: 'Add memories manually',
-        body: 'Go to Settings → Brain → Add Memory. Useful for things like: "I work across Pacific and Eastern time zones", "My launch date is June 1", "My co-founder is named Alex".',
+        body: 'Go to Settings → Memory → Add Memory. Useful for things like: "I work across Pacific and Eastern time zones", "My launch date is June 1", "My co-founder is named Alex".',
         tag: 'Pro tip',
       },
       {
         title: 'Import from ChatGPT',
-        body: 'If you\'ve been using ChatGPT\'s memory, you can export your memories from ChatGPT (Settings → Data controls → Export) and import the JSON directly in Settings → Brain.',
+        body: 'If you\'ve been using ChatGPT\'s memory, you can export your memories from ChatGPT (Settings → Data controls → Export) and import the JSON directly in Settings → Memory.',
       },
     ],
   },

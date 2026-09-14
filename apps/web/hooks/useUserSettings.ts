@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, collection, getDocs, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { doc, onSnapshot, setDoc, collection, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { CAPABILITY_DEFAULTS } from '@/lib/capabilities';
 import type { User } from 'firebase/auth';
@@ -64,7 +64,7 @@ export interface UserSettings {
 export interface Memory {
   id: string;
   content: string;
-  source: 'manual' | 'generated';
+  source: 'manual' | 'generated' | 'onboarding';
   createdAt: Date;
 }
 
@@ -104,98 +104,103 @@ export function useUserSettings(user: User | null) {
   const [saving, setSaving] = useState(false);
 
   const uid = user?.uid ?? null;
+  const currentUid = useRef(uid);
+  currentUid.current = uid;
+  const [loadedUid, setLoadedUid] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!uid) { setLoading(false); return; }
+    setSettings(DEFAULT_SETTINGS);
+    setMemories([]);
+    setPlan('free');
+    setUsage({ dailyMessages: 0, usageDate: '', windowTokens: 0, windowStart: 0, weeklyTokens: 0, tokenWeek: '', limitAddonQty: 0 });
+    setSaving(false);
+    setError('');
+    setLoading(!!uid);
+    setLoadedUid(null);
+    if (!uid) return;
     let cancelled = false;
-
-    const load = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', uid));
-        if (!cancelled && userDoc.exists()) {
-          const data = userDoc.data();
-          if (data.settings) {
-            setSettings({
-              ...DEFAULT_SETTINGS,
-              ...data.settings,
-              capabilities: { ...DEFAULT_SETTINGS.capabilities, ...data.settings?.capabilities },
-              sidebar: { ...DEFAULT_SETTINGS.sidebar!, ...data.settings?.sidebar },
-              layout: { ...DEFAULT_SETTINGS.layout!, ...data.settings?.layout },
-            });
-          }
-          if (data.plan === 'modus' || data.plan === 'pilot' || data.plan === 'group') setPlan(data.plan);
-          setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', windowTokens: (data.windowTokens as number) ?? 0, windowStart: (data.windowStart as number) ?? 0, weeklyTokens: (data.weeklyTokens as number) ?? 0, tokenWeek: (data.tokenWeek as string) ?? '', limitAddonQty: (data.limitAddonQty as number) ?? 0 });
-        }
-
-        const memSnap = await getDocs(collection(db, 'users', uid, 'memories'));
-        if (!cancelled) {
-          const mems: Memory[] = memSnap.docs.map(d => ({
-            id: d.id,
-            content: d.data().content as string,
-            source: (d.data().source as 'manual' | 'generated') ?? 'manual',
-            createdAt: d.data().createdAt?.toDate() ?? new Date(),
-          }));
-          setMemories(mems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
-        }
-      } catch (e) {
-        console.error('[useUserSettings] load error', e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    let accountReady = false;
+    let memoriesReady = false;
+    const finish = () => {
+      if (!cancelled && accountReady && memoriesReady) { setLoadedUid(uid); setLoading(false); }
     };
-
-    load();
-    return () => { cancelled = true; };
+    const accountStop = onSnapshot(doc(db, 'users', uid), userDoc => {
+      if (cancelled) return;
+      const data = userDoc.data() ?? {};
+      setSettings({
+        ...DEFAULT_SETTINGS, ...data.settings,
+        capabilities: { ...DEFAULT_SETTINGS.capabilities, ...data.settings?.capabilities },
+        sidebar: { ...DEFAULT_SETTINGS.sidebar!, ...data.settings?.sidebar },
+        layout: { ...DEFAULT_SETTINGS.layout!, ...data.settings?.layout },
+      });
+      setPlan(data.plan === 'modus' || data.plan === 'pilot' || data.plan === 'group' ? data.plan : 'free');
+      setUsage({ dailyMessages: data.dailyMessages ?? 0, usageDate: data.usageDate ?? '', windowTokens: data.windowTokens ?? 0, windowStart: data.windowStart ?? 0, weeklyTokens: data.weeklyTokens ?? 0, tokenWeek: data.tokenWeek ?? '', limitAddonQty: data.limitAddonQty ?? 0 });
+      accountReady = true;
+      finish();
+    }, () => {
+      if (cancelled) return;
+      setError('Could not load account settings. Reload to retry.');
+      accountReady = true;
+      finish();
+    });
+    const memoriesStop = onSnapshot(collection(db, 'users', uid, 'memories'), snap => {
+      if (cancelled) return;
+      setMemories(snap.docs.map(d => ({
+        id: d.id, content: d.data().content as string,
+        source: (d.data().source as Memory['source']) ?? 'manual',
+        createdAt: d.data().createdAt?.toDate() ?? new Date(),
+      })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      memoriesReady = true;
+      finish();
+    }, () => {
+      if (cancelled) return;
+      setError('Could not load memories. Reload to retry.');
+      memoriesReady = true;
+      finish();
+    });
+    return () => { cancelled = true; accountStop(); memoriesStop(); };
   }, [uid]);
 
   const saveSettings = useCallback(async (updates: Partial<UserSettings>) => {
     if (!user) return;
     setSaving(true);
+    setError('');
     try {
-      const next = {
-        ...settings,
-        ...updates,
-        capabilities: { ...settings.capabilities, ...(updates.capabilities ?? {}) },
-        sidebar: {
-          hidden: updates.sidebar?.hidden ?? settings.sidebar?.hidden ?? [],
-          workspaceCollapsed: updates.sidebar?.workspaceCollapsed ?? settings.sidebar?.workspaceCollapsed ?? false,
-        },
-        layout: {
-          dashboardHidden: updates.layout?.dashboardHidden ?? settings.layout?.dashboardHidden ?? [],
-          briefingHidden: updates.layout?.briefingHidden ?? settings.layout?.briefingHidden ?? [],
-          dashboardOrder: updates.layout?.dashboardOrder ?? settings.layout?.dashboardOrder ?? [],
-        },
-      };
-      setSettings(next);
-      await setDoc(doc(db, 'users', user.uid), { settings: next }, { merge: true });
+      // Only write the fields changed by this action. A second tab or a usage
+      // update must not overwrite an unrelated preference with a stale copy.
+      await setDoc(doc(db, 'users', user.uid), { settings: updates }, { merge: true });
+    } catch (error) {
+      if (currentUid.current === user.uid) setError('Could not save settings. Please retry.');
+      throw error;
     } finally {
-      setSaving(false);
+      if (currentUid.current === user.uid) setSaving(false);
     }
-  }, [user, settings]);
+  }, [user]);
 
   const addMemory = useCallback(async (content: string) => {
     if (!user || !content.trim()) return;
-    const ref = await addDoc(collection(db, 'users', user.uid, 'memories'), {
+    await addDoc(collection(db, 'users', user.uid, 'memories'), {
       content: content.trim(),
       source: 'manual',
       createdAt: serverTimestamp(),
     });
-    setMemories(prev => [{ id: ref.id, content: content.trim(), source: 'manual', createdAt: new Date() }, ...prev]);
+
 
     // Upsert to Pinecone (fire and forget)
-    user.getIdToken().then(token =>
+    void user.getIdToken().then(token =>
       fetch('/api/memory/upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text: content.trim() }),
-      }).catch(e => console.error('[addMemory] Pinecone upsert failed:', e))
-    );
+      })
+    ).catch(e => console.error('[addMemory] Pinecone upsert failed:', e));
   }, [user]);
 
   const deleteMemory = useCallback(async (id: string) => {
     if (!user) return;
     await deleteDoc(doc(db, 'users', user.uid, 'memories', id));
-    setMemories(prev => prev.filter(m => m.id !== id));
+
   }, [user]);
 
   // Clears every memory (Firestore + Pinecone) via the API, then empties the
@@ -209,7 +214,7 @@ export function useUserSettings(user: User | null) {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error('Failed to clear memories');
-    setMemories([]);
+    if (currentUid.current === user.uid) setMemories([]);
   }, [user]);
 
   /**
@@ -231,5 +236,6 @@ export function useUserSettings(user: User | null) {
     return Object.values(json.cleared ?? {}).reduce((a, b) => a + b, 0);
   }, [user]);
 
-  return { settings, memories, plan, usage, loading, saving, saveSettings, addMemory, deleteMemory, clearMemories, clearSyncedData };
+  const ready = uid === loadedUid;
+  return { settings: ready ? settings : DEFAULT_SETTINGS, memories: ready ? memories : [], plan: ready ? plan : 'free' as const, usage: ready ? usage : { dailyMessages: 0, usageDate: '', windowTokens: 0, windowStart: 0, weeklyTokens: 0, tokenWeek: '', limitAddonQty: 0 }, loading: loading || (!!uid && !ready), error, saving, saveSettings, addMemory, deleteMemory, clearMemories, clearSyncedData };
 }

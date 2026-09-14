@@ -14,6 +14,7 @@ import { useChat } from 'ai/react';
 import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
+import { useConversationModel } from '@/hooks/useConversationModel';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
 import { motion } from 'framer-motion';
 
@@ -49,7 +50,7 @@ interface Goal {
   notes: Note[];
 }
 
-interface GoalChat { id: string; title: string; messages: Message[]; createdAt: Date; }
+interface GoalChat { id: string; title: string; messages: Message[]; createdAt: Date; modelChoice?: string; }
 
 const TF_BADGE: Record<Timeframe, string> = {
   short: 'bg-blue-500/10 text-blue-500',
@@ -139,25 +140,14 @@ function Ring({ pct, color, size = 52, stroke = 5 }: { pct: number; color: strin
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function GoalDetailPage() {
+function GoalDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const { settings, plan, loading: settingsLoading } = useUserSettings(user);
 
   // In-chat model picker (mirrors the main + project chat) + error surface.
-  const [modelChoice, setModelChoice] = useState('auto');
-  const didInitModelRef = useRef(false);
-  const handleModelChange = useCallback((v: string) => setModelChoice(v), []);
   const [chatError, setChatError] = useState<string | null>(null);
-  useEffect(() => {
-    if (didInitModelRef.current || settingsLoading) return;
-    const msx = settings.modelSettings;
-    setModelChoice(
-      msx?.provider === 'openai' || msx?.provider === 'anthropic' ? 'default' : (msx?.model ?? 'auto'),
-    );
-    didInitModelRef.current = true;
-  }, [settings, settingsLoading]);
 
   const [goal, setGoal] = useState<Goal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -208,6 +198,7 @@ export default function GoalDetailPage() {
   const activeChatIdRef = useRef(`goal-${id}`);
   const [activeChatId, _setActiveChatId] = useState(`goal-${id}`);
   const setActiveChatId = (newId: string) => { activeChatIdRef.current = newId; _setActiveChatId(newId); };
+  const { modelChoice, handleModelChange, modelError } = useConversationModel(user?.uid, activeChatId, allChats.find(chat => chat.id === activeChatId)?.modelChoice, settings.modelSettings, plan);
   const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
   const [renamingTitle, setRenamingTitle] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -302,6 +293,7 @@ export default function GoalDetailPage() {
             id: d.id,
             title: d.data().title ?? 'Chat',
             messages: (d.data().messages as Message[]) ?? [],
+            modelChoice: d.data().modelChoice,
             createdAt: d.data().createdAt?.toDate() ?? new Date(),
           }))
           .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -357,11 +349,12 @@ export default function GoalDetailPage() {
         goalId: id,
         ...(isMain ? { title: `Goal: ${goal?.title ?? 'Untitled'}` } : {}),
         messages: sanitizeMessages(msgs),
+        modelChoice,
         updatedAt: new Date(),
         deleted: false,
       }, { merge: true });
-    } catch (e) { console.error('[goal chat] save failed:', e); }
-  }, [user, id, goal]);
+    } catch { setChatError('Could not save this conversation. Keep this page open and retry when your connection returns.'); }
+  }, [user, id, goal, modelChoice]);
 
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop } = useChat({
     api: '/api/chat',
@@ -382,7 +375,7 @@ export default function GoalDetailPage() {
       if (m.includes('authentication_required')) setChatError('Your session expired, refresh and sign in again.');
       else if (m.includes('free_limit_reached')) setChatError("You've hit your free limit for now. It refreshes soon, or upgrade for every model.");
       else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature, subscribe to attach one.');
-      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use Modus.');
+      else if (m.includes('subscription_required')) setChatError('Continue with the Free plan or upgrade for more access.');
       else if (m.includes('token_limit_reached')) setChatError("You've hit your daily AI limit. Resets at midnight.");
       else if (m.includes('all_models_busy') || m.includes('rate') || m.includes('busy') || m.includes('429')) setChatError('The AI is briefly busy. Try again in a moment.');
       else setChatError('Something went wrong. Please try again.');
@@ -1303,6 +1296,7 @@ export default function GoalDetailPage() {
           )}
 
           <div className="shrink-0 border-t border-border px-3 py-2 flex items-center">
+            {modelError && <p role="alert" className="text-xs text-red-500">{modelError}</p>}
             <ModelSwitcher value={modelChoice} onChange={handleModelChange} plan={plan} />
           </div>
 
@@ -1322,4 +1316,10 @@ export default function GoalDetailPage() {
       </div>
     </div>
   );
+}
+
+export default function GoalDetailPage() {
+  const { user } = useAuth();
+  const { id } = useParams<{ id: string }>();
+  return <GoalDetailPageContent key={`${user?.uid ?? 'guest'}:${id}`} />;
 }

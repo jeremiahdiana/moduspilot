@@ -209,7 +209,7 @@ export default function StackSection() {
             href="/login"
             className="btn-primary block text-center px-5 py-3 text-white font-bold rounded-xl text-sm"
           >
-            Start your 3-day free trial
+            Choose your plan
           </Link>
           <p className="text-[11px] text-muted/60 text-center mt-2.5">
             Save ${TOTAL - MODUS}+/mo · Cancel anytime

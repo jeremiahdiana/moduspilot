@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { auth } from '@/lib/firebase';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
 }
 
 const MODUS_FEATURES = [
-  'Unlimited AI Chat (full context)',
+  'AI chat with higher usage limits',
   'Unlimited briefings',
   'Unlimited goals + habit engine',
   'Voice interface',
@@ -38,8 +38,11 @@ const PILOT_FEATURES = [
 export default function PaywallModal({ onClose }: Props) {
   const [loading, setLoading] = useState<'modus' | 'pilot' | null>(null);
   const [error, setError] = useState('');
+  const pending = useRef(false);
 
   const handleUpgrade = async (plan: 'modus' | 'pilot') => {
+    if (pending.current) return;
+    pending.current = true;
     setLoading(plan);
     setError('');
     try {
@@ -56,6 +59,7 @@ export default function PaywallModal({ onClose }: Props) {
     } catch {
       setError('Failed to start checkout. Try again.');
     } finally {
+      pending.current = false;
       setLoading(null);
     }
   };
@@ -75,11 +79,11 @@ export default function PaywallModal({ onClose }: Props) {
 
         <div className="text-center mb-6">
           <span className="text-2xl font-black tracking-widest text-brand">MODUS PILOT</span>
-          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Start your 3-day free trial</p>
+          <p className="text-xs text-muted mt-1 uppercase tracking-widest">Choose your plan</p>
         </div>
 
         <h2 className="text-xl font-bold text-text mb-1">Choose your plan</h2>
-        <p className="text-muted text-sm mb-8">3 days free, then billed monthly. Card required · cancel anytime. Modus at $24 replaces an entire cognitive workflow category. Pilot at $59 is priced against human executive assistance.</p>
+        <p className="text-muted text-sm mb-8">Start free with open models or upgrade to MODUS at $24/mo or PILOT at $59/mo. Paid plans are billed when you subscribe. Cancel anytime.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {/* MODUS tier */}
@@ -105,7 +109,7 @@ export default function PaywallModal({ onClose }: Props) {
               disabled={!!loading}
               className="w-full bg-brand text-white font-bold py-3 rounded-xl hover:bg-brand/90 transition-colors text-sm disabled:opacity-50"
             >
-              {loading === 'modus' ? 'Redirecting…' : 'Start trial, then $24/mo'}
+              {loading === 'modus' ? 'Redirecting…' : 'Subscribe for $24/mo'}
             </button>
           </div>
 
@@ -131,13 +135,13 @@ export default function PaywallModal({ onClose }: Props) {
               disabled={!!loading}
               className="w-full border border-border text-text font-bold py-3 rounded-xl hover:bg-panel transition-colors text-sm disabled:opacity-50"
             >
-              {loading === 'pilot' ? 'Redirecting…' : 'Start trial, then $59/mo'}
+              {loading === 'pilot' ? 'Redirecting…' : 'Subscribe for $59/mo'}
             </button>
           </div>
         </div>
 
         {error && <p className="text-center text-xs text-red-400 mb-2">{error}</p>}
-        <p className="text-center text-xs text-muted">Card required · billed after your 3-day trial · cancel anytime · annual billing available (2 months free)</p>
+        <p className="text-center text-xs text-muted">Paid plans require a card · billed when you subscribe · cancel anytime · annual billing available (2 months free)</p>
 
         <button onClick={onClose} className="w-full text-center text-muted text-xs mt-4 hover:text-text transition-colors">
           Maybe later

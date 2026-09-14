@@ -14,6 +14,7 @@ import { useChat } from 'ai/react';
 import { isAwaitingAssistantText } from '@/lib/chat/pending';
 import type { Message } from 'ai';
 import MessageBubble from '@/components/chat/MessageBubble';
+import { useConversationModel } from '@/hooks/useConversationModel';
 import ModelSwitcher from '@/components/chat/ModelSwitcher';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -46,7 +47,7 @@ interface Project {
 
 const EMOJIS = ['🗂️','🚀','💡','🔧','📐','🎯','⚡','🌐','🔬','🎨','📦','🧪'];
 
-interface ProjectChat { id: string; title: string; messages: Message[]; createdAt: Date; }
+interface ProjectChat { id: string; title: string; messages: Message[]; createdAt: Date; modelChoice?: string; }
 
 const NOTE_TYPES: Record<NoteType, { label: string; color: string; bg: string; border: string }> = {
   win:        { label: 'Win',        color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
@@ -82,7 +83,7 @@ interface AvailableResource {
   fileId?: string;
 }
 
-export default function ProjectDetailPage() {
+function ProjectDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -90,20 +91,7 @@ export default function ProjectDetailPage() {
 
   // In-chat model picker (mirrors the main chat). Defaults to the saved Brain
   // model; users can switch per project chat.
-  const [modelChoice, setModelChoice] = useState('auto');
-  const didInitModelRef = useRef(false);
-  const handleModelChange = useCallback((v: string) => setModelChoice(v), []);
   const [chatError, setChatError] = useState<string | null>(null);
-  useEffect(() => {
-    if (didInitModelRef.current || settingsLoading) return;
-    const msx = settings.modelSettings;
-    setModelChoice(
-      msx?.provider === 'openai' || msx?.provider === 'anthropic'
-        ? 'default'
-        : (msx?.model ?? 'auto'),
-    );
-    didInitModelRef.current = true;
-  }, [settings, settingsLoading]);
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,6 +138,7 @@ export default function ProjectDetailPage() {
   const activeChatIdRef = useRef(`project-${id}`);
   const [activeChatId, _setActiveChatId] = useState(`project-${id}`);
   const setActiveChatId = (newId: string) => { activeChatIdRef.current = newId; _setActiveChatId(newId); };
+  const { modelChoice, handleModelChange, modelError } = useConversationModel(user?.uid, activeChatId, allChats.find(chat => chat.id === activeChatId)?.modelChoice, settings.modelSettings, plan);
   const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
   const [renamingTitle, setRenamingTitle] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -218,6 +207,7 @@ export default function ProjectDetailPage() {
             id: d.id,
             title: d.data().title ?? 'Chat',
             messages: (d.data().messages as Message[]) ?? [],
+            modelChoice: d.data().modelChoice,
             createdAt: d.data().createdAt?.toDate() ?? new Date(),
           }))
           .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -255,11 +245,12 @@ export default function ProjectDetailPage() {
         projectId: id,
         ...(isMain ? { title: `Project: ${project?.title ?? 'Untitled'}` } : {}),
         messages: sanitizeMessages(msgs),
+        modelChoice,
         updatedAt: new Date(),
         deleted: false,
       }, { merge: true });
-    } catch (e) { console.error('[project chat] save failed:', e); }
-  }, [user, id, project]);
+    } catch { setChatError('Could not save this conversation. Keep this page open and retry when your connection returns.'); }
+  }, [user, id, project, modelChoice]);
 
   const { messages, input, handleInputChange, append, isLoading, setInput, setMessages, stop } = useChat({
     api: '/api/chat',
@@ -280,7 +271,7 @@ export default function ProjectDetailPage() {
       if (m.includes('authentication_required')) setChatError('Your session expired, refresh and sign in again.');
       else if (m.includes('free_limit_reached')) setChatError("You've hit your free limit for now. It refreshes soon, or upgrade for every model.");
       else if (m.includes('image_requires_subscription')) setChatError('Images are a paid feature, subscribe to attach one.');
-      else if (m.includes('subscription_required')) setChatError('Start your 3-day free trial to use Modus.');
+      else if (m.includes('subscription_required')) setChatError('Continue with the Free plan or upgrade for more access.');
       else if (m.includes('token_limit_reached')) setChatError("You've hit your daily AI limit. Resets at midnight.");
       else if (m.includes('all_models_busy') || m.includes('rate') || m.includes('busy') || m.includes('429')) setChatError('The AI is briefly busy. Try again in a moment.');
       else setChatError('Something went wrong. Please try again.');
@@ -777,7 +768,7 @@ export default function ProjectDetailPage() {
                   </button>
                 </div>
                 {project.resources.length === 0 ? (
-                  <p className="text-sm text-muted/60 py-3">No resources pinned. Pin repos, docs, and channels to scope Modus's context.</p>
+                  <p className="text-sm text-muted/60 py-3">No resources pinned. Pin repos, docs, and channels to scope Modus&apos;s context.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {project.resources.map((r, i) => {
@@ -842,7 +833,7 @@ export default function ProjectDetailPage() {
               {project.resources.length === 0 && !showPicker && (
                 <div className="text-center py-10 bg-panel border border-dashed border-border rounded-xl">
                   <p className="text-muted text-sm mb-1">No resources pinned yet.</p>
-                  <p className="text-muted/60 text-xs mb-4">Pin repos, docs, channels, and files to scope Modus's context to this project.</p>
+                  <p className="text-muted/60 text-xs mb-4">Pin repos, docs, channels, and files to scope Modus&apos;s context to this project.</p>
                   <button
                     onClick={() => setShowPicker(true)}
                     className="text-sm text-brand hover:underline"
@@ -1366,6 +1357,7 @@ export default function ProjectDetailPage() {
 
         {/* Model switcher */}
         <div className="shrink-0 border-t border-border px-3 py-2 flex items-center">
+          {modelError && <p role="alert" className="text-xs text-red-500">{modelError}</p>}
           <ModelSwitcher value={modelChoice} onChange={handleModelChange} plan={plan} />
         </div>
 
@@ -1395,4 +1387,10 @@ export default function ProjectDetailPage() {
       </div>
     </div>
   );
+}
+
+export default function ProjectDetailPage() {
+  const { user } = useAuth();
+  const { id } = useParams<{ id: string }>();
+  return <ProjectDetailPageContent key={`${user?.uid ?? 'guest'}:${id}`} />;
 }

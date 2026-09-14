@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig, useReducedMotion } from 'framer-motion';
 import Image from 'next/image';
 import MarketingDecor from '@/components/marketing/MarketingDecor';
 import CadenceToggle from '@/components/marketing/CadenceToggle';
 import { ClaudeLogo, OpenAILogo, GeminiLogo, MetaLogo } from '@/components/marketing/ModelLogos';
-import { DemoWindow } from '@/components/marketing/ModelDemo';
 import { useAuth } from '@/components/providers/AuthProvider';
 import {
-  doc, setDoc, addDoc, collection,
-  getDoc, serverTimestamp,
+  doc, getDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { seedOnboardingAccount } from '@/lib/onboarding';
 import { isPaidPlan } from '@/lib/plan';
 import { CADENCE_STORAGE_KEY, PLAN_PRICING, isCadence, type Cadence } from '@/lib/pricing';
 
@@ -31,7 +30,7 @@ type Screen = 'welcome' | 'you' | 'plan' | 'done';
 function questionScreens(alreadyPaid: boolean): Screen[] {
   return alreadyPaid ? ['you'] : ['you', 'plan'];
 }
-type PlanId = 'modus' | 'pilot';
+type PlanId = 'free' | 'modus' | 'pilot';
 
 // ── data ───────────────────────────────────────────────────────────────────────
 // Text only. The emoji read as clip-art next to a serif headline.
@@ -99,8 +98,8 @@ function DotProgress({ step, total }: { step: number; total: number }) {
           animate={{
             width: i + 1 === step ? 20 : 6,
             backgroundColor: i + 1 <= step
-              ? 'rgba(124,58,237,1)'
-              : 'rgba(124,58,237,0.2)',
+              ? 'rgb(var(--color-text))'
+              : 'rgb(var(--color-text) / 0.15)',
           }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           className="h-1.5 rounded-full"
@@ -111,17 +110,18 @@ function DotProgress({ step, total }: { step: number; total: number }) {
 }
 
 // ── WelcomeScreen ──────────────────────────────────────────────────────────────
-function WelcomeScreen({ onStart }: { onStart: () => void }) {
+function WelcomeScreen({ onStart, reduced }: { onStart: () => void; reduced: boolean }) {
   const [visible, setVisible] = useState([false, false, false]);
 
   useEffect(() => {
+    if (reduced) { setVisible([true, true, true]); return; }
     const t = [
       setTimeout(() => setVisible(v => [true,  v[1],  v[2]]),  900),
       setTimeout(() => setVisible(v => [v[0],  true,  v[2]]),  1400),
       setTimeout(() => setVisible(v => [v[0],  v[1],  true]),  1900),
     ];
     return () => t.forEach(clearTimeout);
-  }, []);
+  }, [reduced]);
 
   return (
     <div className="w-full max-w-md px-6 py-12 space-y-8">
@@ -167,7 +167,12 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
       >
-        <DemoWindow showRail={false} compact />
+        <div className="rounded-2xl border border-border bg-panel p-5 space-y-4" aria-label="Chat preview">
+          <p className="text-xs text-muted">Modus</p>
+          {['Help me organize my day.', 'Start with your most important task. Leave time for focused work.', 'Keep the plan simple and adjust as your day changes.'].map((line, i) => (
+            <p key={line} className={`rounded-xl bg-text/[0.05] px-4 py-3 text-sm text-text transition-opacity ${visible[i] ? 'opacity-100' : 'opacity-0'}`}>{line}</p>
+          ))}
+        </div>
       </motion.div>
 
       {/* CTA */}
@@ -181,11 +186,11 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={onStart}
-          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
+          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-sm"
         >
           Set up Modus, takes 60 sec →
         </motion.button>
-        <p className="text-xs text-muted text-center">3-day free trial · Card required · Cancel anytime</p>
+        <p className="text-xs text-muted text-center">Start free · No card required · Upgrade anytime</p>
       </motion.div>
     </div>
   );
@@ -260,12 +265,13 @@ function YouStep({ name, setName, role, setRole, age, setAge, gender, setGender 
 }
 
 // ── PlanStep ───────────────────────────────────────────────────────────────────
-// Lets the user pick which plan to start their 3-day trial on, before checkout.
+// Free is available without checkout. Paid plans show the amount charged.
 // Prices come from lib/pricing, never from a literal here: someone who picked
 // Annually on /pricing gets billed the annual amount, so showing them a hardcoded
 // "$24 /mo" on the step right before checkout is a lie about what their card is
 // about to be charged.
 const PLAN_OPTIONS: { id: PlanId; name: string; tagline: string; popular?: boolean; features: string[] }[] = [
+  { id: 'free', name: 'Free', tagline: 'Open models, no card required', features: ['Open models for everyday chat', 'Five-hour allowance plus a weekly cap', 'Upgrade anytime'] },
   {
     id: 'modus', name: 'MODUS', tagline: 'Every provider, auto-routed',
     features: ['Claude + GPT-5.6 + Gemini, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
@@ -287,7 +293,7 @@ function PlanStep({ selected, setSelected, cadence, setCadence }: {
         <p className="text-xs font-bold text-brand uppercase tracking-[0.15em] mb-3">Pick your plan</p>
         <h1 className="text-3xl text-text leading-tight" style={{ fontFamily: 'var(--font-serif)', fontWeight: 500 }}>Choose your plan.</h1>
         <p className="text-sm text-muted mt-1.5">
-          Both start with a 3-day free trial. Cancel anytime.
+          Start free or choose a paid plan. Paid plans are billed at checkout.
         </p>
       </div>
 
@@ -306,7 +312,7 @@ function PlanStep({ selected, setSelected, cadence, setCadence }: {
               onClick={() => setSelected(p.id)}
               className={`relative w-full p-4 rounded-2xl border text-left transition-all duration-200 ${
                 active
-                  ? 'border-brand/60 bg-brand/8 shadow-[0_0_0_1px_rgba(124,58,237,0.15),0_4px_20px_rgba(124,58,237,0.12)]'
+                  ? 'border-brand/60 bg-text/[0.05]'
                   : 'border-border/60 bg-panel/60 hover:border-brand/25'
               }`}
             >
@@ -315,17 +321,17 @@ function PlanStep({ selected, setSelected, cadence, setCadence }: {
                   <div className="flex items-center gap-2">
                     <span className={`text-sm font-black tracking-wide ${active ? 'text-brand' : 'text-text'}`}>{p.name}</span>
                     {p.popular && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-brand bg-brand/15 px-1.5 py-0.5 rounded-full">Popular</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-brand bg-text/[0.06] px-1.5 py-0.5 rounded-full">Popular</span>
                     )}
                   </div>
                   <p className="text-xs text-muted mt-0.5">{p.tagline}</p>
                 </div>
                 <div className="text-right">
                   <span className="text-xl font-black text-text">
-                    ${annual ? PLAN_PRICING[p.id].annualPerMonth : PLAN_PRICING[p.id].monthlyPrice}
+                    ${p.id === 'free' ? 0 : annual ? PLAN_PRICING[p.id].annualPerMonth : PLAN_PRICING[p.id].monthlyPrice}
                   </span>
                   <span className="text-xs text-muted">/mo</span>
-                  {annual && (
+                  {annual && p.id !== 'free' && (
                     <p className="text-[10px] text-muted whitespace-nowrap">
                       ${PLAN_PRICING[p.id].annualTotal} billed yearly
                     </p>
@@ -355,21 +361,21 @@ function PlanStep({ selected, setSelected, cadence, setCadence }: {
       </div>
 
       <p className="text-xs text-muted/70 text-center leading-relaxed">
-        You won&apos;t be charged today. Card required to start · cancel anytime before day 3.
+        Free needs no card. Paid plans charge the selected monthly or yearly amount at checkout. Cancel anytime.
       </p>
     </div>
   );
 }
 
 // ── CompletionScreen ───────────────────────────────────────────────────────────
-function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
-  name: string; planName: string; alreadyPaid: boolean; onEnter: () => void;
+function CompletionScreen({ name, planName, alreadyPaid, onEnter, saving, chargeLabel }: {
+  name: string; planName: string; alreadyPaid: boolean; onEnter: () => void; saving: boolean; chargeLabel: string;
 }) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const items = [
     { label: `Profile personalized${name.trim() ? ` for ${name.trim()}` : ''}` },
-    { label: 'Every provider unlocked, ChatGPT, Claude, Gemini, Llama' },
+    { label: 'Memory ready for your chats' },
     { label: 'Daily Review habit, streak starts today' },
   ];
 
@@ -396,7 +402,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
               animate={{ x: p.x, y: p.y, opacity: 0, scale: 0 }}
               transition={{ delay: 0.15 + i * 0.04, duration: 0.55, ease: 'easeOut' }}
               className="absolute w-2 h-2 rounded-full"
-              style={{ backgroundColor: p.brand ? '#7c3aed' : '#a78bfa' }}
+              style={{ backgroundColor: p.brand ? 'rgb(var(--color-text))' : 'rgb(var(--color-muted))' }}
             />
           ))}
 
@@ -404,7 +410,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
             initial={{ scale: 0.3, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 14, delay: 0.1 }}
-            className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand/25 to-brand/10 border border-brand/30 flex items-center justify-center shadow-[0_12px_48px_rgba(124,58,237,0.42)]"
+            className="w-20 h-20 rounded-3xl bg-panel border border-border flex items-center justify-center shadow-lg"
           >
             <Image src="/logo.png"      alt="MODUS" width={48} height={36} className="object-contain block dark:hidden" />
             <Image src="/logo-dark.png" alt="MODUS" width={48} height={36} className="object-contain hidden dark:block" />
@@ -415,7 +421,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: [0, 0.6, 0], scale: [0.8, 1.7, 1.7] }}
             transition={{ duration: 0.75, delay: 0.2 }}
-            className="absolute inset-0 rounded-3xl border border-brand/50"
+            className="absolute inset-0 rounded-3xl border border-border"
           />
         </div>
 
@@ -453,7 +459,7 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
               transition={{ delay: 0.55 + i * 0.1 }}
               className="flex items-start gap-3"
             >
-              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-brand/20">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-text/[0.06]">
                 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-brand">
                   <path d="M2 6l3 3 5-5" />
                 </svg>
@@ -475,14 +481,15 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={onEnter}
-          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-[0_4px_24px_rgba(124,58,237,0.35)]"
+          disabled={saving}
+          className="w-full py-4 btn-primary text-white text-sm font-bold rounded-2xl shadow-sm"
         >
-          {alreadyPaid ? 'Enter Modus →' : `Start my 3-day ${planName} trial →`}
+          {saving ? 'Opening…' : alreadyPaid || planName === 'Free' ? 'Enter Modus →' : `Continue to ${planName} checkout →`}
         </motion.button>
         <p className="text-xs text-muted text-center">
           {alreadyPaid
             ? `Your ${planName} subscription is active`
-            : <>You won&apos;t be charged today · Cancel anytime</>}
+            : chargeLabel}
         </p>
       </motion.div>
     </motion.div>
@@ -490,14 +497,14 @@ function CompletionScreen({ name, planName, alreadyPaid, onEnter }: {
 }
 
 // ── main page ──────────────────────────────────────────────────────────────────
-export default function OnboardingPage() {
+function OnboardingContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   // ?trial=1 = user bounced back from an abandoned checkout — jump them straight
   // to the plan/Start step instead of the onboardingComplete→dashboard redirect.
-  const [trialMode] = useState<boolean>(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('trial') === '1'
+  const [checkoutMode] = useState<boolean>(() =>
+    typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('trial') === '1' || new URLSearchParams(window.location.search).get('checkout') === '1')
   );
 
   // Whether this account ALREADY has a paid subscription when it reaches
@@ -510,13 +517,32 @@ export default function OnboardingPage() {
   // /login sent her back to /onboarding on EVERY sign-in.
   const [alreadyPaid, setAlreadyPaid] = useState<boolean>(false);
 
-  const [screen,    setScreen]    = useState<Screen>(trialMode ? 'plan' : 'welcome');
+  const [screen,    setScreen]    = useState<Screen>(checkoutMode ? 'plan' : 'welcome');
   const [direction, setDirection] = useState(1);
   // Same light-by-default marketing shell as the homepage. The old page used the
   // global AnimatedThemeToggler, which does nothing once the subtree re-declares
   // its own tokens — so onboarding was stuck light with a dead toggle.
   const [dark, setDark] = useState(false);
   const [saving,    setSaving]    = useState(false);
+  const pending = useRef(false);
+  const [error, setError] = useState('');
+  const systemReduced = useReducedMotion();
+  const [savedReduced, setSavedReduced] = useState(false);
+  const reduced = savedReduced || !!systemReduced;
+  useEffect(() => {
+    const syncTheme = () => {
+      try { setDark(localStorage.getItem('modus-theme') === 'dark'); } catch { setDark(false); }
+    };
+    syncTheme();
+    window.addEventListener('storage', syncTheme);
+    return () => window.removeEventListener('storage', syncTheme);
+  }, []);
+  function toggleTheme() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    try { localStorage.setItem('modus-theme', next ? 'dark' : 'light'); } catch { /* Storage is optional. */ }
+  }
 
   // Prefilled from the Google/Apple profile below — asking for a name the auth
   // provider already gave us was an entire step that bought nothing.
@@ -524,7 +550,7 @@ export default function OnboardingPage() {
   const [role, setRole] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('modus');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('free');
   // Chosen back on /pricing. Read once on mount so the plan step DISPLAYS the
   // same cadence that checkout will CHARGE — those two drifting apart is how you
   // show someone $24/mo and bill their card $240.
@@ -564,16 +590,17 @@ export default function OnboardingPage() {
     if (user) {
       getDoc(doc(db, 'users', user.uid)).then(snap => {
         const data = snap.data();
+        setSavedReduced(data?.settings?.reduceMotion === true);
         if (isPaidPlan(data?.plan)) {
           setAlreadyPaid(true);
           // So the completion screen names the plan they actually bought rather
           // than the 'modus' default. 'group' has no card here; leave it alone.
           if (data!.plan === 'pilot' || data!.plan === 'modus') setSelectedPlan(data!.plan);
         }
-        if (!trialMode && data?.onboardingComplete) router.push('/dashboard');
+        if (!checkoutMode && data?.onboardingComplete) router.push('/dashboard');
       }).catch(() => { /* offline: fall through to the full flow */ });
     }
-  }, [user, loading, router, trialMode]);
+  }, [user, loading, router, checkoutMode]);
 
   if (loading || !user) return null;
 
@@ -582,125 +609,57 @@ export default function OnboardingPage() {
     setScreen(next);
   }
 
-  // New users start their 3-day card-required trial via Stripe Checkout for the
-  // plan they picked. If checkout can't be created, fall through to the app — the
-  // chat gate surfaces the paywall. Abandoning checkout returns to /onboarding?trial=1.
-  async function startTrial() {
-    // Already subscribed → there is no trial to start. /api/stripe/checkout would
-    // 409 this (that 409 is what stops double-billing) and we'd fall through to
-    // the dashboard anyway, but going near checkout with a live card on file is
-    // not something to leave to an error path.
-    if (alreadyPaid) { router.push('/dashboard'); return; }
+  async function startCheckout() {
+    if (pending.current) return;
+    if (alreadyPaid || selectedPlan === 'free') { router.push('/chat'); return; }
+    pending.current = true;
+    setSaving(true);
+    setError('');
     try {
       const token = await user!.getIdToken();
-      // `cadence` is the same state the plan step rendered, so the price shown is
-      // the price charged. The server re-validates and falls back to monthly for
-      // anything it can't honour.
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ plan: selectedPlan, returnTo: 'dashboard', cadence }),
       });
       const data = await res.json();
-      if (res.ok && data.url) { window.location.href = data.url; return; }
-    } catch { /* fall through to dashboard */ }
-    router.push('/dashboard');
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not open checkout. Please retry or continue free.');
+      window.location.href = data.url;
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not open checkout. Please retry or continue free.'); }
+    finally { pending.current = false; setSaving(false); }
   }
 
   // The account-seeding write, shared by the paid finish and the free escape.
   // Idempotent: a trial re-entry (?trial=1) or a second tap is already onboarded,
   // so it must not duplicate the seeded habit/memories.
   async function seedAccount() {
-      const uid = user!.uid;
-      const existing = await getDoc(doc(db, 'users', uid));
-      if (existing.data()?.onboardingComplete === true) return;
-
-      const roleLabel = role.trim() || 'Other';
-      // Gender only enters personalContext when actually volunteered — a
-      // declined answer must not become "I am Prefer not to say."
-      const saidGender = gender && gender !== 'Prefer not to say' ? gender : '';
-      const personalContext = [
-        name.trim() && `My name is ${name.trim()}.`,
-        roleLabel   && `I am a ${roleLabel}.`,
-        age         && `I am ${age} years old.`,
-        saidGender  && `I am ${saidGender.toLowerCase()}.`,
-      ].filter(Boolean).join(' ');
-
-      await setDoc(doc(db, 'users', uid), {
-        displayName: name.trim() || null,
-        onboardingComplete: true,
-        onboardingAnswers: { role: roleLabel, age: age || null, gender: gender || null },
-        settings: {
-          personalContext,
-          responseStyle: 'normal',
-          // dailyBriefing is deliberately absent: CAPABILITY_DEFAULTS decides it.
-          // Writing `false` here is what put every new account's Settings toggle
-          // at OFF while the cron — which ignored the flag — delivered a briefing
-          // every morning regardless.
-          capabilities: { voiceInput: false, vectorMemory: true },
-          generateMemoryFromChat: true,
-          helpImprove: false,
-          dataRetention: true,
-          customStyle: '',
-        },
-      }, { merge: true });
-
-      await addDoc(collection(db, 'users', uid, 'habits'), {
-        name: 'Daily Review',
-        description: 'Check in with Modus each day. Review your goals, plan your day, and stay on track.',
-        frequency: 'daily',
-        target: 1,
-        color: '#7c3aed',
-        icon: '🔁',
-        completedDates: [],
-        source: 'onboarding',
-        createdAt: serverTimestamp(),
-      });
-
-      const memories = [
-        name.trim() && `My name is ${name.trim()}.`,
-        roleLabel   && `I am a ${roleLabel}.`,
-      ].filter(Boolean) as string[];
-
-      const token = await user!.getIdToken();
-      for (const mem of memories) {
-        await addDoc(collection(db, 'users', uid, 'memories'), {
-          content: mem, source: 'onboarding', createdAt: serverTimestamp(),
-        });
-        fetch('/api/memory/upsert', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ text: mem }),
-        }).catch(() => {});
-      }
+    const memories = await seedOnboardingAccount(user!.uid, { name, role, age, gender });
+    if (memories.length > 0) {
+      // Vector indexing is supplementary. Durable memories are already saved.
+      void user!.getIdToken().then(token => Promise.all(memories.map(text => fetch('/api/memory/upsert', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text }),
+      })))).catch(() => {});
+    }
   }
 
   async function handleFinish() {
-    if (saving) return;
+    if (pending.current) return;
+    pending.current = true;
     setSaving(true);
-    go('done');
-    try {
-      await seedAccount();
-    } finally {
-      setSaving(false);
-    }
+    setError('');
+    try { await seedAccount(); go('done'); }
+    catch { setError('Could not finish setup. Please retry. Your progress is still here.'); }
+    finally { pending.current = false; setSaving(false); }
   }
 
-  // Free escape. /pricing promises "10 messages free, no card", but onboarding
-  // otherwise funnels everyone to Stripe — the only way to reach the free tier
-  // was to abandon checkout and hand-type /chat. This seeds the account exactly
-  // like a paid finish (so personalContext, the Daily Review habit and memories
-  // still get created) and drops them straight into the chat. The server meters
-  // the 10 messages and surfaces the paywall when they run out.
   async function handleContinueFree() {
-    if (saving) return;
+    if (pending.current) return;
+    pending.current = true;
     setSaving(true);
-    try {
-      await seedAccount();
-      router.push('/chat');
-    } finally {
-      setSaving(false);
-    }
+    setError('');
+    try { await seedAccount(); router.push('/chat'); }
+    catch { setError('Could not finish setup. Please retry.'); }
+    finally { pending.current = false; setSaving(false); }
   }
 
   // Navigation maps. A paying account has no plan step, so `you` is the last one.
@@ -724,10 +683,10 @@ export default function OnboardingPage() {
   // ── welcome ────────────────────────────────────────────────────────────────
   if (screen === 'welcome') {
     return (
-      <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col items-center overflow-y-auto`}>
-        <ThemeButton dark={dark} onToggle={() => setDark(d => !d)} />
+      <div className={`onboarding ${reduced ? 'onboarding-reduced' : ''} marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col items-center overflow-y-auto`}>
+        <ThemeButton dark={dark} onToggle={toggleTheme} />
       <MarketingDecor dark={dark} />
-        <div className="relative z-10"><WelcomeScreen onStart={() => go('you')} /></div>
+        <div className="relative z-10"><WelcomeScreen onStart={() => go('you')} reduced={reduced} /></div>
       </div>
     );
   }
@@ -735,15 +694,19 @@ export default function OnboardingPage() {
   // ── done ───────────────────────────────────────────────────────────────────
   if (screen === 'done') {
     return (
-      <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col items-center overflow-y-auto`}>
+      <div className={`onboarding ${reduced ? 'onboarding-reduced' : ''} marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col items-center overflow-y-auto`}>
         <MarketingDecor dark={dark} />
         <div className="relative z-10 py-10">
+          {error && <p role="alert" className="px-6 mb-4 text-sm text-red-500">{error}</p>}
           <CompletionScreen
             name={name}
             planName={selectedPlanName}
             alreadyPaid={alreadyPaid}
-            onEnter={startTrial}
+            onEnter={startCheckout}
+            saving={saving}
+            chargeLabel={selectedPlan === 'free' ? 'No card required' : cadence === 'annual' ? `$${PLAN_PRICING[selectedPlan].annualTotal} billed yearly at checkout` : `$${PLAN_PRICING[selectedPlan].monthlyPrice}/mo billed at checkout`}
           />
+          {!alreadyPaid && selectedPlan !== 'free' && <button onClick={handleContinueFree} disabled={saving} className="block mx-auto text-sm text-muted underline">Continue free</button>}
         </div>
       </div>
     );
@@ -759,8 +722,8 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className={`marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col`}>
-      <ThemeButton dark={dark} onToggle={() => setDark(d => !d)} />
+    <div className={`onboarding ${reduced ? 'onboarding-reduced' : ''} marketing ${dark ? 'marketing-dark-tokens' : 'marketing-light-tokens'} w-full relative min-h-screen flex flex-col`}>
+      <ThemeButton dark={dark} onToggle={toggleTheme} />
       <MarketingDecor dark={dark} />
 
       <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-16 sm:py-20">
@@ -786,9 +749,11 @@ export default function OnboardingPage() {
             </motion.div>
           </AnimatePresence>
 
+          {error && <p role="alert" className="mt-4 text-sm text-red-500">{error}</p>}
           {/* Nav — same position on every step */}
           <div className="mt-8 flex items-center justify-between">
             <button
+              disabled={saving}
               onClick={() => go(PREV[screen] ?? 'welcome', -1)}
               className="text-sm text-muted hover:text-text transition-colors py-2 pr-4"
             >
@@ -799,7 +764,7 @@ export default function OnboardingPage() {
               whileTap={isValid[screen] ? { scale: 0.97 } : {}}
               onClick={handleNext}
               disabled={!isValid[screen] || saving}
-              className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-[0_2px_12px_rgba(124,58,237,0.28)]"
+              className="px-7 py-3 btn-primary text-white text-sm font-bold rounded-2xl disabled:opacity-40 shadow-sm"
             >
               {!isLast ? 'Continue →' : alreadyPaid ? 'Finish →' : 'Review & start →'}
             </motion.button>
@@ -825,4 +790,8 @@ export default function OnboardingPage() {
       </div>
     </div>
   );
+}
+
+export default function OnboardingPage() {
+  return <MotionConfig reducedMotion="user"><OnboardingContent /></MotionConfig>;
 }

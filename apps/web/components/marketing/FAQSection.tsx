@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: 'Is there a free version?',
-    a: "Yes. Free gives you the open models (Llama, DeepSeek and Gemini Flash) with no card, on a rolling window that refreshes through the day. MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Paid plans include a 3-day trial, cancel anytime.",
+    a: "Yes. Free gives you the open models (Llama, DeepSeek and Gemini Flash) with no card, on a rolling window that refreshes through the day. MODUS is $24/mo for every provider, auto-routed. PILOT is $59/mo and adds the frontier models with manual pick per message. Paid plans are billed when you subscribe. Cancel anytime.",
   },
   {
     q: 'Is my data private?',
@@ -79,7 +79,7 @@ export default function FAQSection() {
           className="text-center mb-12"
         >
           <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">Questions</h2>
-          <p className="text-muted text-lg">Everything you'd ask before signing up.</p>
+          <p className="text-muted text-lg">Everything you&apos;d ask before signing up.</p>
         </motion.div>
 
         <div className="space-y-3">

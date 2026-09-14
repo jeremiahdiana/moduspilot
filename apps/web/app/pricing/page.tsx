@@ -32,11 +32,11 @@ const FAQS = [
     // First on purpose. "Do I have to pay to look at it" is the question that
     // decides whether a stranger signs in at all.
     q: 'Do I need a card to try it?',
-    a: 'No. The free plan gives you the open models (Llama, DeepSeek and Gemini Flash) with no card, on a rolling window that refreshes through the day. When you want every frontier model and your apps connected, MODUS and PILOT include a 3-day trial you can cancel inside those 3 days at no charge.',
+    a: 'No. The free plan gives you the open models (Llama, DeepSeek and Gemini Flash) with no card, on a rolling window that refreshes through the day. Upgrade to MODUS or PILOT for paid models and higher limits. Paid plans are billed when you subscribe.',
   },
   {
-    q: 'What happens after the 3-day trial?',
-    a: 'Your card is billed for the plan you chose, $24/mo for MODUS or $59/mo for PILOT, and you keep full access. We tell you before the trial ends, and you can cancel any time in those 3 days at no charge.',
+    q: 'When am I charged?',
+    a: 'Your card is charged when you subscribe: $24/mo for MODUS or $59/mo for PILOT with monthly billing. Annual subscriptions charge the full yearly amount at checkout. The Free plan never requires a card.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -51,7 +51,7 @@ const FAQS = [
     // True as of 2026-07-21: price_1TvWQu... ($240) and price_1TvWR0... ($588)
     // are live in Stripe and wired through /api/stripe/checkout via `cadence`.
     // The limits add-on is monthly-only, which is why it isn't mentioned here.
-    a: 'Yes. Switch the toggle above to Annually and you get 2 months free: MODUS is $240 a year, which works out at $20/mo, and PILOT is $588 a year, $49/mo. Same 3-day trial either way, and you can still cancel before it ends.',
+    a: 'Yes. Switch the toggle above to Annually and you get 2 months free: MODUS is $240 a year, which works out at $20/mo, and PILOT is $588 a year, $49/mo. The full yearly amount is charged when you subscribe. Cancel anytime.',
   },
   {
     q: 'What if I hit my limits?',
@@ -59,7 +59,7 @@ const FAQS = [
     // units/day, which is ~25 more messages on standard models but under one
     // more on Claude Fable 5 — a bare "25 more messages" would be false for
     // anyone using the frontier tier. "Double" is exact for every model.
-    a: 'Add extra limits for $10/mo and your daily and weekly ceilings double. You can stack it as many times as you need, and cancel it separately without touching your plan. It works out cheaper than moving to PILOT if all you want is more usage rather than the frontier models.',
+    a: 'On a paid plan, each $10/mo extra limit pack adds 500,000 credits per five-hour window and 3,500,000 credits per week. Packs stack and can be canceled separately from your plan.',
   },
   {
     q: "What's the difference between MODUS and PILOT?",
