@@ -9,6 +9,8 @@ import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -19,7 +21,23 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 import HomePricingSection from '@/components/marketing/HomePricingSection';
-import type { User } from 'firebase/auth';
+import type { User, OAuthCredential } from 'firebase/auth';
+
+// Which provider a stored Firebase sign-in method maps to, for the "you already
+// use this email with X" message when two providers share one email.
+function providerLabel(methods: string[]): string {
+  if (methods.includes('google.com')) return 'Google';
+  if (methods.includes('apple.com')) return 'Apple';
+  if (methods.includes('microsoft.com')) return 'Microsoft';
+  if (methods.includes('emailLink') || methods.includes('password')) return 'email';
+  return '';
+}
+
+function credentialFromError(kind: OAuthKind, e: unknown): OAuthCredential | null {
+  return kind === 'google'
+    ? GoogleAuthProvider.credentialFromError(e as never)
+    : OAuthProvider.credentialFromError(e as never);
+}
 
 // A `?next=` internal path (e.g. the founding claim flow returning to
 // /grandfathering) takes precedence over the default routing. Same-origin paths
@@ -56,6 +74,10 @@ export default function LoginPage() {
   const [reduced, setReduced] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  // When a provider collides with an existing account on the same email, we hold
+  // its credential here and link it once the user signs in with the original
+  // provider, so both buttons end up on one account.
+  const [pendingCred, setPendingCred] = useState<OAuthCredential | null>(null);
   // Hide the "Download desktop app" button inside the desktop shell — there is
   // nothing to download there. Set after mount to avoid a hydration mismatch;
   // the desktop shell tags its user-agent with "MODUSDesktop".
@@ -118,10 +140,31 @@ export default function LoginPage() {
     setError(''); setLoading(kind);
     try {
       const result = await signInWithPopup(auth, provider);
+      // If a previous attempt collided on this email, attach that provider now so
+      // the account carries both. Failure here is harmless (already linked).
+      if (pendingCred) {
+        try { await linkWithCredential(result.user, pendingCred); } catch { /* already linked */ }
+        setPendingCred(null);
+      }
       router.push(await getDestination(result.user));
     } catch (e: unknown) {
-      const code = (e as { code?: string }).code;
-      if (code === 'auth/popup-blocked') {
+      const err = e as { code?: string; customData?: { email?: string } };
+      const code = err.code;
+      if (code === 'auth/account-exists-with-different-credential') {
+        // Same email already registered with another provider. Hold this
+        // credential and point the user at the button that will link it.
+        const cred = credentialFromError(kind, e);
+        if (cred) setPendingCred(cred);
+        let existing = '';
+        try {
+          if (err.customData?.email) {
+            existing = providerLabel(await fetchSignInMethodsForEmail(auth, err.customData.email));
+          }
+        } catch { /* email enumeration protection hides the methods */ }
+        setError(existing
+          ? `You already use this email with ${existing}. Continue with ${existing} to finish signing in.`
+          : 'This email already has an account. Continue with the method you first signed up with.');
+      } else if (code === 'auth/popup-blocked') {
         try {
           await signInWithRedirect(auth, provider);
           return; // navigating away; leave the spinner until the redirect lands
