@@ -470,6 +470,11 @@ export default function ChatWindow({
         // NOT a message-length problem — the server already tried every model and
         // all were briefly throttled. Honest transient copy, no "shorten it".
         setChatError('The AI is briefly busy right now. Wait a few seconds and try again, or switch models below.');
+      } else if (msg.includes('invalid_request')) {
+        // The server could not read the message shape (e.g. a malformed attachment
+        // part). Point at the likely cause instead of the blank "something went
+        // wrong", and give a concrete recovery.
+        setChatError('That message could not be sent. Remove the attachment and try again, or start a new chat.');
       } else {
         setChatError('Something went wrong. Please try again.');
       }

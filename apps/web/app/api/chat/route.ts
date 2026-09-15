@@ -187,9 +187,57 @@ export async function POST(req: Request) {
     // `tools` is deliberately not passed: it only feeds experimental_toToolResultContent,
     // which nothing sets — not our code, and not the SDK's MCP client (the SDK only
     // ever READS that field). So this is identical to streamText's internal conversion.
+    // 🚨 IMAGE + CAPTION SENDS ARRIVED MALFORMED (fixed 2026-09-15, prod-confirmed).
+    // A user message carrying BOTH typed text and an image is built client-side as
+    // array content ([{type:'text',text},{type:'image',image}]) and handed to the
+    // SDK's append(). getMessageParts (@ai-sdk/ui-utils) then fills
+    //   parts: [{ type:'text', text: <the whole content array> }]
+    // because the message had no `parts` and its content was not a string. This
+    // route reads `parts` for a user turn (convertToCoreMessages) and copies
+    // part.text verbatim, so `text` became a NESTED array — which streamText
+    // rejects with "AI_InvalidPromptError: message must be a CoreMessage or a UI
+    // message", surfacing to the user as "Something went wrong. Please try again."
+    // (verified in prod logs 2026-08-04 → 2026-09-14). An image with no caption or
+    // plain text both take other branches and were fine; only image+caption nested.
+    //
+    // Two guards, applied before conversion:
+    //   1. flatten any text part whose `.text` is not a string (covers turns
+    //      reloaded from Firestore that were already persisted nested), and
+    //   2. drop the SDK-filled `parts` on any user turn whose `content` is an array,
+    //      so convertToCoreMessages takes its clean `content` path and keeps the
+    //      image part as a sibling of a proper string text part.
+    const flattenPartText = (t: unknown): string => {
+      if (typeof t === 'string') return t;
+      if (Array.isArray(t)) return t.map(flattenPartText).join('');
+      if (t && typeof t === 'object') {
+        const o = t as { text?: unknown; content?: unknown };
+        if ('text' in o) return flattenPartText(o.text);
+        if ('content' in o) return flattenPartText(o.content);
+      }
+      return '';
+    };
+    const sanitizedMessages = (body.messages as Array<Record<string, unknown>>).map((m) => {
+      if (!m || typeof m !== 'object') return m;
+      if (!Array.isArray(m.content)) return m;
+      const content = (m.content as Array<Record<string, unknown>>).map((p) =>
+        p && p.type === 'text' && typeof p.text !== 'string'
+          ? { ...p, text: flattenPartText(p.text) }
+          : p,
+      );
+      // A user turn with array content must NOT keep the SDK-filled `parts` — that
+      // field is what carries the nesting. Text-only turns keep `parts`; the trims
+      // below rely on it (see lib/chat/messages.ts).
+      if (m.role === 'user') {
+        const rest = { ...m };
+        delete rest.parts;
+        return { ...rest, content };
+      }
+      return { ...m, content };
+    });
+
     let clientCore: CoreMessage[];
     try {
-      clientCore = convertToCoreMessages(body.messages as Parameters<typeof convertToCoreMessages>[0]);
+      clientCore = convertToCoreMessages(sanitizedMessages as Parameters<typeof convertToCoreMessages>[0]);
     } catch {
       // Thrown on a malformed history (e.g. an assistant turn whose toolInvocation
       // has no result). streamText threw on this before, just later and as a 500.

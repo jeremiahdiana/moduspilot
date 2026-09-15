@@ -191,11 +191,15 @@ export default function ChatInput({
       const isText = file.type.startsWith('text/') || TEXT_EXT.test(file.name);
       const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
       const isDocx = /\.docx$/i.test(file.name) || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      // Match spreadsheets by extension (not the ms-excel MIME, which some
+      // browsers also report for .csv — those must stay on the text path).
+      const isSheet = /\.(xlsx|xls)$/i.test(file.name)
+        || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       let text = '';
-      if (isText && !isDocx) {
+      if (isText && !isDocx && !isSheet) {
         text = (await file.text()).slice(0, MAX_CHARS);
         if (!text.trim()) throw new Error('That file looks empty.');
-      } else if (isPdf || isDocx) {
+      } else if (isPdf || isDocx || isSheet) {
         const token = await auth.currentUser?.getIdToken();
         const form = new FormData();
         form.append('file', file);
@@ -208,7 +212,7 @@ export default function ChatInput({
         if (!res.ok) throw new Error(data.error || 'Could not read that file.');
         text = data.text as string;
       } else {
-        throw new Error('Unsupported file. Try a PDF, Word, text, or CSV file.');
+        throw new Error('Unsupported file. Try a PDF, Word, Excel, text, or CSV file.');
       }
       onFileAttach(file.name, text);
     } catch (err) {
@@ -233,7 +237,7 @@ export default function ChatInput({
   return (
     <form onSubmit={onSubmit} className={docked ? 'border-t border-border' : ''}>
       <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-      <input ref={docRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={handleDocChange} />
+      <input ref={docRef} type="file" accept=".pdf,.docx,.xlsx,.xls,.txt,.md,.markdown,.csv,.tsv,.json,.log,.yaml,.yml,.xml,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={handleDocChange} />
 
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-4">
         {/* Multi-model picker — visible while the mode is on, so the chosen set

@@ -168,12 +168,20 @@ export function isPremiumModel(id: string): boolean {
  * 🪤 meta/llama-4-maverick — found 2026-07-23, blank on EVERY message since it
  * was listed. Its Gateway host serves it as Llama-4-Maverick-17B-128E-Instruct-FP8
  * and hard 400s: "Tool calling is not supported for model". Nothing surfaced it,
- * because the route still returns 200 and Vercel logs a healthy request. Note
- * llama-3.3-70b and deepseek-v3.1 take tools fine on the SAME Gateway key, which
- * is exactly why this cannot be inferred from the provider or the id.
+ * because the route still returns 200 and Vercel logs a healthy request.
+ *
+ * 🪤 meta/llama-3.3-70b — found 2026-09-15 in prod logs (34 failures/day, 3
+ * users, the FREE general default). Once any MCP server is connected its Gateway
+ * host hard 400s with "This model doesn't support tool use in streaming mode."
+ * MODUS always streams (streamText), so tools are unusable for it here and the
+ * whole reply was lost. It used to take tools on this key, so this is a host-side
+ * change — exactly why tool support is a per-model fact a name cannot predict.
+ * deepseek-v3.1 still takes tools on the same key (no failures logged), so only
+ * llama-3.3-70b is listed.
  */
 const NO_FUNCTION_TOOLS = new Set<string>([
   'meta/llama-4-maverick',
+  'meta/llama-3.3-70b',
 ]);
 
 export function modelSupportsTools(id: string): boolean {
