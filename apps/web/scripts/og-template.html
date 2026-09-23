@@ -1,0 +1,130 @@
+<!doctype html>
+<!--
+  Source template for public/og.png (the moduspilot.com link preview card).
+  Rendered to a 2400x1260 PNG by scripts/gen-og-image.mjs (headless Chrome @2x).
+  Edit the copy/design here, then re-run the generator. Keep it matched to the
+  live hero in components/marketing/HeroSection.tsx. Violet stays (AGENTS.md).
+  __LOGO_SRC__ is replaced with an inline data URI by the generator.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" />
+<style>
+  :root {
+    --bg: #18181b;          /* --color-bg dark */
+    --text: #ededf0;        /* --color-text dark */
+    --muted: #9898a0;       /* --color-muted dark */
+    --brand: #7c3aed;       /* brand-light, the dark-surface violet */
+    --brand-hi: #a78bfa;    /* lighter violet for gradient top */
+    --grotesk: 'Space Grotesk', system-ui, sans-serif;
+    --sans: 'Satoshi', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    position: relative;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Achromatic overhead light + faint dot grid, matching HeroSection.
+     A single low-opacity violet glow, NOT a full purple wash. */
+  .glow-neutral {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 120% 70% at 50% -8%, rgba(255,255,255,0.05), transparent 62%);
+  }
+  .glow-violet {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 90% 60% at 82% -20%, rgba(124,58,237,0.22), transparent 60%);
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .frame {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    padding: 76px 80px;
+    display: flex; flex-direction: column;
+  }
+  /* Brand lockup */
+  .brand { display: flex; align-items: center; gap: 16px; }
+  .brand img { height: 52px; width: auto; display: block; }
+  .brand .marks { display: flex; flex-direction: column; line-height: 1; }
+  .brand .word {
+    font-family: var(--grotesk); font-weight: 700; font-size: 28px;
+    letter-spacing: 0.22em; color: var(--text);
+  }
+  .brand .tier {
+    font-family: var(--grotesk); font-weight: 600; font-size: 12px;
+    letter-spacing: 0.34em; text-transform: uppercase; color: var(--muted);
+    margin-top: 6px;
+  }
+  /* Headline */
+  .headline {
+    font-family: var(--grotesk); font-weight: 600;
+    font-size: 116px; line-height: 1.02; letter-spacing: -0.02em;
+    margin-top: auto; margin-bottom: 34px;
+  }
+  .headline .accent {
+    background: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand) 92%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .headline .plain { color: var(--text); }
+  /* Subhead */
+  .subhead {
+    font-family: var(--sans); font-weight: 400;
+    font-size: 32px; line-height: 1.42; color: var(--muted);
+    max-width: 960px;
+  }
+  .subhead b { color: var(--text); font-weight: 700; }
+  /* Trust row */
+  .trust {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 20px;
+    font-family: var(--sans); font-weight: 500;
+    font-size: 23px; color: var(--muted);
+  }
+  .trust .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--brand); display: inline-block; }
+</style>
+</head>
+<body>
+  <div class="glow-neutral"></div>
+  <div class="glow-violet"></div>
+  <div class="grid"></div>
+  <div class="frame">
+    <div class="brand">
+      <img src="__LOGO_SRC__" alt="" />
+      <div class="marks">
+        <span class="word">MODUS</span>
+        <span class="tier">Pilot</span>
+      </div>
+    </div>
+
+    <h1 class="headline">
+      <span class="accent">The Only AI</span><br />
+      <span class="plain">You&rsquo;ll Ever Need.</span>
+    </h1>
+
+    <p class="subhead">
+      Write with <b>Gemini</b>. Research with <b>Claude</b>. Ask <b>ChatGPT</b>. Routed to the best one, automatically.
+    </p>
+
+    <div class="trust">
+      <span>Every frontier model</span>
+      <span class="dot"></span>
+      <span>Gmail &amp; Calendar</span>
+      <span class="dot"></span>
+      <span>Cancel anytime</span>
+    </div>
+  </div>
+</body>
+</html>
