@@ -41,6 +41,37 @@ export async function ensureUserDoc(uid: string, email?: string | null): Promise
 }
 
 /**
+ * Short-lived, per-user lock around checkout-session creation.
+ *
+ * The duplicate-subscription guard (findLivePlanSubscription -> create session) is
+ * check-then-act: two requests in flight at once (two tabs, a fast retry) each see
+ * "no live sub" and each create a session, so two subscriptions can still be born
+ * on one customer. That is how a real founder ended up at $48/mo. This lock makes
+ * the second concurrent attempt bounce instead.
+ *
+ * Fail-OPEN on any Firestore error, same as the founding rate limiter: a lock
+ * outage must never block a paying customer from checking out. The lock simply
+ * lapses by TTL, so no explicit release is needed (a completed checkout redirects
+ * the user away).
+ */
+export async function acquireCheckoutLock(uid: string, ttlMs = 120_000): Promise<boolean> {
+  const ref = adminDb.collection('checkoutLocks').doc(uid);
+  try {
+    return await adminDb.runTransaction(async tx => {
+      const snap = await tx.get(ref);
+      const now = Date.now();
+      const data = snap.data() as { lockedAt?: number } | undefined;
+      const held = data?.lockedAt != null && now - data.lockedAt < ttlMs;
+      if (held) return false;
+      tx.set(ref, { lockedAt: now });
+      return true;
+    });
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Every Stripe customer id that could belong to this user: the one we recorded,
  * plus any customer sharing their email. The email sweep is what catches the
  * duplicates a previous retry created.
@@ -78,10 +109,21 @@ export async function resolveStripeCustomer(uid: string, email?: string | null):
   let customerId: string | undefined;
   if (email) {
     const found = await stripe.customers.list({ email, limit: 100 });
-    // Oldest first: if duplicates already exist, always converge on the original
-    // rather than adding to the pile.
+    // Oldest first: if duplicates already exist, converge on the original rather
+    // than adding to the pile.
     const live = found.data.filter(c => !c.deleted).sort((a, b) => a.created - b.created);
-    customerId = live[0]?.id;
+    // ...BUT a duplicate that already holds the paying subscription must win. The
+    // oldest record is not always the one being billed — a real founder's active
+    // sub sat on the NEWEST of three customer records. Persisting the oldest here
+    // would point stripeCustomerId at a customer with no subscription and break
+    // the portal / management path. Prefer whichever customer carries a live sub.
+    if (live.length > 1) {
+      for (const c of live) {
+        const subs = await stripe.subscriptions.list({ customer: c.id, status: 'all', limit: 100 });
+        if (subs.data.some(s => LIVE_STATUSES.includes(s.status))) { customerId = c.id; break; }
+      }
+    }
+    customerId = customerId ?? live[0]?.id;
   }
   if (!customerId) {
     customerId = (await stripe.customers.create({
@@ -223,4 +265,26 @@ export function isFoundingSubscription(
  */
 export function sessionIsPaid(session: Stripe.Checkout.Session): boolean {
   return session.payment_status === 'paid' || session.payment_status === 'no_payment_required';
+}
+
+/**
+ * The subscription id an invoice belongs to, across Stripe API versions.
+ *
+ * Stripe renders webhook payloads at the version configured on the ENDPOINT, which
+ * can be newer than the SDK's pinned apiVersion. Newer versions moved the flat
+ * `invoice.subscription` field onto `invoice.parent.subscription_details.subscription`.
+ * The invoice.payment_failed downgrade read only the flat field, so on a newer
+ * endpoint it silently resolved null and lapsed subscribers kept full access
+ * forever. Read every known shape so the downgrade fires regardless of version.
+ */
+export function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  const flat = (invoice as { subscription?: string | { id: string } | null }).subscription;
+  if (flat) return stripeId(flat);
+  const parent = (invoice as {
+    parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null;
+  }).parent;
+  if (parent?.subscription_details?.subscription) return stripeId(parent.subscription_details.subscription);
+  const line = invoice.lines?.data?.[0] as { subscription?: string | { id: string } | null } | undefined;
+  if (line?.subscription) return stripeId(line.subscription);
+  return null;
 }

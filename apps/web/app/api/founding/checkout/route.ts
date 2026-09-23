@@ -1,8 +1,9 @@
+import { createHash } from 'crypto';
 import { cookies } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { FOUNDING_COOKIE, verifyGate, toMillis } from '@/lib/founding';
-import { ensureUserDoc, resolveStripeCustomer, findLivePlanSubscription, stripeId } from '@/lib/billing';
+import { ensureUserDoc, resolveStripeCustomer, findLivePlanSubscription, stripeId, acquireCheckoutLock } from '@/lib/billing';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
 // Founding members are billed on the $24 MODUS price but granted PILOT tier.
@@ -82,12 +83,34 @@ export async function POST(req: Request) {
   // and each one can carry its own subscription — the double-billing mechanism.
   const customerId = await resolveStripeCustomer(uid, email);
 
+  const successUrl = `${APP_URL}/welcome`;
+  const cancelUrl = `${APP_URL}/grandfathering`;
+
+  // Reuse an abandoned checkout instead of stacking a second subscription on the
+  // same customer. /api/stripe/checkout has had this since the double-billing fix;
+  // the founding path never got it, which is exactly how a founder ended up on two
+  // $24 subs. Same-intent open session -> resume it; a completed one is caught by
+  // the findLivePlanSubscription guard above.
+  const intent = createHash('sha256').update(JSON.stringify([uid, FOUNDING_PRICE, successUrl, cancelUrl])).digest('hex');
+  const openSessions = await stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 100 });
+  const existing = openSessions.data.find(session => session.metadata?.checkoutIntent === intent && session.url);
+  if (existing) return Response.json({ url: existing.url });
+
+  // Second concurrent attempt (two tabs, a fast retry) must not create a parallel
+  // session that becomes a parallel subscription. Fails open on a lock outage.
+  if (!(await acquireCheckoutLock(uid))) {
+    return Response.json(
+      { error: 'A checkout is already in progress. Finish or close the other tab, then try again.', code: 'checkout_in_progress' },
+      { status: 409 },
+    );
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: FOUNDING_PRICE, quantity: 1 }],
-    success_url: `${APP_URL}/welcome`,
-    cancel_url: `${APP_URL}/grandfathering`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
     customer: customerId,
     // Founders are charged $24 immediately (no trial). The webhook reads
     // metadata.plan ('pilot') — NOT the price — so this $24 sub grants PILOT.
@@ -96,8 +119,8 @@ export async function POST(req: Request) {
       metadata: { uid, plan: FOUNDING_PLAN, founding: 'true', foundingCodeId: codeId },
     },
     payment_method_collection: 'always',
-    metadata: { uid, plan: FOUNDING_PLAN, founding: 'true', foundingCodeId: codeId },
-  });
+    metadata: { uid, plan: FOUNDING_PLAN, founding: 'true', foundingCodeId: codeId, checkoutIntent: intent },
+  }, { idempotencyKey: `founding:${intent}:${Math.floor(Date.now() / 1_800_000)}` });
 
   return Response.json({ url: session.url });
 }

@@ -2,7 +2,7 @@ import { stripe } from '@/lib/stripe';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendPushToUser } from '@/lib/fcm-admin';
-import { stripeId, sessionIsPaid, downgradeIfNoLiveSubscription, isAddonSubscription, customerIdsForUser, findLivePlanSubscription } from '@/lib/billing';
+import { stripeId, sessionIsPaid, downgradeIfNoLiveSubscription, isAddonSubscription, customerIdsForUser, findLivePlanSubscription, subscriptionIdFromInvoice } from '@/lib/billing';
 
 const PLAN_PRICE: Record<string, string> = { modus: '$24', pilot: '$59', group: '$79' };
 
@@ -327,7 +327,8 @@ export async function POST(req: Request) {
   // Downgrade on failed payment after all retries exhausted
   if (event.type === 'invoice.payment_failed') {
     const invoice = event.data.object;
-    const invoiceSubId = stripeId(invoice.subscription as string | { id: string } | null);
+    // Read across API versions: a newer endpoint moves this off invoice.subscription.
+    const invoiceSubId = subscriptionIdFromInvoice(invoice);
     // Only act when it's a subscription invoice and next_payment_attempt is null (retries done)
     if (invoiceSubId && invoice.next_payment_attempt === null) {
       const customerId = stripeId(invoice.customer as string | { id: string } | null);

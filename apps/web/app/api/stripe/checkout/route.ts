@@ -3,7 +3,7 @@ import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { isCadence, resolvePlanPrice, type Cadence } from '@/lib/pricing';
-import { ensureUserDoc, resolveStripeCustomer, findLivePlanSubscription, stripeId } from '@/lib/billing';
+import { ensureUserDoc, resolveStripeCustomer, findLivePlanSubscription, stripeId, acquireCheckoutLock } from '@/lib/billing';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.moduspilot.com';
 
@@ -125,6 +125,16 @@ export async function POST(req: Request) {
   const openSessions = await stripe.checkout.sessions.list({ customer: existingCustomerId, status: 'open', limit: 100 });
   const existing = openSessions.data.find(session => session.metadata?.checkoutIntent === intent && session.url);
   if (existing) return Response.json({ url: existing.url });
+
+  // Second concurrent attempt (two tabs, a fast retry) must not slip past the
+  // check-then-act guard above and create a parallel subscription. Fails open on a
+  // lock outage so a real checkout is never blocked.
+  if (!(await acquireCheckoutLock(uid))) {
+    return Response.json(
+      { error: 'A checkout is already in progress. Finish or close the other tab, then try again.', code: 'checkout_in_progress' },
+      { status: 409 },
+    );
+  }
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
