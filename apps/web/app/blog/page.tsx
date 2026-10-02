@@ -3,7 +3,10 @@ import { sortedPosts } from '@/lib/blog/posts';
 import { BlogIndexClient } from '@/components/blog/BlogIndexClient';
 
 export const metadata: Metadata = {
-  title: 'Blog | Modus',
+  // The root layout sets title.template to '%s | Modus', which is applied to this
+  // string. Spelling the suffix out here as well rendered 'Blog | Modus | Modus'
+  // on every blog page, which was live. Let the template add it, once.
+  title: 'Blog',
   description:
     'Honest comparisons of the AI subscriptions people actually pay for, with real prices and a clear note on what each one is best at.',
   alternates: { canonical: 'https://moduspilot.com/blog' },

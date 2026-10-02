@@ -21,7 +21,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!post) return {};
   const url = `${SITE}/blog/${post.slug}`;
   return {
-    title: `${post.title} | Modus`,
+    // Suffix comes from the root layout's title.template. See app/blog/page.tsx.
+    title: post.title,
     description: post.description,
     alternates: { canonical: url },
     openGraph: {

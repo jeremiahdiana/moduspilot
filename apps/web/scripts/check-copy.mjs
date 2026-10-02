@@ -29,7 +29,11 @@ import { dirname } from 'node:path';
 import ts from 'typescript';
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DIRS = ['app', 'components'];
+// lib/blog, not all of lib: the blog's prose lives in lib/blog/posts.ts and was
+// invisible to this guard until now, which is how five em dashes shipped in it.
+// The rest of lib is mostly model prompts and server strings, and sweeping it in
+// surfaces 38 pre-existing findings that are a separate job from guarding copy.
+const DIRS = ['app', 'components', join('lib', 'blog')];
 const EXT = new Set(['.ts', '.tsx']);
 
 const EM_DASH = '—';
