@@ -42,7 +42,7 @@ const FEATURES = [
     icon: icons.models,
     tag: 'Every model',
     title: 'Every AI model, one chat',
-    desc: 'Claude, GPT-5.6, Gemini, Llama. Pick the model you want, or let Modus auto-route each task to the best one, switch anytime, right in the chat.',
+    desc: 'Claude, GPT-6, Gemini, Llama. Pick the model you want, or let Modus auto-route each task to the best one, switch anytime, right in the chat.',
   },
   {
     icon: icons.create,

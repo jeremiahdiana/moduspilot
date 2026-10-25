@@ -11,7 +11,7 @@ const PLANS = [
     popular: true,
     features: [
       'AI Chat, unlimited with full context',
-      'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama',
+      'Every provider, auto-routed: GPT-6, Claude, Gemini, Llama',
       'Generate images & editable PDFs',
       'Unlimited briefings + goals + habit engine',
       'Voice interface',

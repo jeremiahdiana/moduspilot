@@ -89,7 +89,7 @@ export interface ModelInfo {
 
 export const MODEL_LOGOS: ModelInfo[] = [
   { name: 'Claude',  provider: 'Anthropic', logo: ClaudeLogo },
-  { name: 'GPT-5.6', provider: 'OpenAI',    logo: OpenAILogo },
+  { name: 'GPT-6', provider: 'OpenAI',    logo: OpenAILogo },
   { name: 'Gemini',  provider: 'Google',    logo: GeminiLogo },
   { name: 'Llama',   provider: 'Meta',      logo: MetaLogo },
 ];

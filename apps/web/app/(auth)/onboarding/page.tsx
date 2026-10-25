@@ -274,11 +274,11 @@ const PLAN_OPTIONS: { id: PlanId; name: string; tagline: string; popular?: boole
   { id: 'free', name: 'Free', tagline: 'Open models, no card required', features: ['Open models for everyday chat', 'Five-hour allowance plus a weekly cap', 'Upgrade anytime'] },
   {
     id: 'modus', name: 'MODUS', tagline: 'Every provider, auto-routed',
-    features: ['Claude + GPT-5.6 + Gemini, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
+    features: ['Claude + GPT-6 + Gemini, auto-routed', 'Inbox, calendar & goals', 'Daily briefing', 'Memory across every chat'],
   },
   {
     id: 'pilot', name: 'PILOT', tagline: 'Everything, higher limits', popular: true,
-    features: ['Everything in MODUS', 'The frontier models, GPT-5.6 Sol, Claude Opus, Claude Fable 5 + Gemini 3.1 Pro', 'Much higher usage limits', 'Manual model pick per message'],
+    features: ['Everything in MODUS', 'The frontier models, GPT-6 Astra, Claude Opus 5.5, Claude Fable 5.1 + Gemini 4', 'Much higher usage limits', 'Manual model pick per message'],
   },
 ];
 

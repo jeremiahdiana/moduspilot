@@ -6,7 +6,7 @@ import MarketingShell from '@/components/marketing/MarketingShell';
 const PRINCIPLES = [
   {
     title: 'Every model, not one',
-    body: 'The best model changes with the task. Modus gives you Claude, GPT-5.6, Gemini, Llama and DeepSeek in one chat, on Auto or picked per message, so you never bet your work on a single provider.',
+    body: 'The best model changes with the task. Modus gives you Claude, GPT-6, Gemini, Llama and DeepSeek in one chat, on Auto or picked per message, so you never bet your work on a single provider.',
   },
   {
     title: 'Connected to your life',

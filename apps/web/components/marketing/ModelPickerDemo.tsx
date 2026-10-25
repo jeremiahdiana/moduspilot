@@ -24,8 +24,8 @@ const MultiIcon = (
 const ROWS: Row[] = [
   { label: 'Auto', sub: 'Best model, auto-picked', node: AutoIcon, chip: 'Auto' },
   { label: 'Multi-model', sub: 'Ask several at once', node: MultiIcon, chip: 'Multi-model' },
-  { label: 'Claude Sonnet 5', sub: 'Anthropic', node: <ClaudeLogo className="w-4 h-4" />, chip: 'Claude' },
-  { label: 'GPT-5.6', sub: 'OpenAI', node: <OpenAILogo className="w-4 h-4" />, chip: 'ChatGPT' },
+  { label: 'Claude Sonnet 5.5', sub: 'Anthropic', node: <ClaudeLogo className="w-4 h-4" />, chip: 'Claude' },
+  { label: 'GPT-6', sub: 'OpenAI', node: <OpenAILogo className="w-4 h-4" />, chip: 'ChatGPT' },
   { label: 'Gemini 3.5', sub: 'Google', node: <GeminiLogo className="w-4 h-4" />, chip: 'Gemini' },
 ];
 

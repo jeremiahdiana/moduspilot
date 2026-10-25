@@ -21,7 +21,7 @@ export default function MultiModelSection() {
             Every AI, one conversation
           </h2>
           <p className="text-muted text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
-            Stop paying for five apps and pasting between them. Claude, GPT-5.6, Gemini, Llama and more all live in a single chat.
+            Stop paying for five apps and pasting between them. Claude, GPT-6, Gemini, Llama and more all live in a single chat.
           </p>
 
           <div className="flex flex-wrap justify-center gap-2 mt-7">

@@ -35,7 +35,7 @@ const PLANS: Plan[] = [
     tagline: 'Cancel anytime.',
     popular: true,
     features: [
-      'Every provider, auto-routed: GPT-5.6, Claude, Gemini, Llama',
+      'Every provider, auto-routed: GPT-6, Claude, Gemini, Llama',
       'Chat with full context and higher limits',
       'Generate images and editable PDFs',
       'Voice interface',
@@ -51,7 +51,7 @@ const PLANS: Plan[] = [
     tagline: 'For founders and executives.',
     features: [
       'Everything in MODUS',
-      'The frontier models, manual pick per message: GPT-5.6 Sol, Claude Opus, Claude Fable 5 and Gemini 3.1 Pro',
+      'The frontier models, manual pick per message: GPT-6 Astra, Claude Opus 5.5, Claude Fable 5.1 and Gemini 4',
       'Unlimited context memory',
       'Wearable sync: HealthKit, Oura and Whoop',
       'Financial pulse via Plaid',

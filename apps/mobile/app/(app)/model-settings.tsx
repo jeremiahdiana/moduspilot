@@ -335,7 +335,7 @@ export default function BrainScreen() {
 
             {!isPaid && (
               <Text className="text-muted text-xs text-center">
-                Upgrade to <Text className="text-brand font-medium">MODUS</Text> to unlock GPT-5.6, Claude Sonnet and Gemini.{' '}
+                Upgrade to <Text className="text-brand font-medium">MODUS</Text> to unlock GPT-6, Claude Sonnet and Gemini.{' '}
                 <Text className="text-brand font-medium">PILOT</Text> adds the frontier models.
               </Text>
             )}

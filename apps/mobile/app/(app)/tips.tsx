@@ -71,7 +71,7 @@ const SECTIONS: Section[] = [
         tag: 'BYOK',
       },
       {
-        title: 'Pick Claude for writing, GPT-5.6 for general use',
+        title: 'Pick Claude for writing, GPT-6 for general use',
         body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-6.1 Sol is great for general tasks, images, and code. Gemini 3.8 Flash is the fastest. Try them on MODUS plan and see which fits your workflow.',
         tag: 'Pro tip',
       },

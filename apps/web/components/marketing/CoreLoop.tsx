@@ -45,7 +45,7 @@ const STEPS: Step[] = [
         {[
           ['Claude', 'Deep research', true],
           ['Gemini', 'Long-form writing', false],
-          ['GPT-5.6', 'Quick answers', false],
+          ['GPT-6', 'Quick answers', false],
         ].map(([m, use, on]) => (
           <div key={m as string} className={`flex items-center justify-between rounded-lg px-3 py-2 ${on ? 'bg-brand/12 ring-1 ring-brand/25' : 'bg-bg'}`}>
             <span className="text-sm font-semibold text-text">{m}</span>

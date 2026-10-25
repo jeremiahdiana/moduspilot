@@ -5,7 +5,7 @@ import { ClaudeLogo, OpenAILogo, GeminiLogo, MetaLogo, DeepSeekLogo } from './Mo
 
 const MODELS = [
   { name: 'Claude', Logo: ClaudeLogo },
-  { name: 'GPT-5.6', Logo: OpenAILogo },
+  { name: 'GPT-6', Logo: OpenAILogo },
   { name: 'Gemini', Logo: GeminiLogo },
   { name: 'Llama', Logo: MetaLogo },
   { name: 'DeepSeek', Logo: DeepSeekLogo },
