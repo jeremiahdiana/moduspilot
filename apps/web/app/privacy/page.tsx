@@ -4,7 +4,7 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Modus',
+  title: 'Privacy Policy',
   description: 'How Modus collects, uses, and protects your data.',
   alternates: { canonical: 'https://moduspilot.com/privacy' },
 };

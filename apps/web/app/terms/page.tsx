@@ -4,7 +4,7 @@ import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Modus',
+  title: 'Terms of Service',
   description: 'Terms and conditions for using MODUS Pilot.',
   alternates: { canonical: 'https://moduspilot.com/terms' },
 };

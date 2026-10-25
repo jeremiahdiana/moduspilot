@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Use cases | Modus',
+  title: 'Use cases',
   description: 'How founders, executives and busy people use Modus: daily briefings, inbox triage, meeting intelligence, goals and habits, all in one place.',
   alternates: { canonical: 'https://moduspilot.com/use-cases' },
 };

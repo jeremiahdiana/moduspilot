@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Features | Modus',
+  title: 'Features',
   description: 'Modus monitors your calendar, email, and goals in real time, then acts on your behalf. See how one message handles everything.',
   alternates: {
     canonical: 'https://moduspilot.com/features',
