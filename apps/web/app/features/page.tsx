@@ -7,7 +7,7 @@ import { ClaudeLogo, OpenAILogo, GeminiLogo, MetaLogo, DeepSeekLogo } from '@/co
 
 const MODELS = [
   { name: 'Claude', Logo: ClaudeLogo },
-  { name: 'GPT-5.6', Logo: OpenAILogo },
+  { name: 'GPT-6', Logo: OpenAILogo },
   { name: 'Gemini', Logo: GeminiLogo },
   { name: 'Llama', Logo: MetaLogo },
   { name: 'DeepSeek', Logo: DeepSeekLogo },
@@ -41,7 +41,7 @@ const DOES = [
 ];
 
 const VS = [
-  { row: 'The models', them: "One company's models. To get both, you buy both.", us: 'Claude, GPT-5.6, Gemini, Llama and DeepSeek, in one thread, on one bill.' },
+  { row: 'The models', them: "One company's models. To get both, you buy both.", us: 'Claude, GPT-6, Gemini, Llama and DeepSeek, in one thread, on one bill.' },
   { row: 'Picking one', them: 'You pick the app, then the model inside it. Guess wrong, wrong answer.', us: 'Auto reads the task and routes it to the best model. You just type.' },
   { row: 'A second opinion', them: 'One model, one answer. You never find out what it missed.', us: 'Ask three at once, side by side, with a verdict.' },
   { row: 'Your life', them: 'A blank chat that forgets you the moment you close the tab.', us: 'Your inbox, calendar and files connected, and memory of you.' },

@@ -306,9 +306,9 @@ function PaywallScreen({
 // Auto-routing copy from model-settings.tsx.
 const MODEL_ROUTES: { task: string; model: string; Logo: React.ComponentType<{ size?: number }> }[] = [
   { task: 'Write a cold email',   model: 'Gemini', Logo: GeminiLogo },
-  { task: 'Debug my code',        model: 'GPT-5.6', Logo: OpenAILogo },
+  { task: 'Debug my code',        model: 'GPT-6', Logo: OpenAILogo },
   { task: 'Research a market',    model: 'Claude', Logo: AnthropicLogo },
-  { task: 'Plan my week',         model: 'GPT-5.6', Logo: OpenAILogo },
+  { task: 'Plan my week',         model: 'GPT-6', Logo: OpenAILogo },
 ];
 
 function ModelsScreen({ name, onContinue, onBack }: { name: string; onContinue: () => void; onBack: () => void }) {
@@ -327,7 +327,7 @@ function ModelsScreen({ name, onContinue, onBack }: { name: string; onContinue: 
               {'Every model.\nOne app.'}
             </GradientText>
             <Text className="text-muted text-sm text-center mt-2 px-2">
-              GPT-5.6, Claude, Gemini, Llama{name.trim() ? '' : ''} — MODUS routes each task to whichever is best. Or pick one yourself.
+              GPT-6, Claude, Gemini, Llama{name.trim() ? '' : ''} — MODUS routes each task to whichever is best. Or pick one yourself.
             </Text>
           </Animated.View>
 

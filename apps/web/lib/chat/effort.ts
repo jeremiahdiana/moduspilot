@@ -10,6 +10,10 @@
  *
  *   OpenAI      openai.reasoningEffort      'low' | 'medium' | 'high'
  *   Anthropic   anthropic.thinking          { type: 'enabled', budgetTokens }
+ *               ⚠️ which the API now REJECTS on every Claude we serve. model.ts
+ *               rewrites it on the wire to { type: 'adaptive' } + output_config.effort
+ *               (rewriteClaudeThinkingBody). The budget numbers below are only the
+ *               key that rewrite maps back from.
  *   Google      google.thinkingConfig       { thinkingBudget }
  *
  * Llama 3.3 and DeepSeek V3.1 take none of these. That is deliberate, not an
@@ -40,7 +44,7 @@
  * product has had.
  */
 import type { JSONValue } from 'ai';
-import { isReasoningModel } from '@/lib/chat/model-params';
+import { isReasoningModel, isOpenAIReasoning, isGeminiThinking } from '@/lib/chat/model-params';
 import { canonicalModelId } from '@/lib/models';
 
 /** Exactly the shape streamText's `providerOptions` accepts. */
@@ -62,6 +66,15 @@ export const DEFAULT_EFFORT: Effort = 'medium';
 /** Anthropic requires budgetTokens >= 1024, and it must stay under maxTokens (16000). */
 const ANTHROPIC_BUDGET: Partial<Record<Effort, number>> = { low: 2048, high: 8000 };
 const GOOGLE_BUDGET: Partial<Record<Effort, number>> = { low: 2048, high: 8192 };
+
+/**
+ * The budget we sent back to the effort level it stands for. model.ts needs it
+ * because @ai-sdk/anthropic@1.2.12 can only express `thinking: enabled + budget`,
+ * which every Claude we serve now rejects (see rewriteClaudeThinkingBody).
+ */
+export function anthropicEffortForBudget(budget: unknown): Effort | undefined {
+  return (Object.keys(ANTHROPIC_BUDGET) as Effort[]).find(e => ANTHROPIC_BUDGET[e] === budget);
+}
 
 export function isEffort(v: unknown): v is Effort {
   return typeof v === 'string' && (EFFORT_LEVELS as readonly string[]).includes(v);
@@ -91,14 +104,14 @@ export function effortProviderOptions(modelId: string, effort: Effort): Provider
   if (!supportsEffort(modelId) || effort === 'medium') return {};
   const id = canonicalModelId(modelId);
 
-  if (/^o\d/.test(id) || /^gpt-5/.test(id)) {
+  if (isOpenAIReasoning(id)) {
     return { openai: { reasoningEffort: effort } };
   }
   if (/^claude-/.test(id)) {
     const budgetTokens = ANTHROPIC_BUDGET[effort];
     return budgetTokens ? { anthropic: { thinking: { type: 'enabled', budgetTokens } } } : {};
   }
-  if (/^gemini-3/.test(id)) {
+  if (isGeminiThinking(id)) {
     const thinkingBudget = GOOGLE_BUDGET[effort];
     return thinkingBudget ? { google: { thinkingConfig: { thinkingBudget } } } : {};
   }

@@ -8,15 +8,15 @@ import MarketingShell from '@/components/marketing/MarketingShell';
 const STRENGTHS: Record<string, string> = {
   'meta/llama-3.3-70b': 'Fast, open weights. A capable everyday model with no lock-in.',
   'deepseek/deepseek-v3.1': 'Strong reasoning and code, at open-model cost.',
-  'gemini-3.5-flash': 'Quick, multimodal, reads images. Great for everyday work.',
+  'gemini-3.8-flash': 'Quick, multimodal, reads images. Great for everyday work.',
   'gemini-3.5-flash-lite': 'The fastest, cheapest option. Good for quick questions.',
-  'gpt-5.6-terra': 'OpenAI’s everyday workhorse, reads images.',
-  'claude-sonnet-5': 'Balanced writing and reasoning, excellent for long documents.',
+  'gpt-6.1-sol': 'OpenAI’s everyday workhorse, reads images.',
+  'claude-sonnet-5-5': 'Balanced writing and reasoning, excellent for long documents.',
   'meta/llama-4-maverick': 'A 1M-token context and native vision, open weights.',
-  'gpt-5.6-sol': 'OpenAI’s frontier reasoning model.',
-  'claude-opus-4-8': 'Anthropic’s most capable model for hard, careful work.',
-  'gemini-3.1-pro-preview': 'Google’s frontier model, long context and vision.',
-  'claude-fable-5': 'The frontier of writing and knowledge work.',
+  'gpt-6-astra': 'OpenAI’s frontier reasoning model.',
+  'claude-opus-5-5': 'Anthropic’s most capable model for hard, careful work.',
+  'gemini-4-argon': 'Google’s frontier model, long context and vision.',
+  'claude-fable-5-1': 'The frontier of writing and knowledge work.',
 };
 
 type Row = { name: string; provider: string; strength: string };
@@ -24,20 +24,20 @@ type Row = { name: string; provider: string; strength: string };
 const FREE: Row[] = [
   { name: 'Llama 3.3', provider: 'Meta', strength: STRENGTHS['meta/llama-3.3-70b'] },
   { name: 'DeepSeek V3.1', provider: 'DeepSeek', strength: STRENGTHS['deepseek/deepseek-v3.1'] },
-  { name: 'Gemini 3.5 Flash', provider: 'Google', strength: STRENGTHS['gemini-3.5-flash'] },
+  { name: 'Gemini 3.8 Flash', provider: 'Google', strength: STRENGTHS['gemini-3.8-flash'] },
   { name: 'Gemini 3.5 Flash Lite', provider: 'Google', strength: STRENGTHS['gemini-3.5-flash-lite'] },
 ];
 
 const MODUS: Row[] = [
-  { name: 'GPT-5.6 Terra', provider: 'OpenAI', strength: STRENGTHS['gpt-5.6-terra'] },
-  { name: 'Claude Sonnet 5', provider: 'Anthropic', strength: STRENGTHS['claude-sonnet-5'] },
+  { name: 'GPT-6.1 Sol', provider: 'OpenAI', strength: STRENGTHS['gpt-6.1-sol'] },
+  { name: 'Claude Sonnet 5.5', provider: 'Anthropic', strength: STRENGTHS['claude-sonnet-5-5'] },
 ];
 
 const PILOT: Row[] = [
-  { name: 'GPT-5.6 Sol', provider: 'OpenAI', strength: STRENGTHS['gpt-5.6-sol'] },
-  { name: 'Claude Opus', provider: 'Anthropic', strength: STRENGTHS['claude-opus-4-8'] },
-  { name: 'Claude Fable 5', provider: 'Anthropic', strength: STRENGTHS['claude-fable-5'] },
-  { name: 'Gemini 3.1 Pro', provider: 'Google', strength: STRENGTHS['gemini-3.1-pro-preview'] },
+  { name: 'GPT-6 Astra', provider: 'OpenAI', strength: STRENGTHS['gpt-6-astra'] },
+  { name: 'Claude Opus 5.5', provider: 'Anthropic', strength: STRENGTHS['claude-opus-5-5'] },
+  { name: 'Claude Fable 5.1', provider: 'Anthropic', strength: STRENGTHS['claude-fable-5-1'] },
+  { name: 'Gemini 4', provider: 'Google', strength: STRENGTHS['gemini-4-argon'] },
   { name: 'Llama 4 Maverick', provider: 'Meta', strength: STRENGTHS['meta/llama-4-maverick'] },
 ];
 

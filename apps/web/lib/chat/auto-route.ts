@@ -22,23 +22,26 @@ export type TaskCategory = 'writing' | 'research' | 'code' | 'reasoning' | 'gene
 // Llama (the 'general' default). Ids must exist in PLATFORM_MODELS.
 const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   // Nuanced, human-sounding prose — Claude leads (reads least "AI-generated").
-  writing:   ['claude-sonnet-5', 'claude-opus-4-8', 'gpt-5.6-terra'],
+  writing:   ['claude-sonnet-5-5', 'claude-opus-5-5', 'gpt-6.1-sol'],
   // Up-to-date / factual digging. Grok led here for its real-time index and is
   // gone: xAI has no credits, so it could not answer at all (see lib/models.ts).
   // Gemini Flash takes the slot — it's the fastest model on MODUS and this is the
   // category that carries the web-search flag anyway.
-  research:  ['gemini-3.5-flash', 'gpt-5.6-terra', 'claude-sonnet-5'],
-  // Code & math. Sol leads on PILOT and MODUS falls through to Terra, which is
-  // what pickModel() is for. o4-mini is retired — 5.6 supersedes it.
-  code:      ['gpt-5.6-sol', 'gpt-5.6-terra', 'claude-sonnet-5'],
+  research:  ['gemini-3.8-flash', 'gpt-6.1-sol', 'claude-sonnet-5-5'],
+  // Code & math. GPT-6.1 Sol leads on BOTH plans since 2026-10-25: it is
+  // newer than the old PILOT lead (5.6 Sol) and costs less than half as much.
+  // gpt-6-astra is kept OUT for the same reason as Fable below.
+  code:      ['gpt-6.1-sol', 'claude-sonnet-5-5'],
   // Hard multi-step reasoning / strategy.
   //
-  // claude-fable-5 is DELIBERATELY absent, even though it's the most capable model
-  // we serve. At $10/$50 per 1M (~2x Opus 4.8) it is the priciest thing in the
-  // catalog, and Auto is the default — routing here would quietly make the most
+  // claude-fable-5-1 and gpt-6-astra are DELIBERATELY absent, even though they are
+  // the most capable models we serve. At $10/$50 per 1M (2.5x Opus 5.5) they are the
+  // priciest things in the catalog, and Auto is the default — routing here would quietly make the most
   // expensive model the standard spend for every PILOT reasoning turn. PILOT's
   // selling point is manual pick per message; let the user choose to spend it.
-  reasoning: ['gpt-5.6-sol', 'claude-opus-4-8', 'gpt-5.6-terra', 'claude-sonnet-5'],
+  // Opus 5.5 (weight 11) leads on PILOT; that is still cheaper than the 5.6 Sol
+  // (weight 15) that led here before the swap. MODUS falls through to 6.1 Sol.
+  reasoning: ['claude-opus-5-5', 'gpt-6.1-sol', 'claude-sonnet-5-5'],
   // Everyday chat — fast & free.
   general:   ['meta/llama-3.3-70b'],
   // Questions about MODUS itself: which models it has, how Auto routes, what the
@@ -48,7 +51,7 @@ const CATEGORY_PREFERENCE: Record<TaskCategory, string[]> = {
   // answered "how do u route ur models?" by describing somebody else's product.
   // So this is ranked by instruction-following, not by raw capability, and it is
   // deliberately cheap-ish: these are short, factual, high-frequency questions.
-  product:   ['claude-sonnet-5', 'gpt-5.6-terra', 'gemini-3.5-flash'],
+  product:   ['claude-sonnet-5-5', 'gpt-6.1-sol', 'gemini-3.8-flash'],
 };
 
 const LLAMA = 'meta/llama-3.3-70b';
@@ -56,7 +59,7 @@ const LLAMA = 'meta/llama-3.3-70b';
 // 💸 SAVER routing. When the user picks "Auto (Saver)" the same task categories
 // resolve to the cheapest capable model instead of the best one, so the account's
 // cost-weighted allowance stretches ~5-7x (a saver code turn on DeepSeek V3.1 is
-// weight 2 vs GPT-5.6 Sol's 15). Every id here is weight <=2 and modus-reachable,
+// weight 2 vs Opus 5.5's 11). Every id here is weight <=2 and modus-reachable,
 // pinned as a build gate by scripts/verify-auto-saver.ts — editing an entry
 // upward fails that verifier. Research still keeps its web-search flag; it just
 // runs on the cheapest model rather than Flash. It is an OPT-IN, never the

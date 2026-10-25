@@ -57,13 +57,13 @@ const FAQS = [
     q: 'What if I hit my limits?',
     // Deliberately does NOT quote a single message count. One add-on is +500k
     // units/day, which is ~25 more messages on standard models but under one
-    // more on Claude Fable 5 — a bare "25 more messages" would be false for
+    // more on Claude Fable 5.1 — a bare "25 more messages" would be false for
     // anyone using the frontier tier. "Double" is exact for every model.
     a: 'On a paid plan, each $10/mo extra limit pack adds 500,000 credits per five-hour window and 3,500,000 credits per week. Packs stack and can be canceled separately from your plan.',
   },
   {
     q: "What's the difference between MODUS and PILOT?",
-    a: 'MODUS gives you every provider on Auto, routed to whichever model fits the task. PILOT adds the frontier tier, Claude Opus, Claude Fable 5, GPT-5.6 Sol and Gemini 3.1 Pro, which you pick per message, plus the executive layer: wearable sync, financial pulse, relationship CRM, meeting intelligence and a document vault.',
+    a: 'MODUS gives you every provider on Auto, routed to whichever model fits the task. PILOT adds the frontier tier, Claude Opus 5.5, Claude Fable 5.1, GPT-6 Astra and Gemini 4, which you pick per message, plus the executive layer: wearable sync, financial pulse, relationship CRM, meeting intelligence and a document vault.',
   },
   {
     q: 'Is my data private?',

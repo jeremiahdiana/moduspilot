@@ -59,7 +59,7 @@ function freeDoc(overrides: Record<string, unknown> = {}): Record<string, unknow
   return { windowStart: Date.now(), windowTokens: 0, tokenWeek: getWeekKey(), weeklyTokens: 0, ...overrides };
 }
 
-const FREE_OPEN = ['meta/llama-3.3-70b', 'deepseek/deepseek-v3.1', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
+const FREE_OPEN = ['meta/llama-3.3-70b', 'deepseek/deepseek-v3.1', 'gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 const FRONTIER = ['claude-sonnet-5', 'claude-opus-4-8', 'claude-fable-5', 'gpt-5.6-terra', 'gpt-5.6-sol', 'gemini-3.1-pro-preview', 'meta/llama-4-maverick'];
 
 async function main() {
@@ -137,8 +137,12 @@ async function main() {
     check('a MODUS user still CANNOT reach a PILOT model', !canUseModel('claude-opus-4-8', 'modus'));
 
     // resolveChatModel: a free pick of a frontier model is served a free model, not the frontier one.
-    const pickFree = resolveChatModel({ plan: undefined, settings: { modelSettings: { provider: 'platform', model: 'gemini-3.5-flash' } } }, {});
-    check('free user picking Gemini Flash (a free model) is served it', pickFree.modelId === 'gemini-3.5-flash', `served=${pickFree.modelId}`);
+    const pickFree = resolveChatModel({ plan: undefined, settings: { modelSettings: { provider: 'platform', model: 'gemini-3.8-flash' } } }, {});
+    check('free user picking Gemini Flash (a free model) is served it', pickFree.modelId === 'gemini-3.8-flash', `served=${pickFree.modelId}`);
+    // A saved Brain still holding the pre-2026-10-25 id lands on its successor,
+    // not on Llama: the alias in lib/models.ts is what keeps that user's pick.
+    const pickOld = resolveChatModel({ plan: undefined, settings: { modelSettings: { provider: 'platform', model: 'gemini-3.5-flash' } } }, {});
+    check('free user with the RETIRED gemini-3.5-flash id is served 3.8 Flash', pickOld.modelId === 'gemini-3.8-flash', `served=${pickOld.modelId}`);
     const pickFrontier = resolveChatModel({ plan: undefined, settings: { modelSettings: { provider: 'platform', model: 'claude-sonnet-5' } } }, { modelId: 'claude-sonnet-5' });
     check('free user picking Sonnet 5 is downgraded off it', pickFrontier.modelId !== 'claude-sonnet-5', `served=${pickFrontier.modelId}`);
     const unchosen = resolveChatModel({ plan: undefined }, {});
@@ -188,8 +192,8 @@ async function main() {
     // The dearest free model is Gemini Flash; nothing pricier is free-reachable.
     const freeModels = PLATFORM_MODELS.filter(m => m.plans.includes('free'));
     const dearest = freeModels.reduce((a, b) => estimatedCostUsd(b.id, 1e6) > estimatedCostUsd(a.id, 1e6) ? b : a);
-    check('the dearest free-reachable model is Gemini 3.5 Flash', dearest.id === 'gemini-3.5-flash', `dearest=${dearest.id}`);
-    const flashBlended = estimatedCostUsd('gemini-3.5-flash', 1e6);
+    check('the dearest free-reachable model is Gemini 3.8 Flash', dearest.id === 'gemini-3.8-flash', `dearest=${dearest.id}`);
+    const flashBlended = estimatedCostUsd('gemini-3.8-flash', 1e6);
     check('no free model is pricier than Gemini Flash',
       freeModels.every(m => estimatedCostUsd(m.id, 1e6) <= flashBlended + 1e-9));
   }

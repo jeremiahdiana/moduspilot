@@ -39,10 +39,13 @@
  * rows re-verified 2026-08-04 against ai.google.dev/gemini-api/docs/pricing and
  * vercel.com/ai-gateway/models/llama-3.3-70b:
  *
- *   claude-fable-5          $10  / $50    gpt-5.6-sol            $5   / $30
- *   claude-opus-4-8         $5   / $25    gpt-5.6-terra          $2.50/ $15
- *   claude-sonnet-5         $3   / $15    gemini-3.1-pro         $2   / $12
- *   gemini-3.5-flash        $1.50/ $9     gemini-3.5-flash-lite  $0.30/ $2.50
+ * Re-verified 2026-10-25 for the generation swap (Anthropic's pricing page and the
+ * Vercel AI Gateway catalog; the two Geminis at their LATER scheduled rate):
+ *
+ *   claude-fable-5-1        $10  / $50    gpt-6-astra            $10  / $50
+ *   claude-opus-5-5         $4   / $20    gpt-6.1-sol            $2   / $10
+ *   claude-sonnet-5-5       $2   / $10    gemini-4-argon         $4   / $20
+ *   gemini-3.8-flash        $1.50/ $7.50  gemini-3.5-flash-lite  $0.30/ $2.50
  *   meta/llama-3.3-70b      $0.59/ $0.72
  *
  * ⚠️ STILL ESTIMATED, not verified: llama-4-maverick, llama-3.1-8b, DeepSeek V3.1.
@@ -67,12 +70,19 @@ const BLEND = { input: 0.9, output: 0.1 };
 
 /** Published $/1M. `est: true` means no published rate was found. */
 const PRICES: Record<string, { in: number; out: number; est?: boolean }> = {
-  'claude-fable-5':         { in: 10,   out: 50 },
-  'gpt-5.6-sol':            { in: 5,    out: 30 },
-  'claude-opus-4-8':        { in: 5,    out: 25 },
-  'claude-sonnet-5':        { in: 3,    out: 15 },
-  'gpt-5.6-terra':          { in: 2.5,  out: 15 },
-  'gemini-3.1-pro-preview': { in: 2,    out: 12 },
+  // The 2026-10-25 generation. The ids these replaced are aliased onto them in
+  // lib/models.ts, and costWeight() looks up the CANONICAL id first, so the old
+  // rows would have been unreachable. They were removed rather than left to rot.
+  'claude-fable-5-1':       { in: 10,   out: 50 },
+  'gpt-6-astra':            { in: 10,   out: 50 },
+  'claude-opus-5-5':        { in: 4,    out: 20 },
+  'claude-sonnet-5-5':      { in: 2,    out: 10 },
+  'gpt-6.1-sol':            { in: 2,    out: 10 },
+  // ⚠️ Priced at the 2026-12-01 rate. Google lists $2/$10 through 2026-11-30 and
+  // $4/$20 after. Billing the higher number now over-charges the budget for five
+  // weeks; billing the lower one would under-charge it from December onward,
+  // silently, which is the direction this file exists to prevent.
+  'gemini-4-argon':         { in: 4,    out: 20 },
   'deepseek/deepseek-v3.1': { in: 0.8,  out: 1.6, est: true },
   'meta/llama-4-maverick':  { in: 0.8,  out: 1.6, est: true },
   'meta/llama-3.3-70b':     { in: 0.59, out: 0.72 },
@@ -86,7 +96,10 @@ const PRICES: Record<string, { in: number; out: number; est?: boolean }> = {
   //     not the "~$26/month, under half of PILOT revenue" asserted above
   // ⚠️ Google bills THINKING TOKENS at the output rate, and Flash thinks by
   // default, so the 90/10 blend understates it further on reasoning-heavy turns.
-  'gemini-3.5-flash':       { in: 1.5,  out: 9.0 },
+  // (The history above is about 3.5 Flash. 3.8 Flash replaced it 2026-10-25 at
+  // $0.75/$3.75 through 2026-12-31, $1.50/$7.50 after. Priced at the 2027 rate, for
+  // the same reason as gemini-4-argon above.)
+  'gemini-3.8-flash':       { in: 1.5,  out: 7.5 },
   // The baseline, the free default, and the free tier's only model. See BASELINE.
   'gemini-3.5-flash-lite':  { in: 0.3,  out: 2.5 },
 

@@ -17,15 +17,15 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   { id: 'gemini-3.5-flash-lite',   name: 'Gemini 3.5 Flash Lite', provider: 'Google',   plans: ['free', 'modus', 'pilot'] },
   // Free-reachable open models (matches server lib/models.ts): DeepSeek + both Gemini Flashes.
   { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['free', 'modus', 'pilot'] },
-  { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
-  { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'] },
-  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['free', 'modus', 'pilot'] },
+  { id: 'gpt-6.1-sol',           name: 'GPT-6.1 Sol',    provider: 'OpenAI',    plans: ['modus', 'pilot'] },
+  { id: 'claude-sonnet-5-5',         name: 'Claude Sonnet 5.5',  provider: 'Anthropic', plans: ['modus', 'pilot'] },
+  { id: 'gemini-3.8-flash',        name: 'Gemini 3.8 Flash', provider: 'Google',    plans: ['free', 'modus', 'pilot'] },
   // PILOT-exclusive: the ladder is MODUS = Llama 3, PILOT = Llama 4.
   { id: 'meta/llama-4-maverick',   name: 'Llama 4 Maverick', provider: 'Meta',      plans: ['pilot'] },
-  { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'] },
-  { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'] },
-  { id: 'gemini-3.1-pro-preview',  name: 'Gemini 3.1 Pro',   provider: 'Google',    plans: ['pilot'] },
-  { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'] },
+  { id: 'gpt-6-astra',             name: 'GPT-6 Astra',      provider: 'OpenAI',    plans: ['pilot'] },
+  { id: 'claude-opus-5-5',         name: 'Claude Opus 5.5',      provider: 'Anthropic', plans: ['pilot'] },
+  { id: 'gemini-4-argon',  name: 'Gemini 4',   provider: 'Google',    plans: ['pilot'] },
+  { id: 'claude-fable-5-1',          name: 'Claude Fable 5.1',   provider: 'Anthropic', plans: ['pilot'] },
   // Grok 4.5 withheld — xAI has no credits. Gemini 3.1 Pro restored 2026-07-17
   // once Google billing went live. See apps/web/lib/models.ts for the detail.
 ];

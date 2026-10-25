@@ -5,14 +5,17 @@ import { createXai } from '@ai-sdk/xai';
 import type { LanguageModel } from 'ai';
 import { canonicalModelId, isModelUnlocked, canUseModel, modelSupportsVision, PLATFORM_MODELS } from '@/lib/models';
 import { repairReasoningStream } from '@/lib/chat/stream-repair';
+import { isOpenAIGptReasoning } from '@/lib/chat/model-params';
+import { anthropicEffortForBudget } from '@/lib/chat/effort';
 
 // Vision for a user's OWN OpenAI key (BYOK). BYOK models are NOT in the catalog —
 // the user can name any id their key serves — so this is the one place capability
 // still has to be guessed from the id. Platform models go through
 // modelSupportsVision() and the catalog instead.
 // gpt-5.6-* included because it IS multimodal — verified 2026-07-16 by sending a
-// real image and getting the colour back.
-const OPENAI_VISION = /gpt-5\.6|gpt-4o|gpt-4\.1|gpt-4-turbo/;
+// real image and getting the colour back. gpt-6+ added 2026-10-25: without it a
+// BYOK user's GPT-6 image went to gpt-4o-mini.
+const OPENAI_VISION = /gpt-5\.6|gpt-([6-9]|[1-9]\d)|gpt-4o|gpt-4\.1|gpt-4-turbo/;
 function visionOpenAIModel(model: string): string {
   return OPENAI_VISION.test(model) ? model : 'gpt-4o-mini';
 }
@@ -47,6 +50,139 @@ const gateway = createOpenAI({
   apiKey: process.env.AI_GATEWAY_API_KEY ?? '',
   baseURL: 'https://ai-gateway.vercel.sh/v1',
 });
+
+/**
+ * 🪤 @ai-sdk/openai@1.3.24 decides "is this a reasoning model" with
+ * `modelId.startsWith("o") || modelId.startsWith("gpt-5")`. For those ids it moves
+ * max_tokens to max_completion_tokens, strips temperature and friends, and sends
+ * the system prompt as a `developer` message. GPT-6 matches neither prefix, so the
+ * SDK sends it the old shape and OpenAI hard-rejects it. Verified live 2026-10-25
+ * on gpt-6.1-sol and gpt-6-astra:
+ *
+ *   Unsupported parameter: 'max_tokens' is not supported with this model.
+ *   Use 'max_completion_tokens' instead.
+ *
+ * Every GPT-6 message would have failed. The SDK is pinned (see the stack notes),
+ * so instead of patching node_modules this fetch applies the same rewrite the SDK
+ * already applies to gpt-5, keyed on the family helper that covers 6 and later.
+ * Ids the SDK already handles pass through untouched.
+ */
+const SDK_KNOWS_REASONING = (id: string) => id.startsWith('o') || id.startsWith('gpt-5');
+const REASONING_UNSUPPORTED = ['temperature', 'top_p', 'frequency_penalty', 'presence_penalty', 'logit_bias', 'logprobs', 'top_logprobs'];
+
+export function rewriteNewGenOpenAIBody(body: Record<string, unknown>): Record<string, unknown> {
+  const id = typeof body.model === 'string' ? body.model : '';
+  if (!isOpenAIGptReasoning(id) || SDK_KNOWS_REASONING(id)) return body;
+  const out: Record<string, unknown> = { ...body };
+  if (out.max_tokens != null) {
+    if (out.max_completion_tokens == null) out.max_completion_tokens = out.max_tokens;
+    delete out.max_tokens;
+  }
+  for (const k of REASONING_UNSUPPORTED) delete out[k];
+  if (Array.isArray(out.messages)) {
+    out.messages = out.messages.map((m: { role?: string }) => (m?.role === 'system' ? { ...m, role: 'developer' } : m));
+  }
+  return out;
+}
+
+/** OpenAI provider for a model id the user picked. Use this, not bare createOpenAI. */
+function openAIProvider(apiKey: string) {
+  return createOpenAI({ apiKey, fetch: jsonBodyFetch(rewriteNewGenOpenAIBody) });
+}
+
+/**
+ * 🚨 THE EFFORT SLIDER WAS DEAD ON EVERY CLAUDE MODEL. Found 2026-10-25.
+ *
+ * effort.ts sends Anthropic `thinking: { type: 'enabled', budgetTokens }` for Low
+ * and High, because that is the only shape @ai-sdk/anthropic@1.2.12 can express
+ * (its schema allows 'enabled' | 'disabled'). Every Claude we serve rejects it,
+ * the models that were live at the time included. Verified against the API that
+ * day for claude-sonnet-5, claude-opus-4-8, claude-fable-5 and all three 5.5/5.1
+ * successors:
+ *
+ *   "thinking.type.enabled" is not supported for this model. Use
+ *   "thinking.type.adaptive" and "output_config.effort" to control thinking.
+ *
+ * So any user who moved the slider off Medium got an error on every Claude
+ * message. Medium sends nothing, which is why it went unnoticed.
+ *
+ * The rewrite happens on the wire for the same reason as the OpenAI one: the SDK
+ * is pinned. Claude 4.6 and later accept adaptive. Older ids (Haiku 4.5 and below,
+ * reachable only through a user's own key) still need the budget form, so they
+ * pass through untouched.
+ */
+const CLAUDE_NEEDS_BUDGET_THINKING = /^claude-(3|[a-z]+-3|[a-z]+-4-[0-5](?!\d)|[a-z]+-4-\d{8})/;
+
+export function rewriteClaudeThinkingBody(body: Record<string, unknown>): Record<string, unknown> {
+  const id = typeof body.model === 'string' ? body.model : '';
+  const thinking = body.thinking as { type?: string; budget_tokens?: number } | undefined;
+  if (thinking?.type !== 'enabled' || !/^claude-/.test(id) || CLAUDE_NEEDS_BUDGET_THINKING.test(id)) return body;
+  const effort = anthropicEffortForBudget(thinking.budget_tokens);
+  const out: Record<string, unknown> = { ...body, thinking: { type: 'adaptive' } };
+  if (effort) out.output_config = { ...(body.output_config as object | undefined), effort };
+  return out;
+}
+
+function jsonBodyFetch(rewrite: (b: Record<string, unknown>) => Record<string, unknown>): typeof fetch {
+  return (input, init) => {
+    if (init && typeof init.body === 'string') {
+      try {
+        const body = JSON.parse(init.body);
+        const rewritten = rewrite(body);
+        if (rewritten !== body) return fetch(input, { ...init, body: JSON.stringify(rewritten) });
+      } catch {
+        // Not JSON: nothing to rewrite.
+      }
+    }
+    return fetch(input, init);
+  };
+}
+
+/**
+ * 🚨 EVERY GEMINI TURN THAT CALLED A TOOL DIED. Known since 2026-09-15, fixed
+ * 2026-10-25.
+ *
+ * Gemini 3+ attaches a `thoughtSignature` to each functionCall it emits and
+ * requires it back when that call is replayed in the next request. The pinned
+ * @ai-sdk/google@1.2.22 drops it, so step two of any tool turn was a hard 400:
+ *
+ *   Function call is missing a thought_signature in functionCall parts.
+ *
+ * Measured that day on gemini-3.5-flash-lite (the FREE_DEFAULT), 3.5 Flash,
+ * 3.1 Pro, 3.8 Flash and Gemini 4. All five failed. The real fix is the SDK's v5
+ * line, which round-trips the signature. Until then Google documents a sentinel for
+ * history whose signatures the client did not keep. It passes validation, and
+ * Google warns it can cost some reasoning quality on the replayed step. Each of the
+ * five answered the tool result correctly with it, versus an error without it.
+ */
+const GEMINI_SKIP_SIGNATURE = 'skip_thought_signature_validator';
+
+export function rewriteGeminiSignatureBody(body: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(body.contents)) return body;
+  let touched = false;
+  const contents = body.contents.map((c: { parts?: Array<Record<string, unknown>> }) => {
+    if (!Array.isArray(c?.parts)) return c;
+    const parts = c.parts.map(part => {
+      if (part?.functionCall && !part.thoughtSignature) {
+        touched = true;
+        return { ...part, thoughtSignature: GEMINI_SKIP_SIGNATURE };
+      }
+      return part;
+    });
+    return { ...c, parts };
+  });
+  return touched ? { ...body, contents } : body;
+}
+
+/** Google provider. Use this, not bare createGoogleGenerativeAI. */
+function googleProvider(apiKey: string) {
+  return createGoogleGenerativeAI({ apiKey, fetch: jsonBodyFetch(rewriteGeminiSignatureBody) });
+}
+
+/** Anthropic provider for a model id the user picked. Use this, not bare createAnthropic. */
+function anthropicProvider(apiKey: string) {
+  return createAnthropic({ apiKey, fetch: jsonBodyFetch(rewriteClaudeThinkingBody) });
+}
 
 /**
  * What a user gets when they have not chosen a model — i.e. every new customer's
@@ -162,7 +298,7 @@ export function isPremiumModel(id: string): boolean {
 /**
  * Ids whose PROVIDER rejects function tools outright. Listed explicitly and
  * never matched by pattern — the same lesson GATEWAY_HOSTED records above.
- * `/^gpt-5/` is a pattern only because OpenAI's limitation is family-wide; tool
+ * isOpenAIGptReasoning is a pattern only because OpenAI's limitation is family-wide; tool
  * support is otherwise a per-model, per-host fact that a name cannot predict.
  *
  * 🪤 meta/llama-4-maverick — found 2026-07-23, blank on EVERY message since it
@@ -186,7 +322,7 @@ const NO_FUNCTION_TOOLS = new Set<string>([
 
 export function modelSupportsTools(id: string): boolean {
   const canonical = canonicalModelId(id);
-  return !/^gpt-5/.test(canonical) && !NO_FUNCTION_TOOLS.has(canonical);
+  return !isOpenAIGptReasoning(canonical) && !NO_FUNCTION_TOOLS.has(canonical);
 }
 
 export interface ResolvedChatModel {
@@ -248,7 +384,7 @@ function served(model: LanguageModel, modelId: string): ResolvedChatModel {
 function freeDefaultModel(hasImage = false): { model: LanguageModel; modelId: string } {
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
   if (googleKey) {
-    return { model: createGoogleGenerativeAI({ apiKey: googleKey })(FREE_DEFAULT), modelId: FREE_DEFAULT };
+    return { model: googleProvider(googleKey)(FREE_DEFAULT), modelId: FREE_DEFAULT };
   }
   const openAIKey = process.env.OPENAI_API_KEY?.trim();
   if (openAIKey) {
@@ -295,7 +431,7 @@ function visionFallback(requested: string): ResolvedChatModel {
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
   if (googleKey) {
     return {
-      model: repairReasoningStream(createGoogleGenerativeAI({ apiKey: googleKey })(FREE_DEFAULT)),
+      model: repairReasoningStream(googleProvider(googleKey)(FREE_DEFAULT)),
       modelId: FREE_DEFAULT,
       downgraded: true,
       requestedId: requested,
@@ -332,11 +468,11 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
     if (modelProvider === 'openai' && ms?.openaiKey) {
       const model = ms.model ?? 'gpt-4o';
       const id = hasImage ? visionOpenAIModel(model) : model;
-      return served(createOpenAI({ apiKey: ms.openaiKey })(id), id);
+      return served(openAIProvider(ms.openaiKey)(id), id);
     }
     if (modelProvider === 'anthropic' && ms?.anthropicKey) {
       const id = ms.model ?? 'claude-sonnet-4-6';
-      return served(createAnthropic({ apiKey: ms.anthropicKey })(id), id);
+      return served(anthropicProvider(ms.anthropicKey)(id), id);
     }
   }
 
@@ -404,17 +540,17 @@ export function resolveChatModel(userData: Record<string, any>, opts: { hasImage
   }
 
   if (selectedModel.startsWith('gpt-') || selectedModel.startsWith('o4-')) {
-    if (openAIKey) return served(createOpenAI({ apiKey: openAIKey })(selectedModel), selectedModel);
+    if (openAIKey) return served(openAIProvider(openAIKey)(selectedModel), selectedModel);
   }
 
   if (selectedModel.startsWith('claude-')) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-    if (anthropicKey) return served(createAnthropic({ apiKey: anthropicKey })(selectedModel), selectedModel);
+    if (anthropicKey) return served(anthropicProvider(anthropicKey)(selectedModel), selectedModel);
   }
 
   if (selectedModel.startsWith('gemini-')) {
     const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
-    if (googleKey) return served(createGoogleGenerativeAI({ apiKey: googleKey })(selectedModel), selectedModel);
+    if (googleKey) return served(googleProvider(googleKey)(selectedModel), selectedModel);
   }
 
   if (selectedModel.startsWith('grok-')) {

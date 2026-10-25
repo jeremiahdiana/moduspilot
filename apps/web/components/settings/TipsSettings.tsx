@@ -92,7 +92,7 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Pick Claude for writing, GPT-5.6 for general use',
-        body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-5.6 Terra handles images and code well. Gemini 3.5 Flash is the fastest. GPT-5.6 Sol is best for hard math and logic. Try a few and see what fits your workflow.',
+        body: 'Claude Sonnet is exceptional for nuanced writing, editing, and analysis. GPT-6.1 Sol handles images and code well. Gemini 3.8 Flash is the fastest. GPT-6 Astra is best for hard math and logic. Try a few and see what fits your workflow.',
         tag: 'Pro tip',
       },
     ],

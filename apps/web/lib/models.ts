@@ -75,15 +75,16 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // Free-reachable: DeepSeek is an open model on cheap US-hosted third parties, so
   // it belongs to the open-model free tier alongside Llama and the Gemini Flashes.
   { id: 'deepseek/deepseek-v3.1',  name: 'DeepSeek V3.1',    provider: 'DeepSeek',  plans: ['free', 'modus', 'pilot'], vision: false },
-  { id: 'gpt-5.6-terra',           name: 'GPT-5.6 Terra',    provider: 'OpenAI',    plans: ['modus', 'pilot'], vision: true },
-  // Sonnet 5 supersedes Sonnet 4.6 at the SAME list price ($3/$15, and $2/$10
-  // introductory through 2026-08-31) — a strictly better model for what we already
-  // pay. Verified live 2026-07-17 through the real @ai-sdk/anthropic path.
-  { id: 'claude-sonnet-5',         name: 'Claude Sonnet 5',  provider: 'Anthropic', plans: ['modus', 'pilot'], vision: true },
+  // GPT-6.1 Sol replaced GPT-5.6 Terra on 2026-10-25: a generation newer and cheaper
+  // ($2/$10 vs $2.50/$15). OpenAI's 6.x line has no Terra; Sol is its everyday tier.
+  { id: 'gpt-6.1-sol',             name: 'GPT-6.1 Sol',      provider: 'OpenAI',    plans: ['modus', 'pilot'], vision: true },
+  // Sonnet 5.5 replaced Sonnet 5 on 2026-10-25 at the same $2/$10 (Sonnet 5's
+  // introductory price became permanent, so neither ever cost $3/$15 after August).
+  { id: 'claude-sonnet-5-5',       name: 'Claude Sonnet 5.5', provider: 'Anthropic', plans: ['modus', 'pilot'], vision: true },
   // Free-reachable: Gemini Flash is the dearest of the open/free models (weight 5,
   // see lib/chat/model-cost.ts). The free WEEKLY ceiling is what bounds its cost —
   // re-run scripts/verify-free-tier.ts if this row or that ceiling changes.
-  { id: 'gemini-3.5-flash',        name: 'Gemini 3.5 Flash', provider: 'Google',    plans: ['free', 'modus', 'pilot'], vision: true },
+  { id: 'gemini-3.8-flash',        name: 'Gemini 3.8 Flash', provider: 'Google',    plans: ['free', 'modus', 'pilot'], vision: true },
   // The FREE_DEFAULT (lib/chat/model.ts) and the BASELINE of the cost table, so it
   // is the one model the free tier can reach. Added 2026-08-04 with the free tier.
   //
@@ -98,18 +99,22 @@ export const PLATFORM_MODELS: ModelInfo[] = [
   // wrong id does not error — it falls through to LLAMA_FALLBACK and the user is
   // told a model answered that never ran.
   { id: 'gemini-3.5-flash-lite',   name: 'Gemini 3.5 Flash Lite', provider: 'Google', plans: ['free', 'modus', 'pilot'], vision: true },
-  { id: 'gpt-5.6-sol',             name: 'GPT-5.6 Sol',      provider: 'OpenAI',    plans: ['pilot'], vision: true },
-  { id: 'claude-opus-4-8',         name: 'Claude Opus',      provider: 'Anthropic', plans: ['pilot'], vision: true },
+  // OpenAI's top 6.x tier ($10/$50, Fable's price). Replaced GPT-5.6 Sol 2026-10-25.
+  { id: 'gpt-6-astra',             name: 'GPT-6 Astra',      provider: 'OpenAI',    plans: ['pilot'], vision: true },
+  { id: 'claude-opus-5-5',         name: 'Claude Opus 5.5',  provider: 'Anthropic', plans: ['pilot'], vision: true },
   // Restored 2026-07-17: Google billing is now live on the `modus-pilot` project
   // ($10 prepay), and this answers — verified with a real completion through
   // @ai-sdk/google, finish='stop', 1438 chars at the route's real 2048 cap. It was
   // withheld for exactly one day because a FREE-TIER key 429'd every Pro request.
-  { id: 'gemini-3.1-pro-preview',  name: 'Gemini 3.1 Pro',   provider: 'Google',    plans: ['pilot'], vision: true },
+  // Gemini 4 replaced 3.1 Pro 2026-10-25. Verified answering on our own key the same
+  // day (finish STOP). ⚠️ Its price DOUBLES on 2026-12-01 ($2/$10 → $4/$20);
+  // model-cost.ts is already priced at the December rate.
+  { id: 'gemini-4-argon',          name: 'Gemini 4',         provider: 'Google',    plans: ['pilot'], vision: true },
   // Anthropic's most capable model — a real PILOT flagship, already covered by the
-  // Anthropic account we pay for. ⚠️ $10/$50 per 1M, ~2x Opus 4.8: the priciest
-  // thing we serve. Anthropic prompt caching (chat/route.ts) drops cached input to
-  // ~$1/1M and is what keeps it viable at $59.
-  { id: 'claude-fable-5',          name: 'Claude Fable 5',   provider: 'Anthropic', plans: ['pilot'], vision: true },
+  // Anthropic account we pay for. ⚠️ $10/$50 per 1M, 2.5x Opus 5.5 ($4/$20): tied with
+  // GPT-6 Astra for the priciest thing we serve. Anthropic prompt caching
+  // (chat/route.ts) drops cached input to $0.25/1M on 5.1 and is what keeps it viable at $59.
+  { id: 'claude-fable-5-1',        name: 'Claude Fable 5.1', provider: 'Anthropic', plans: ['pilot'], vision: true },
 
   // ── Withheld until the provider account can actually serve them ──────────────
   // Both were live on PILOT and NEITHER could answer a single request, which the
@@ -142,15 +147,15 @@ export const PLATFORM_MODELS: ModelInfo[] = [
  * error. A working model of the same tier is strictly better than that.
  */
 const LEGACY_MODEL_IDS: Record<string, string> = {
-  'gpt-4o': 'gpt-5.6-terra',          // May 2024; superseded and now cheaper to beat
-  'o4-mini': 'gpt-5.6-sol',           // o-series reasoning → the 5.6 flagship
-  'gemini-2.5-pro': 'gemini-3.5-flash', // retires 2026-10-16, and 429s today
-  'grok-3': 'gpt-5.6-sol',            // xAI has no credits; keep them on a frontier model
+  'gpt-4o': 'gpt-6.1-sol',          // May 2024; superseded and now cheaper to beat
+  'o4-mini': 'gpt-6-astra',           // o-series reasoning → the OpenAI flagship
+  'gemini-2.5-pro': 'gemini-3.8-flash', // retires 2026-10-16, and 429s today
+  'grok-3': 'gpt-6-astra',            // xAI has no credits; keep them on a frontier model
   // Sonnet 4.6 left the catalog for Sonnet 5 (same price, better model) on
   // 2026-07-17. Without this line every saved Brain holding the old id fails the
   // plan gate and silently drops that user to Llama — same tier, same provider,
   // so the successor is a clean swap.
-  'claude-sonnet-4-6': 'claude-sonnet-5',
+  'claude-sonnet-4-6': 'claude-sonnet-5-5',
   // Llama moved OFF Groq onto the AI Gateway (Groq kills its copy 2026-08-16).
   // Same weights, new host, new id. These two lines are load-bearing: Firestore
   // stores settings.modelSettings.model as a RAW id with no backfill, so without
@@ -161,6 +166,17 @@ const LEGACY_MODEL_IDS: Record<string, string> = {
   // existing users; mapping it to itself makes the alias a no-op and drops every
   // one of them to a raw dead string in the switcher — the exact failure this map
   // exists to stop. A find-and-replace over model ids will silently "fix" it.
+  // The 2026-10-25 generation swap. Every saved Brain holding one of these raw ids
+  // would otherwise fail the plan gate and drop to Llama. Same provider, same tier,
+  // so each is a clean swap. The map is SINGLE-HOP: the aliases above were re-pointed
+  // straight at these successors, not chained through the old ids.
+  'gpt-5.6-terra': 'gpt-6.1-sol',
+  'gpt-5.6-sol': 'gpt-6-astra',
+  'claude-sonnet-5': 'claude-sonnet-5-5',
+  'claude-opus-4-8': 'claude-opus-5-5',
+  'claude-fable-5': 'claude-fable-5-1',
+  'gemini-3.5-flash': 'gemini-3.8-flash',
+  'gemini-3.1-pro-preview': 'gemini-4-argon',
   'llama-3.3-70b-versatile': 'meta/llama-3.3-70b',
   'llama-3.1-8b-instant': 'meta/llama-3.1-8b',
 };

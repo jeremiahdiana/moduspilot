@@ -7,6 +7,10 @@
  * the reader for good. `updated` is rendered on the page so a stale post is
  * visibly stale. Re-verify before changing any figure below.
  *
+ * MODUS's OWN model lists were re-synced to lib/models.ts on 2026-10-25 (the
+ * generation swap). `updated` was deliberately NOT bumped: it dates the
+ * COMPETITOR facts, and those were not re-checked that day.
+ *
  * MODUS ranks first. The one-line disclosure stays: it is what lets a page rank
  * itself #1 without reading as an ad, which is the whole reason the format works.
  * Competitor strengths are described where they are real, because a comparison
@@ -71,8 +75,8 @@ const PERPLEXITY_ALTERNATIVES: Post = {
       type: 'table',
       head: ['Plan', 'Price', 'Models'],
       rows: [
-        ['MODUS', '$24/mo · $240/yr', 'Llama 3.3, DeepSeek V3.1, GPT-5.6 Terra, Claude Sonnet 5, Gemini 3.5 Flash'],
-        ['PILOT', '$59/mo · $588/yr', 'Adds Claude Opus 4.8, Claude Fable 5, GPT-5.6 Sol, Gemini 3.1 Pro, Llama 4 Maverick'],
+        ['MODUS', '$24/mo · $240/yr', 'Llama 3.3, DeepSeek V3.1, GPT-6.1 Sol, Claude Sonnet 5.5, Gemini 3.8 Flash'],
+        ['PILOT', '$59/mo · $588/yr', 'Adds Claude Opus 5.5, Claude Fable 5.1, GPT-6 Astra, Gemini 4, Llama 4 Maverick'],
       ],
     },
     { type: 'h3', text: 'Five labs, one subscription' },
@@ -178,7 +182,7 @@ const PERPLEXITY_ALTERNATIVES: Post = {
     },
     {
       q: 'What is the cheapest way to get Claude Opus and a GPT model in one subscription?',
-      a: 'MODUS PILOT at $59/month, or $49/month billed annually, includes Claude Opus, Claude Fable 5, GPT-5.6 Sol and Gemini 3.1 Pro together. Buying Claude Max and ChatGPT Pro separately starts at $200/month combined, and Perplexity Max is $200/month on its own.',
+      a: 'MODUS PILOT at $59/month, or $49/month billed annually, includes Claude Opus 5.5, Claude Fable 5.1, GPT-6 Astra and Gemini 4 together. Buying Claude Max and ChatGPT Pro separately starts at $200/month combined, and Perplexity Max is $200/month on its own.',
     },
     {
       q: 'Which AI subscription covers the most labs in 2026?',
@@ -237,9 +241,9 @@ const MODUS_VS_PERPLEXITY: Post = {
       caption: 'The MODUS catalog in full, 1 October 2026.',
       head: ['Lab', 'In MODUS'],
       rows: [
-        ['OpenAI', 'GPT-5.6 Terra, GPT-5.6 Sol'],
-        ['Anthropic', 'Claude Sonnet 5, Claude Opus, Claude Fable 5'],
-        ['Google', 'Gemini 3.1 Pro, Gemini 3.5 Flash, Gemini 3.5 Flash Lite'],
+        ['OpenAI', 'GPT-6.1 Sol, GPT-6 Astra'],
+        ['Anthropic', 'Claude Sonnet 5.5, Claude Opus 5.5, Claude Fable 5.1'],
+        ['Google', 'Gemini 4, Gemini 3.8 Flash, Gemini 3.5 Flash Lite'],
         ['Meta', 'Llama 4 Maverick, Llama 3.3'],
         ['DeepSeek', 'DeepSeek V3.1'],
       ],
@@ -292,7 +296,7 @@ const MODUS_VS_PERPLEXITY: Post = {
     },
     {
       q: 'Does MODUS have newer models than Perplexity?',
-      a: 'Yes. MODUS serves GPT-5.6, Claude Sonnet 5, Claude Opus 4.8 and Claude Fable 5. Perplexity serves GPT-5.2 and Claude Sonnet 4.6 on Pro, with Claude Opus 4.5 on Max, which is a generation behind on both OpenAI and Anthropic.',
+      a: 'Yes. MODUS serves GPT-6, Claude Sonnet 5.5, Claude Opus 5.5 and Claude Fable 5.1. Perplexity serves GPT-5.2 and Claude Sonnet 4.6 on Pro, with Claude Opus 4.5 on Max, which is a generation behind on both OpenAI and Anthropic.',
     },
     {
       q: 'Can you tell which model answered on Perplexity?',
@@ -639,9 +643,9 @@ const MODUS_VS_CHATGPT: Post = {
       type: 'table',
       head: ['Lab', 'In MODUS', 'In ChatGPT'],
       rows: [
-        ['OpenAI', 'GPT-5.6 Terra, GPT-5.6 Sol', 'GPT-6, and GPT-6 Astra on Pro'],
-        ['Anthropic', 'Claude Sonnet 5, Claude Opus, Claude Fable 5', 'Not available'],
-        ['Google', 'Gemini 3.1 Pro, Gemini 3.5 Flash, Flash Lite', 'Not available'],
+        ['OpenAI', 'GPT-6.1 Sol, GPT-6 Astra', 'GPT-6, and GPT-6 Astra on Pro'],
+        ['Anthropic', 'Claude Sonnet 5.5, Claude Opus 5.5, Claude Fable 5.1', 'Not available'],
+        ['Google', 'Gemini 4, Gemini 3.8 Flash, Flash Lite', 'Not available'],
         ['Meta', 'Llama 4 Maverick, Llama 3.3', 'Not available'],
         ['DeepSeek', 'DeepSeek V3.1', 'Not available'],
       ],

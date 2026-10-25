@@ -74,8 +74,8 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'],
   },
   {
-    id: 'gpt-5.6-terra',
-    name: 'GPT-5.6 Terra',
+    id: 'gpt-6.1-sol',
+    name: 'GPT-6.1 Sol',
     provider: 'OpenAI',
     tagline: 'Balanced & reliable',
     desc: "OpenAI's balanced everyday model. Handles text, images, and complex reasoning.",
@@ -84,8 +84,8 @@ const BRAINS = [
     plans: ['modus', 'pilot'],
   },
   {
-    id: 'claude-sonnet-5',
-    name: 'Claude Sonnet 5',
+    id: 'claude-sonnet-5-5',
+    name: 'Claude Sonnet 5.5',
     provider: 'Anthropic',
     tagline: 'Exceptional writing & analysis',
     desc: 'Best for nuanced writing, editing, and thorough analysis.',
@@ -94,8 +94,8 @@ const BRAINS = [
     plans: ['modus', 'pilot'],
   },
   {
-    id: 'gemini-3.5-flash',
-    name: 'Gemini 3.5 Flash',
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
     provider: 'Google',
     tagline: 'Fast & multimodal',
     desc: "Google's fastest current model, with a huge context window.",
@@ -104,8 +104,8 @@ const BRAINS = [
     plans: ['free', 'modus', 'pilot'],
   },
   {
-    id: 'gpt-5.6-sol',
-    name: 'GPT-5.6 Sol',
+    id: 'gpt-6-astra',
+    name: 'GPT-6 Astra',
     provider: 'OpenAI',
     tagline: 'Deepest reasoning',
     desc: "OpenAI's flagship. For the hardest reasoning, coding and science.",
@@ -114,8 +114,8 @@ const BRAINS = [
     plans: ['pilot'],
   },
   {
-    id: 'claude-opus-4-8',
-    name: 'Claude Opus',
+    id: 'claude-opus-5-5',
+    name: 'Claude Opus 5.5',
     provider: 'Anthropic',
     // NOT "most capable" any more — Fable 5 below is. Both are on this screen.
     tagline: 'Deep reasoning, faster',
@@ -125,8 +125,8 @@ const BRAINS = [
     plans: ['pilot'],
   },
   {
-    id: 'claude-fable-5',
-    name: 'Claude Fable 5',
+    id: 'claude-fable-5-1',
+    name: 'Claude Fable 5.1',
     provider: 'Anthropic',
     tagline: "Anthropic's most capable",
     desc: 'The strongest model MODUS can run. Thinks longer, so it answers slower.',
@@ -135,8 +135,8 @@ const BRAINS = [
     plans: ['pilot'],
   },
   {
-    id: 'gemini-3.1-pro-preview',
-    name: 'Gemini 3.1 Pro',
+    id: 'gemini-4-argon',
+    name: 'Gemini 4',
     provider: 'Google',
     tagline: 'Google’s frontier model',
     desc: "Google's most capable model. Strong on long-context reasoning and research.",
@@ -341,7 +341,7 @@ export default function BrainScreen() {
             )}
             {isPaid && !isPilot && (
               <Text className="text-muted text-xs text-center">
-                Upgrade to <Text className="text-brand font-medium">PILOT</Text> to unlock GPT-5.6 Sol and Claude Opus.
+                Upgrade to <Text className="text-brand font-medium">PILOT</Text> to unlock GPT-6 Astra and Claude Opus 5.5.
               </Text>
             )}
           </View>

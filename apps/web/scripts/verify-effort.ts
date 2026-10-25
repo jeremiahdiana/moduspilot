@@ -13,7 +13,7 @@
  *   cd apps/web && npx tsx scripts/verify-effort.ts
  */
 import { PLATFORM_MODELS } from '../lib/models';
-import { maxTokensFor, isReasoningModel } from '../lib/chat/model-params';
+import { maxTokensFor, isReasoningModel, isOpenAIReasoning, isGeminiThinking } from '../lib/chat/model-params';
 import { EFFORT_LEVELS, DEFAULT_EFFORT, effortProviderOptions, supportsEffort, effortFor } from '../lib/chat/effort';
 
 let failures = 0;
@@ -54,8 +54,11 @@ for (const m of PLATFORM_MODELS) {
     // would make the whole slider a no-op that still looks wired up.
     const ns = keys[0];
     const expected = /^claude-/.test(m.id) ? 'anthropic'
-      : /^gemini-3/.test(m.id) ? 'google'
-      : (/^gpt-5/.test(m.id) || /^o\d/.test(m.id)) ? 'openai' : null;
+      // The SAME family helpers effort.ts uses. This verifier used to repeat
+      // /^gemini-3/ and /^gpt-5/ inline, so it went stale with the code it checks
+      // and failed GPT-6 and Gemini 4 on 2026-10-25 for being correctly wired.
+      : isGeminiThinking(m.id) ? 'google'
+      : isOpenAIReasoning(m.id) ? 'openai' : null;
     check(`${m.id} @${level} uses the ${expected} namespace`, ns === expected, { got: ns, expected });
 
     // Anthropic: budgetTokens >= 1024 (API minimum) and strictly under maxTokens,

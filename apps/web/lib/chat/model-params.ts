@@ -22,6 +22,31 @@
 import { canonicalModelId } from '@/lib/models';
 
 /**
+ * The FAMILY tests every gate below is built from. One definition, so a new
+ * generation is either covered everywhere or nowhere.
+ *
+ * 🚨 These were `/^gpt-5/` and `/^gemini-3/`, copied into four files. Found
+ * 2026-10-25 while adding GPT-6 and Gemini 4: both models would have passed none
+ * of them, which means a 2048 output cap (blank bubbles, both think by default),
+ * dropped effort settings, and GPT-6 being sent function tools it 400s on.
+ * Verified live that day: gpt-6.1-sol and gpt-6-astra return the same "Function
+ * tools with reasoning_effort are not supported" error as gpt-5.6, and both new
+ * Geminis spend thinking tokens on a three-word reply.
+ *
+ * The patterns cover the current major version AND every later one, so the next
+ * release lands inside the gate instead of outside it.
+ */
+export function isOpenAIGptReasoning(id: string): boolean {
+  return /^gpt-([5-9]|[1-9]\d)/.test(id);
+}
+export function isOpenAIReasoning(id: string): boolean {
+  return /^o\d/.test(id) || isOpenAIGptReasoning(id);
+}
+export function isGeminiThinking(id: string): boolean {
+  return /^gemini-([3-9]|[1-9]\d)/.test(id);
+}
+
+/**
  * Does this model reject an explicit non-default `temperature`?
  *
  * ai@4.3.19 hardcodes `temperature: temperature != null ? temperature : 0`, so
@@ -48,10 +73,9 @@ export function needsExplicitTemperature(modelId: string): boolean {
  */
 export function isReasoningModel(modelId: string): boolean {
   const id = canonicalModelId(modelId);
-  return /^o\d/.test(id)
-    || /^gpt-5/.test(id)
+  return isOpenAIReasoning(id)
     || /^claude-/.test(id)
-    || /^gemini-3/.test(id);
+    || isGeminiThinking(id);
 }
 
 /**

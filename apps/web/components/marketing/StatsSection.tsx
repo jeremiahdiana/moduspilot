@@ -9,7 +9,7 @@ const STATS: Stat[] = [
   {
     value: '10',
     label: 'Frontier models',
-    body: 'Claude, GPT-5.6, Gemini, Llama and DeepSeek, every one of them, in a single chat.',
+    body: 'Claude, GPT-6, Gemini, Llama and DeepSeek, every one of them, in a single chat.',
   },
   {
     value: '$24',

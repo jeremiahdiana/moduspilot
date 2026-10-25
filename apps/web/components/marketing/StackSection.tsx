@@ -49,11 +49,11 @@ function WrappersLogo({ className = 'w-5 h-5' }: { className?: string }) {
 // below is "check them yourself" — one row a reader can disprove takes the other
 // five down with it. SuperGrok was removed for exactly that reason: Grok was
 // PILOT-only, so $30 of this total was never included at $24, and xAI could not
-// serve a request at all. "Gemini, built in" is true as of the Gemini 3.5 Flash
+// serve a request at all. "Gemini, built in" is true as of the Gemini 3.8 Flash
 // move onto MODUS; before that it was the same false row.
 const STACK: Row[] = [
   { name: 'ChatGPT Plus',        price: 20, logo: OpenAILogo,     instead: 'GPT-5.6, built in' },
-  { name: 'Claude Pro',          price: 20, logo: ClaudeLogo,     instead: 'Claude Sonnet 5 + Fable 5, built in' },
+  { name: 'Claude Pro',          price: 20, logo: ClaudeLogo,     instead: 'Claude Sonnet 5.5 + Fable 5.1, built in' },
   { name: 'Google AI Pro',       price: 20, logo: GeminiLogo,     instead: 'Gemini, built in' },
   { name: 'Perplexity Pro',      price: 20, logo: PerplexityLogo, instead: 'Web search on any model' },
   { name: 'Midjourney Standard', price: 30, logo: MidjourneyLogo, instead: 'Image generation in chat' },
