@@ -278,7 +278,7 @@ const MODUS_VS_PERPLEXITY: Post = {
     { type: 'h2', id: 'verdict', text: 'Who should pick which' },
     {
       type: 'p',
-      text: '**Pick MODUS** if you are paying for more than one AI subscription, if you want the newest frontier model from every lab in one place, or if you want several models on the same question without paying $200 a month for three of them.',
+      text: '**Pick MODUS** if you are paying for more than one AI subscription, if you want the newest frontier models from OpenAI, Anthropic and Google in one place, or if you want several models on the same question without paying $200 a month for three of them.',
     },
     {
       type: 'p',
