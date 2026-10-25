@@ -22,7 +22,7 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   if (!(m[1] in process.env)) process.env[m[1]] = v;
 }
 
-const UID = process.argv[2] || 'hSBcOHKSX9eCHaKSDczccTRzv093'; // jeremiahmaximojr@gmail.com
+const UID = (process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '') || 'hSBcOHKSX9eCHaKSDczccTRzv093'; // jeremiahmaximojr@gmail.com
 const APP = 'https://app.moduspilot.com';
 
 function app() {
@@ -61,6 +61,9 @@ async function main() {
   // PAID account that used to silently upgrade Llama -> gpt-5.6-terra, i.e. spend
   // money. After 233b95f it must stay on Llama: x-modus-model is the proof.
   const big = process.argv.includes('--big');
+  // --model=<id> drives one catalog model instead of the default. x-modus-model
+  // must come back as that id (or its successor, for a retired id).
+  const model = process.argv.find(a => a.startsWith('--model='))?.slice('--model='.length) ?? 'default';
   const filler = big
     ? 'The quarterly review covered revenue, retention, and roadmap risk in detail. '.repeat(700)
     : '';
@@ -75,7 +78,7 @@ async function main() {
     // The browser shape: useChat always sends `parts` alongside `content`.
     body: JSON.stringify({
       messages: [{ id: 'smoke-1', role: 'user', content: text, parts: [{ type: 'text', text }] }],
-      modelChoice: 'default',
+      modelChoice: model,
     }),
   });
 
