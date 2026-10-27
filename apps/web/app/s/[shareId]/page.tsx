@@ -17,9 +17,10 @@ interface SharedConversation {
   createdAt: { toDate?: () => Date } | null;
 }
 
-export async function generateMetadata({ params }: { params: { shareId: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ shareId: string }> }): Promise<Metadata> {
+  const { shareId } = await params;
   try {
-    const snap = await adminDb.collection('sharedConversations').doc(params.shareId).get();
+    const snap = await adminDb.collection('sharedConversations').doc(shareId).get();
     if (!snap.exists) return { title: 'Modus, Shared conversation' };
     const data = snap.data() as SharedConversation;
     return {
@@ -28,14 +29,14 @@ export async function generateMetadata({ params }: { params: { shareId: string }
       openGraph: {
         title: `${data.title} | Modus`,
         description: 'A conversation from Modus, the AI operating system that runs your day.',
-        url: `https://moduspilot.com/s/${params.shareId}`,
+        url: `https://moduspilot.com/s/${shareId}`,
         siteName: 'MODUS',
         images: ['/og.png'],
         type: 'article',
       },
       twitter: { card: 'summary_large_image', title: `${data.title} | Modus`, images: ['/og.png'] },
       alternates: {
-        canonical: `https://moduspilot.com/s/${params.shareId}`,
+        canonical: `https://moduspilot.com/s/${shareId}`,
       },
     };
   } catch {
@@ -55,12 +56,13 @@ function Logo() {
   );
 }
 
-export default async function SharedConversationPage({ params }: { params: { shareId: string } }) {
+export default async function SharedConversationPage({ params }: { params: Promise<{ shareId: string }> }) {
+  const { shareId } = await params;
   // Treat a backend/transient failure like a missing doc rather than crashing
   // this public marketing surface with an unstyled 500.
   const snap = await adminDb
     .collection('sharedConversations')
-    .doc(params.shareId)
+    .doc(shareId)
     .get()
     .catch(() => null);
   if (!snap || !snap.exists) notFound();

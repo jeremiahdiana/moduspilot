@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 // Reads the gate cookie server-side so the secret founding data never ships to
 // a client that hasn't entered a valid password.
 export default async function GrandfatheringPage() {
-  const codeId = verifyGate(cookies().get(FOUNDING_COOKIE)?.value);
+  const codeId = verifyGate((await cookies()).get(FOUNDING_COOKIE)?.value);
   const code = codeId ? await getFoundingCode(codeId) : null;
   // An expired, still-unclaimed key falls back to the gate (with an expired note);
   // an already-claimed key stays valid so a founder can always get back to their card.

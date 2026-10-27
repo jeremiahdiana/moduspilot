@@ -11,7 +11,6 @@ if (dsn) {
     environment: process.env.NEXT_PUBLIC_VERCEL_ENV || 'development',
     // Keep volumes (and free-tier quota) sane; raise once you know your traffic.
     tracesSampleRate: 0.1,
-    // Don't send default PII (IPs, etc.) — MODUS handles sensitive user data.
-    sendDefaultPii: false,
+    // Sentry 8+ already leaves default PII (IPs, etc.) off, so nothing to set here.
   });
 }

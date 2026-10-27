@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   }
 
   // The gate cookie proves they passed a valid founding password.
-  const codeId = verifyGate(cookies().get(FOUNDING_COOKIE)?.value);
+  const codeId = verifyGate((await cookies()).get(FOUNDING_COOKIE)?.value);
   if (!codeId) return Response.json({ error: 'Enter your founding key first.' }, { status: 403 });
   if (!FOUNDING_PRICE) return Response.json({ error: 'Founding pricing is not configured.' }, { status: 500 });
 

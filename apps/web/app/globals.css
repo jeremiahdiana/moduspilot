@@ -1,9 +1,8 @@
+@import 'react-grid-layout/css/styles.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* react-grid-layout */
-@import 'react-grid-layout/css/styles.css';
 
 /* Light mode (default — dark class added by JS if preference is dark) */
 :root {

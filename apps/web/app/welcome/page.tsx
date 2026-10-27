@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 // Reads their card details from the gate cookie; if there's no founding claim,
 // there's nothing to celebrate — send them to the app.
 export default async function WelcomePage() {
-  const codeId = verifyGate(cookies().get(FOUNDING_COOKIE)?.value);
+  const codeId = verifyGate((await cookies()).get(FOUNDING_COOKIE)?.value);
   const code = codeId ? await getFoundingCode(codeId) : null;
   if (!code) redirect('/dashboard');
 

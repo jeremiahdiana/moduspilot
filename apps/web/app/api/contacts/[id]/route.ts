@@ -3,12 +3,12 @@ import { adminDb } from '@/lib/firebase-admin';
 
 const VALID_CATEGORIES = new Set(['personal', 'professional', 'service', 'excluded']);
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
   const { uid } = auth;
 
-  const { id } = params;
+  const { id } = await params;
   if (!id) return Response.json({ error: 'Missing id' }, { status: 400 });
 
   let body: { userCategory: string | null };

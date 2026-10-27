@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
   // Reusable entry: a valid key sets a signed cookie that lasts 30 days, so they
   // can come back to finish claiming without re-entering it.
-  cookies().set(FOUNDING_COOKIE, signGate(codeId), {
+  (await cookies()).set(FOUNDING_COOKIE, signGate(codeId), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Secure breaks http://localhost
     sameSite: 'lax',

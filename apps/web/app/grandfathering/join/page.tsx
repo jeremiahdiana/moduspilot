@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // The cinematic value journey. Only reachable with a valid founding key; without
 // one there's nothing to claim, so send them back to the gate.
 export default async function FoundingJoinPage() {
-  const codeId = verifyGate(cookies().get(FOUNDING_COOKIE)?.value);
+  const codeId = verifyGate((await cookies()).get(FOUNDING_COOKIE)?.value);
   const code = codeId ? await getFoundingCode(codeId) : null;
   if (!code) redirect('/grandfathering');
   if (code.status === 'claimed') redirect('/grandfathering'); // already claimed → offer shows "secured"
